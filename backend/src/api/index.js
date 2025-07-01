@@ -4,6 +4,7 @@ import collegeRoutes from './college.routes.js';
 import problemRoutes from './problem.routes.js';
 import solutionRoutes from './solution.routes.js';
 import resourceRoutes from './resource.routes.js';
+import aiRoutes from './ai.routes.js';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/colleges', collegeRoutes);
 router.use('/problems', problemRoutes);
 router.use('/solutions', solutionRoutes);
 router.use('/resources', resourceRoutes);
+router.use('/ai', aiRoutes);
 
 export default router; 
