@@ -26,7 +26,7 @@ frontend/.vite/
 
 # Env files
 .env
-.env.*
+.env.
 
 # Misc
 *.local
