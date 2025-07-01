@@ -1,7 +1,3 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
 import {
   SignedIn,
   SignedOut,
@@ -11,11 +7,9 @@ import {
 } from "@clerk/clerk-react";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <header style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem', gap: '1rem' }}>
+    <div className="max-w-7xl mx-auto p-8 min-h-screen flex flex-col">
+      <header className="flex justify-end py-4 gap-4 mb-8">
         <SignedOut>
           <SignInButton />
           <SignUpButton />
@@ -24,27 +18,16 @@ function App() {
           <UserButton />
         </SignedIn>
       </header>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React + Clerk</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+      <main className="flex-1 flex flex-col items-center justify-center text-center">
+        <h1 className="mb-4">Welcome to Your App</h1>
+        <SignedOut>
+          <p>Please sign in to continue</p>
+        </SignedOut>
+        <SignedIn>
+          <p>You are signed in!</p>
+        </SignedIn>
+      </main>
+    </div>
   )
 }
 
