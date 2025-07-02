@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Search, ExternalLink } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
 
 // Dummy data for demonstration
 const resources = [
@@ -65,6 +66,7 @@ const typeOptions = [
 export default function ForgePage() {
   const [search, setSearch] = useState('');
   const [type, setType] = useState('');
+  const { username } = useParams();
 
   const filtered = resources.filter(r =>
     (type === '' || r.type === type) &&
@@ -84,11 +86,14 @@ export default function ForgePage() {
           </span>
           <input
             type="text"
-            className="input input-bordered input-md w-full pl-10"
+            className="input input-bordered input-md w-full pl-10 pr-10"
             placeholder="Search resources..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
+          <button className="absolute right-2 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs rounded-full" tabIndex={-1}>
+            <Search className="w-5 h-5 text-primary" />
+          </button>
         </div>
         {/* Type Filter Toggle Group (right) */}
         <div className="flex justify-end">
@@ -108,44 +113,71 @@ export default function ForgePage() {
       {/* Resource Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-2">
         {filtered.map(resource => (
-          <a
-            key={resource._id}
-            href={resource.url || '#'}
-            target={resource.url ? '_blank' : undefined}
-            rel="noopener noreferrer"
-            className="card card-normal bg-base-100 border border-base-200 shadow transition-all duration-200 hover:shadow-lg hover:scale-[1.01] cursor-pointer flex flex-col group overflow-hidden"
-            style={{ minHeight: 240 }}
-          >
-            <div className="card-body flex-1 flex flex-col gap-2">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="badge badge-outline badge-primary badge-sm capitalize">{resource.type.replace('_', ' ')}</span>
+          resource.url ? (
+            <a
+              key={resource._id}
+              href={resource.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="card card-normal bg-base-100 border border-base-200 shadow transition-all duration-200 hover:shadow-lg hover:scale-[1.01] cursor-pointer flex flex-col group overflow-hidden"
+              style={{ minHeight: 240 }}
+            >
+              <div className="card-body flex-1 flex flex-col gap-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="badge badge-outline badge-primary badge-sm capitalize">{resource.type.replace('_', ' ')}</span>
+                </div>
+                <h2 className="card-title font-heading text-lg font-bold leading-tight line-clamp-2">
+                  {resource.title}
+                </h2>
+                <p className="text-base-content/70 text-sm line-clamp-3 mb-1">
+                  {resource.summary.length > 200 ? resource.summary.slice(0, 200) + '…' : resource.summary}
+                </p>
+                <div className="flex flex-wrap gap-1 mt-auto">
+                  {resource.tags.map(tag => (
+                    <span key={tag} className="badge badge-ghost badge-xs rounded capitalize">{tag}</span>
+                  ))}
+                </div>
               </div>
-              <h2 className="card-title font-heading text-lg font-bold leading-tight line-clamp-2">
-                {resource.title}
-              </h2>
-              <p className="text-base-content/70 text-sm line-clamp-3 mb-1">
-                {resource.summary.length > 200 ? resource.summary.slice(0, 200) + '…' : resource.summary}
-              </p>
-              <div className="flex flex-wrap gap-1 mt-auto">
-                {resource.tags.map(tag => (
-                  <span key={tag} className="badge badge-ghost badge-xs rounded capitalize">{tag}</span>
-                ))}
+              <div className="flex items-center justify-between px-4 pb-3">
+                <span className="text-xs text-base-content/50">{resource.viewCount} views</span>
+                {resource.url && (
+                  <span className="inline-flex items-center gap-1 text-primary text-xs font-medium group-hover:underline">
+                    View <ExternalLink className="w-4 h-4" />
+                  </span>
+                )}
               </div>
-            </div>
-            <div className="flex items-center justify-between px-4 pb-3">
-              <span className="text-xs text-base-content/50">{resource.viewCount} views</span>
-              {resource.url && (
-                <span className="inline-flex items-center gap-1 text-primary text-xs font-medium group-hover:underline">
-                  View <ExternalLink className="w-4 h-4" />
-                </span>
-              )}
-              {!resource.url && (
+            </a>
+          ) : (
+            <Link
+              key={resource._id}
+              to={`/${username}/forge/${resource._id}`}
+              className="card card-normal bg-base-100 border border-base-200 shadow transition-all duration-200 hover:shadow-lg hover:scale-[1.01] cursor-pointer flex flex-col group overflow-hidden"
+              style={{ minHeight: 240 }}
+            >
+              <div className="card-body flex-1 flex flex-col gap-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="badge badge-outline badge-primary badge-sm capitalize">{resource.type.replace('_', ' ')}</span>
+                </div>
+                <h2 className="card-title font-heading text-lg font-bold leading-tight line-clamp-2">
+                  {resource.title}
+                </h2>
+                <p className="text-base-content/70 text-sm line-clamp-3 mb-1">
+                  {resource.summary.length > 200 ? resource.summary.slice(0, 200) + '…' : resource.summary}
+                </p>
+                <div className="flex flex-wrap gap-1 mt-auto">
+                  {resource.tags.map(tag => (
+                    <span key={tag} className="badge badge-ghost badge-xs rounded capitalize">{tag}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between px-4 pb-3">
+                <span className="text-xs text-base-content/50">{resource.viewCount} views</span>
                 <span className="inline-flex items-center gap-1 text-primary text-xs font-medium group-hover:underline">
                   View Details
                 </span>
-              )}
-            </div>
-          </a>
+              </div>
+            </Link>
+          )
         ))}
         {filtered.length === 0 && (
           <div className="col-span-full text-center text-base-content/60 py-12">No resources found.</div>
