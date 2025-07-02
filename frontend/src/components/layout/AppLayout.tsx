@@ -165,26 +165,23 @@ export default function AppLayout() {
             </button>
           </div>
           
-          {/* Search bar */}
-          <div className="flex-1 max-w-xl mx-4 relative">
-            <div className="relative">
-              <input 
-                type="text"
-                placeholder="Search..."
-                className="w-full px-4 py-2 pl-10 rounded-lg border border-base-300 bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary"
-                onFocus={() => setIsSearchOpen(true)}
-                onBlur={() => setIsSearchOpen(false)}
-              />
-              <Search 
-                className="absolute left-3 top-2.5 text-base-content/50" 
-                size={18} 
-              />
-            </div>
-            
-            {/* Search results dropdown */}
+          {/* Search icon and input inline in navbar */}
+          <div className="flex-1 flex justify-end items-center gap-2">
+            {!isSearchOpen && (
+              <button className="btn btn-ghost btn-circle" onClick={() => setIsSearchOpen(true)}>
+                <Search size={20} />
+              </button>
+            )}
             {isSearchOpen && (
-              <div className="absolute w-full mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg z-10 p-2">
-                <p className="text-base-content/50 p-2">Type to search...</p>
+              <div className="relative flex items-center w-full max-w-xs">
+                <Search className="w-5 h-5 absolute left-3 text-base-content/60" />
+                <input
+                  autoFocus
+                  type="text"
+                  className="input input-bordered input-md w-full pl-10 pr-8"
+                  placeholder="Search..."
+                />
+                <button className="btn btn-ghost btn-xs absolute right-1.5" onClick={() => setIsSearchOpen(false)}><X size={18} /></button>
               </div>
             )}
           </div>
@@ -206,7 +203,7 @@ export default function AppLayout() {
         </header>
         
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-6 bg-base-100">
+        <main className="flex-1 overflow-y-auto p-2 bg-base-100">
           <Outlet />
         </main>
       </div>

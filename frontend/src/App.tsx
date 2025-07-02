@@ -15,10 +15,12 @@ import SignUpPage from './pages/SignUpPage';
 // App Pages
 import DashboardPage from './pages/DashboardPage';
 import PlaceholderPage from './pages/PlaceholderPage';
+import ForgePage from './pages/ForgePage';
 
 // Protected route wrapper
 const ProtectedDashboard = withAuth(DashboardPage);
 const ProtectedPlaceholder = withAuth(PlaceholderPage);
+const ProtectedForgePage = withAuth(ForgePage);
 
 // Root route component to handle authenticated users
 function RootRoute() {
@@ -62,7 +64,7 @@ function App() {
             {/* Protected Routes - Username based */}
             <Route path="/:username" element={<AppLayout />}>
               <Route path="dashboard" element={<ProtectedDashboard />} />
-              <Route path="forge" element={<ProtectedPlaceholder title="Forge" description="Build your skills with curated learning resources." />} />
+              <Route path="forge" element={<ProtectedForgePage />} />
               <Route path="crucible" element={<ProtectedPlaceholder title="Crucible" description="Test your skills with challenging problems." />} />
               <Route path="arena" element={<ProtectedPlaceholder title="Arena" description="Compete with peers in coding competitions." />} />
               <Route path="profile" element={<ProtectedPlaceholder title="Profile" description="Manage your public profile and showcase your achievements." />} />
