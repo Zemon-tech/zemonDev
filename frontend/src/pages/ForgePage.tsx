@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, ExternalLink } from 'lucide-react';
+import { Search, ExternalLink, BookOpen, FileText, Film, Wrench, FolderGit2, FileBadge2 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 
 // Dummy data for demonstration
@@ -63,6 +63,16 @@ const typeOptions = [
   { label: 'Video', value: 'video' },
 ];
 
+// Map resource type to icon
+const typeIconMap: Record<string, React.ReactNode> = {
+  article: <FileText className="w-4 h-4 text-primary" />, // Article
+  documentation: <BookOpen className="w-4 h-4 text-primary" />, // Documentation
+  case_study: <FileBadge2 className="w-4 h-4 text-primary" />, // Case Study
+  tool: <Wrench className="w-4 h-4 text-primary" />, // Tool
+  video: <Film className="w-4 h-4 text-primary" />, // Video
+  repository: <FolderGit2 className="w-4 h-4 text-primary" />, // Repository
+};
+
 export default function ForgePage() {
   const [search, setSearch] = useState('');
   const [type, setType] = useState('');
@@ -119,11 +129,12 @@ export default function ForgePage() {
               href={resource.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="card card-normal bg-base-100 border border-base-200 shadow transition-all duration-200 hover:shadow-lg hover:scale-[1.01] cursor-pointer flex flex-col group overflow-hidden"
-              style={{ minHeight: 240 }}
+              className="card card-normal bg-base-100 border border-base-200 shadow transition-all duration-200 hover:shadow-lg hover:scale-[1.01] cursor-pointer flex flex-col group overflow-hidden no-underline hover:no-underline"
+              style={{ minHeight: 240, textDecoration: 'none' }}
             >
               <div className="card-body flex-1 flex flex-col gap-2">
                 <div className="flex items-center gap-2 mb-1">
+                  {typeIconMap[resource.type]}
                   <span className="badge badge-outline badge-primary badge-sm capitalize">{resource.type.replace('_', ' ')}</span>
                 </div>
                 <h2 className="card-title font-heading text-lg font-bold leading-tight line-clamp-2">
@@ -151,11 +162,12 @@ export default function ForgePage() {
             <Link
               key={resource._id}
               to={`/${username}/forge/${resource._id}`}
-              className="card card-normal bg-base-100 border border-base-200 shadow transition-all duration-200 hover:shadow-lg hover:scale-[1.01] cursor-pointer flex flex-col group overflow-hidden"
-              style={{ minHeight: 240 }}
+              className="card card-normal bg-base-100 border border-base-200 shadow transition-all duration-200 hover:shadow-lg hover:scale-[1.01] cursor-pointer flex flex-col group overflow-hidden no-underline hover:no-underline"
+              style={{ minHeight: 240, textDecoration: 'none' }}
             >
               <div className="card-body flex-1 flex flex-col gap-2">
                 <div className="flex items-center gap-2 mb-1">
+                  {typeIconMap[resource.type]}
                   <span className="badge badge-outline badge-primary badge-sm capitalize">{resource.type.replace('_', ' ')}</span>
                 </div>
                 <h2 className="card-title font-heading text-lg font-bold leading-tight line-clamp-2">

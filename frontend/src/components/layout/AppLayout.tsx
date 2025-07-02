@@ -1,21 +1,11 @@
 import { useState } from 'react';
-import { Link, Outlet, useParams, useLocation, Navigate } from 'react-router-dom';
+import { Outlet, useParams, useLocation, Navigate } from 'react-router-dom';
 import { UserButton, useUser } from '@clerk/clerk-react';
 import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
+import Sidebar from './Sidebar';
 
 // Icons
-import { 
-  Home, 
-  Settings, 
-  User, 
-  Hammer, 
-  Beaker, 
-  Swords, 
-  Search, 
-  Bell, 
-  Menu, 
-  X 
-} from 'lucide-react';
+import { Search, Bell, X } from 'lucide-react';
 
 export default function AppLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -47,109 +37,12 @@ export default function AppLayout() {
   return (
     <div className="flex h-screen bg-base-100">
       {/* Sidebar - Desktop & Mobile */}
-      <aside 
-        className={`fixed inset-y-0 left-0 z-50 transform ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:relative md:translate-x-0 transition-transform duration-300 ease-in-out
-        bg-base-200 border-r border-base-300 w-64 flex flex-col`}
-      >
-        {/* Sidebar Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-base-300">
-          <Link to={`/${currentUsername}/dashboard`} className="text-xl font-bold text-primary font-heading">
-            ZEMON
-          </Link>
-          <button 
-            className="md:hidden text-base-content hover:text-primary" 
-            onClick={toggleSidebar}
-          >
-            <X size={24} />
-          </button>
-        </div>
-        
-        {/* Sidebar Links */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3">
-          <ul className="space-y-2">
-            <li>
-              <Link 
-                to={`/${currentUsername}/dashboard`}
-                className={`flex items-center px-4 py-3 text-base rounded-lg transition-colors ${
-                  isRouteActive('dashboard') 
-                    ? 'active bg-primary text-primary-content' 
-                    : 'text-base-content/70 hover:bg-base-100 hover:text-primary'
-                }`}
-              >
-                <Home className="mr-3" size={20} />
-                <span>Dashboard</span>
-              </Link>
-            </li>
-            <li>
-              <Link 
-                to={`/${currentUsername}/forge`}
-                className={`flex items-center px-4 py-3 text-base rounded-lg transition-colors ${
-                  isRouteActive('forge') 
-                    ? 'active bg-primary text-primary-content' 
-                    : 'text-base-content/70 hover:bg-base-100 hover:text-primary'
-                }`}
-              >
-                <Hammer className="mr-3" size={20} />
-                <span>Forge</span>
-              </Link>
-            </li>
-            <li>
-              <Link 
-                to={`/${currentUsername}/crucible`}
-                className={`flex items-center px-4 py-3 text-base rounded-lg transition-colors ${
-                  isRouteActive('crucible') 
-                    ? 'active bg-primary text-primary-content' 
-                    : 'text-base-content/70 hover:bg-base-100 hover:text-primary'
-                }`}
-              >
-                <Beaker className="mr-3" size={20} />
-                <span>Crucible</span>
-              </Link>
-            </li>
-            <li>
-              <Link 
-                to={`/${currentUsername}/arena`}
-                className={`flex items-center px-4 py-3 text-base rounded-lg transition-colors ${
-                  isRouteActive('arena') 
-                    ? 'active bg-primary text-primary-content' 
-                    : 'text-base-content/70 hover:bg-base-100 hover:text-primary'
-                }`}
-              >
-                <Swords className="mr-3" size={20} />
-                <span>Arena</span>
-              </Link>
-            </li>
-            <li>
-              <Link 
-                to={`/${currentUsername}/profile`}
-                className={`flex items-center px-4 py-3 text-base rounded-lg transition-colors ${
-                  isRouteActive('profile') 
-                    ? 'active bg-primary text-primary-content' 
-                    : 'text-base-content/70 hover:bg-base-100 hover:text-primary'
-                }`}
-              >
-                <User className="mr-3" size={20} />
-                <span>Profile</span>
-              </Link>
-            </li>
-            <li>
-              <Link 
-                to={`/${currentUsername}/settings`}
-                className={`flex items-center px-4 py-3 text-base rounded-lg transition-colors ${
-                  isRouteActive('settings') 
-                    ? 'active bg-primary text-primary-content' 
-                    : 'text-base-content/70 hover:bg-base-100 hover:text-primary'
-                }`}
-              >
-                <Settings className="mr-3" size={20} />
-                <span>Settings</span>
-              </Link>
-            </li>
-          </ul>
-        </nav>
-      </aside>
+      <Sidebar
+        isOpen={isSidebarOpen}
+        toggleSidebar={toggleSidebar}
+        currentUsername={currentUsername}
+        isRouteActive={isRouteActive}
+      />
       
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -159,9 +52,9 @@ export default function AppLayout() {
           <div className="md:hidden">
             <button 
               onClick={toggleSidebar}
-              className="text-base-content/70 hover:text-primary"
+              className="btn btn-ghost btn-circle"
             >
-              <Menu size={24} />
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
           </div>
           
