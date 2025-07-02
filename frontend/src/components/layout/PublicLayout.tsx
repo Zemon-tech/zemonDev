@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Outlet, useLocation } from 'react-router-dom';
 import { SignInButton, SignUpButton, useAuth, useUser } from '@clerk/clerk-react';
-import ThemeToggle from '../ui/ThemeToggle';
+import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher';
 
 export default function PublicLayout() {
   const { isSignedIn } = useAuth();
@@ -41,7 +41,7 @@ export default function PublicLayout() {
             <Link to="/developers" className="text-text hover:text-primary transition-colors">
               Developers
             </Link>
-            <ThemeToggle />
+            <ThemeSwitcher />
             
             {/* Show auth buttons only if not signed in and not on auth pages */}
             {!isSignedIn && !isAuthPage && (

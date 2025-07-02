@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import ThemeToggle from '../ui/ThemeToggle';
 import { SignInButton, SignUpButton } from '@clerk/clerk-react';
 
 export default function Navbar() {

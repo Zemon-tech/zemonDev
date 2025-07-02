@@ -27,5 +27,15 @@ export default {
       },
     },
   },
-  plugins: [],
-} 
+  plugins: [
+    require('daisyui')
+  ],
+  daisyui: {
+    themes: true, // Enable all themes
+    darkTheme: "dark", // Set the default dark theme
+    base: true, // Apply base styles
+    styled: true, // Apply styled components
+    utils: true, // Apply utility classes
+    logs: false, // Disable logs
+  }
+}

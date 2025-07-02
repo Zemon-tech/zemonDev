@@ -1,84 +1,57 @@
 @import "tailwindcss";
+@plugin "daisyui" {
+  themes: all;
+}
 
-/* Base theme variables */
+/* Original color palette kept for reference */
 :root {
-  /* Light theme by default */
   --mint-green: hsla(179, 49%, 83%, 1);
   --moonstone: hsla(192, 50%, 59%, 1);
   --indigo-dye: hsla(203, 58%, 25%, 1);
   --columbia-blue: hsla(205, 100%, 90%, 1);
   --picton-blue: hsla(202, 57%, 60%, 1);
 
-  /* Theme colors - light mode */
-  --color-primary: var(--indigo-dye);
-  --color-secondary: var(--picton-blue);
-  --color-accent: var(--moonstone);
-  --color-background: #ffffff;
-  --color-background-secondary: var(--columbia-blue);
-  --color-text: var(--indigo-dye);
-  --color-text-secondary: hsla(203, 30%, 30%, 1);
-  --color-border: hsla(203, 20%, 80%, 1);
-  --color-success: var(--mint-green);
-  --color-info: var(--columbia-blue);
-  --color-warning: hsl(48, 96%, 53%);
-  --color-error: hsl(0, 91%, 71%);
-}
-
-/* Dark theme */
-html.dark {
-  --color-primary: var(--picton-blue);
-  --color-secondary: var(--columbia-blue);
-  --color-accent: var(--moonstone);
-  --color-background: hsla(203, 58%, 10%, 1);
-  --color-background-secondary: hsla(203, 58%, 15%, 1);
-  --color-text: #ffffff;
-  --color-text-secondary: hsla(203, 30%, 80%, 1);
-  --color-border: hsla(203, 20%, 30%, 1);
-  --color-success: var(--mint-green);
-  --color-info: var(--columbia-blue);
-  --color-warning: hsl(48, 96%, 53%);
-  --color-error: hsl(0, 91%, 71%);
-}
-
-/* Extend Tailwind with our custom theme */
-@theme {
+  /* Map our custom CSS variables to DaisyUI theme variables */
   /* Primary colors */
   --color-primary: var(--color-primary);
   --color-primary-light: color-mix(in srgb, var(--color-primary) 70%, white);
-  --color-primary-dark: color-mix(in srgb, var(--color-primary) 70%, black);
+  --color-primary-dark: var(--color-primary-focus);
+  --color-primary-content: var(--color-primary-content);
   
   /* Secondary colors */
   --color-secondary: var(--color-secondary);
   --color-secondary-light: color-mix(in srgb, var(--color-secondary) 70%, white);
-  --color-secondary-dark: color-mix(in srgb, var(--color-secondary) 70%, black);
+  --color-secondary-dark: var(--color-secondary-focus);
+  --color-secondary-content: var(--color-secondary-content);
   
   /* Accent colors */
   --color-accent: var(--color-accent);
   --color-accent-light: color-mix(in srgb, var(--color-accent) 70%, white);
-  --color-accent-dark: color-mix(in srgb, var(--color-accent) 70%, black);
+  --color-accent-dark: var(--color-accent-focus);
+  --color-accent-content: var(--color-accent-content);
   
   /* Background colors */
-  --color-bg: var(--color-background);
-  --color-bg-secondary: var(--color-background-secondary);
+  --color-background: var(--color-base-100);
+  --color-background-secondary: var(--color-base-200);
+  --color-border: var(--color-base-300);
   
   /* Text colors */
-  --color-text: var(--color-text);
-  --color-text-secondary: var(--color-text-secondary);
-  
-  /* Border colors */
-  --color-border: var(--color-border);
+  --color-text: var(--color-base-content);
+  --color-text-secondary: var(--color-base-content, #1f2937);
   
   /* Status colors */
   --color-success: var(--color-success);
+  --color-success-content: var(--color-success-content);
   --color-info: var(--color-info);
+  --color-info-content: var(--color-info-content);
   --color-warning: var(--color-warning);
+  --color-warning-content: var(--color-warning-content);
   --color-error: var(--color-error);
+  --color-error-content: var(--color-error-content);
 }
 
 /* Base styles */
 body {
-  background-color: var(--color-background);
-  color: var(--color-text);
   font-family: "Source Sans 3", system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   min-height: 100vh;
 }
@@ -89,88 +62,55 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
 }
 
-/* Button styles */
-.btn {
-  @apply px-4 py-2 rounded-md font-medium transition-colors duration-200;
-  font-family: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-}
-
-.btn-primary {
-  background-color: var(--color-primary);
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: var(--color-primary-dark);
-}
-
-.btn-secondary {
-  background-color: var(--color-secondary);
-  color: white;
-}
-
-.btn-secondary:hover {
-  background-color: var(--color-secondary-dark);
-}
-
-.btn-outline {
-  background-color: transparent;
-  border: 1px solid var(--color-primary);
-  color: var(--color-primary);
-}
-
-.btn-outline:hover {
-  background-color: var(--color-primary);
-  color: white;
-}
-
-.btn-ghost {
-  background-color: transparent;
-  color: var(--color-text);
-}
-
-.btn-ghost:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
+/* Custom button styles that extend DaisyUI */
 .btn-circle {
-  @apply rounded-full h-10 w-10 flex items-center justify-center p-0;
-}
-
-/* Card styles */
-.card {
-  @apply rounded-lg overflow-hidden shadow-md;
-  background-color: var(--color-background);
-  border: 1px solid var(--color-border);
-}
-
-.card-body {
-  @apply p-6;
-}
-
-/* Navbar styles */
-.navbar {
-  @apply flex items-center justify-between p-4;
-  background-color: var(--color-background);
-  border-bottom: 1px solid var(--color-border);
+  border-radius: 9999px;
+  height: 2.5rem;
+  width: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 /* Theme toggle styles */
 .theme-toggle {
-  @apply relative inline-block w-12 h-6 rounded-full cursor-pointer;
+  position: relative;
+  display: inline-block;
+  width: 3rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  cursor: pointer;
 }
 
 .theme-toggle input {
-  @apply opacity-0 w-0 h-0;
+  opacity: 0;
+  width: 0;
+  height: 0;
 }
 
 .theme-toggle-slider {
-  @apply absolute top-0 left-0 right-0 bottom-0 rounded-full transition-colors duration-300;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 9999px;
+  transition-property: background-color;
+  transition-duration: 300ms;
   background-color: var(--color-secondary);
 }
 
 .theme-toggle-slider:before {
-  @apply absolute h-5 w-5 left-0.5 bottom-0.5 rounded-full transition-transform duration-300 bg-white;
+  position: absolute;
+  height: 1.25rem;
+  width: 1.25rem;
+  left: 0.125rem;
+  bottom: 0.125rem;
+  border-radius: 9999px;
+  transition-property: transform;
+  transition-duration: 300ms;
+  background-color: var(--color-secondary-content);
   content: "";
 }
 
@@ -179,5 +119,23 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .theme-toggle input:checked + .theme-toggle-slider:before {
-  @apply transform translate-x-6;
+  transform: translateX(1.5rem);
+}
+
+/* DaisyUI theme switcher helper */
+.theme-controller {
+  position: absolute;
+  opacity: 0;
+  left: -9999px;
+}
+
+/* Additional styling for better theme integration */
+a:hover {
+  text-decoration: underline;
+}
+
+/* Style active sidebar items */
+aside a.active {
+  background-color: var(--color-primary);
+  color: var(--color-primary-content);
 }
