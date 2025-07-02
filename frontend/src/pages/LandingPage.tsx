@@ -1,8 +1,23 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 
 export default function LandingPage() {
+  const { isSignedIn, isLoaded } = useAuth();
+  const { user } = useUser();
+  const navigate = useNavigate();
+  
+  // Get username or fallback
+  const username = user?.username || (user ? `user${user.id.slice(-8)}` : '');
+  
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (isLoaded && isSignedIn && username) {
+      navigate(`/${username}/dashboard`, { replace: true });
+    }
+  }, [isLoaded, isSignedIn, username, navigate]);
+  
   // State to track which card is being hovered
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   
@@ -13,7 +28,7 @@ export default function LandingPage() {
       title: 'The Forge',
       image: '/forge.jpg',
       description: 'Access curated learning resources to build your programming skills from the ground up.',
-      link: '/forge',
+      link: isSignedIn && username ? `/${username}/forge` : '/signup?next=forge',
       buttonText: 'Explore Resources'
     },
     {
@@ -21,7 +36,7 @@ export default function LandingPage() {
       title: 'The Crucible',
       image: '/crucible.jpg',
       description: 'Test your skills with challenging problems designed to push your limits.',
-      link: '/crucible',
+      link: isSignedIn && username ? `/${username}/crucible` : '/signup?next=crucible',
       buttonText: 'Solve Problems'
     },
     {
@@ -29,7 +44,7 @@ export default function LandingPage() {
       title: 'The Arena',
       image: '/arena.jpg',
       description: 'Compete with peers in coding competitions and climb the leaderboard.',
-      link: '/arena',
+      link: isSignedIn && username ? `/${username}/arena` : '/signup?next=arena',
       buttonText: 'Enter Arena'
     }
   ];
@@ -61,12 +76,20 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
           >
-            <Link to="/signup" className="btn btn-primary">
-              Get Started
-            </Link>
-            <Link to="/learn-more" className="btn btn-outline">
-              Learn More
-            </Link>
+            {isSignedIn && username ? (
+              <Link to={`/${username}/dashboard`} className="btn btn-primary">
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link to="/signup" className="btn btn-primary">
+                  Get Started
+                </Link>
+                <Link to="/learn-more" className="btn btn-outline">
+                  Learn More
+                </Link>
+              </>
+            )}
           </motion.div>
         </div>
       </section>
@@ -246,15 +269,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="py-8 px-4 bg-background-secondary mt-auto">
-        <div className="container mx-auto text-center">
-          <p className="text-text-secondary">
-            © {new Date().getFullYear()} ZEMON. All rights reserved.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 } 
