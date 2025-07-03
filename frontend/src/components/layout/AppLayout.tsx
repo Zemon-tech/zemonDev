@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, useParams, useLocation, Navigate } from 'react-router-dom';
+import { Outlet, useParams, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { UserButton, useUser } from '@clerk/clerk-react';
 import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
 import Sidebar from './Sidebar';
@@ -13,6 +13,7 @@ export default function AppLayout() {
   const { username: urlUsername } = useParams();
   const location = useLocation();
   const { user, isLoaded } = useUser();
+  const navigate = useNavigate();
   
   // Get the current user's username or fallback
   const currentUsername = user?.username || (user ? `user${user.id.slice(-8)}` : '');
@@ -33,6 +34,20 @@ export default function AppLayout() {
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
+  
+  // Workspace nav button handlers (to be implemented via context or events)
+  const handleToggleProblemSidebar = () => {
+    window.dispatchEvent(new CustomEvent('toggle-problem-sidebar'));
+  };
+  const handleToggleChatSidebar = () => {
+    window.dispatchEvent(new CustomEvent('toggle-chat-sidebar'));
+  };
+  const handleBack = () => {
+    navigate(-1);
+  };
+  
+  // Show workspace nav buttons only on /:username/crucible/problem/:id
+  const isCrucibleProblemPage = /^\/[\w-]+\/crucible\/problem\/.+/.test(location.pathname);
   
   return (
     <div className="flex h-screen bg-base-100">
@@ -57,6 +72,21 @@ export default function AppLayout() {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
           </div>
+          
+          {/* Workspace nav buttons (only on problem page) */}
+          {isCrucibleProblemPage && (
+            <div className="flex items-center gap-2">
+              <button className="btn btn-ghost" onClick={handleBack}>
+                ← Back
+              </button>
+              <button className="btn btn-ghost" onClick={handleToggleProblemSidebar} aria-label="Toggle Problem Details Sidebar">
+                ☰ Menu
+              </button>
+              <button className="btn btn-ghost" onClick={handleToggleChatSidebar} aria-label="Toggle AI Chat Sidebar">
+                💬 Chat
+              </button>
+            </div>
+          )}
           
           {/* Search icon and input inline in navbar */}
           <div className="flex-1 flex justify-end items-center gap-2">

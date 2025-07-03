@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 // Remove broken import
 // import CrucibleBrowseView, { type Problem } from '../components/crucible/CrucibleBrowseView';
-import CrucibleWorkspaceView from '../components/crucible/CrucibleWorkspaceView.tsx';
 import ProblemCard, { type Problem } from '../components/crucible/ProblemCard';
 // Assume these hooks are available
 // import { useCrucibleProblems, useCrucibleSolution } from '@/hooks/crucible';
@@ -77,7 +76,8 @@ const dummyProblems: Problem[] = [
 ];
 
 export default function CruciblePage() {
-  const [selectedProblem, setSelectedProblem] = useState<Problem | null>(null);
+  const navigate = useNavigate();
+  const { username } = useParams();
   const problems = dummyProblems;
 
   // TODO: Replace with real hooks
@@ -86,18 +86,13 @@ export default function CruciblePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4 min-h-screen">
-      {!selectedProblem ? (
-        <CrucibleBrowseView
-          problems={problems}
-          loading={false}
-          onSelect={setSelectedProblem}
-        />
-      ) : (
-        <CrucibleWorkspaceView
-          problem={selectedProblem}
-          onBack={() => setSelectedProblem(null)}
-        />
-      )}
+      <CrucibleBrowseView
+        problems={problems}
+        loading={false}
+        onSelect={(problem) => {
+          navigate(`/${username}/crucible/problem/${problem.id}`);
+        }}
+      />
     </div>
   );
 } 

@@ -1,3 +1,10 @@
+import React from 'react';
+// TODO: Import ShadCN Drawer and Button components when installed
+// import { Drawer, DrawerTrigger, DrawerContent } from 'shadcn/ui/drawer';
+// import { Button } from 'shadcn/ui/button';
+import ProblemDetailsSidebar from './ProblemDetailsSidebar';
+import SolutionEditor from './SolutionEditor';
+import AIChatSidebar from './AIChatSidebar';
 // Define Problem type locally (copy from ProblemCard)
 type Problem = {
   id: string;
@@ -26,72 +33,63 @@ export default function CrucibleWorkspaceView({ problem, onBack }: Props) {
     'Think about hash functions for code generation',
     'Consider how to handle analytics efficiently',
   ];
+  const [notes, setNotes] = React.useState('');
+
+  // Sidebar toggles
+  const [showProblemSidebar, setShowProblemSidebar] = React.useState(true);
+  const [showChatSidebar, setShowChatSidebar] = React.useState(false);
 
   return (
-    <div className="w-full min-h-screen flex flex-col bg-base-200">
-      <div className="max-w-7xl w-full mx-auto px-4 py-6 flex flex-col gap-4">
-        <button className="btn btn-ghost w-fit mb-2" onClick={onBack}>
-          ← Back to Browse
-        </button>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Problem Details */}
-          <div className="flex flex-col gap-4">
-            <div className="card bg-base-100 border border-base-200 shadow p-6 w-full">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl font-bold flex-1">{problem.title}</h1>
-                <span className={`badge badge-outline capitalize`}>{problem.difficulty}</span>
-              </div>
-              <p className="mb-3 text-base-content/80">{problem.description}</p>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {problem.tags.map((tag: string) => (
-                  <span key={tag} className="badge badge-ghost capitalize">{tag}</span>
-                ))}
-              </div>
-              {/* Requirements */}
-              <div className="mb-2">
-                <h3 className="font-semibold text-base mb-1">Requirements</h3>
-                <ul className="list-disc list-inside text-sm text-base-content/70">
-                  {requirements.map((req, i) => <li key={i}>{req}</li>)}
-                </ul>
-              </div>
-              {/* Constraints */}
-              <div className="mb-2">
-                <h3 className="font-semibold text-base mb-1">Constraints</h3>
-                <ul className="list-disc list-inside text-sm text-base-content/70">
-                  {constraints.map((c, i) => <li key={i}>{c}</li>)}
-                </ul>
-              </div>
-              {/* Hints */}
-              <div>
-                <h3 className="font-semibold text-base mb-1">Hints</h3>
-                <ul className="list-disc list-inside text-sm text-base-content/70">
-                  {hints.map((h, i) => <li key={i}>{h}</li>)}
-                </ul>
-              </div>
-            </div>
+    <div className="w-full h-screen flex flex-row bg-base-200 overflow-hidden">
+      {/* Problem Details Sidebar (collapsible) */}
+      {showProblemSidebar && (
+        <div className="w-[300px] min-w-[280px] max-w-[340px] h-full border-r border-base-200 bg-base-100 flex-shrink-0 overflow-y-auto">
+          <ProblemDetailsSidebar
+            title={problem.title}
+            description={problem.description}
+            requirements={requirements}
+            constraints={constraints}
+            hints={hints}
+            tags={problem.tags}
+            notes={notes}
+            onNotesChange={setNotes}
+          />
+        </div>
+      )}
+      {/* Center Notion-style Editor Placeholder */}
+      <div className="flex-1 flex flex-col h-full overflow-y-auto">
+        <div className="max-w-4xl w-full mx-auto px-4 py-6 flex flex-col gap-4 h-full">
+          <div className="flex items-center gap-2 mb-2">
+            <button className="btn btn-ghost" onClick={onBack}>
+              ← Back to Browse
+            </button>
+            <button
+              className="btn btn-ghost"
+              onClick={() => setShowProblemSidebar((v) => !v)}
+              aria-label="Toggle Problem Details Sidebar"
+            >
+              ☰ Menu
+            </button>
+            <button
+              className="btn btn-ghost"
+              onClick={() => setShowChatSidebar((v) => !v)}
+              aria-label="Toggle AI Chat Sidebar"
+            >
+              💬 Chat
+            </button>
           </div>
-          {/* Solution Workspace */}
-          <div className="flex flex-col gap-4">
-            <div className="card bg-base-100 border border-base-200 shadow p-6 w-full flex-1 flex flex-col">
-              <h2 className="text-xl font-bold mb-2">Your Solution</h2>
-              {/* Placeholder for code editor or textarea */}
-              <textarea
-                className="textarea textarea-bordered w-full min-h-[200px] mb-4"
-                placeholder="Write your solution here..."
-              />
-              <div className="flex gap-2 mt-auto">
-                <button className="btn btn-primary">Submit Solution</button>
-                <button className="btn btn-ghost">Save Draft</button>
-              </div>
-            </div>
-            {/* Placeholder for AI feedback, solution stats, etc. */}
-            <div className="card bg-base-100 border border-base-200 shadow p-4 w-full">
-              <h3 className="font-semibold mb-2">AI Feedback (coming soon)</h3>
-              <p className="text-sm text-base-content/60">Get instant feedback and suggestions after submitting your solution.</p>
-            </div>
+          {/* Notion-style Editor */}
+          <div className="flex-1 bg-white rounded-lg shadow p-6 overflow-auto border border-base-300 min-h-[400px]">
+            <SolutionEditor />
           </div>
         </div>
       </div>
+      {/* AI Chat Sidebar (collapsible) */}
+      {showChatSidebar && (
+        <div className="w-[300px] min-w-[280px] max-w-[340px] h-full border-l border-base-200 bg-base-100 flex-shrink-0 overflow-y-auto flex flex-col">
+          <AIChatSidebar />
+        </div>
+      )}
     </div>
   );
 } 

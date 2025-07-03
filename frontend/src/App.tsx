@@ -18,6 +18,7 @@ import PlaceholderPage from './pages/PlaceholderPage';
 import ForgePage from './pages/ForgePage';
 import ForgeDetailPage from './pages/ForgeDetailPage';
 import CruciblePage from './pages/CruciblePage';
+import CrucibleProblemPage from './pages/CrucibleProblemPage';
 
 // Protected route wrapper
 const ProtectedDashboard = withAuth(DashboardPage);
@@ -70,6 +71,7 @@ function App() {
               <Route path="forge" element={<ProtectedForgePage />} />
               <Route path="forge/:id" element={<ProtectedForgeDetailPage />} />
               <Route path="crucible" element={<CruciblePage />} />
+              <Route path="crucible/problem/:id" element={<CrucibleProblemPage />} />
               <Route path="arena" element={<ProtectedPlaceholder title="Arena" description="Compete with peers in coding competitions." />} />
               <Route path="profile" element={<ProtectedPlaceholder title="Profile" description="Manage your public profile and showcase your achievements." />} />
               <Route path="settings" element={<ProtectedPlaceholder title="Settings" description="Configure your account settings and preferences." />} />
