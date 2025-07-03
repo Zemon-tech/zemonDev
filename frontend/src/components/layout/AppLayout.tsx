@@ -5,7 +5,7 @@ import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
 import Sidebar from './Sidebar';
 
 // Icons
-import { Search, Bell, X } from 'lucide-react';
+import { Search, Bell, X, Hammer } from 'lucide-react';
 
 export default function AppLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -48,6 +48,8 @@ export default function AppLayout() {
   
   // Show workspace nav buttons only on /:username/crucible/problem/:id
   const isCrucibleProblemPage = /^\/[\w-]+\/crucible\/problem\/.+/.test(location.pathname);
+  // Show back to forge only on /:username/forge/:id
+  const isForgeDetailPage = /^\/[\w-]+\/forge\/[\w-]+$/.test(location.pathname);
   
   return (
     <div className="flex h-screen bg-base-100">
@@ -72,6 +74,17 @@ export default function AppLayout() {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
           </div>
+          
+          {/* Back to Forge button (only on Forge detail page) */}
+          {isForgeDetailPage && (
+            <button
+              className="btn btn-ghost text-primary font-semibold flex items-center gap-2"
+              onClick={() => navigate(`/${currentUsername}/forge`)}
+            >
+              <Hammer className="w-5 h-5" />
+              Back to Forge
+            </button>
+          )}
           
           {/* Workspace nav buttons (only on problem page) */}
           {isCrucibleProblemPage && (

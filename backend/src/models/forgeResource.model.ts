@@ -22,6 +22,7 @@ export interface IForgeResource extends Document {
     bookmarks: number;
     rating: number;
   };
+  isExternal: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,8 +41,8 @@ const ForgeResourceSchema: Schema = new Schema(
     },
     url: {
       type: String,
-      required: [true, 'Please provide a URL'],
       trim: true,
+      // not required: internal resources may not have a URL
     },
     description: {
       type: String,
@@ -104,6 +105,11 @@ const ForgeResourceSchema: Schema = new Schema(
         min: 0,
         max: 5,
       },
+    },
+    isExternal: {
+      type: Boolean,
+      // Use a regular function to access 'this' (the document)
+      default: function(this: any) { return !!this.url; },
     },
   },
   { timestamps: true }

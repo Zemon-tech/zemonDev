@@ -44,16 +44,16 @@ export default function CrucibleWorkspaceView({ problem, onBack }: Props) {
       {/* Problem Details Sidebar (collapsible) */}
       {showProblemSidebar && (
         <div className="w-[300px] min-w-[280px] max-w-[340px] h-full border-r border-base-200 bg-base-100 flex-shrink-0 overflow-y-auto">
-          <ProblemDetailsSidebar
-            title={problem.title}
-            description={problem.description}
-            requirements={requirements}
-            constraints={constraints}
-            hints={hints}
-            tags={problem.tags}
-            notes={notes}
-            onNotesChange={setNotes}
-          />
+      <ProblemDetailsSidebar
+        title={problem.title}
+        description={problem.description}
+        requirements={requirements}
+        constraints={constraints}
+        hints={hints}
+        tags={problem.tags}
+        notes={notes}
+        onNotesChange={setNotes}
+      />
         </div>
       )}
       {/* Center Notion-style Editor Placeholder */}
@@ -61,8 +61,8 @@ export default function CrucibleWorkspaceView({ problem, onBack }: Props) {
         <div className="max-w-4xl w-full mx-auto px-4 py-6 flex flex-col gap-4 h-full">
           <div className="flex items-center gap-2 mb-2">
             <button className="btn btn-ghost" onClick={onBack}>
-              ← Back to Browse
-            </button>
+            ← Back to Browse
+          </button>
             <button
               className="btn btn-ghost"
               onClick={() => setShowProblemSidebar((v) => !v)}

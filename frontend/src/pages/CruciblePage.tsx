@@ -86,13 +86,13 @@ export default function CruciblePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4 min-h-screen">
-      <CrucibleBrowseView
-        problems={problems}
-        loading={false}
+        <CrucibleBrowseView
+          problems={problems}
+          loading={false}
         onSelect={(problem) => {
           navigate(`/${username}/crucible/problem/${problem.id}`);
         }}
-      />
+        />
     </div>
   );
 } 
