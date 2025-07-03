@@ -1,308 +1,187 @@
 # ZEMON Backend Documentation
 
-## Overview
-The ZEMON platform backend is built using Node.js, Express.js, MongoDB, and Redis. It provides a robust API for managing users, colleges, coding problems (Crucible), solutions, and educational resources (Forge).
+This document provides a comprehensive overview of the ZEMON backend architecture, components, and API endpoints. It is intended for developers working on or integrating with the backend system.
 
-## Tech Stack
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Database**: MongoDB with Mongoose ODM
-- **Caching**: Redis
-- **Authentication**: Clerk
-- **Real-time**: Socket.IO
-- **Validation**: Zod
+## Table of Contents
 
-## Core Features
-1. User Management & Authentication
-2. College Management
-3. The Crucible (Problem-Solution Platform)
-4. The Forge (Educational Resources)
-5. Real-time Notifications
-6. AI-powered Solution Analysis
+1.  [High-Level Overview](#1-high-level-overview)
+2.  [Technology Stack](#2-technology-stack)
+3.  [Project Structure](#3-project-structure)
+4.  [Environment Variables](#4-environment-variables)
+5.  [Authentication Flow](#5-authentication-flow)
+6.  [Core Middleware](#6-core-middleware)
+7.  [API Endpoints](#7-api-endpoints)
+    -   [Users API](#users-api)
+    -   [Crucible (Problems & Solutions) API](#crucible-problems--solutions-api)
+    -   [Forge (Resources) API](#forge-resources-api)
+    -   [AI Services API](#ai-services-api)
+8.  [Controllers](#8-controllers)
+9.  [Services](#9-services)
+10. [Database Models](#10-database-models)
+11. [Getting Started](#11-getting-started)
 
-## Database Models
+---
 
-### 1. User Model
-```javascript
-{
-  clerkId: String,          // External auth ID
-  email: String,            // Primary email
-  fullName: String,         // User's full name
-  collegeId: ObjectId,      // Reference to College
-  profile: {
-    headline: String,       // Optional headline
-    bio: String,           // Optional bio
-  },
-  branch: String,          // Engineering branch
-  year: Number,            // Academic year (1-5)
-  interests: [String],     // Array of interests
-  stats: {
-    problemsSolved: Number,
-    resourcesCreated: Number,
-    reputation: Number
-  },
-  bookmarkedResources: [ObjectId], // References to ForgeResource
-  completedSolutions: [ObjectId],  // References to CrucibleSolution
-  createdAt: Date,
-  updatedAt: Date
-}
+## 1. High-Level Overview
+
+The ZEMON backend is a Node.js application built with Express and TypeScript. It serves as the core API for the ZEMON educational platform, managing users, problems, solutions, and community resources. It leverages a monolithic architecture with a service-oriented approach to encapsulate business logic. Key features include Clerk-based authentication, MongoDB for data persistence, Upstash Redis for caching, and Google Gemini for AI-powered code analysis and hint generation.
+
+## 2. Technology Stack
+
+-   **Runtime**: Node.js
+-   **Framework**: Express.js
+-   **Language**: TypeScript
+-   **Database**: MongoDB with Mongoose ODM
+-   **Authentication**: Clerk
+-   **Caching**: Upstash Redis
+-   **AI Services**: Google Gemini Pro
+-   **Dev Toolkit**: `ts-node-dev` for live reloading, `eslint` for linting
+
+## 3. Project Structure
+
+The backend follows a feature-oriented directory structure designed for scalability and maintainability.
+
+```
+/backend
+|-- /dist/                # Compiled JavaScript output
+|-- /node_modules/        # Project dependencies
+|-- /src/
+|   |-- /api/             # Route definitions for each feature
+|   |-- /config/          # Database, environment, and Redis configurations
+|   |-- /controllers/     # Request handlers (logic between routes and services)
+|   |-- /middleware/      # Custom middleware (auth, error handling, caching)
+|   |-- /models/          # Mongoose schemas and TypeScript interfaces
+|   |-- /services/        # Business logic (e.g., AI interactions)
+|   |-- /utils/           # Helper classes and functions (ApiResponse, asyncHandler)
+|   |-- index.ts          # Main application entry point
+|-- .env                  # Local environment variables (not committed)
+|-- .env.example          # Template for environment variables
+|-- .gitignore            # Git ignore rules
+|-- DOCUMENTATION.md      # This file
+|-- package.json          # Project metadata and dependencies
+|-- tsconfig.json         # TypeScript compiler options
 ```
 
-### 2. College Model
-```javascript
-{
-  name: String,            // Full college name
-  shortName: String,       // Abbreviated name
-  university: String,      // Parent university
-  location: {
-    city: String,
-    state: String,
-    country: String
-  },
-  website: String,         // Optional website URL
-  domains: [String],       // Valid email domains
-  isVerified: Boolean,     // Verification status
-  studentCount: Number,    // Total students
-  createdAt: Date,
-  updatedAt: Date
-}
-```
+## 4. Environment Variables
 
-### 3. CrucibleProblem Model
-```javascript
-{
-  title: String,
-  description: String,
-  difficulty: Enum['easy', 'medium', 'hard', 'expert'],
-  tags: [String],
-  requirements: {
-    functional: [String],
-    nonFunctional: [String]
-  },
-  constraints: [String],
-  expectedOutcome: String,
-  hints: [String],
-  createdBy: ObjectId,     // Reference to User
-  metrics: {
-    attempts: Number,
-    solutions: Number,
-    successRate: Number
-  },
-  createdAt: Date,
-  updatedAt: Date
-}
-```
+The application requires the following environment variables, defined in a `.env` file at the root of the `/backend` directory.
 
-### 4. CrucibleSolution Model
-```javascript
-{
-  problemId: ObjectId,     // Reference to CrucibleProblem
-  userId: ObjectId,        // Reference to User
-  content: String,         // Solution code/content
-  status: Enum['draft', 'submitted', 'reviewed'],
-  aiAnalysis: {
-    score: Number,
-    feedback: String,
-    suggestions: [String]
-  },
-  reviews: [{
-    userId: ObjectId,
-    rating: Number,
-    comment: String,
-    createdAt: Date
-  }],
-  metrics: {
-    upvotes: Number,
-    downvotes: Number,
-    views: Number
-  },
-  createdAt: Date,
-  updatedAt: Date
-}
-```
+| Variable                   | Description                                          | Example                                       |
+| -------------------------- | ---------------------------------------------------- | --------------------------------------------- |
+| `PORT`                     | The port the server will run on.                     | `5000`                                        |
+| `NODE_ENV`                 | The application environment.                         | `development` or `production`                 |
+| `CORS_ORIGIN`              | The frontend URL for CORS policy.                    | `http://localhost:5173`                       |
+| `MONGO_URI`                | Connection string for your MongoDB database.         | `mongodb+srv://...`                           |
+| `UPSTASH_REDIS_REST_URL`   | The REST URL for your Upstash Redis instance.        | `https://your-instance.upstash.io`            |
+| `UPSTASH_REDIS_REST_TOKEN` | The access token for your Upstash Redis instance.    | `A...`                                        |
+| `CLERK_SECRET_KEY`         | Your secret key from the Clerk dashboard.            | `sk_...`                                      |
+| `GEMINI_API_KEY`           | Your API key for the Google Gemini service.          | `AI...`                                       |
+| `CACHE_ENABLED`            | Set to `true` to enable Redis caching.               | `true`                                        |
 
-### 5. ForgeResource Model
-```javascript
-{
-  title: String,
-  type: Enum['article', 'video', 'book', 'course', 'tool', 'repository', 'documentation'],
-  url: String,
-  description: String,
-  content: String,         // Optional content for articles
-  tags: [String],
-  difficulty: Enum['beginner', 'intermediate', 'advanced'],
-  createdBy: ObjectId,     // Reference to User
-  reviews: [{
-    userId: ObjectId,
-    rating: Number,
-    comment: String,
-    createdAt: Date
-  }],
-  metrics: {
-    views: Number,
-    bookmarks: Number,
-    rating: Number         // Average rating
-  },
-  createdAt: Date,
-  updatedAt: Date
-}
-```
+## 5. Authentication Flow
 
-## API Routes
+Authentication is managed by [Clerk](https://clerk.com/).
 
-### Authentication
-All protected routes require a valid Clerk JWT token in the Authorization header.
+1.  **Frontend**: The frontend uses Clerk's components to handle user sign-up and sign-in.
+2.  **JWT Token**: After a successful login, Clerk issues a short-lived JSON Web Token (JWT) to the client.
+3.  **API Requests**: The frontend attaches this JWT to the `Authorization: Bearer <token>` header for all requests to protected backend endpoints.
+4.  **Backend Middleware**: The `protect` middleware (`src/middleware/auth.middleware.ts`) intercepts these requests. It uses the `@clerk/clerk-sdk-node` package to verify the token's validity.
+5.  **User Hydration**: If the token is valid, the middleware extracts the `clerkId` from the token payload, fetches the corresponding user from the MongoDB `User` collection, and attaches the user document to the `req.user` object for use in downstream controllers.
 
-### User Routes
-```
-GET    /api/users/me              - Get current user profile
-PATCH  /api/users/me             - Update current user profile
-GET    /api/users/profile/:id    - Get public profile
-POST   /api/users/webhook        - Handle Clerk webhook
-GET    /api/users/solutions/:id  - Get user's solutions
-GET    /api/users/me/bookmarks   - Get user's bookmarked resources
-```
+A Clerk webhook (`/api/users/webhooks/clerk`) listens for `user.created` and `user.updated` events to keep the local MongoDB user database in sync with Clerk's user records.
 
-### College Routes
-```
-GET    /api/colleges             - Get all colleges (paginated)
-GET    /api/colleges/search      - Search colleges
-GET    /api/colleges/:id         - Get college by ID
-POST   /api/colleges            - Create college (admin)
-PATCH  /api/colleges/:id        - Update college (admin)
-DELETE /api/colleges/:id        - Delete college (admin)
-POST   /api/colleges/:id/verify - Verify college (admin)
-```
+## 6. Core Middleware
 
-### Problem Routes (Crucible)
-```
-GET    /api/problems            - Get all problems (paginated)
-GET    /api/problems/search     - Search problems
-GET    /api/problems/:id        - Get problem by ID
-GET    /api/problems/:id/stats  - Get problem statistics
-POST   /api/problems           - Create problem (admin)
-PATCH  /api/problems/:id       - Update problem (admin)
-DELETE /api/problems/:id       - Delete problem (admin)
-```
+-   **`auth.middleware.ts`**: Contains the `protect` middleware for securing routes.
+-   **`error.middleware.ts`**: A global error handler that catches all errors passed via `next()` and formats them into a standardized JSON response.
+-   **`cache.middleware.ts`**: Implements Redis caching for `GET` requests. It uses the request URL as the cache key and has a configurable Time-To-Live (TTL).
+-   **`rateLimiter.middleware.ts`**: Provides rate limiting to prevent API abuse, with different configurations for standard endpoints and stricter limits for AI-related endpoints.
 
-### Solution Routes (Crucible)
-```
-GET    /api/solutions/problem/:id  - Get solutions for problem
-GET    /api/solutions/:id         - Get solution by ID
-POST   /api/solutions/problem/:id - Submit solution
-PATCH  /api/solutions/:id        - Update solution
-DELETE /api/solutions/:id        - Delete solution
-POST   /api/solutions/:id/review - Review solution
-GET    /api/solutions/user/me    - Get user's solutions
-```
+## 7. API Endpoints
 
-### Resource Routes (Forge)
-```
-GET    /api/resources           - Get all resources (paginated)
-GET    /api/resources/search    - Search resources
-GET    /api/resources/:id       - Get resource by ID
-POST   /api/resources          - Create resource
-PATCH  /api/resources/:id      - Update resource
-DELETE /api/resources/:id      - Delete resource
-POST   /api/resources/:id/review  - Review resource
-POST   /api/resources/:id/bookmark - Toggle bookmark
-GET    /api/resources/user/me   - Get user's resources
-```
+All endpoints are prefixed with `/api`.
 
-## Middleware
+### Users API
 
-### Authentication Middleware
-- `requireAuth`: Validates Clerk JWT token
-- `requireAdmin`: Ensures user has admin privileges
-- `verifyWebhookSignature`: Validates Clerk webhook signatures
+-   **Controller**: `src/controllers/user.controller.ts`
+-   **Routes**: `src/api/user.routes.ts`
 
-### Validation Middleware
-- `validateBody`: Validates request body using Zod schemas
-- `validateQuery`: Validates query parameters using Zod schemas
+| Method | Endpoint                  | Access    | Description                                                  |
+| ------ | ------------------------- | --------- | ------------------------------------------------------------ |
+| `POST` | `/users/webhooks/clerk`   | Public    | Handles user creation/update events from Clerk.              |
+| `GET`  | `/users/me`               | Private   | Retrieves the complete profile of the logged-in user.        |
+| `PATCH`| `/users/me`               | Private   | Updates the profile details of the logged-in user.           |
 
-### Rate Limiting
-- Global API rate limiting
-- Stricter limits for authentication endpoints
-- Webhook rate limiting
+### Crucible (Problems & Solutions) API
 
-### Error Handling
-- Centralized error handling middleware
-- Standardized error responses
-- Detailed logging with Winston
+-   **Controller**: `src/controllers/crucible.controller.ts`
+-   **Routes**: `src/api/crucible.routes.ts`
 
-## Real-time Features
-Socket.IO is used for real-time features:
-- Solution submission notifications
-- Review notifications
-- Resource updates
-- System announcements
+| Method | Endpoint                              | Access    | Description                                                  |
+| ------ | ------------------------------------- | --------- | ------------------------------------------------------------ |
+| `GET`  | `/crucible`                           | Public    | Lists all problems with pagination and filtering.            |
+| `POST` | `/crucible`                           | Private   | Creates a new problem.                                       |
+| `GET`  | `/crucible/:id`                       | Public    | Retrieves a single problem by its ID.                        |
+| `GET`  | `/crucible/:challengeId/solutions`    | Public    | Lists all solutions for a specific problem.                  |
+| `POST` | `/crucible/:challengeId/solutions`    | Private   | Submits a new solution for a specific problem.               |
 
-## AI Integration
-The solution analysis service:
-1. Analyzes submitted solutions
-2. Provides code quality feedback
-3. Suggests improvements
-4. Calculates solution score
+### Forge (Resources) API
 
-## Data Validation
-Zod schemas ensure data integrity for:
-- User profiles
-- College information
-- Problems and solutions
-- Educational resources
-- Search queries
-- Reviews and ratings
+-   **Controller**: `src/controllers/forge.controller.ts`
+-   **Routes**: `src/api/forge.routes.ts`
 
-## Security Features
-1. JWT-based authentication
-2. Rate limiting
-3. CORS protection
-4. Helmet security headers
-5. Input validation
-6. MongoDB injection prevention
-7. Webhook signature verification
+| Method | Endpoint                  | Access    | Description                                                  |
+| ------ | ------------------------- | --------- | ------------------------------------------------------------ |
+| `GET`  | `/forge`                  | Public    | Lists all resources with pagination and filtering.           |
+| `POST` | `/forge`                  | Private   | Creates a new resource.                                      |
+| `GET`  | `/forge/:id`              | Public    | Retrieves a single resource and increments its view count.   |
+| `POST` | `/forge/:id/bookmark`     | Private   | Toggles a bookmark on a resource for the logged-in user.     |
+| `POST` | `/forge/:id/review`       | Private   | Submits or updates a rating and review for a resource.       |
 
-## Error Handling
-Standardized error responses:
-```javascript
-{
-  error: String,           // Error message
-  details?: any,           // Optional details
-  stack?: String          // Stack trace (development only)
-}
-```
+### AI Services API
 
-## Metrics and Monitoring
-- Winston logging
-- Request logging
-- Error tracking
-- Performance monitoring
-- Database query monitoring
+-   **Controller**: `src/controllers/ai.controller.ts`
+-   **Routes**: `src/api/ai.routes.ts`
 
-## Environment Variables
-Required environment variables:
-```
-PORT=3001
-MONGODB_URI=mongodb://localhost:27017/zemon
-REDIS_URL=redis://localhost:6379
-CORS_ORIGIN=http://localhost:3000
-CLERK_SECRET_KEY=your_clerk_secret
-CLERK_WEBHOOK_SECRET=your_webhook_secret
-NODE_ENV=development
-```
+| Method | Endpoint                   | Access    | Description                                                  |
+| ------ | -------------------------- | --------- | ------------------------------------------------------------ |
+| `POST` | `/ai/analyze-solution`     | Private   | Submits a solution to be analyzed by the Gemini AI service.  |
+| `POST` | `/ai/generate-hints`       | Private   | Requests a set of hints for a specific problem.              |
+| `POST` | `/ai/ask`                  | Private   | Placeholder endpoint for a general-purpose AI assistant.     |
 
-## Development Setup
-1. Install dependencies: `npm install`
-2. Set up environment variables
-3. Start MongoDB and Redis
-4. Run development server: `npm run dev`
+## 8. Controllers
 
-## Production Considerations
-1. Set appropriate environment variables
-2. Configure PM2 or similar process manager
-3. Set up monitoring and logging
-4. Configure proper security measures
-5. Set up backup strategy
-6. Configure proper CORS settings
-7. Set up SSL/TLS
-8. Configure proper rate limiting 
+Controllers act as the glue between the API routes and the underlying services/models. Each controller in `src/controllers/` is responsible for:
+-   Extracting data from the request body, params, and query.
+-   Calling services or interacting with Mongoose models to perform business logic.
+-   Handling the request-response cycle and sending a standardized `ApiResponse`.
+-   Passing errors to the global error handler via `next()`.
+
+## 9. Services
+
+The `src/services/` directory contains modules that encapsulate complex, third-party, or reusable business logic.
+
+-   **`ai.service.ts`**: This service is the single point of interaction with the Google Gemini API. It is responsible for:
+    -   Initializing the Gemini client with the API key.
+    -   Constructing detailed prompts for solution analysis and hint generation.
+    -   Calling the Gemini model to generate content.
+    -   Safely parsing the JSON response from the AI and handling potential errors gracefully.
+
+## 10. Database Models
+
+Mongoose schemas and TypeScript interfaces are defined in `src/models/`. They represent the structure of the data stored in MongoDB.
+
+-   **`user.model.ts`**: Stores user profile information, stats, and references to their bookmarked resources and submitted solutions.
+-   **`crucibleProblem.model.ts`**: Defines the structure for a programming challenge, including its description, requirements, and metadata.
+-   **`crucibleSolution.model.ts`**: Stores a user's solution to a problem, along with AI analysis and community reviews.
+-   **`forgeResource.model.ts`**: Represents a community-submitted resource, such as an article, video, or tool.
+
+## 11. Getting Started
+
+1.  **Clone the repository.**
+2.  Navigate to the `/backend` directory: `cd backend`.
+3.  Install dependencies: `npm install`.
+4.  Create a `.env` file from the example: `cp .env.example .env`.
+5.  Fill in your credentials in the `.env` file.
+6.  Start the development server: `npm run dev`.
+7.  The API will be available at `http://localhost:5000` (or the port specified in your `.env`). 
