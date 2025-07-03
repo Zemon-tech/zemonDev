@@ -1,70 +1,45 @@
 import { useParams, Link } from 'react-router-dom';
 import { ExternalLink, ArrowLeft } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { registerForgeResourceView } from '../lib/forgeApi';
 
-// Dummy data (should be shared or imported in real app)
-const resources = [
-  {
-    _id: '1',
-    title: 'Kafka for Beginners',
-    type: 'article',
-    url: '',
-    content: 'A beginner-friendly guide to Kafka concepts and setup.',
-    tags: ['kafka', 'messaging', 'beginner'],
-    authorId: 'user1',
-    viewCount: 120,
-    createdAt: new Date(),
-    summary: 'A ZEMON-created guide for getting started with Kafka.'
-  },
-  {
-    _id: '2',
-    title: 'Official Kafka Documentation',
-    type: 'documentation',
-    url: 'https://kafka.apache.org/documentation/',
-    content: '',
-    tags: ['kafka', 'docs'],
-    authorId: '',
-    viewCount: 300,
-    createdAt: new Date(),
-    summary: 'The official documentation for Apache Kafka.'
-  },
-  {
-    _id: '3',
-    title: 'How LinkedIn uses Kafka',
-    type: 'case_study',
-    url: '',
-    content: 'A case study on how LinkedIn leverages Kafka for large-scale messaging.',
-    tags: ['kafka', 'case study', 'linkedin'],
-    authorId: 'user2',
-    viewCount: 80,
-    createdAt: new Date(),
-    summary: 'A real-world case study from LinkedIn.'
-  },
-  {
-    _id: '4',
-    title: 'Kafka Producer-Consumer Code Snippets',
-    type: 'tool',
-    url: '',
-    content: 'Code snippets for a basic Kafka producer and consumer setup.',
-    tags: ['kafka', 'code', 'snippets'],
-    authorId: 'user3',
-    viewCount: 60,
-    createdAt: new Date(),
-    summary: 'Quick code snippets for Kafka.'
-  },
-];
+type Resource = {
+  _id: string;
+  title: string;
+  type: string;
+  url: string;
+  description: string;
+  content?: string;
+  tags: string[];
+  difficulty?: string;
+  createdBy?: any;
+  metrics?: { views?: number };
+  createdAt?: string;
+  summary?: string;
+};
 
 export default function ForgeDetailPage() {
   const { id } = useParams();
-  const resource = resources.find(r => r._id === id);
+  const [resource, setResource] = useState<Resource | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  if (!resource) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full py-16 text-center">
-        <h1 className="text-3xl font-bold text-error mb-4">Resource Not Found</h1>
-        <Link to="../forge" className="btn btn-primary"><ArrowLeft className="mr-2" />Back to Forge</Link>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    registerForgeResourceView(id)
+      .then(setResource)
+      .catch(e => setError(e.message || 'Resource not found'))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) return <div className="flex items-center justify-center h-full py-16 text-center">Loading...</div>;
+  if (error || !resource) return (
+    <div className="flex flex-col items-center justify-center h-full py-16 text-center">
+      <h1 className="text-3xl font-bold text-error mb-4">{error || 'Resource Not Found'}</h1>
+      <Link to="../forge" className="btn btn-primary"><ArrowLeft className="mr-2" />Back to Forge</Link>
+    </div>
+  );
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -72,7 +47,7 @@ export default function ForgeDetailPage() {
       <div className="card bg-base-100 border border-base-200 shadow-xl p-6">
         <div className="flex items-center gap-2 mb-2">
           <span className="badge badge-outline badge-primary badge-sm capitalize">{resource.type.replace('_', ' ')}</span>
-          <span className="text-xs text-base-content/50 ml-auto">{resource.viewCount} views</span>
+          <span className="text-xs text-base-content/50 ml-auto">{resource.metrics?.views ?? 0} views</span>
         </div>
         <h1 className="text-3xl font-bold font-heading mb-2">{resource.title}</h1>
         <p className="text-base-content/70 mb-4">{resource.summary}</p>
@@ -83,7 +58,7 @@ export default function ForgeDetailPage() {
         )}
         <div className="mb-4">
           <div className="flex flex-wrap gap-2">
-            {resource.tags.map(tag => (
+            {resource.tags.map((tag: string) => (
               <span key={tag} className="badge badge-ghost badge-xs rounded capitalize">{tag}</span>
             ))}
           </div>
@@ -92,9 +67,9 @@ export default function ForgeDetailPage() {
           {resource.content || <span className="italic text-base-content/60">No additional content provided.</span>}
         </div>
         <div className="mt-6 text-xs text-base-content/60">
-          <span>Author: {resource.authorId || 'ZEMON'}</span>
+          <span>Author: {resource.createdBy?.fullName || 'ZEMON'}</span>
           <span className="mx-2">|</span>
-          <span>Created: {resource.createdAt instanceof Date ? resource.createdAt.toLocaleDateString() : resource.createdAt}</span>
+          <span>Created: {resource.createdAt ? new Date(resource.createdAt).toLocaleDateString() : ''}</span>
         </div>
       </div>
     </div>

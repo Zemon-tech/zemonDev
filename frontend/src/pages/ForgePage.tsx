@@ -1,58 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, ExternalLink, BookOpen, FileText, Film, Wrench, FolderGit2, FileBadge2 } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
-
-// Dummy data for demonstration
-const resources = [
-  {
-    _id: '1',
-    title: 'Kafka for Beginners',
-    type: 'article',
-    url: '',
-    content: 'A beginner-friendly guide to Kafka concepts and setup.',
-    tags: ['kafka', 'messaging', 'beginner'],
-    authorId: 'user1',
-    viewCount: 120,
-    createdAt: new Date(),
-    summary: 'A ZEMON-created guide for getting started with Kafka.'
-  },
-  {
-    _id: '2',
-    title: 'Official Kafka Documentation',
-    type: 'documentation',
-    url: 'https://kafka.apache.org/documentation/',
-    content: '',
-    tags: ['kafka', 'docs'],
-    authorId: '',
-    viewCount: 300,
-    createdAt: new Date(),
-    summary: 'The official documentation for Apache Kafka.'
-  },
-  {
-    _id: '3',
-    title: 'How LinkedIn uses Kafka',
-    type: 'case_study',
-    url: '',
-    content: 'A case study on how LinkedIn leverages Kafka for large-scale messaging.',
-    tags: ['kafka', 'case study', 'linkedin'],
-    authorId: 'user2',
-    viewCount: 80,
-    createdAt: new Date(),
-    summary: 'A real-world case study from LinkedIn.'
-  },
-  {
-    _id: '4',
-    title: 'Kafka Producer-Consumer Code Snippets',
-    type: 'tool',
-    url: '',
-    content: 'Code snippets for a basic Kafka producer and consumer setup.',
-    tags: ['kafka', 'code', 'snippets'],
-    authorId: 'user3',
-    viewCount: 60,
-    createdAt: new Date(),
-    summary: 'Quick code snippets for Kafka.'
-  },
-];
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { getForgeResources, registerForgeResourceView } from '../lib/forgeApi';
 
 const typeOptions = [
   { label: 'All', value: '' },
@@ -73,16 +22,43 @@ const typeIconMap: Record<string, React.ReactNode> = {
   repository: <FolderGit2 className="w-4 h-4 text-primary" />, // Repository
 };
 
+type Resource = {
+  _id: string;
+  title: string;
+  type: string;
+  url: string;
+  description: string;
+  content?: string;
+  tags: string[];
+  difficulty?: string;
+  createdBy?: any;
+  metrics?: { views?: number };
+  createdAt?: string;
+  summary?: string;
+};
+
 export default function ForgePage() {
   const [search, setSearch] = useState('');
   const [type, setType] = useState('');
   const { username } = useParams();
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    setLoading(true);
+    getForgeResources({ type })
+      .then(setResources)
+      .catch(e => setError(e.message || 'Failed to load resources'))
+      .finally(() => setLoading(false));
+  }, [type]);
 
   const filtered = resources.filter(r =>
     (type === '' || r.type === type) &&
     (r.title.toLowerCase().includes(search.toLowerCase()) ||
-      r.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase())) ||
-      r.summary?.toLowerCase().includes(search.toLowerCase()))
+      r.tags.some((tag: string) => tag.toLowerCase().includes(search.toLowerCase())) ||
+      (r.summary || r.description || '').toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
@@ -122,13 +98,14 @@ export default function ForgePage() {
       </div>
       {/* Resource Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-2">
-        {filtered.map(resource => (
+        {loading ? (
+          <div className="col-span-full text-center text-base-content/60 py-12">Loading...</div>
+        ) : error ? (
+          <div className="col-span-full text-center text-base-content/60 py-12">{error}</div>
+        ) : filtered.map(resource => (
           resource.url ? (
-            <a
+            <div
               key={resource._id}
-              href={resource.url}
-              target="_blank"
-              rel="noopener noreferrer"
               className="card card-normal bg-base-100 border border-base-200 shadow transition-all duration-200 hover:shadow-lg hover:scale-[1.01] cursor-pointer flex flex-col group overflow-hidden no-underline hover:no-underline"
               style={{ minHeight: 240, textDecoration: 'none' }}
             >
@@ -141,27 +118,31 @@ export default function ForgePage() {
                   {resource.title}
                 </h2>
                 <p className="text-base-content/70 text-sm line-clamp-3 mb-1">
-                  {resource.summary.length > 200 ? resource.summary.slice(0, 200) + '…' : resource.summary}
+                  {(resource.summary || resource.description || '').length > 200 ? (resource.summary || resource.description || '').slice(0, 200) + '…' : (resource.summary || resource.description || '')}
                 </p>
                 <div className="flex flex-wrap gap-1 mt-auto">
-                  {resource.tags.map(tag => (
+                  {resource.tags.map((tag: string) => (
                     <span key={tag} className="badge badge-ghost badge-xs rounded capitalize">{tag}</span>
                   ))}
                 </div>
               </div>
               <div className="flex items-center justify-between px-4 pb-3">
-                <span className="text-xs text-base-content/50">{resource.viewCount} views</span>
-                {resource.url && (
-                  <span className="inline-flex items-center gap-1 text-primary text-xs font-medium group-hover:underline">
-                    View <ExternalLink className="w-4 h-4" />
-                  </span>
-                )}
+                <span className="text-xs text-base-content/50">{resource.metrics?.views ?? 0} views</span>
+                <button
+                  className="inline-flex items-center gap-1 text-primary text-xs font-medium group-hover:underline bg-transparent border-none outline-none cursor-pointer"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    await registerForgeResourceView(resource._id);
+                    window.open(resource.url, '_blank', 'noopener,noreferrer');
+                  }}
+                >
+                  View <ExternalLink className="w-4 h-4" />
+                </button>
               </div>
-            </a>
+            </div>
           ) : (
-            <Link
+            <div
               key={resource._id}
-              to={`/${username}/forge/${resource._id}`}
               className="card card-normal bg-base-100 border border-base-200 shadow transition-all duration-200 hover:shadow-lg hover:scale-[1.01] cursor-pointer flex flex-col group overflow-hidden no-underline hover:no-underline"
               style={{ minHeight: 240, textDecoration: 'none' }}
             >
@@ -174,21 +155,28 @@ export default function ForgePage() {
                   {resource.title}
                 </h2>
                 <p className="text-base-content/70 text-sm line-clamp-3 mb-1">
-                  {resource.summary.length > 200 ? resource.summary.slice(0, 200) + '…' : resource.summary}
+                  {(resource.summary || resource.description || '').length > 200 ? (resource.summary || resource.description || '').slice(0, 200) + '…' : (resource.summary || resource.description || '')}
                 </p>
                 <div className="flex flex-wrap gap-1 mt-auto">
-                  {resource.tags.map(tag => (
+                  {resource.tags.map((tag: string) => (
                     <span key={tag} className="badge badge-ghost badge-xs rounded capitalize">{tag}</span>
                   ))}
                 </div>
               </div>
               <div className="flex items-center justify-between px-4 pb-3">
-                <span className="text-xs text-base-content/50">{resource.viewCount} views</span>
-                <span className="inline-flex items-center gap-1 text-primary text-xs font-medium group-hover:underline">
+                <span className="text-xs text-base-content/50">{resource.metrics?.views ?? 0} views</span>
+                <button
+                  className="inline-flex items-center gap-1 text-primary text-xs font-medium group-hover:underline bg-transparent border-none outline-none cursor-pointer"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    await registerForgeResourceView(resource._id);
+                    navigate(`/${username}/forge/${resource._id}`);
+                  }}
+                >
                   View Details
-                </span>
+                </button>
               </div>
-            </Link>
+            </div>
           )
         ))}
         {filtered.length === 0 && (
