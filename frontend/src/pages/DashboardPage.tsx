@@ -11,7 +11,7 @@ export default function DashboardPage() {
   }
   
   return (
-    <div className="space-y-4">
+    <div className="max-w-7xl mx-auto px-4 py-4 space-y-4">
       {/* Welcome Section */}
       <motion.div 
         className="relative overflow-hidden glass bg-gradient-to-tr from-primary/80 to-accent/80 p-4 rounded-xl shadow border border-primary flex items-center gap-4 min-h-[100px]"
