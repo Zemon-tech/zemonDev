@@ -167,9 +167,8 @@ export default function ForgePage() {
                 <span className="text-xs text-base-content/50">{resource.metrics?.views ?? 0} views</span>
                 <button
                   className="inline-flex items-center gap-1 text-primary text-xs font-medium group-hover:underline bg-transparent border-none outline-none cursor-pointer"
-                  onClick={async (e) => {
+                  onClick={(e) => {
                     e.stopPropagation();
-                    await registerForgeResourceView(resource._id);
                     navigate(`/${username}/forge/${resource._id}`);
                   }}
                 >

@@ -24,8 +24,8 @@ export default function ProblemDetailsSidebar({
   onNotesChange,
 }: Props) {
   return (
-    <aside className="w-1/4 min-w-[280px] h-full bg-base-100 border-r border-base-200 overflow-auto">
-      <ScrollArea className="h-full">
+    <aside className="w-1/4 min-w-[280px] h-full bg-base-100 border-r border-base-200 flex flex-col overflow-hidden">
+      <ScrollArea className="flex-1 h-full overflow-y-auto">
         <div className="card p-4 space-y-6 shadow-none border-none bg-transparent">
           <h2 className="text-2xl font-bold mb-2">{title}</h2>
           <div className="prose mb-4 text-base-content/80">{description}</div>

@@ -5,7 +5,7 @@ import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
 import Sidebar from './Sidebar';
 
 // Icons
-import { Search, Bell, X, Hammer } from 'lucide-react';
+import { Search, Bell, X, Hammer, MessageCircle, Maximize2, BookOpen, Beaker, FileText } from 'lucide-react';
 
 export default function AppLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -42,14 +42,16 @@ export default function AppLayout() {
   const handleToggleChatSidebar = () => {
     window.dispatchEvent(new CustomEvent('toggle-chat-sidebar'));
   };
-  const handleBack = () => {
-    navigate(-1);
-  };
   
   // Show workspace nav buttons only on /:username/crucible/problem/:id
   const isCrucibleProblemPage = /^\/[\w-]+\/crucible\/problem\/.+/.test(location.pathname);
   // Show back to forge only on /:username/forge/:id
   const isForgeDetailPage = /^\/[\w-]+\/forge\/[\w-]+$/.test(location.pathname);
+  
+  // Add handler for full view
+  const handleToggleProblemFullView = () => {
+    window.dispatchEvent(new CustomEvent('toggle-problem-fullview'));
+  };
   
   return (
     <div className="flex h-screen bg-base-100">
@@ -88,15 +90,26 @@ export default function AppLayout() {
           
           {/* Workspace nav buttons (only on problem page) */}
           {isCrucibleProblemPage && (
-            <div className="flex items-center gap-2">
-              <button className="btn btn-ghost" onClick={handleBack}>
-                ← Back
+            <div className="flex items-center gap-3">
+              <button className="btn btn-ghost text-primary font-semibold flex items-center gap-2" onClick={() => navigate(`/${currentUsername}/crucible`)} title="Back to Crucible">
+                <Beaker className="w-5 h-5" />
+                <span className="hidden sm:inline">Back to Crucible</span>
               </button>
-              <button className="btn btn-ghost" onClick={handleToggleProblemSidebar} aria-label="Toggle Problem Details Sidebar">
-                ☰ Menu
+              <button className="btn btn-ghost flex items-center gap-2" onClick={handleToggleProblemSidebar} title="Show/Hide Problem Details">
+                <BookOpen className="w-5 h-5" />
+                <span className="hidden sm:inline">Problem Details</span>
               </button>
-              <button className="btn btn-ghost" onClick={handleToggleChatSidebar} aria-label="Toggle AI Chat Sidebar">
-                💬 Chat
+              <button className="btn btn-ghost flex items-center gap-2" onClick={handleToggleChatSidebar} title="Show/Hide AI Chat">
+                <MessageCircle className="w-5 h-5" />
+                <span className="hidden sm:inline">AI Chat</span>
+              </button>
+              <button className="btn btn-ghost flex items-center gap-2" onClick={() => window.dispatchEvent(new CustomEvent('toggle-solution-editor'))} title="Show/Hide Solution Editor">
+                <FileText className="w-5 h-5" />
+                <span className="hidden sm:inline">Solution Editor</span>
+              </button>
+              <button className="btn btn-ghost flex items-center gap-2" onClick={() => window.dispatchEvent(new CustomEvent('toggle-problem-fullview', { detail: 'problem' }))} title="Full View Problem Details">
+                <Maximize2 className="w-5 h-5" />
+                <span className="hidden sm:inline">Full View</span>
               </button>
             </div>
           )}
@@ -139,7 +152,7 @@ export default function AppLayout() {
         </header>
         
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-2 bg-base-100">
+        <main className="flex-1 overflow-hidden h-screen bg-base-100">
           <Outlet />
         </main>
       </div>

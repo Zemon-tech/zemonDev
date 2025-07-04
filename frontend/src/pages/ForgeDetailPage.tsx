@@ -60,9 +60,9 @@ export default function ForgeDetailPage() {
         <div className="flex flex-wrap gap-2 mt-4 mb-2 px-4 md:px-8">
           <span className="badge badge-outline badge-primary badge-sm capitalize">{resource.type.replace('_', ' ')}</span>
           <span className="text-xs text-base-content/50">{resource.metrics?.views ?? 0} views</span>
-          {resource.tags.map((tag: string) => (
+            {resource.tags.map((tag: string) => (
             <span key={tag} className="badge badge-ghost badge-md rounded capitalize text-base font-medium px-3 py-1">{tag}</span>
-          ))}
+            ))}
         </div>
         <p className="text-lg text-base-content/70 mb-2 px-4 md:px-8">{resource.summary}</p>
       </div>

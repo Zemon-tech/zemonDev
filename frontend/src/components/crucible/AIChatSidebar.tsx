@@ -1,6 +1,6 @@
 export default function AIChatSidebar() {
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full w-full overflow-hidden">
       <div className="flex-1 p-4 overflow-y-auto">
         <div className="text-lg font-semibold mb-2">AI Chat</div>
         <div className="flex-1 overflow-y-auto mb-2">

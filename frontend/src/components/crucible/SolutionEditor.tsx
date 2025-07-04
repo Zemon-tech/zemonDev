@@ -59,7 +59,7 @@ export default function SolutionEditor({ value, onChange }: { value?: string; on
   if (!editor) return <div>Loading editor…</div>;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full flex-1 min-h-0 overflow-hidden">
       {/* Toolbar */}
       <div className="flex flex-wrap gap-1 mb-2 border-b border-base-200 pb-2 sticky top-0 bg-white z-10">
         <ToolbarButton
@@ -137,7 +137,7 @@ export default function SolutionEditor({ value, onChange }: { value?: string; on
         {/* Add more toolbar buttons as needed */}
       </div>
       {/* Editor Content */}
-      <div className="flex-1 min-h-[300px] overflow-auto">
+      <div className="flex-1 min-h-0 overflow-auto">
         <EditorContent editor={editor} />
       </div>
     </div>
