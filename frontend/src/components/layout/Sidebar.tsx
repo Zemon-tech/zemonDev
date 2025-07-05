@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Settings, User, Hammer, Beaker, Swords, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, Settings, User, Hammer, Beaker, Swords, X, ChevronLeft, ChevronRight, Code } from 'lucide-react';
 import React from 'react';
 
 interface SidebarProps {
@@ -10,6 +10,9 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, currentUsername }) => {
   const location = useLocation();
+  
+  // Check if we're on a problem page
+  const isCrucibleProblemPage = /^\/[\w-]+\/crucible\/problem\/.+/.test(location.pathname);
   
   // More precise active route check
   const isExactRouteActive = (route: string) => {
@@ -46,6 +49,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, current
           <X size={24} />
         </button>
       </div>
+      
+      {/* Problem indicator (when sidebar is collapsed) */}
+      {!isOpen && isCrucibleProblemPage && (
+        <div className="mt-2 px-2 py-1 mx-auto rounded-md bg-primary/10 flex items-center justify-center tooltip" data-tip="Problem workspace active">
+          <Code size={16} className="text-primary" />
+        </div>
+      )}
+      
       {/* Sidebar Links */}
       <nav className="flex-1 overflow-y-auto py-4 px-3">
         <ul className="space-y-2">

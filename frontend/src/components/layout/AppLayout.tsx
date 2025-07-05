@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useParams, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { UserButton, useUser } from '@clerk/clerk-react';
 import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
@@ -22,6 +22,13 @@ export default function AppLayout() {
   // Only use workspace context when on a problem page to avoid the error
   const workspaceContext = isCrucibleProblemPage ? useWorkspace() : { activeContent: 'solution' };
   const { activeContent } = workspaceContext;
+  
+  // Auto-close sidebar when entering a problem page
+  useEffect(() => {
+    if (isCrucibleProblemPage) {
+      setIsSidebarOpen(false);
+    }
+  }, [isCrucibleProblemPage, location.pathname]);
   
   // Get the current user's username or fallback
   const currentUsername = user?.username || (user ? `user${user.id.slice(-8)}` : '');

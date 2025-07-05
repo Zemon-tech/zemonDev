@@ -80,18 +80,20 @@ export default function CrucibleWorkspaceView({ problemId }: { problemId: string
           tags={dummyProblem.tags}
           notes={notes}
           onNotesChange={setNotes}
+          defaultWidth={250}
+          minWidth={200}
         />
       )}
-      <div className="flex-1 overflow-auto p-4 flex flex-col">
+      <div className="flex-1 overflow-hidden flex flex-col">
         <div 
-          className={`transition-all duration-300 ease-in-out overflow-hidden mb-4 ${
-            isWorkspaceModeVisible ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0'
+          className={`transition-all duration-300 ease-in-out overflow-hidden ${
+            isWorkspaceModeVisible ? 'max-h-[80px] opacity-100' : 'max-h-0 opacity-0'
           }`}
         >
           {isWorkspaceModeVisible && <WorkspaceModeSelector />}
         </div>
         
-        <div className="flex-1 transition-all duration-300">
+        <div className="flex-1 overflow-auto p-2">
           {activeContent === 'solution' ? (
             <SolutionEditor 
               value={solutionContent}
@@ -103,7 +105,12 @@ export default function CrucibleWorkspaceView({ problemId }: { problemId: string
           )}
         </div>
       </div>
-      {showChatSidebar && <AIChatSidebar />}
+      {showChatSidebar && (
+        <AIChatSidebar 
+          defaultWidth={250}
+          minWidth={200}
+        />
+      )}
     </div>
   );
 } 

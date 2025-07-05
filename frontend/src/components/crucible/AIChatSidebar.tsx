@@ -50,16 +50,16 @@ export default function AIChatSidebar({
         transition: isResizing ? 'none' : 'width 0.1s ease-out'
       }}
     >
-      <div className="flex-1 p-4 overflow-y-auto">
-        <div className="text-lg font-semibold mb-2">AI Chat</div>
-        <div className="flex-1 overflow-y-auto mb-2">
-          <div className="text-base-content/60 italic">Chat history will appear here</div>
+      <div className="flex-1 p-2 overflow-y-auto">
+        <div className="text-sm font-semibold mb-1 border-b border-base-200 pb-1">AI Chat</div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="text-xs text-base-content/60 italic">Chat history will appear here</div>
         </div>
       </div>
-      <div className="p-4 border-t border-base-200 bg-base-100 sticky bottom-0">
+      <div className="p-2 border-t border-base-200 bg-base-100 sticky bottom-0">
         <input
           type="text"
-          className="input input-bordered w-full"
+          className="input input-sm input-bordered w-full text-xs"
           placeholder="Ask the AI..."
           disabled
         />

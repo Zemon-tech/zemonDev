@@ -118,7 +118,7 @@ export default function BulletEditor({ className = '', onChange }: BulletEditorP
     // Shift + Tab: Outdent
     if (e.key === 'Tab' && e.shiftKey) {
       e.preventDefault();
-      if (!parentItem || !currentItem) return;
+      if (!parentItem) return;
 
       // First, create a copy of the items array
       const newItems = [...items];
@@ -127,19 +127,38 @@ export default function BulletEditor({ className = '', onChange }: BulletEditorP
       const [parentOfParent] = findItem(parentItem.id, newItems);
 
       // Remove the current item from its parent's children
-      parentItem.children = parentItem.children.filter(child => child.id !== currentItem.id);
+      const updatedParentChildren = parentItem.children.filter(child => child.id !== currentItem.id);
+      
+      // Update the parent's children
+      const updateParentInTree = (items: BulletItem[]): BulletItem[] => {
+        return items.map(item => {
+          if (item.id === parentItem.id) {
+            return { ...item, children: updatedParentChildren };
+          }
+          if (item.children.length > 0) {
+            return { ...item, children: updateParentInTree(item.children) };
+          }
+          return item;
+        });
+      };
+      
+      const itemsWithUpdatedParent = updateParentInTree(newItems);
 
       // If parent has a parent, insert after parent, otherwise add to root level
       if (parentOfParent) {
         const parentIndex = parentOfParent.children.findIndex(item => item.id === parentItem.id);
-        parentOfParent.children.splice(parentIndex + 1, 0, currentItem);
+        if (parentIndex !== -1) {
+          parentOfParent.children.splice(parentIndex + 1, 0, currentItem);
+        }
       } else {
         // Parent is at root level, find its index and insert after it
-        const parentIndex = newItems.findIndex(item => item.id === parentItem.id);
-        newItems.splice(parentIndex + 1, 0, currentItem);
+        const parentIndex = itemsWithUpdatedParent.findIndex(item => item.id === parentItem.id);
+        if (parentIndex !== -1) {
+          itemsWithUpdatedParent.splice(parentIndex + 1, 0, currentItem);
+        }
       }
 
-      updateItems(newItems);
+      updateItems(itemsWithUpdatedParent);
     }
 
     // Backspace: Delete empty item
@@ -179,9 +198,9 @@ export default function BulletEditor({ className = '', onChange }: BulletEditorP
       <div
         key={item.id}
         className="group"
-        style={{ marginLeft: `${level * 24}px` }}
+        style={{ marginLeft: `${level * 16}px` }}
       >
-        <div className="flex items-center gap-1 group-hover:bg-gray-50 rounded p-0.5">
+        <div className="flex items-center gap-1 group-hover:bg-gray-50 rounded">
           {item.children.length > 0 ? (
             <button
               onClick={() => {
@@ -219,8 +238,8 @@ export default function BulletEditor({ className = '', onChange }: BulletEditorP
             onChange={e => handleContentChange(item.id, e.target.value)}
             onKeyDown={e => handleKeyDown(e, item.id)}
             onFocus={() => setActiveItemId(item.id)}
-            placeholder={level === 0 ? "Type your main point..." : "Type a sub-point..."}
-            className="flex-1 bg-transparent border-none focus:outline-none p-1 text-sm"
+            placeholder={level === 0 ? "Main point..." : "Sub-point..."}
+            className="flex-1 bg-transparent border-none focus:outline-none py-0.5 px-1 text-xs"
           />
         </div>
         {item.isExpanded && item.children.map(child => renderItem(child, level + 1))}
@@ -229,11 +248,13 @@ export default function BulletEditor({ className = '', onChange }: BulletEditorP
   };
 
   return (
-    <div className={`flex flex-col gap-1 ${className}`}>
-      <div className="text-sm text-gray-500 mb-2">
-        Use Tab to indent, Shift+Tab to outdent, Enter for new line
+    <div className={`flex flex-col ${className}`}>
+      <div className="text-xs text-gray-500 mb-1 border-b border-gray-100 pb-1">
+        Tab to indent, Shift+Tab to outdent, Enter for new line
       </div>
-      {items.map(item => renderItem(item))}
+      <div className="overflow-y-auto">
+        {items.map(item => renderItem(item))}
+      </div>
     </div>
   );
 } 

@@ -33,6 +33,16 @@ const modeInfo: Record<WorkspaceMode, ModeInfo> = {
 
 export default function WorkspaceModeSelector() {
   const { currentMode, setMode } = useWorkspace();
+  const [isCompact, setIsCompact] = React.useState(window.innerWidth < 768);
+  
+  // Update compact mode on window resize
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsCompact(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // Helper function to determine if a mode transition is valid
   const isValidModeTransition = (targetMode: WorkspaceMode): boolean => {
@@ -57,15 +67,17 @@ export default function WorkspaceModeSelector() {
     }
   };
 
+  const nextMode = getNextValidMode(currentMode);
+
   return (
-    <div className="bg-white rounded-lg shadow p-3">
-      <h2 className="text-lg font-semibold mb-2">Workspace Mode</h2>
-      <div className="flex flex-wrap gap-2">
+    <div className="bg-white border-b border-base-200 mb-2">
+      {/* Tab Strip */}
+      <div className="flex w-full">
         {(Object.entries(modeInfo) as [WorkspaceMode, ModeInfo][]).map(([mode, info]) => {
           const isActive = mode === currentMode;
           const Icon = info.icon;
           const isDisabled = !isValidModeTransition(mode);
-          const isNext = getNextValidMode(currentMode) === mode;
+          const isNext = nextMode === mode && !isActive;
           
           return (
             <button
@@ -73,41 +85,43 @@ export default function WorkspaceModeSelector() {
               onClick={() => handleModeChange(mode)}
               disabled={isDisabled}
               className={`
-                flex items-center gap-2 p-2 rounded-lg transition-all flex-1 min-w-[120px] relative
+                flex items-center gap-1 py-1 px-2 transition-all flex-1 relative
                 ${isActive 
-                  ? 'bg-primary/10 text-primary border-primary' 
+                  ? 'text-primary border-b-2 border-primary font-medium' 
                   : isDisabled
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'hover:bg-gray-50 text-gray-700 hover:text-gray-900'
+                    ? 'text-gray-300 cursor-not-allowed'
+                    : 'text-gray-600 hover:bg-gray-50'
                 }
-                ${isNext ? 'ring-1 ring-primary/30' : ''}
-                ${mode === 'understand' ? 'border-b-2' : 'border-b-2 border-transparent'}
-                ${mode === 'brainstorm' && currentMode === 'understand' ? 'border-b-2 border-gray-300' : ''}
-                ${mode === 'draft' && ['understand', 'brainstorm'].includes(currentMode) ? 'border-b-2 border-gray-300' : ''}
-                ${mode === 'review' && ['understand', 'brainstorm', 'draft'].includes(currentMode) ? 'border-b-2 border-gray-300' : ''}
+                ${isNext ? 'bg-primary/5' : ''}
               `}
+              title={info.description}
             >
-              {isNext && (
-                <div className="absolute -right-1 -top-1 bg-primary text-white rounded-full p-0.5">
-                  <ChevronRight size={12} />
-                </div>
+              <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : isDisabled ? 'text-gray-300' : 'text-gray-500'}`} />
+              {!isCompact && (
+                <span className="text-sm truncate">{info.title}</span>
               )}
-              <Icon className={`w-5 h-5 ${isActive ? 'text-primary' : isDisabled ? 'text-gray-400' : 'text-gray-500'}`} />
-              <div className="flex flex-col items-start">
-                <span className="font-medium">{info.title}</span>
-                <span className="text-xs text-gray-500 hidden md:inline">{info.description}</span>
-              </div>
+              {isNext && !isCompact && (
+                <ChevronRight size={12} className="text-primary ml-auto" />
+              )}
             </button>
           );
         })}
       </div>
-      <div className="text-xs text-gray-500 mt-2 flex justify-between items-center">
-        <span>Current: {modeInfo[currentMode].title}</span>
-        {currentMode !== 'review' && (
-          <span>
-            Next: {modeInfo[getNextValidMode(currentMode)].title}
-          </span>
-        )}
+      
+      {/* Status Indicator */}
+      <div className="text-xs text-gray-500 px-2 py-1 flex items-center justify-between">
+        <span>
+          {currentMode !== 'review' 
+            ? `Current: ${modeInfo[currentMode].title} → Next: ${modeInfo[nextMode].title}`
+            : `Current: ${modeInfo[currentMode].title} (Final step)`
+          }
+        </span>
+        <button 
+          onClick={() => setIsCompact(!isCompact)} 
+          className="text-xs text-gray-400 hover:text-primary"
+        >
+          {isCompact ? 'Show Labels' : 'Hide Labels'}
+        </button>
       </div>
     </div>
   );
