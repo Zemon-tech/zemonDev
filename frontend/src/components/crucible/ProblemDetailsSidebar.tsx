@@ -60,7 +60,7 @@ export default function ProblemDetailsSidebar({
 
   return (
     <aside 
-      className="h-full bg-base-100 border-r border-base-200 flex flex-col overflow-hidden relative"
+      className="h-full bg-base-100 dark:bg-base-800 border-r border-base-200 dark:border-base-700 flex flex-col overflow-hidden relative"
       style={{ 
         width: `${width}px`,
         minWidth: `${minWidth}px`,
@@ -70,35 +70,35 @@ export default function ProblemDetailsSidebar({
     >
       <ScrollArea className="flex-1 h-full overflow-y-auto">
         <div className="card p-2 space-y-3 shadow-none border-none bg-transparent">
-          <h2 className="text-lg font-bold">{title}</h2>
-          <div className="prose-sm text-base-content/80 text-sm">{description}</div>
+          <h2 className="text-lg font-bold text-base-content">{title}</h2>
+          <div className="prose-sm text-base-content/80 dark:text-base-content/70 text-sm">{description}</div>
           <Accordion type="multiple" className="space-y-1">
-            <AccordionItem value="requirements" className="border-b border-base-200/50">
-              <AccordionTrigger className="py-1 px-2 text-sm font-medium w-full flex justify-between items-center hover:bg-base-200/20 rounded">
+            <AccordionItem value="requirements" className="border-b border-base-200/50 dark:border-base-700/50">
+              <AccordionTrigger className="py-1 px-2 text-sm font-medium w-full flex justify-between items-center hover:bg-base-200/20 dark:hover:bg-base-700/30 rounded text-base-content">
                 Requirements
               </AccordionTrigger>
               <AccordionContent className="pl-2 py-1">
-                <ul className="list-disc list-inside text-xs space-y-0.5">
+                <ul className="list-disc list-inside text-xs space-y-0.5 text-base-content/90 dark:text-base-content/80">
                   {requirements.map((req, i) => <li key={i}>{req}</li>)}
                 </ul>
               </AccordionContent>
             </AccordionItem>
-            <AccordionItem value="constraints" className="border-b border-base-200/50">
-              <AccordionTrigger className="py-1 px-2 text-sm font-medium w-full flex justify-between items-center hover:bg-base-200/20 rounded">
+            <AccordionItem value="constraints" className="border-b border-base-200/50 dark:border-base-700/50">
+              <AccordionTrigger className="py-1 px-2 text-sm font-medium w-full flex justify-between items-center hover:bg-base-200/20 dark:hover:bg-base-700/30 rounded text-base-content">
                 Constraints
               </AccordionTrigger>
               <AccordionContent className="pl-2 py-1">
-                <ul className="list-disc list-inside text-xs space-y-0.5">
+                <ul className="list-disc list-inside text-xs space-y-0.5 text-base-content/90 dark:text-base-content/80">
                   {constraints.map((c, i) => <li key={i}>{c}</li>)}
                 </ul>
               </AccordionContent>
             </AccordionItem>
-            <AccordionItem value="hints" className="border-b border-base-200/50">
-              <AccordionTrigger className="py-1 px-2 text-sm font-medium w-full flex justify-between items-center hover:bg-base-200/20 rounded">
+            <AccordionItem value="hints" className="border-b border-base-200/50 dark:border-base-700/50">
+              <AccordionTrigger className="py-1 px-2 text-sm font-medium w-full flex justify-between items-center hover:bg-base-200/20 dark:hover:bg-base-700/30 rounded text-base-content">
                 AI Hints
               </AccordionTrigger>
               <AccordionContent className="pl-2 py-1">
-                <ul className="list-disc list-inside text-xs space-y-0.5">
+                <ul className="list-disc list-inside text-xs space-y-0.5 text-base-content/90 dark:text-base-content/80">
                   {hints.map((h, i) => <li key={i}>{h}</li>)}
                 </ul>
               </AccordionContent>
@@ -106,13 +106,13 @@ export default function ProblemDetailsSidebar({
           </Accordion>
           <div className="flex flex-wrap gap-1 mb-1">
             {tags.map(tag => (
-              <span key={tag} className="badge badge-sm capitalize badge-outline text-[10px] py-0 h-5">{tag}</span>
+              <span key={tag} className="badge badge-sm capitalize badge-outline text-[10px] py-0 h-5 text-base-content/80 dark:text-base-content/70">{tag}</span>
             ))}
           </div>
           <div>
             <textarea
               placeholder="Personal notes…"
-              className="textarea textarea-sm w-full textarea-bordered text-xs"
+              className="textarea textarea-sm w-full textarea-bordered text-xs bg-base-100 dark:bg-base-700 text-base-content dark:text-base-content/90 border-base-200 dark:border-base-600"
               value={notes}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onNotesChange(e.target.value)}
               rows={3}

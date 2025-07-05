@@ -30,7 +30,7 @@ export default function SolutionEditor({ value, onChange }: { value?: string; on
           HTMLAttributes: { class: 'list-decimal ml-6' }
         },
         blockquote: {
-          HTMLAttributes: { class: 'border-l-4 pl-4 italic' }
+          HTMLAttributes: { class: 'border-l-4 border-primary/30 pl-4 italic' }
         },
       }),
       Placeholder.configure({
@@ -43,7 +43,7 @@ export default function SolutionEditor({ value, onChange }: { value?: string; on
       }),
       CodeBlock.configure({
         HTMLAttributes: { 
-          class: 'bg-gray-800 text-white p-4 rounded my-2 font-mono overflow-x-auto',
+          class: 'bg-base-300 text-base-content p-4 rounded my-2 font-mono overflow-x-auto',
         },
       }),
       Table.configure({ resizable: true }),
@@ -58,7 +58,7 @@ export default function SolutionEditor({ value, onChange }: { value?: string; on
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: 'text-blue-600 hover:text-blue-800 underline',
+          class: 'text-primary hover:text-primary-focus underline decoration-primary/30 underline-offset-2',
         },
       }),
     ],
@@ -69,8 +69,8 @@ export default function SolutionEditor({ value, onChange }: { value?: string; on
     editorProps: {
       attributes: {
         class:
-          'prose prose-lg max-w-none min-h-[300px] focus:outline-none font-sans bg-white/90 rounded-xl shadow border border-base-200 px-6 py-4 transition-all duration-300 sm:prose-base md:prose-lg lg:prose-xl',
-        style: 'font-size: 1.1rem; line-height: 1.8;',
+          'prose dark:prose-invert prose-base max-w-none min-h-[300px] focus:outline-none font-sans bg-base-100 dark:bg-base-300/10 rounded-xl shadow-sm border border-base-200 dark:border-base-700 px-4 py-3 transition-all duration-300 text-base-content',
+        style: 'font-size: 1rem; line-height: 1.7;',
       },
     },
     onSelectionUpdate({ editor }) {
@@ -110,29 +110,29 @@ export default function SolutionEditor({ value, onChange }: { value?: string; on
         <BubbleMenu
           editor={editor}
           tippyOptions={{ duration: 100, placement: 'top' }}
-          className="bg-white shadow-lg rounded-lg p-2 flex gap-1"
+          className="bg-base-100 dark:bg-base-700 shadow-md rounded-lg p-1.5 flex gap-1 border border-base-200 dark:border-base-600"
         >
           <button
             onClick={() => editor.chain().focus().toggleBold().run()}
-            className={`px-2 py-1 rounded ${editor.isActive('bold') ? 'bg-gray-200' : ''}`}
+            className={`p-1.5 rounded-md hover:bg-base-200 dark:hover:bg-base-600 transition-colors ${editor.isActive('bold') ? 'bg-primary/10 text-primary' : 'text-base-content'}`}
           >
             <strong>B</strong>
           </button>
           <button
             onClick={() => editor.chain().focus().toggleItalic().run()}
-            className={`px-2 py-1 rounded ${editor.isActive('italic') ? 'bg-gray-200' : ''}`}
+            className={`p-1.5 rounded-md hover:bg-base-200 dark:hover:bg-base-600 transition-colors ${editor.isActive('italic') ? 'bg-primary/10 text-primary' : 'text-base-content'}`}
           >
             <em>I</em>
           </button>
           <button
             onClick={() => editor.chain().focus().toggleStrike().run()}
-            className={`px-2 py-1 rounded ${editor.isActive('strike') ? 'bg-gray-200' : ''}`}
+            className={`p-1.5 rounded-md hover:bg-base-200 dark:hover:bg-base-600 transition-colors ${editor.isActive('strike') ? 'bg-primary/10 text-primary' : 'text-base-content'}`}
           >
             <s>S</s>
           </button>
           <button
             onClick={() => editor.chain().focus().toggleCode().run()}
-            className={`px-2 py-1 rounded ${editor.isActive('code') ? 'bg-gray-200' : ''}`}
+            className={`p-1.5 rounded-md hover:bg-base-200 dark:hover:bg-base-600 transition-colors ${editor.isActive('code') ? 'bg-primary/10 text-primary' : 'text-base-content'}`}
           >
             <code>Code</code>
           </button>
@@ -144,94 +144,120 @@ export default function SolutionEditor({ value, onChange }: { value?: string; on
                 .toggleLink({ href: prompt('Enter URL') || '' })
                 .run()
             }
-            className={`px-2 py-1 rounded ${editor.isActive('link') ? 'bg-gray-200' : ''}`}
+            className={`p-1.5 rounded-md hover:bg-base-200 dark:hover:bg-base-600 transition-colors ${editor.isActive('link') ? 'bg-primary/10 text-primary' : 'text-base-content'}`}
           >
             Link
           </button>
         </BubbleMenu>
       )}
       <div
-        className="flex flex-wrap gap-1 mb-3 border-b border-base-200 pb-3 sticky top-0 bg-white/90 z-10 rounded-t-xl px-2"
-        style={{ backdropFilter: 'blur(2px)' }}
+        className="flex flex-wrap gap-0.5 mb-2 border-b border-base-200 dark:border-base-700 pb-2 sticky top-0 bg-base-100 dark:bg-base-800 z-10 rounded-t-xl px-2"
+        style={{ backdropFilter: 'blur(4px)' }}
       >
-        <button
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={`px-2 py-1 rounded ${editor.isActive('heading', { level: 1 }) ? 'bg-gray-200' : ''}`}
-        >
-          H1
-        </button>
-        <button
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={`px-2 py-1 rounded ${editor.isActive('heading', { level: 2 }) ? 'bg-gray-200' : ''}`}
-        >
-          H2
-        </button>
-        <button
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          className={`px-2 py-1 rounded ${editor.isActive('heading', { level: 3 }) ? 'bg-gray-200' : ''}`}
-        >
-          H3
-        </button>
-        <button
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`px-2 py-1 rounded ${editor.isActive('bulletList') ? 'bg-gray-200' : ''}`}
-        >
-          Bullet
-        </button>
-        <button
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`px-2 py-1 rounded ${editor.isActive('orderedList') ? 'bg-gray-200' : ''}`}
-        >
-          Numbered
-        </button>
-        <button
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={`px-2 py-1 rounded ${editor.isActive('blockquote') ? 'bg-gray-200' : ''}`}
-        >
-          Quote
-        </button>
-        <button
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={`px-2 py-1 rounded ${editor.isActive('codeBlock') ? 'bg-gray-200' : ''}`}
-        >
-          Code
-        </button>
-        <button
-          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-          className={`px-2 py-1 rounded ${editor.isActive('table') ? 'bg-gray-200' : ''}`}
-        >
-          Table
-        </button>
-        <button onClick={handleImageUpload} className="px-2 py-1 rounded">
-          Image
-        </button>
-        <button
-          onClick={() => editor.chain().focus().setHorizontalRule().run()}
-          className={`px-2 py-1 rounded ${editor.isActive('horizontalRule') ? 'bg-gray-200' : ''}`}
-        >
-          Divider
-        </button>
-        <button
-          onClick={() => editor.chain().focus().setTextAlign('left').run()}
-          className={`px-2 py-1 rounded ${editor.isActive('textAlign', { align: 'left' }) ? 'bg-gray-200' : ''}`}
-        >
-          Left
-        </button>
-        <button
-          onClick={() => editor.chain().focus().setTextAlign('center').run()}
-          className={`px-2 py-1 rounded ${editor.isActive('textAlign', { align: 'center' }) ? 'bg-gray-200' : ''}`}
-        >
-          Center
-        </button>
-        <button
-          onClick={() => editor.chain().focus().setTextAlign('right').run()}
-          className={`px-2 py-1 rounded ${editor.isActive('textAlign', { align: 'right' }) ? 'bg-gray-200' : ''}`}
-        >
-          Right
-        </button>
+        <div className="flex flex-wrap gap-0.5 mr-2">
+          <button
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            className={`p-1 rounded-md text-xs ${editor.isActive('heading', { level: 1 }) ? 'bg-primary/10 text-primary' : 'hover:bg-base-200 dark:hover:bg-base-700 text-base-content'}`}
+            title="Heading 1"
+          >
+            H1
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            className={`p-1 rounded-md text-xs ${editor.isActive('heading', { level: 2 }) ? 'bg-primary/10 text-primary' : 'hover:bg-base-200 dark:hover:bg-base-700 text-base-content'}`}
+            title="Heading 2"
+          >
+            H2
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            className={`p-1 rounded-md text-xs ${editor.isActive('heading', { level: 3 }) ? 'bg-primary/10 text-primary' : 'hover:bg-base-200 dark:hover:bg-base-700 text-base-content'}`}
+            title="Heading 3"
+          >
+            H3
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-0.5 mr-2">
+          <button
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            className={`p-1 rounded-md text-xs ${editor.isActive('bulletList') ? 'bg-primary/10 text-primary' : 'hover:bg-base-200 dark:hover:bg-base-700 text-base-content'}`}
+            title="Bullet List"
+          >
+            • List
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            className={`p-1 rounded-md text-xs ${editor.isActive('orderedList') ? 'bg-primary/10 text-primary' : 'hover:bg-base-200 dark:hover:bg-base-700 text-base-content'}`}
+            title="Numbered List"
+          >
+            1. List
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-0.5 mr-2">
+          <button
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            className={`p-1 rounded-md text-xs ${editor.isActive('blockquote') ? 'bg-primary/10 text-primary' : 'hover:bg-base-200 dark:hover:bg-base-700 text-base-content'}`}
+            title="Quote"
+          >
+            Quote
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+            className={`p-1 rounded-md text-xs ${editor.isActive('codeBlock') ? 'bg-primary/10 text-primary' : 'hover:bg-base-200 dark:hover:bg-base-700 text-base-content'}`}
+            title="Code Block"
+          >
+            Code
+          </button>
+          <button
+            onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+            className={`p-1 rounded-md text-xs ${editor.isActive('table') ? 'bg-primary/10 text-primary' : 'hover:bg-base-200 dark:hover:bg-base-700 text-base-content'}`}
+            title="Insert Table"
+          >
+            Table
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-0.5 mr-2">
+          <button 
+            onClick={handleImageUpload} 
+            className="p-1 rounded-md text-xs hover:bg-base-200 dark:hover:bg-base-700 text-base-content"
+            title="Insert Image"
+          >
+            Image
+          </button>
+          <button
+            onClick={() => editor.chain().focus().setHorizontalRule().run()}
+            className={`p-1 rounded-md text-xs hover:bg-base-200 dark:hover:bg-base-700 text-base-content`}
+            title="Horizontal Rule"
+          >
+            Divider
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-0.5">
+          <button
+            onClick={() => editor.chain().focus().setTextAlign('left').run()}
+            className={`p-1 rounded-md text-xs ${editor.isActive('textAlign', { align: 'left' }) ? 'bg-primary/10 text-primary' : 'hover:bg-base-200 dark:hover:bg-base-700 text-base-content'}`}
+            title="Align Left"
+          >
+            Left
+          </button>
+          <button
+            onClick={() => editor.chain().focus().setTextAlign('center').run()}
+            className={`p-1 rounded-md text-xs ${editor.isActive('textAlign', { align: 'center' }) ? 'bg-primary/10 text-primary' : 'hover:bg-base-200 dark:hover:bg-base-700 text-base-content'}`}
+            title="Align Center"
+          >
+            Center
+          </button>
+          <button
+            onClick={() => editor.chain().focus().setTextAlign('right').run()}
+            className={`p-1 rounded-md text-xs ${editor.isActive('textAlign', { align: 'right' }) ? 'bg-primary/10 text-primary' : 'hover:bg-base-200 dark:hover:bg-base-700 text-base-content'}`}
+            title="Align Right"
+          >
+            Right
+          </button>
+        </div>
       </div>
       <div className="flex-1 min-h-0 overflow-auto">
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} className="h-full" />
       </div>
     </div>
   );

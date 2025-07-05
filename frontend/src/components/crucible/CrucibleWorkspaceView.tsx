@@ -69,7 +69,7 @@ export default function CrucibleWorkspaceView({ problemId }: { problemId: string
   }, []);
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full bg-base-100 dark:bg-base-900 text-base-content">
       {showProblemSidebar && (
         <ProblemDetailsSidebar
           title={dummyProblem.title}
@@ -84,7 +84,7 @@ export default function CrucibleWorkspaceView({ problemId }: { problemId: string
           minWidth={200}
         />
       )}
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-hidden flex flex-col border-x border-base-200 dark:border-base-700">
         <div 
           className={`transition-all duration-300 ease-in-out overflow-hidden ${
             isWorkspaceModeVisible ? 'max-h-[80px] opacity-100' : 'max-h-0 opacity-0'

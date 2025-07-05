@@ -42,7 +42,7 @@ export default function AIChatSidebar({
 
   return (
     <div 
-      className="flex flex-col h-full overflow-hidden bg-base-100 border-l border-base-200 relative"
+      className="flex flex-col h-full overflow-hidden bg-base-100 dark:bg-base-800 border-l border-base-200 dark:border-base-700 relative"
       style={{ 
         width: `${width}px`,
         minWidth: `${minWidth}px`,
@@ -51,15 +51,15 @@ export default function AIChatSidebar({
       }}
     >
       <div className="flex-1 p-2 overflow-y-auto">
-        <div className="text-sm font-semibold mb-1 border-b border-base-200 pb-1">AI Chat</div>
+        <div className="text-sm font-semibold mb-1 border-b border-base-200 dark:border-base-700 pb-1 text-base-content">AI Chat</div>
         <div className="flex-1 overflow-y-auto">
-          <div className="text-xs text-base-content/60 italic">Chat history will appear here</div>
+          <div className="text-xs text-base-content/60 dark:text-base-content/50 italic">Chat history will appear here</div>
         </div>
       </div>
-      <div className="p-2 border-t border-base-200 bg-base-100 sticky bottom-0">
+      <div className="p-2 border-t border-base-200 dark:border-base-700 bg-base-100 dark:bg-base-800 sticky bottom-0">
         <input
           type="text"
-          className="input input-sm input-bordered w-full text-xs"
+          className="input input-sm input-bordered w-full text-xs bg-base-100 dark:bg-base-700 text-base-content dark:text-base-content/90 border-base-200 dark:border-base-600"
           placeholder="Ask the AI..."
           disabled
         />

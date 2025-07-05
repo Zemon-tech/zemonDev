@@ -70,7 +70,7 @@ export default function WorkspaceModeSelector() {
   const nextMode = getNextValidMode(currentMode);
 
   return (
-    <div className="bg-white border-b border-base-200 mb-2">
+    <div className="bg-base-100 dark:bg-base-800 border-b border-base-200 dark:border-base-700 mb-2">
       {/* Tab Strip */}
       <div className="flex w-full">
         {(Object.entries(modeInfo) as [WorkspaceMode, ModeInfo][]).map(([mode, info]) => {
@@ -89,14 +89,14 @@ export default function WorkspaceModeSelector() {
                 ${isActive 
                   ? 'text-primary border-b-2 border-primary font-medium' 
                   : isDisabled
-                    ? 'text-gray-300 cursor-not-allowed'
-                    : 'text-gray-600 hover:bg-gray-50'
+                    ? 'text-base-content/30 dark:text-base-content/20 cursor-not-allowed'
+                    : 'text-base-content/70 dark:text-base-content/60 hover:bg-base-200 dark:hover:bg-base-700'
                 }
-                ${isNext ? 'bg-primary/5' : ''}
+                ${isNext ? 'bg-primary/5 dark:bg-primary/10' : ''}
               `}
               title={info.description}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : isDisabled ? 'text-gray-300' : 'text-gray-500'}`} />
+              <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : isDisabled ? 'text-base-content/30 dark:text-base-content/20' : 'text-base-content/70 dark:text-base-content/60'}`} />
               {!isCompact && (
                 <span className="text-sm truncate">{info.title}</span>
               )}
@@ -109,7 +109,7 @@ export default function WorkspaceModeSelector() {
       </div>
       
       {/* Status Indicator */}
-      <div className="text-xs text-gray-500 px-2 py-1 flex items-center justify-between">
+      <div className="text-xs text-base-content/60 dark:text-base-content/50 px-2 py-1 flex items-center justify-between">
         <span>
           {currentMode !== 'review' 
             ? `Current: ${modeInfo[currentMode].title} → Next: ${modeInfo[nextMode].title}`
@@ -118,7 +118,7 @@ export default function WorkspaceModeSelector() {
         </span>
         <button 
           onClick={() => setIsCompact(!isCompact)} 
-          className="text-xs text-gray-400 hover:text-primary"
+          className="text-xs text-base-content/50 hover:text-primary"
         >
           {isCompact ? 'Show Labels' : 'Hide Labels'}
         </button>

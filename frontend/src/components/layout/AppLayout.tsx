@@ -6,7 +6,7 @@ import Sidebar from './Sidebar';
 import { useWorkspace } from '@/lib/WorkspaceContext';
 
 // Icons
-import { Search, Bell, X, Hammer, MessageCircle, Maximize2, BookOpen, Beaker, FileText, Layers, StickyNote } from 'lucide-react';
+import { Search, Bell, X, Hammer, MessageCircle, BookOpen, Beaker, FileText, Layers, StickyNote, ArrowLeft } from 'lucide-react';
 
 export default function AppLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -69,13 +69,6 @@ export default function AppLayout() {
       window.dispatchEvent(new CustomEvent('toggle-workspace-mode'));
     }
   };
-  
-  // Add handler for full view
-  const handleToggleProblemFullView = () => {
-    if (isCrucibleProblemPage) {
-      window.dispatchEvent(new CustomEvent('toggle-problem-fullview'));
-    }
-  };
 
   // Handle navigation with username
   const handleNavigation = (path: string) => {
@@ -97,118 +90,113 @@ export default function AppLayout() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Navigation */}
-        <header className="h-16 border-b border-base-300 bg-base-100 flex items-center justify-between px-4">
+        <header className="h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between px-3">
           {/* Left side - Mobile menu toggle */}
           <div className="md:hidden">
             <button 
               onClick={toggleSidebar}
-              className="btn btn-ghost btn-circle"
+              className="btn btn-ghost btn-sm btn-circle"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
           </div>
           
           {/* Back to Forge button (only on Forge detail page) */}
           {isForgeDetailPage && (
             <button
-              className="btn btn-ghost text-primary font-semibold flex items-center gap-2"
+              className="btn btn-ghost btn-sm text-primary font-medium flex items-center gap-1.5"
               onClick={() => handleNavigation('/forge')}
             >
-              <Hammer className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4" />
               Back to Forge
             </button>
           )}
           
           {/* Workspace nav buttons (only on problem page) */}
           {isCrucibleProblemPage && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center">
               <button 
-                className="btn btn-ghost text-primary font-semibold flex items-center gap-2" 
+                className="btn btn-ghost btn-sm text-primary font-medium flex items-center gap-1.5 mr-2" 
                 onClick={() => handleNavigation('/crucible')} 
                 title="Back to Crucible"
               >
-                <Beaker className="w-5 h-5" />
+                <ArrowLeft className="w-4 h-4" />
                 <span className="hidden sm:inline">Back to Crucible</span>
               </button>
-              <button 
-                className="btn btn-ghost flex items-center gap-2" 
-                onClick={handleToggleProblemSidebar} 
-                title="Show/Hide Problem Details"
-              >
-                <BookOpen className="w-5 h-5" />
-                <span className="hidden sm:inline">Problem Details</span>
-              </button>
-              <button 
-                className="btn btn-ghost flex items-center gap-2" 
-                onClick={handleToggleChatSidebar} 
-                title="Show/Hide AI Chat"
-              >
-                <MessageCircle className="w-5 h-5" />
-                <span className="hidden sm:inline">AI Chat</span>
-              </button>
-              <button 
-                className="btn btn-ghost flex items-center gap-2" 
-                onClick={handleSwitchContent} 
-                title="Switch between Solution and Notes"
-              >
-                {activeContent === 'solution' ? (
-                  <>
-                    <StickyNote className="w-5 h-5" />
-                    <span className="hidden sm:inline">View Notes</span>
-                  </>
-                ) : (
-                  <>
-                    <FileText className="w-5 h-5" />
-                    <span className="hidden sm:inline">View Solution</span>
-                  </>
-                )}
-              </button>
-              <button 
-                className="btn btn-ghost flex items-center gap-2" 
-                onClick={handleToggleWorkspaceMode} 
-                title="Toggle Workspace Mode"
-              >
-                <Layers className="w-5 h-5" />
-                <span className="hidden sm:inline">Workspace Mode</span>
-              </button>
-              <button 
-                className="btn btn-ghost flex items-center gap-2" 
-                onClick={handleToggleProblemFullView} 
-                title="Full View Problem Details"
-              >
-                <Maximize2 className="w-5 h-5" />
-                <span className="hidden sm:inline">Full View</span>
-              </button>
+              
+              <div className="flex items-center border-l border-base-200 dark:border-base-700 pl-2 gap-1">
+                <button 
+                  className="btn btn-sm btn-ghost rounded-md px-2 text-base-content/80 hover:text-base-content" 
+                  onClick={handleToggleProblemSidebar} 
+                  title="Show/Hide Problem Details"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span className="hidden sm:inline ml-1 text-xs">Problem</span>
+                </button>
+                <button 
+                  className="btn btn-sm btn-ghost rounded-md px-2 text-base-content/80 hover:text-base-content" 
+                  onClick={handleToggleChatSidebar} 
+                  title="Show/Hide AI Chat"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span className="hidden sm:inline ml-1 text-xs">AI Chat</span>
+                </button>
+                <button 
+                  className="btn btn-sm btn-ghost rounded-md px-2 text-base-content/80 hover:text-base-content" 
+                  onClick={handleSwitchContent} 
+                  title="Switch between Solution and Notes"
+                >
+                  {activeContent === 'solution' ? (
+                    <>
+                      <StickyNote className="w-4 h-4" />
+                      <span className="hidden sm:inline ml-1 text-xs">Notes</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4" />
+                      <span className="hidden sm:inline ml-1 text-xs">Solution</span>
+                    </>
+                  )}
+                </button>
+                <button 
+                  className="btn btn-sm btn-ghost rounded-md px-2 text-base-content/80 hover:text-base-content" 
+                  onClick={handleToggleWorkspaceMode} 
+                  title="Toggle Workspace Mode"
+                >
+                  <Layers className="w-4 h-4" />
+                  <span className="hidden sm:inline ml-1 text-xs">Mode</span>
+                </button>
+              </div>
             </div>
           )}
           
           {/* Search icon and input inline in navbar */}
           <div className="flex-1 flex justify-end items-center gap-2">
             {!isSearchOpen && (
-              <button className="btn btn-ghost btn-circle" onClick={() => setIsSearchOpen(true)}>
-                <Search size={20} />
+              <button className="btn btn-ghost btn-sm btn-circle" onClick={() => setIsSearchOpen(true)}>
+                <Search size={18} />
               </button>
             )}
             {isSearchOpen && (
               <div className="relative flex items-center w-full max-w-xs">
-                <Search className="w-5 h-5 absolute left-3 text-base-content/60" />
+                <Search className="w-4 h-4 absolute left-3 text-base-content/60" />
                 <input
                   autoFocus
                   type="text"
-                  className="input input-bordered input-md w-full pl-10 pr-8"
+                  className="input input-sm input-bordered w-full pl-9 pr-8"
                   placeholder="Search..."
                 />
-                <button className="btn btn-ghost btn-xs absolute right-1.5" onClick={() => setIsSearchOpen(false)}><X size={18} /></button>
+                <button className="btn btn-ghost btn-xs absolute right-1.5" onClick={() => setIsSearchOpen(false)}><X size={16} /></button>
               </div>
             )}
           </div>
           
           {/* Right side - user actions */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             {/* Notifications */}
-            <button className="btn btn-ghost btn-circle relative">
-              <Bell size={20} />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-error rounded-full"></span>
+            <button className="btn btn-ghost btn-sm btn-circle relative">
+              <Bell size={18} />
+              <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-error rounded-full"></span>
             </button>
             
             {/* Theme switcher */}
