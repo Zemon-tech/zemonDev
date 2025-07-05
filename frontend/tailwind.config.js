@@ -28,7 +28,8 @@ export default {
     },
   },
   plugins: [
-    require('daisyui')
+    require('daisyui'),
+    require('tailwind-scrollbar-hide')
   ],
   daisyui: {
     themes: true, // Enable all themes

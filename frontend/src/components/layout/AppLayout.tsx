@@ -90,7 +90,7 @@ export default function AppLayout() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Navigation */}
-        <header className="h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between px-3">
+        <header className="h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between px-3 shrink-0">
           {/* Left side - Mobile menu toggle */}
           <div className="md:hidden">
             <button 
@@ -208,7 +208,7 @@ export default function AppLayout() {
         </header>
         
         {/* Page Content */}
-        <main className="flex-1 overflow-hidden h-screen bg-base-100">
+        <main className="flex-1 overflow-auto bg-base-100">
           <Outlet />
         </main>
       </div>

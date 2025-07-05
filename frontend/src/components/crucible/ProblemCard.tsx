@@ -1,4 +1,10 @@
 // Problem type inferred from dummyProblems in CruciblePage
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { useState, useRef, useEffect } from "react";
+
 export type Problem = {
   id: string;
   title: string;
@@ -13,73 +19,229 @@ type Props = {
   onSelect?: (problem: Problem) => void;
 };
 
-// Badge subcomponent for consistent style
-function Badge({ children, color = 'badge-outline', className = '' }: { children: React.ReactNode; color?: string; className?: string }) {
-  return <span className={`badge ${color} ${className}`}>{children}</span>;
-}
-
 // Icon/Image subcomponent
-function ProblemIcon({ iconUrl }: { iconUrl?: string }) {
+function ProblemIcon({ iconUrl, difficulty }: { iconUrl?: string; difficulty: Problem['difficulty'] }) {
+  const bgColorMap: Record<Problem['difficulty'], string> = {
+    easy: 'bg-gray-100 dark:bg-gray-800/40',
+    medium: 'bg-gray-100 dark:bg-gray-800/40',
+    hard: 'bg-gray-100 dark:bg-gray-800/40',
+    expert: 'bg-gray-100 dark:bg-gray-800/40',
+  };
+  
   // Use Zemon.svg as default
   if (!iconUrl) {
     return (
-      <span className="bg-base-200 rounded-xl p-2 flex items-center justify-center w-12 h-12">
-        <img src="/Zemon.svg" alt="Problem Icon" className="w-8 h-8 object-contain" />
+      <span className={cn(
+        "rounded-lg p-1.5 flex items-center justify-center w-9 h-9 shadow-sm",
+        bgColorMap[difficulty]
+      )}>
+        <img src="/Zemon.svg" alt="Problem Icon" className="w-5 h-5 object-contain" />
       </span>
     );
   }
   // If SVG or image provided
   return (
-    <span className="bg-base-200 rounded-xl p-2 flex items-center justify-center w-12 h-12">
-      <img src={iconUrl} alt="Problem Icon" className="w-8 h-8 object-contain" />
+    <span className={cn(
+      "rounded-lg p-1.5 flex items-center justify-center w-9 h-9 shadow-sm",
+      bgColorMap[difficulty]
+    )}>
+      <img src={iconUrl} alt="Problem Icon" className="w-5 h-5 object-contain" />
     </span>
   );
 }
 
-const difficultyColor: Record<Problem['difficulty'], string> = {
-  easy: 'badge-success',
-  medium: 'badge-info',
-  hard: 'badge-warning',
-  expert: 'badge-error',
-};
-
-export default function ProblemCard({ problem, onSelect }: Props) {
+// Tag component with tooltip support
+function TagBadge({ tag, onClick }: { tag: string; onClick?: (e: React.MouseEvent) => void }) {
   return (
-    <div
-      className="card card-border bg-base-100 shadow-md hover:shadow-xl hover:scale-[1.03] transition-transform duration-200 w-full max-w-sm min-w-[22rem] h-80 flex flex-col cursor-pointer group"
-      onClick={() => onSelect?.(problem)}
+    <span 
+      className="badge badge-outline badge-sm capitalize text-[0.75rem] whitespace-nowrap px-2 py-0.5 flex-shrink-0"
+      onClick={onClick}
     >
-      <div className="card-body flex flex-col gap-2 p-4">
-        <div className="flex items-center gap-3 mb-1">
-          <ProblemIcon iconUrl={problem.iconUrl} />
-          <div className="flex-1 min-w-0">
-            <h2 className="card-title text-base font-semibold leading-tight truncate" title={problem.title}>
-              {problem.title}
-            </h2>
-            <Badge color={difficultyColor[problem.difficulty]} className="capitalize mt-1">
-              {problem.difficulty}
-            </Badge>
+      {tag}
+    </span>
+  );
+}
+
+// Tag overflow component with tooltip
+function TagOverflow({ 
+  count, 
+  tags, 
+  onClick 
+}: { 
+  count: number; 
+  tags: string[]; 
+  onClick?: (e: React.MouseEvent) => void 
+}) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  
+  // Close tooltip when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
+        setShowTooltip(false);
+      }
+    };
+    
+    if (showTooltip) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showTooltip]);
+  
+  return (
+    <div className="relative" ref={tooltipRef}>
+      <span 
+        className="badge badge-outline badge-sm text-[0.75rem] whitespace-nowrap px-2 py-0.5 flex-shrink-0 opacity-70 hover:opacity-100 cursor-pointer bg-background/50 hover:bg-background transition-all"
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowTooltip(!showTooltip);
+          onClick?.(e);
+        }}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={(e) => {
+          // Don't hide if moving to tooltip
+          if (e.relatedTarget && tooltipRef.current?.contains(e.relatedTarget as Node)) {
+            return;
+          }
+          setShowTooltip(false);
+        }}
+      >
+        +{count}
+      </span>
+      
+      {showTooltip && (
+        <div 
+          className="absolute bottom-full left-0 mb-1.5 bg-background border border-border rounded-lg shadow-md p-2 z-10 min-w-[150px] max-w-[250px] animate-in fade-in-50 zoom-in-95 duration-100"
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+        >
+          <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto scrollbar-hide">
+            {tags.map(tag => (
+              <TagBadge 
+                key={tag} 
+                tag={tag}
+                onClick={(e) => e.stopPropagation()}
+              />
+            ))}
           </div>
+          <div className="absolute w-2 h-2 bg-background border-r border-b border-border rotate-45 -bottom-1 left-3"></div>
         </div>
-        <p className="text-base-content/80 text-sm mb-1 line-clamp-3 flex-1" title={problem.description}>
-          {problem.description}
-        </p>
-        <div className="flex flex-wrap gap-1 mb-2">
-          {problem.tags.map((tag) => (
-            <Badge key={tag} className="capitalize text-xs bg-base-200/70">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-        <div className="card-actions mt-auto flex justify-end">
-          <button
-            className="btn btn-primary btn-sm rounded-full px-4 group-hover:scale-105 transition-transform"
-            onClick={e => { e.stopPropagation(); onSelect?.(problem); }}
-          >
-            Solve Now
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
-} 
+}
+
+export default function ProblemCard({ problem, onSelect }: Props) {
+  // Display logic for tags
+  const MAX_VISIBLE_TAGS = 4;
+  const visibleTags = problem.tags.slice(0, MAX_VISIBLE_TAGS);
+  const hiddenTags = problem.tags.slice(MAX_VISIBLE_TAGS);
+  const hasHiddenTags = hiddenTags.length > 0;
+  
+  // For smaller screens, show fewer tags
+  const MAX_MOBILE_TAGS = 2;
+  const visibleMobileTags = problem.tags.slice(0, MAX_MOBILE_TAGS);
+  const hiddenMobileTags = problem.tags.slice(MAX_MOBILE_TAGS);
+  const hasHiddenMobileTags = hiddenMobileTags.length > 0;
+
+  // Map difficulty to badge style
+  const difficultyStyles: Record<Problem['difficulty'], string> = {
+    easy: 'border-green-500 text-green-700 dark:text-green-400',
+    medium: 'border-blue-500 text-blue-700 dark:text-blue-400',
+    hard: 'border-amber-500 text-amber-700 dark:text-amber-400',
+    expert: 'border-red-500 text-red-700 dark:text-red-400',
+  };
+
+  return (
+    <Card 
+      className="rounded-lg border border-border/30 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer h-full flex flex-col"
+      onClick={() => onSelect?.(problem)}
+    >
+      <CardHeader className="pb-1 px-4 pt-3 space-y-0">
+        <div className="flex items-center gap-2.5">
+          <ProblemIcon iconUrl={problem.iconUrl} difficulty={problem.difficulty} />
+          <div className="flex-1 min-w-0 flex flex-col">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-base font-bold leading-tight truncate">
+                {problem.title}
+              </CardTitle>
+              <span 
+                className={cn(
+                  "text-[0.7rem] font-medium px-1.5 py-0.5 rounded-md border capitalize whitespace-nowrap",
+                  difficultyStyles[problem.difficulty]
+                )}
+              >
+                {problem.difficulty}
+              </span>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="py-1.5 px-4 flex-1">
+        <CardDescription 
+          className="line-clamp-2 text-[0.8125rem] text-muted-foreground leading-snug"
+          title={problem.description}
+        >
+          {problem.description}
+        </CardDescription>
+      </CardContent>
+      
+      <div className="h-px bg-border/30 mx-4"></div>
+      
+      <CardFooter className="px-4 py-2.5 flex items-center justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          {/* Desktop view (>= md) */}
+          <div className="hidden md:flex items-center gap-1.5 flex-nowrap">
+            {visibleTags.map((tag) => (
+              <TagBadge 
+                key={tag} 
+                tag={tag}
+                onClick={(e) => e.stopPropagation()}
+              />
+            ))}
+            
+            {hasHiddenTags && (
+              <TagOverflow 
+                count={hiddenTags.length} 
+                tags={hiddenTags} 
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
+          </div>
+          
+          {/* Mobile view (< md) */}
+          <div className="flex md:hidden items-center gap-1.5 flex-nowrap">
+            {visibleMobileTags.map((tag) => (
+              <TagBadge 
+                key={tag} 
+                tag={tag}
+                onClick={(e) => e.stopPropagation()}
+              />
+            ))}
+            
+            {hasHiddenMobileTags && (
+              <TagOverflow 
+                count={hiddenMobileTags.length} 
+                tags={hiddenMobileTags}
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
+          </div>
+        </div>
+        
+        <Button
+          size="sm"
+          className="rounded-full px-3 py-0.5 h-6 hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-sm flex-shrink-0 font-medium text-xs"
+          onClick={e => { e.stopPropagation(); onSelect?.(problem); }}
+        >
+          Solve Now
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
