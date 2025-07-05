@@ -228,4 +228,4 @@ export default function SolutionEditor({ value, onChange }: { value?: string; on
       </div>
     </div>
   );
-}
+} 

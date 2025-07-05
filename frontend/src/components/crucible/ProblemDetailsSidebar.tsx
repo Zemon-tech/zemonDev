@@ -1,8 +1,8 @@
 import { ScrollArea } from '@radix-ui/react-scroll-area';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@radix-ui/react-accordion';
-import React from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 
-type Props = {
+interface Props {
   title: string;
   description: string;
   requirements: string[];
@@ -11,7 +11,9 @@ type Props = {
   tags: string[];
   notes: string;
   onNotesChange: (val: string) => void;
-};
+  defaultWidth?: number;
+  minWidth?: number;
+}
 
 export default function ProblemDetailsSidebar({
   title,
@@ -22,9 +24,50 @@ export default function ProblemDetailsSidebar({
   tags,
   notes,
   onNotesChange,
+  defaultWidth = 320,
+  minWidth = 280,
 }: Props) {
+  const [width, setWidth] = useState(defaultWidth);
+  const [isResizing, setIsResizing] = useState(false);
+
+  const startResizing = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  const stopResizing = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  const resize = useCallback((e: MouseEvent) => {
+    if (isResizing) {
+      const newWidth = e.clientX;
+      const maxWidth = window.innerWidth / 2;
+      if (newWidth >= minWidth && newWidth <= maxWidth) {
+        setWidth(newWidth);
+      }
+    }
+  }, [isResizing, minWidth]);
+
+  useEffect(() => {
+    window.addEventListener('mousemove', resize);
+    window.addEventListener('mouseup', stopResizing);
+    return () => {
+      window.removeEventListener('mousemove', resize);
+      window.removeEventListener('mouseup', stopResizing);
+    };
+  }, [resize, stopResizing]);
+
   return (
-    <aside className="w-1/4 min-w-[280px] h-full bg-base-100 border-r border-base-200 flex flex-col overflow-hidden">
+    <aside 
+      className="h-full bg-base-100 border-r border-base-200 flex flex-col overflow-hidden relative"
+      style={{ 
+        width: `${width}px`,
+        minWidth: `${minWidth}px`,
+        maxWidth: '50vw',
+        transition: isResizing ? 'none' : 'width 0.1s ease-out'
+      }}
+    >
       <ScrollArea className="flex-1 h-full overflow-y-auto">
         <div className="card p-4 space-y-6 shadow-none border-none bg-transparent">
           <h2 className="text-2xl font-bold mb-2">{title}</h2>
@@ -71,6 +114,16 @@ export default function ProblemDetailsSidebar({
           </div>
         </div>
       </ScrollArea>
+      {/* Resize handle */}
+      <div
+        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors"
+        onMouseDown={startResizing}
+        style={{
+          cursor: isResizing ? 'col-resize' : undefined,
+          userSelect: 'none',
+          touchAction: 'none',
+        }}
+      />
     </aside>
   );
 } 

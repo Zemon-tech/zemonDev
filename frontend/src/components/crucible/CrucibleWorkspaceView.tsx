@@ -104,7 +104,7 @@ export default function CrucibleWorkspaceView({ problem }: Props) {
       className={
         full
           ? 'w-full h-full bg-base-100 flex-shrink-0 overflow-y-auto flex flex-col'
-          : 'w-[300px] min-w-[280px] max-w-[340px] h-full border-r border-base-200 bg-base-100 flex-shrink-0 overflow-y-auto flex flex-col'
+          : 'h-full bg-base-100 flex-shrink-0 overflow-y-auto flex flex-col'
       }
     >
       <div className="flex items-center justify-between p-2 border-b border-base-200 bg-base-100 sticky top-0 z-20">
@@ -144,6 +144,8 @@ export default function CrucibleWorkspaceView({ problem }: Props) {
           tags={problem.tags}
           notes={notes}
           onNotesChange={setNotes}
+          defaultWidth={320}
+          minWidth={280}
         />
       </div>
     </div>
@@ -180,7 +182,7 @@ export default function CrucibleWorkspaceView({ problem }: Props) {
       {/* Problem Details Sidebar (collapsible) */}
       {showProblemSidebar && renderProblemSidebar(false)}
       {/* Center Notion-style Editor Placeholder */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="flex-1 flex flex-col h-full overflow-hidden bg-white">
         <div className="flex-1 flex flex-col h-full overflow-hidden">
           {/* Notion-style Editor */}
           {showSolutionEditor && (
@@ -190,11 +192,9 @@ export default function CrucibleWorkspaceView({ problem }: Props) {
           )}
         </div>
       </div>
-      {/* AI Chat Sidebar (collapsible, always present) */}
+      {/* AI Chat Sidebar (collapsible, resizable) */}
       {showChatSidebar && (
-        <div className="w-[300px] min-w-[280px] max-w-[340px] h-full border-l border-base-200 bg-base-100 flex-shrink-0 overflow-y-auto flex flex-col">
-          <AIChatSidebar />
-        </div>
+        <AIChatSidebar defaultWidth={320} minWidth={280} />
       )}
     </div>
   );
