@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 // Dummy CrucibleBrowseView for now (since file is deleted)
 function CrucibleBrowseView({ problems, loading, onSelect }: { problems: Problem[]; loading: boolean; onSelect: (p: Problem) => void }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {problems.map((problem) => (
         <ProblemCard key={problem.id} problem={problem} onSelect={onSelect} />
       ))}
@@ -129,9 +129,9 @@ export default function CruciblePage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-6 min-h-screen">
+    <div className="max-w-7xl mx-auto px-4 py-4 min-h-screen">
       {/* Search Bar */}
-      <div className="relative w-full mb-4">
+      <div className="relative w-full mb-3">
         <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
           <Search className="w-5 h-5 text-muted-foreground" />
         </div>
@@ -145,7 +145,7 @@ export default function CruciblePage() {
       </div>
 
       {/* Tags Filter */}
-      <div className="mb-6 border-b pb-4">
+      <div className="mb-4 border-b pb-3">
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {allTags.map(tag => (
             <Badge 
@@ -183,10 +183,10 @@ export default function CruciblePage() {
 
       {/* No results message */}
       {filteredProblems.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12">
+        <div className="flex flex-col items-center justify-center py-8">
           <p className="text-lg font-medium text-muted-foreground">No challenges match your filters</p>
           <button 
-            className="mt-4 text-primary hover:underline"
+            className="mt-3 text-primary hover:underline"
             onClick={() => {
               setSearchQuery('');
               setSelectedTags([]);

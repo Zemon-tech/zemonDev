@@ -32,20 +32,20 @@ function ProblemIcon({ iconUrl, difficulty }: { iconUrl?: string; difficulty: Pr
   if (!iconUrl) {
     return (
       <span className={cn(
-        "rounded-lg p-1.5 flex items-center justify-center w-9 h-9 shadow-sm",
+        "rounded-lg p-1.5 flex items-center justify-center w-10 h-10 shadow-sm",
         bgColorMap[difficulty]
       )}>
-        <img src="/Zemon.svg" alt="Problem Icon" className="w-5 h-5 object-contain" />
+        <img src="/Zemon.svg" alt="Problem Icon" className="w-6 h-6 object-contain" />
       </span>
     );
   }
   // If SVG or image provided
   return (
     <span className={cn(
-      "rounded-lg p-1.5 flex items-center justify-center w-9 h-9 shadow-sm",
+      "rounded-lg p-1.5 flex items-center justify-center w-10 h-10 shadow-sm",
       bgColorMap[difficulty]
     )}>
-      <img src={iconUrl} alt="Problem Icon" className="w-5 h-5 object-contain" />
+      <img src={iconUrl} alt="Problem Icon" className="w-6 h-6 object-contain" />
     </span>
   );
 }
@@ -161,10 +161,10 @@ export default function ProblemCard({ problem, onSelect }: Props) {
       className="rounded-lg border border-border/30 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer h-full flex flex-col"
       onClick={() => onSelect?.(problem)}
     >
-      <CardHeader className="pb-1 px-4 pt-3 space-y-0">
-        <div className="flex items-center gap-2.5">
+      <CardHeader className="pb-0 px-3 pt-2.5 space-y-0">
+        <div className="flex items-start gap-2">
           <ProblemIcon iconUrl={problem.iconUrl} difficulty={problem.difficulty} />
-          <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex-1 min-w-0 flex flex-col pt-0.5">
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-base font-bold leading-tight truncate">
                 {problem.title}
@@ -182,7 +182,7 @@ export default function ProblemCard({ problem, onSelect }: Props) {
         </div>
       </CardHeader>
       
-      <CardContent className="py-1.5 px-4 flex-1">
+      <CardContent className="py-1 px-3 flex-1">
         <CardDescription 
           className="line-clamp-2 text-[0.8125rem] text-muted-foreground leading-snug"
           title={problem.description}
@@ -191,12 +191,12 @@ export default function ProblemCard({ problem, onSelect }: Props) {
         </CardDescription>
       </CardContent>
       
-      <div className="h-px bg-border/30 mx-4"></div>
+      <div className="h-px bg-border/30 mx-3"></div>
       
-      <CardFooter className="px-4 py-2.5 flex items-center justify-between gap-2">
+      <CardFooter className="px-3 py-2 flex items-center justify-between gap-2">
         <div className="flex-1 min-w-0">
           {/* Desktop view (>= md) */}
-          <div className="hidden md:flex items-center gap-1.5 flex-nowrap">
+          <div className="hidden md:flex items-center gap-1 flex-nowrap">
             {visibleTags.map((tag) => (
               <TagBadge 
                 key={tag} 
@@ -215,7 +215,7 @@ export default function ProblemCard({ problem, onSelect }: Props) {
           </div>
           
           {/* Mobile view (< md) */}
-          <div className="flex md:hidden items-center gap-1.5 flex-nowrap">
+          <div className="flex md:hidden items-center gap-1 flex-nowrap">
             {visibleMobileTags.map((tag) => (
               <TagBadge 
                 key={tag} 
