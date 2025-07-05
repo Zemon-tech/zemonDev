@@ -1,4 +1,4 @@
-import { EditorContent, useEditor, type Editor } from '@tiptap/react';
+import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
@@ -9,11 +9,12 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import TextAlign from '@tiptap/extension-text-align';
 import { BubbleMenu } from '@tiptap/react';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import Link from '@tiptap/extension-link';
 
 export default function SolutionEditor({ value, onChange }: { value?: string; onChange?: (val: string) => void }) {
   const [bubbleMenuVisible, setBubbleMenuVisible] = useState(false);
+  const [initialContent] = useState(value || '');
 
   const editor = useEditor({
     extensions: [
@@ -61,7 +62,7 @@ export default function SolutionEditor({ value, onChange }: { value?: string; on
         },
       }),
     ],
-    content: value || '',
+    content: initialContent,
     onUpdate({ editor }) {
       onChange?.(editor.getHTML());
     },
@@ -75,7 +76,13 @@ export default function SolutionEditor({ value, onChange }: { value?: string; on
     onSelectionUpdate({ editor }) {
       setBubbleMenuVisible(editor.isActive('text') && editor.state.selection.content().size > 0);
     },
-  });
+  }, [initialContent]);
+  
+  useEffect(() => {
+    if (editor && value !== undefined && editor.getHTML() !== value) {
+      editor.commands.setContent(value, false);
+    }
+  }, [value, editor]);
 
   const handleImageUpload = useCallback(() => {
     const input = document.createElement('input');

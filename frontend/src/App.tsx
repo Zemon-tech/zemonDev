@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-react";
 import { ThemeProvider } from './lib/ThemeContext';
 import { withAuth } from './lib/middleware';
+import { WorkspaceProvider } from './lib/WorkspaceContext';
 
 // Layouts
 import PublicLayout from './components/layout/PublicLayout';
@@ -47,6 +48,13 @@ function RootRoute() {
   return <LandingPage />;
 }
 
+// Wrap AppLayout with WorkspaceProvider
+const WorkspaceLayout = () => (
+  <WorkspaceProvider>
+    <AppLayout />
+  </WorkspaceProvider>
+);
+
 function App() {
   return (
     <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || 'pk_test_placeholder'}>
@@ -66,7 +74,7 @@ function App() {
             </Route>
             
             {/* Protected Routes - Username based */}
-            <Route path="/:username" element={<AppLayout />}>
+            <Route path="/:username" element={<WorkspaceLayout />}>
               <Route path="dashboard" element={<ProtectedDashboard />} />
               <Route path="forge" element={<ProtectedForgePage />} />
               <Route path="forge/:id" element={<ProtectedForgeDetailPage />} />

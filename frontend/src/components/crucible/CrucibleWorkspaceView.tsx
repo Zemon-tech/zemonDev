@@ -1,201 +1,109 @@
-import React, { useEffect } from 'react';
-// TODO: Import ShadCN Drawer and Button components when installed
-// import { Drawer, DrawerTrigger, DrawerContent } from 'shadcn/ui/drawer';
-// import { Button } from 'shadcn/ui/button';
-import ProblemDetailsSidebar from './ProblemDetailsSidebar';
+import { useWorkspace } from '../../lib/WorkspaceContext';
 import SolutionEditor from './SolutionEditor';
 import AIChatSidebar from './AIChatSidebar';
-import { Minimize2 } from 'lucide-react';
-// Define Problem type locally (copy from ProblemCard)
-type Problem = {
-  id: string;
-  title: string;
-  description: string;
-  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
-  tags: string[];
+import ProblemDetailsSidebar from './ProblemDetailsSidebar';
+import NotesCollector from './NotesCollector';
+import WorkspaceModeSelector from './WorkspaceModeSelector';
+import { useEffect, useState } from 'react';
+
+// Dummy problem data (replace with actual data fetching)
+const dummyProblem = {
+  title: 'Design a URL Shortener (like bit.ly)',
+  description: 'Build a scalable service to shorten URLs, handle redirects, and track analytics. Consider database schema, unique code generation, and high availability.',
+  requirements: [
+    'Design a system to shorten long URLs',
+    'Handle redirects efficiently',
+    'Track basic analytics (clicks, referrers)',
+    'Ensure high availability and scalability'
+  ],
+  constraints: [
+    'URLs must be unique',
+    'Shortened URLs should be as short as possible',
+    'System should handle high traffic',
+    'Analytics should be real-time'
+  ],
+  hints: [
+    'Consider using a hash function for URL generation',
+    'Think about caching strategies',
+    'Plan for database sharding'
+  ],
+  tags: ['system-design', 'database', 'scaling', 'backend']
 };
 
-type Props = {
-  problem: Problem;
-};
+export default function CrucibleWorkspaceView({ problemId }: { problemId: string }) {
+  const { 
+    setWordCount, 
+    activeContent, 
+    isWorkspaceModeVisible,
+    currentMode
+  } = useWorkspace();
+  
+  const [showProblemSidebar, setShowProblemSidebar] = useState(true);
+  const [showChatSidebar, setShowChatSidebar] = useState(true);
+  const [notes, setNotes] = useState('');
+  const [solutionContent, setSolutionContent] = useState('');
 
-export default function CrucibleWorkspaceView({ problem }: Props) {
-  // Dummy placeholders for requirements, constraints, hints, and solution
-  const requirements = [
-    'System must handle 10k requests/sec',
-    'Shortened URLs should not collide',
-  ];
-  const constraints = [
-    'No third-party URL shortening services',
-    'Must use a relational database',
-  ];
-  const hints = [
-    'Think about hash functions for code generation',
-    'Consider how to handle analytics efficiently',
-  ];
-  const [notes, setNotes] = React.useState('');
+  const handleEditorChange = (content: string) => {
+    setSolutionContent(content);
+    const wordCount = content.trim().split(/\s+/).length;
+    setWordCount(wordCount);
+  };
 
-  // Sidebar toggles
-  const [showProblemSidebar, setShowProblemSidebar] = React.useState(true);
-  const [showChatSidebar, setShowChatSidebar] = React.useState(false);
-  const [showSolutionEditor, setShowSolutionEditor] = React.useState(true);
-  // Only allow full view for problem details (but structure for future extensibility)
-  const [fullyOpenPanel, setFullyOpenPanel] = React.useState<'problem' | 'solution' | 'chat' | null>('problem');
-
-  // Listen for navbar full view event
+  // Handle sidebar toggle events
   useEffect(() => {
-    const handleToggleFullView = (e?: CustomEvent) => {
-      if (e && e.detail && (e.detail === 'problem' || e.detail === 'solution' || e.detail === 'chat')) {
-        setFullyOpenPanel(v => v === e.detail ? null : e.detail);
-      } else {
-        setFullyOpenPanel(v => v ? null : 'problem');
-      }
-    };
-    const handleToggleProblemSidebar = () => {
-      if (fullyOpenPanel) {
-        setFullyOpenPanel(null);
-        setShowProblemSidebar(true);
-      } else {
-        setShowProblemSidebar(v => !v);
-      }
-    };
-    const handleToggleChatSidebar = () => {
-      if (fullyOpenPanel) {
-        setFullyOpenPanel(null);
-        setShowChatSidebar(true);
-      } else {
-        setShowChatSidebar(v => !v);
-      }
-    };
+    const handleToggleProblemSidebar = () => setShowProblemSidebar(prev => !prev);
+    const handleToggleChatSidebar = () => setShowChatSidebar(prev => !prev);
     const handleToggleSolutionEditor = () => {
-      if (fullyOpenPanel) {
-        setFullyOpenPanel(null);
-        setShowSolutionEditor(true);
-      } else {
-        setShowSolutionEditor(v => !v);
-      }
+      // This is now handled by the WorkspaceContext activeContent state
     };
-    window.addEventListener('toggle-problem-fullview', handleToggleFullView as EventListener);
+
     window.addEventListener('toggle-problem-sidebar', handleToggleProblemSidebar);
     window.addEventListener('toggle-chat-sidebar', handleToggleChatSidebar);
     window.addEventListener('toggle-solution-editor', handleToggleSolutionEditor);
+
     return () => {
-      window.removeEventListener('toggle-problem-fullview', handleToggleFullView as EventListener);
       window.removeEventListener('toggle-problem-sidebar', handleToggleProblemSidebar);
       window.removeEventListener('toggle-chat-sidebar', handleToggleChatSidebar);
       window.removeEventListener('toggle-solution-editor', handleToggleSolutionEditor);
     };
-  }, [fullyOpenPanel]);
+  }, []);
 
-  // Keyboard accessibility: Esc to exit full view
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && fullyOpenPanel) {
-        setFullyOpenPanel(null);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [fullyOpenPanel]);
-
-  // Helper: Render Problem Sidebar (with collapse button)
-  const renderProblemSidebar = (full: boolean = false) => (
-    <div
-      className={
-        full
-          ? 'w-full h-full bg-base-100 flex-shrink-0 overflow-y-auto flex flex-col'
-          : 'h-full bg-base-100 flex-shrink-0 overflow-y-auto flex flex-col'
-      }
-    >
-      <div className="flex items-center justify-between p-2 border-b border-base-200 bg-base-100 sticky top-0 z-20">
-        <span className="font-semibold text-base">Problem Details</span>
-        <div className="flex gap-1">
-          {/* Collapse/Expand button (sidebar only) */}
-          {!full && (
-            <button
-              className="btn btn-xs btn-ghost"
-              onClick={() => setShowProblemSidebar((v) => !v)}
-              aria-label={showProblemSidebar ? 'Collapse Sidebar' : 'Expand Sidebar'}
-              title={showProblemSidebar ? 'Collapse Sidebar' : 'Expand Sidebar'}
-            >
-              {showProblemSidebar ? '←' : '→'}
-            </button>
-          )}
-          {/* Minimize full view button */}
-          {full && (
-            <button
-              className="btn btn-xs btn-ghost"
-              onClick={() => setFullyOpenPanel(null)}
-              aria-label="Back to Workspace"
-              title="Back to Workspace"
-            >
-              <Minimize2 className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      </div>
-      <div className="flex-1">
+  return (
+    <div className="flex h-full">
+      {showProblemSidebar && (
         <ProblemDetailsSidebar
-          title={problem.title}
-          description={problem.description}
-          requirements={requirements}
-          constraints={constraints}
-          hints={hints}
-          tags={problem.tags}
+          title={dummyProblem.title}
+          description={dummyProblem.description}
+          requirements={dummyProblem.requirements}
+          constraints={dummyProblem.constraints}
+          hints={dummyProblem.hints}
+          tags={dummyProblem.tags}
           notes={notes}
           onNotesChange={setNotes}
-          defaultWidth={320}
-          minWidth={280}
         />
-      </div>
-    </div>
-  );
-
-  // Helper: Render Solution Editor full view (future extensibility)
-  const renderSolutionEditorFull = () => (
-    <div className="w-full h-full flex flex-col bg-white">
-      <SolutionEditor />
-    </div>
-  );
-
-  // Helper: Render AI Chat Sidebar full view (future extensibility)
-  const renderAIChatSidebarFull = () => (
-    <div className="w-full h-full flex flex-col bg-base-100">
-      <AIChatSidebar />
-    </div>
-  );
-
-  // Layout logic
-  if (fullyOpenPanel) {
-    return (
-      <div className="w-full" style={{ height: 'calc(100vh - 4rem)', marginTop: '0', overflow: 'hidden', display: 'flex' }}>
-        {fullyOpenPanel === 'problem' && renderProblemSidebar(true)}
-        {fullyOpenPanel === 'solution' && renderSolutionEditorFull()}
-        {fullyOpenPanel === 'chat' && renderAIChatSidebarFull()}
-      </div>
-    );
-  }
-
-  // Default split layout
-  return (
-    <div className="w-full h-[calc(100vh-4rem)] flex flex-row bg-base-200 overflow-hidden" style={{marginTop: 0}}>
-      {/* Problem Details Sidebar (collapsible) */}
-      {showProblemSidebar && renderProblemSidebar(false)}
-      {/* Center Notion-style Editor Placeholder */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden bg-white">
-        <div className="flex-1 flex flex-col h-full overflow-hidden">
-          {/* Notion-style Editor */}
-          {showSolutionEditor && (
-            <div className="flex-1 min-h-0 overflow-auto">
-              <SolutionEditor />
-            </div>
+      )}
+      <div className="flex-1 overflow-auto p-4 flex flex-col">
+        <div 
+          className={`transition-all duration-300 ease-in-out overflow-hidden mb-4 ${
+            isWorkspaceModeVisible ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0'
+          }`}
+        >
+          {isWorkspaceModeVisible && <WorkspaceModeSelector />}
+        </div>
+        
+        <div className="flex-1 transition-all duration-300">
+          {activeContent === 'solution' ? (
+            <SolutionEditor 
+              value={solutionContent}
+              onChange={handleEditorChange} 
+              key={`solution-${problemId}-${currentMode}`} 
+            />
+          ) : (
+            <NotesCollector key={`notes-${problemId}-${currentMode}`} />
           )}
         </div>
       </div>
-      {/* AI Chat Sidebar (collapsible, resizable) */}
-      {showChatSidebar && (
-        <AIChatSidebar defaultWidth={320} minWidth={280} />
-      )}
+      {showChatSidebar && <AIChatSidebar />}
     </div>
   );
 } 
