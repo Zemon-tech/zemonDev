@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import asyncHandler from '../utils/asyncHandler';
 import AppError from '../utils/AppError';
 import ApiResponse from '../utils/ApiResponse';
-import { CrucibleProblem, CrucibleSolution, User } from '../models/index';
+import { CrucibleProblem, CrucibleSolution, User, SolutionDraft, CrucibleNote, AIChatHistory, CrucibleDiagram, ResearchItem } from '../models/index';
 import mongoose from 'mongoose';
 
 /**
@@ -142,6 +142,45 @@ export const submitSolution = asyncHandler(
         $addToSet: { completedSolutions: solution._id }
       });
     }
+
+    // Archive the draft if it exists
+    const draft = await SolutionDraft.findOne({
+      userId: req.user._id,
+      problemId: challengeId,
+      status: 'active'
+    });
+
+    if (draft) {
+      // Update status to archived
+      draft.status = 'archived';
+      await draft.save();
+
+      // Update user's draft references
+      await User.findByIdAndUpdate(req.user._id, {
+        $pull: { activeDrafts: draft._id },
+        $addToSet: { archivedDrafts: draft._id }
+      });
+    }
+
+    // Archive related notes, chats, etc.
+    await Promise.all([
+      CrucibleNote.updateMany(
+        { userId: req.user._id, problemId: challengeId, status: 'active' },
+        { status: 'archived' }
+      ),
+      AIChatHistory.updateMany(
+        { userId: req.user._id, problemId: challengeId, status: 'active' },
+        { status: 'archived' }
+      ),
+      CrucibleDiagram.updateMany(
+        { userId: req.user._id, problemId: challengeId, status: 'active' },
+        { status: 'archived' }
+      ),
+      ResearchItem.updateMany(
+        { userId: req.user._id, problemId: challengeId, status: 'active' },
+        { status: 'archived' }
+      )
+    ]);
 
     res.status(201).json(
       new ApiResponse(

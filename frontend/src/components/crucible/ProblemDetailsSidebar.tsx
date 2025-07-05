@@ -120,7 +120,6 @@ export default function ProblemDetailsSidebar({
 }: Props) {
   const [width, setWidth] = useState(defaultWidth);
   const [isResizing, setIsResizing] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
 
   const startResizing = useCallback((e: React.MouseEvent) => {
     e.preventDefault();

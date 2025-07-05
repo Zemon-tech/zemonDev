@@ -1,5 +1,20 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+interface IPrerequisite {
+  name: string;
+  link: string;
+}
+
+interface IRelatedResource {
+  title: string;
+  link: string;
+}
+
+interface ICommunityTip {
+  content: string;
+  author: string;
+}
+
 export interface ICrucibleProblem extends Document {
   title: string;
   description: string;
@@ -18,6 +33,19 @@ export interface ICrucibleProblem extends Document {
     solutions: number;
     successRate: number;
   };
+  estimatedTime?: number;
+  learningObjectives?: string[];
+  prerequisites?: IPrerequisite[];
+  userPersona?: {
+    name: string;
+    journey: string;
+  };
+  dataAssumptions?: string[];
+  edgeCases?: string[];
+  relatedResources?: IRelatedResource[];
+  subtasks?: string[];
+  communityTips?: ICommunityTip[];
+  aiPrompts?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -82,6 +110,76 @@ const CrucibleProblemSchema: Schema = new Schema(
         type: Number,
         default: 0,
       },
+    },
+    estimatedTime: {
+      type: Number,
+      default: 0,
+    },
+    learningObjectives: {
+      type: [String],
+      default: [],
+    },
+    prerequisites: [
+      {
+        name: {
+          type: String,
+          required: true,
+        },
+        link: {
+          type: String,
+          default: '',
+        },
+      },
+    ],
+    userPersona: {
+      name: {
+        type: String,
+        default: '',
+      },
+      journey: {
+        type: String,
+        default: '',
+      },
+    },
+    dataAssumptions: {
+      type: [String],
+      default: [],
+    },
+    edgeCases: {
+      type: [String],
+      default: [],
+    },
+    relatedResources: [
+      {
+        title: {
+          type: String,
+          required: true,
+        },
+        link: {
+          type: String,
+          default: '',
+        },
+      },
+    ],
+    subtasks: {
+      type: [String],
+      default: [],
+    },
+    communityTips: [
+      {
+        content: {
+          type: String,
+          required: true,
+        },
+        author: {
+          type: String,
+          default: 'Anonymous',
+        },
+      },
+    ],
+    aiPrompts: {
+      type: [String],
+      default: [],
     },
   },
   { timestamps: true }

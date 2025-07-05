@@ -21,6 +21,19 @@ export interface IUser extends Document {
   };
   bookmarkedResources: mongoose.Types.ObjectId[];
   completedSolutions: mongoose.Types.ObjectId[];
+  activeDrafts: mongoose.Types.ObjectId[];
+  archivedDrafts: mongoose.Types.ObjectId[];
+  workspacePreferences: {
+    defaultEditorSettings: {
+      fontSize: number;
+      theme: string;
+      wordWrap: boolean;
+    };
+    defaultLayout: {
+      showProblemSidebar: boolean;
+      showChatSidebar: boolean;
+    };
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -99,6 +112,44 @@ const UserSchema: Schema = new Schema(
         ref: 'CrucibleSolution',
       },
     ],
+    activeDrafts: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'SolutionDraft',
+      },
+    ],
+    archivedDrafts: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'SolutionDraft',
+      },
+    ],
+    workspacePreferences: {
+      defaultEditorSettings: {
+        fontSize: {
+          type: Number,
+          default: 14,
+        },
+        theme: {
+          type: String,
+          default: 'system',
+        },
+        wordWrap: {
+          type: Boolean,
+          default: true,
+        },
+      },
+      defaultLayout: {
+        showProblemSidebar: {
+          type: Boolean,
+          default: true,
+        },
+        showChatSidebar: {
+          type: Boolean,
+          default: true,
+        },
+      },
+    },
   },
   { timestamps: true }
 );
