@@ -6,7 +6,7 @@ import Sidebar from './Sidebar';
 import { useWorkspace } from '@/lib/WorkspaceContext';
 
 // Icons
-import { Search, Bell, X, Hammer, MessageCircle, BookOpen, Beaker, FileText, Layers, StickyNote, ArrowLeft } from 'lucide-react';
+import { Search, Bell, X, MessageCircle, BookOpen, FileText, Layers, StickyNote, ArrowLeft } from 'lucide-react';
 
 export default function AppLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);

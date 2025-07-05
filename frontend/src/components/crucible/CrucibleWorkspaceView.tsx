@@ -40,7 +40,6 @@ export default function CrucibleWorkspaceView({ problemId }: { problemId: string
   
   const [showProblemSidebar, setShowProblemSidebar] = useState(true);
   const [showChatSidebar, setShowChatSidebar] = useState(true);
-  const [notes, setNotes] = useState('');
   const [solutionContent, setSolutionContent] = useState('');
 
   const handleEditorChange = (content: string) => {
@@ -78,8 +77,6 @@ export default function CrucibleWorkspaceView({ problemId }: { problemId: string
           constraints={dummyProblem.constraints}
           hints={dummyProblem.hints}
           tags={dummyProblem.tags}
-          notes={notes}
-          onNotesChange={setNotes}
           defaultWidth={250}
           minWidth={200}
         />

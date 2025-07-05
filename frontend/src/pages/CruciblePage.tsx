@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 // Dummy CrucibleBrowseView for now (since file is deleted)
-function CrucibleBrowseView({ problems, loading, onSelect }: { problems: Problem[]; loading: boolean; onSelect: (p: Problem) => void }) {
+function CrucibleBrowseView({ problems, onSelect }: { problems: Problem[]; loading: boolean; onSelect: (p: Problem) => void }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {problems.map((problem) => (
