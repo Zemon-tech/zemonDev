@@ -158,28 +158,28 @@ export default function ProblemCard({ problem, onSelect }: Props) {
   const hasHiddenMobileTags = hiddenMobileTags.length > 0;
 
   return (
-    <Card
+    <Card 
       className="h-full flex flex-col bg-base-100 border shadow-sm rounded-xl overflow-hidden"
       onClick={() => onSelect?.(problem)}
     >
       <CardHeader className="pb-2 pt-4 flex flex-row items-center gap-4">
-        <ProblemIcon iconUrl={problem.iconUrl} difficulty={problem.difficulty} />
+          <ProblemIcon iconUrl={problem.iconUrl} difficulty={problem.difficulty} />
         <div className="flex-1 min-w-0 flex flex-col gap-1">
           <div className="flex items-center gap-2 min-w-0">
             <CardTitle className="text-lg font-extrabold truncate min-w-0">
-              {problem.title}
-            </CardTitle>
+                {problem.title}
+              </CardTitle>
             <Badge
               className={`ml-1 px-2 py-0.5 text-xs font-semibold capitalize border ${difficultyColor[problem.difficulty]}`}
               variant="outline"
-            >
-              {problem.difficulty}
+              >
+                {problem.difficulty}
             </Badge>
           </div>
         </div>
       </CardHeader>
       <CardContent className="flex-1 min-h-[3.5em] pb-2 pt-0 px-6">
-        <CardDescription
+        <CardDescription 
           className="line-clamp-3 text-[0.97rem] text-muted-foreground leading-snug min-h-[3.5em]"
           title={problem.description}
         >
