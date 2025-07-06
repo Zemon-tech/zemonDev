@@ -184,7 +184,7 @@ export default function ProblemCard({ problem, onSelect }: Props) {
   };
 
   return (
-    <Card
+    <Card 
       className="h-full flex flex-col bg-base-100 border shadow-sm rounded-xl overflow-hidden"
       onClick={() => onSelect?.(problem)}
       onMouseEnter={() => setIsHovered(true)}
@@ -195,7 +195,7 @@ export default function ProblemCard({ problem, onSelect }: Props) {
           <ProblemIcon iconUrl={problem.iconUrl} difficulty={problem.difficulty} />
           <div className="flex-1 min-w-0 flex flex-col pt-0.5">
             <div className="flex items-center justify-between gap-2">
-              <CardTitle className="text-base font-bold leading-tight truncate">
+              <CardTitle className="text-base font-extrabold leading-tight truncate">
                 {problem.title}
               </CardTitle>
               <div className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyColor()}`}>
@@ -206,7 +206,7 @@ export default function ProblemCard({ problem, onSelect }: Props) {
         </div>
       </CardHeader>
       <CardContent className="flex-1 min-h-[3.5em] pb-2 pt-0 px-6">
-        <CardDescription
+        <CardDescription 
           className="line-clamp-3 text-[0.97rem] text-muted-foreground leading-snug min-h-[3.5em]"
           title={problem.description}
         >

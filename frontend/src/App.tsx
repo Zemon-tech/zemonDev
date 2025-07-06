@@ -14,6 +14,8 @@ import LandingPage from './pages/LandingPage';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
 
+import ProfilePage from './pages/ProfilePage';
+
 // App Pages
 import DashboardPage from './pages/DashboardPage';
 import PlaceholderPage from './pages/PlaceholderPage';
@@ -107,7 +109,7 @@ function App() {
               <Route path="crucible" element={<ProtectedCruciblePage />} />
               <Route path="crucible/problem/:id" element={<ProtectedCrucibleProblemPage />} />
               <Route path="arena" element={<ProtectedPlaceholder title="Arena" description="Compete with peers in coding competitions." />} />
-              <Route path="profile" element={<ProtectedPlaceholder title="Profile" description="Manage your public profile and showcase your achievements." />} />
+              <Route path="profile" element={<ProfilePage />} />
               <Route path="settings" element={<ProtectedPlaceholder title="Settings" description="Configure your account settings and preferences." />} />
             </Route>
             
