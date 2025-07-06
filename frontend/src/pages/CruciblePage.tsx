@@ -7,7 +7,7 @@ import ProblemCard, { type Problem } from '../components/crucible/ProblemCard';
 import { useState, useEffect, useRef } from 'react';
 import { Search, X, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, logger } from '@/lib/utils';
 import { getProblems } from '@/lib/crucibleApi';
 import { useClerkToken } from '@/lib/middleware';
 import { useAuth } from '@clerk/clerk-react';
@@ -15,7 +15,7 @@ import { useAuth } from '@clerk/clerk-react';
 // Create a simple toast implementation since we don't have the UI component
 const useToast = () => {
   const toast = ({ title, description, variant }: { title: string; description: string; variant?: string }) => {
-    console.log(`${title}: ${description}`);
+    logger.log(`${title}: ${description}`);
     // In a real implementation, this would show a toast notification
   };
   
@@ -24,11 +24,7 @@ const useToast = () => {
 
 // Mapping function to convert API response to Problem type
 const mapApiProblemToUiProblem = (apiProblem: any): Problem => {
-  console.log('Mapping API problem:', apiProblem);
-  
-  // Check if the problem has the expected structure
   if (!apiProblem || typeof apiProblem !== 'object') {
-    console.error('Invalid problem object:', apiProblem);
     return {
       id: 'error',
       title: 'Error loading problem',
@@ -38,28 +34,42 @@ const mapApiProblemToUiProblem = (apiProblem: any): Problem => {
     };
   }
   
-  // Handle different possible field names
-  const id = apiProblem._id || apiProblem.id || 'unknown-id';
-  const title = apiProblem.title || 'Untitled Problem';
-  const description = apiProblem.description || 'No description available';
-  const difficulty = apiProblem.difficulty || 'medium';
-  const tags = Array.isArray(apiProblem.tags) ? apiProblem.tags : [];
+  // Destructure for better performance
+  const { _id, id, title, description, difficulty, tags = [] } = apiProblem;
   
   return {
-    id,
-    title,
-    description,
-    difficulty,
-    tags,
+    id: _id || id || 'unknown-id',
+    title: title || 'Untitled Problem',
+    description: description || 'No description available',
+    difficulty: difficulty || 'medium',
+    tags: Array.isArray(tags) ? tags : [],
   };
 };
+
+// Skeleton loader component for problem cards
+function ProblemCardSkeleton() {
+  return (
+    <div className="border rounded-lg p-4 animate-pulse">
+      <div className="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
+      <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+      <div className="h-4 bg-gray-200 rounded w-5/6 mb-2"></div>
+      <div className="h-4 bg-gray-200 rounded w-4/6 mb-4"></div>
+      <div className="flex gap-2 mt-4">
+        <div className="h-6 bg-gray-200 rounded w-16"></div>
+        <div className="h-6 bg-gray-200 rounded w-16"></div>
+      </div>
+    </div>
+  );
+}
 
 // Crucible Browse View component
 function CrucibleBrowseView({ problems, loading, onSelect }: { problems: Problem[]; loading: boolean; onSelect: (p: Problem) => void }) {
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {Array(6).fill(0).map((_, i) => (
+          <ProblemCardSkeleton key={i} />
+        ))}
       </div>
     );
   }
@@ -118,25 +128,13 @@ export default function CruciblePage() {
   const [filteredProblems, setFilteredProblems] = useState<Problem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const { toast } = useToast();
   
   // Ensure auth token is set
   useClerkToken();
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
-  
-  // Use a ref to track if data has been fetched
-  const hasFetchedRef = useRef(false);
-
-  // Debug logging for component state
-  useEffect(() => {
-    console.log('CruciblePage state:', { 
-      isLoading, 
-      problemsCount: problems.length, 
-      filteredCount: filteredProblems.length,
-      hasFetched: hasFetchedRef.current,
-      error
-    });
-  }, [isLoading, problems.length, filteredProblems.length, error]);
   
   // Force loading state to end after 10 seconds maximum
   useEffect(() => {
@@ -144,7 +142,7 @@ export default function CruciblePage() {
     
     const forceTimeout = setTimeout(() => {
       if (isLoading) {
-        console.log('Force ending loading state after timeout');
+        logger.log('Force ending loading state after timeout');
         setIsLoading(false);
       }
     }, 10000);
@@ -153,140 +151,95 @@ export default function CruciblePage() {
   }, [isLoading]);
   
   // Fetch problems from API
-  useEffect(() => {
-    // Don't fetch data until auth is loaded
-    if (!authLoaded) return;
-    
-    let isMounted = true;
-    let loadingTimer: NodeJS.Timeout | null = null;
-    let retryTimer: NodeJS.Timeout | null = null;
-    
-    async function fetchProblems() {
-      // Prevent duplicate fetches
-      if (hasFetchedRef.current) return;
-      hasFetchedRef.current = true;
-      
-      if (!isMounted) return;
-      
-      // Add a small delay before showing the loading spinner to prevent flashing
-      loadingTimer = setTimeout(() => {
-        if (isMounted) {
-          setIsLoading(true);
-        }
-      }, 300);
-      
-      setError(null);
-      
-      try {
-        // Only attempt to fetch if signed in
-        if (!isSignedIn) {
-          setError('Please sign in to view problems');
-          if (loadingTimer) clearTimeout(loadingTimer);
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log('Fetching problems...');
-        
-        // Get the auth token from Clerk
-        const token = await getToken();
-        console.log('Got auth token:', token ? 'yes' : 'no');
-        
-        // Simple fetch approach
-        const response = await fetch('/api/crucible', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('API Response:', data);
-        
-        // Use mock data for now to ensure we see something
-        setProblems(mockProblems);
-        setFilteredProblems(mockProblems);
-        
-        // Try to extract real data if possible
-        if (data && data.data && data.data.challenges && Array.isArray(data.data.challenges)) {
-          const realProblems = data.data.challenges.map(mapApiProblemToUiProblem);
-          if (realProblems.length > 0) {
-            setProblems(realProblems);
-            setFilteredProblems(realProblems);
-          }
-        }
-      } catch (err) {
-        if (!isMounted) return;
-        
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load problems';
-        console.error('Error fetching problems:', err);
-        
-        // Check if it's an authentication error
-        if (err instanceof Error && (
-          errorMessage.includes('Unauthenticated') || 
-          errorMessage.includes('Authentication') ||
-          errorMessage.includes('401') ||
-          errorMessage.includes('403')
-        )) {
-          setError('Please sign in to view problems');
-        } else if (err instanceof Error && errorMessage.includes('429')) {
-          // Handle rate limiting
-          setError('Too many requests. Please wait a moment before trying again.');
-          // Set a retry timer
-          if (retryTimer) clearTimeout(retryTimer);
-          retryTimer = setTimeout(() => {
-            if (isMounted) {
-              console.log('Retrying API call...');
-              hasFetchedRef.current = false; // Reset fetch flag to allow retry
-              fetchProblems();
-            }
-          }, 5000); // Retry after 5 seconds
-          
-          // Don't clear loading state yet
-          return;
-        } else {
-          setError(errorMessage);
-          toast({
-            title: 'Error',
-            description: errorMessage,
-            variant: 'destructive',
-          });
-        }
-        
-        // Use mock data as fallback on error
-        console.warn('Error fetching problems, using mock data as fallback');
-        setProblems(mockProblems);
-        setFilteredProblems(mockProblems);
-      } finally {
-        if (isMounted) {
-          // Clear the loading timer if it's still active
-          if (loadingTimer) {
-            clearTimeout(loadingTimer);
-          }
-          console.log('Setting loading state to false');
-          setIsLoading(false);
-        }
-      }
+  const fetchProblems = async (pageNum = 1) => {
+    if (!isSignedIn) {
+      setError('Please sign in to view problems');
+      setIsLoading(false);
+      return;
     }
     
-    fetchProblems();
-    
-    // Cleanup function to prevent state updates after unmount
-    return () => {
-      isMounted = false;
-      if (loadingTimer) {
-        clearTimeout(loadingTimer);
+    try {
+      setIsLoading(true);
+      
+      const data = await getProblems(pageNum, 10);
+      
+      if (data && data.challenges && Array.isArray(data.challenges)) {
+        const newProblems = data.challenges.map(mapApiProblemToUiProblem);
+        
+        if (pageNum === 1) {
+          setProblems(newProblems);
+          setFilteredProblems(newProblems);
+        } else {
+          setProblems(prev => [...prev, ...newProblems]);
+          setFilteredProblems(prev => [...prev, ...newProblems]);
+        }
+        
+        // Check if there are more pages
+        setHasMore(newProblems.length === 10);
+      } else {
+        // Use mock data as fallback if no data is returned
+        if (pageNum === 1) {
+          setProblems(mockProblems);
+          setFilteredProblems(mockProblems);
+          setHasMore(false);
+        }
       }
-      if (retryTimer) {
-        clearTimeout(retryTimer);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load problems';
+      logger.error('Error fetching problems:', err);
+      
+      // Check if it's an authentication error
+      if (err instanceof Error && (
+        errorMessage.includes('Unauthenticated') || 
+        errorMessage.includes('Authentication') ||
+        errorMessage.includes('401') ||
+        errorMessage.includes('403')
+      )) {
+        setError('Please sign in to view problems');
+      } else if (err instanceof Error && errorMessage.includes('429')) {
+        // Handle rate limiting
+        setError('Too many requests. Please wait a moment before trying again.');
+        setTimeout(() => {
+          fetchProblems(pageNum);
+        }, 5000); // Retry after 5 seconds
+        
+        // Don't clear loading state yet
+        return;
+      } else {
+        setError(errorMessage);
+        toast({
+          title: 'Error',
+          description: errorMessage,
+          variant: 'destructive',
+        });
       }
-    };
-  }, [toast, authLoaded, isSignedIn, getToken]); // Added getToken to dependencies
-
+      
+      // Use mock data as fallback on error for first page
+      if (pageNum === 1) {
+        setProblems(mockProblems);
+        setFilteredProblems(mockProblems);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Load more function
+  const loadMore = () => {
+    if (!isLoading && hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchProblems(nextPage);
+    }
+  };
+  
+  // Initial load
+  useEffect(() => {
+    if (authLoaded && isSignedIn) {
+      fetchProblems(1);
+    }
+  }, [authLoaded, isSignedIn]);
+  
   // Filter problems based on search query and selected tags
   useEffect(() => {
     const filtered = problems.filter(problem => {
@@ -374,6 +327,18 @@ export default function CruciblePage() {
           navigate(`/${username}/crucible/problem/${problem.id}`);
         }}
       />
+
+      {/* Load More Button */}
+      {hasMore && !isLoading && filteredProblems.length > 0 && (
+        <div className="flex justify-center mt-6">
+          <button 
+            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
+            onClick={loadMore}
+          >
+            Load More
+          </button>
+        </div>
+      )}
 
       {/* No results message */}
       {!isLoading && filteredProblems.length === 0 && problems.length > 0 && (

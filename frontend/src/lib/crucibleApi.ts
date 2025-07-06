@@ -1,4 +1,5 @@
 import { useAuth } from '@clerk/clerk-react';
+import { logger } from './utils';
 
 // Type definitions
 export interface ICrucibleProblem {
@@ -73,22 +74,22 @@ try {
   const storedToken = localStorage.getItem('clerk_auth_token');
   if (storedToken) {
     authToken = storedToken;
-    console.log('Auth token loaded from storage');
+    logger.log('Auth token loaded from storage');
   }
 } catch (e) {
-  console.error('Error accessing localStorage:', e);
+  logger.error('Error accessing localStorage:', e);
 }
 
 export function setAuthToken(token: string | null) {
   authToken = token;
-  console.log(`Auth token ${token ? 'set' : 'cleared'}`);
+  logger.log(`Auth token ${token ? 'set' : 'cleared'}`);
   
   // Store token in localStorage for persistence
   if (token) {
     try {
       localStorage.setItem('clerk_auth_token', token);
     } catch (e) {
-      console.error('Error storing auth token:', e);
+      logger.error('Error storing auth token:', e);
     }
   }
 }
@@ -144,14 +145,11 @@ async function handleResponse(response: Response) {
   // Handle successful responses
   try {
     const rawData = await response.json();
-    console.log('Raw API response:', rawData);
     
     // Special case for /api/crucible endpoint
     if (response.url.endsWith('/api/crucible')) {
-      console.log('Processing crucible endpoint response');
       // Return the challenges directly if they exist in the response
       if (rawData && rawData.data && rawData.data.challenges) {
-        console.log('Found challenges in data property:', rawData.data.challenges);
         return rawData.data;
       }
     }
@@ -164,7 +162,7 @@ async function handleResponse(response: Response) {
       return rawData;
     }
   } catch (error) {
-    console.error('Error parsing JSON response:', error);
+    logger.error('Error parsing JSON response:', error);
     throw new Error('Invalid response format from server');
   }
 }
@@ -180,16 +178,13 @@ async function apiRequest(url: string, options = {}, retries = 3): Promise<any> 
       mergedOptions.headers = { ...baseOptions.headers, ...(options as any).headers };
     }
     
-    // Log the request being made (for debugging)
-    console.log(`Making API request to ${url} with auth: ${authToken ? 'yes' : 'no'}`);
-    
     const response = await fetch(url, mergedOptions);
     return await handleResponse(response);
   } catch (error) {
     // Handle rate limiting with exponential backoff
     if (error instanceof Error && error.message.includes('429') && retries > 0) {
       const delay = Math.pow(2, 3 - retries) * 1000;
-      console.log(`Rate limited, retrying in ${delay}ms... (${retries} retries left)`);
+      logger.log(`Rate limited, retrying in ${delay}ms... (${retries} retries left)`);
       await new Promise(resolve => setTimeout(resolve, delay));
       return apiRequest(url, options, retries - 1);
     }
@@ -200,7 +195,7 @@ async function apiRequest(url: string, options = {}, retries = 3): Promise<any> 
          error.message.includes('unauthorized') ||
          error.message.includes('401') || 
          error.message.includes('403'))) {
-      console.error('Authentication error in API request:', error.message);
+      logger.error('Authentication error in API request:', error.message);
       // Don't clear the token here, let the authentication system handle it
     }
     
@@ -232,17 +227,13 @@ async function debouncedApiRequest(url: string, options = {}, retries = 3): Prom
 }
 
 // Problem endpoints
-export async function getProblems() {
-  console.log('Calling getProblems API endpoint');
-  const response = await debouncedApiRequest('/api/crucible');
-  console.log('getProblems response:', response);
+export async function getProblems(page = 1, limit = 10) {
+  const response = await debouncedApiRequest(`/api/crucible?page=${page}&limit=${limit}`);
   return response;
 }
 
 export async function getProblem(problemId: string): Promise<ICrucibleProblem> {
-  console.log(`Calling getProblem API endpoint for problem ${problemId}`);
   const response = await debouncedApiRequest(`/api/crucible/${problemId}`);
-  console.log(`getProblem response for ${problemId}:`, response);
   return response;
 }
 

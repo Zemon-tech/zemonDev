@@ -185,4 +185,11 @@ const CrucibleProblemSchema: Schema = new Schema(
   { timestamps: true }
 );
 
+// Add indexes for better query performance
+CrucibleProblemSchema.index({ title: 1 });
+CrucibleProblemSchema.index({ tags: 1 });
+CrucibleProblemSchema.index({ difficulty: 1 });
+CrucibleProblemSchema.index({ createdAt: -1 });
+CrucibleProblemSchema.index({ createdBy: 1 });
+
 export default mongoose.model<ICrucibleProblem>('CrucibleProblem', CrucibleProblemSchema); 

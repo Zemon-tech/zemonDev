@@ -95,3 +95,18 @@ export function debounce<T extends (...args: any[]) => any>(
     }, delay);
   };
 }
+
+// Logger utility to control console output
+export const logger = {
+  log: (message: string, ...args: any[]) => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(message, ...args);
+    }
+  },
+  error: (message: string, ...args: any[]) => {
+    console.error(message, ...args);
+  },
+  warn: (message: string, ...args: any[]) => {
+    console.warn(message, ...args);
+  }
+};

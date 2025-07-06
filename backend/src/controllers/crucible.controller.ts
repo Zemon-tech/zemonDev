@@ -4,6 +4,7 @@ import AppError from '../utils/AppError';
 import ApiResponse from '../utils/ApiResponse';
 import { CrucibleProblem, CrucibleSolution, User, SolutionDraft, CrucibleNote, AIChatHistory, CrucibleDiagram, ResearchItem } from '../models/index';
 import mongoose from 'mongoose';
+import logger from '../utils/logger';
 
 /**
  * @desc    Get all challenges
@@ -22,36 +23,58 @@ export const getAllChallenges = asyncHandler(
     const options = {
       page: parseInt(page as string, 10),
       limit: parseInt(limit as string, 10),
-      select: '-__v',
-      populate: { path: 'createdBy', select: 'fullName' }
     };
 
-    // Count total documents
-    const total = await CrucibleProblem.countDocuments(filter);
-    
-    // Execute query
-    const challenges = await CrucibleProblem.find(filter)
-      .skip((options.page - 1) * options.limit)
-      .limit(options.limit)
-      .sort({ createdAt: 'desc' })
-      .select(options.select)
-      .populate(options.populate);
-
-    res.status(200).json(
-      new ApiResponse(
-        200,
-        'Challenges fetched successfully',
+    try {
+      // Use MongoDB aggregation for better performance
+      const aggregationPipeline = [
+        { $match: filter },
+        { $sort: { createdAt: -1 } },
+        { $skip: (options.page - 1) * options.limit },
+        { $limit: options.limit },
         {
-          challenges,
-          pagination: {
-            page: options.page,
-            limit: options.limit,
-            total,
-            pages: Math.ceil(total / options.limit)
+          $lookup: {
+            from: 'users',
+            localField: 'createdBy',
+            foreignField: '_id',
+            as: 'creator',
+            pipeline: [{ $project: { fullName: 1 } }]
           }
-        }
-      )
-    );
+        },
+        { $unwind: { path: '$creator', preserveNullAndEmptyArrays: true } },
+        { $project: { __v: 0 } }
+      ] as mongoose.PipelineStage[];
+
+      // Execute aggregation in parallel with count
+      const [challenges, countResult] = await Promise.all([
+        CrucibleProblem.aggregate(aggregationPipeline),
+        CrucibleProblem.aggregate([
+          { $match: filter },
+          { $count: 'total' }
+        ] as mongoose.PipelineStage[])
+      ]);
+
+      const total = countResult.length > 0 ? countResult[0].total : 0;
+
+      res.status(200).json(
+        new ApiResponse(
+          200,
+          'Challenges fetched successfully',
+          {
+            challenges,
+            pagination: {
+              page: options.page,
+              limit: options.limit,
+              total,
+              pages: Math.ceil(total / options.limit)
+            }
+          }
+        )
+      );
+    } catch (error) {
+      logger.error('Error in getAllChallenges:', error);
+      return next(new AppError('Failed to fetch challenges', 500));
+    }
   }
 );
 

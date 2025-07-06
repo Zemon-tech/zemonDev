@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { redisClient } from '../config/redis';
 import ApiResponse from '../utils/ApiResponse';
 import env from '../config/env';
+import logger from '../utils/logger';
 
 /**
  * Generate cache key from request
@@ -9,15 +10,18 @@ import env from '../config/env';
 const generateCacheKey = (req: Request): string => {
   const path = req.originalUrl || req.url;
   
+  // Include user ID in cache key for personalized content
+  const userId = req.user?._id ? req.user._id.toString() : 'anonymous';
+  
   // Include query parameters in cache key
-  return `api:${path}`;
+  return `api:${userId}:${path}`;
 };
 
 /**
  * Cache middleware for API responses
  * @param ttl Time to live in seconds
  */
-export const cacheMiddleware = (ttl = 300) => {
+export const cacheMiddleware = (ttl = 600) => { // Increased to 10 minutes
   return async (req: Request, res: Response, next: NextFunction) => {
     // Skip caching for non-GET requests
     if (req.method !== 'GET') {
@@ -49,7 +53,7 @@ export const cacheMiddleware = (ttl = 300) => {
         // Store the response in cache
         if (res.statusCode === 200 || res.statusCode === 201) {
           redisClient.set(key, JSON.stringify(body), { ex: ttl })
-            .catch(err => console.error('Redis cache error:', err));
+            .catch(err => logger.error('Redis cache error:', err));
         }
 
         // Restore original method
@@ -61,7 +65,7 @@ export const cacheMiddleware = (ttl = 300) => {
 
       next();
     } catch (error) {
-      console.error('Cache middleware error:', error);
+      logger.error('Cache middleware error:', error);
       next(); // Continue without caching
     }
   };
@@ -76,9 +80,9 @@ export const clearCache = async (pattern: string): Promise<void> => {
     const keys = await redisClient.keys(`api:${pattern}*`);
     if (keys && keys.length > 0) {
       await redisClient.del(...keys);
-      console.log(`Cleared ${keys.length} cache entries matching pattern: ${pattern}`);
+      logger.log(`Cleared ${keys.length} cache entries matching pattern: ${pattern}`);
     }
   } catch (error) {
-    console.error('Clear cache error:', error);
+    logger.error('Clear cache error:', error);
   }
 }; 
