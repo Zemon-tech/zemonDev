@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import type { ICrucibleProblem } from './crucibleApi';
 
 export type WorkspaceMode = 'understand' | 'brainstorm' | 'draft' | 'review';
 export type ContentType = 'solution' | 'notes';
@@ -10,6 +11,13 @@ interface Note {
   content: string;
   tags: string[];
   timestamp: number;
+}
+
+interface WorkspaceState {
+  currentProblem?: ICrucibleProblem;
+  wordCount?: number;
+  mode?: WorkspaceMode;
+  activeContent?: ContentType;
 }
 
 interface WorkspaceContextType {
@@ -34,6 +42,10 @@ interface WorkspaceContextType {
   toggleResearchPane: () => void;
   isWorkspaceModeVisible: boolean;
   toggleWorkspaceModeVisibility: () => void;
+  
+  // State management
+  currentProblem?: ICrucibleProblem;
+  updateWorkspaceState: (state: WorkspaceState) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | null>(null);
@@ -48,6 +60,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   // Content state
   const [wordCount, setWordCount] = useState(0);
   const [activeContent, setActiveContent] = useState<ContentType>('solution');
+  
+  // Problem state
+  const [currentProblem, setCurrentProblem] = useState<ICrucibleProblem | undefined>(undefined);
   
   // UI visibility states
   const [isResearchPaneOpen, setIsResearchPaneOpen] = useState(true);
@@ -73,6 +88,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   
   const toggleWorkspaceModeVisibility = useCallback(() => {
     setIsWorkspaceModeVisible(prev => !prev);
+  }, []);
+  
+  // Update workspace state function
+  const updateWorkspaceState = useCallback((state: WorkspaceState) => {
+    if (state.currentProblem !== undefined) setCurrentProblem(state.currentProblem);
+    if (state.wordCount !== undefined) setWordCount(state.wordCount);
+    if (state.mode !== undefined) setMode(state.mode);
+    if (state.activeContent !== undefined) setActiveContent(state.activeContent);
   }, []);
   
   // Event listeners for UI control
@@ -116,6 +139,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setActiveContent,
     isWorkspaceModeVisible,
     toggleWorkspaceModeVisibility,
+    currentProblem,
+    updateWorkspaceState,
   };
 
   return (

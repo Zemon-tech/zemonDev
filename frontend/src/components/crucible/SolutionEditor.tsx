@@ -1,3 +1,4 @@
+import React, { useMemo } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -11,8 +12,33 @@ import TextAlign from '@tiptap/extension-text-align';
 import { BubbleMenu } from '@tiptap/react';
 import { useCallback, useState, useEffect } from 'react';
 import Link from '@tiptap/extension-link';
+import { useWorkspace } from '../../lib/WorkspaceContext';
 
-export default function SolutionEditor({ value, onChange }: { value?: string; onChange?: (val: string) => void }) {
+interface SolutionEditorProps {
+  value: string;
+  onChange: (content: string) => void;
+}
+
+// Simple code editor component
+const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
+  const { currentMode } = useWorkspace();
+
+  // Memoize the placeholder text based on the current mode
+  const placeholderText = useMemo(() => {
+    switch (currentMode) {
+      case 'understand':
+        return 'Start by understanding the problem...';
+      case 'brainstorm':
+        return 'Brainstorm your approach here...';
+      case 'draft':
+        return 'Draft your solution here...';
+      case 'review':
+        return 'Review your solution here...';
+      default:
+        return 'Write your solution here...';
+    }
+  }, [currentMode]);
+
   const [bubbleMenuVisible, setBubbleMenuVisible] = useState(false);
   const [initialContent] = useState(value || '');
 
@@ -34,7 +60,7 @@ export default function SolutionEditor({ value, onChange }: { value?: string; on
         },
       }),
       Placeholder.configure({
-        placeholder: 'Start typing or use the toolbar above for formatting...',
+        placeholder: placeholderText,
       }),
       Image.configure({
         inline: false,
@@ -261,4 +287,7 @@ export default function SolutionEditor({ value, onChange }: { value?: string; on
       </div>
     </div>
   );
-} 
+};
+
+// Export with React.memo to prevent unnecessary re-renders
+export default React.memo(SolutionEditor); 

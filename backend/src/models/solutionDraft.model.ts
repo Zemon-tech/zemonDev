@@ -24,11 +24,13 @@ const SolutionDraftSchema: Schema = new Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+      index: true,
     },
     problemId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'CrucibleProblem',
       required: true,
+      index: true,
     },
     currentContent: {
       type: String,
@@ -54,6 +56,7 @@ const SolutionDraftSchema: Schema = new Schema(
       type: String,
       enum: ['active', 'archived'],
       default: 'active',
+      index: true,
     },
     lastEdited: {
       type: Date,

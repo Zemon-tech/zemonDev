@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ProblemCard, { type Problem } from '../components/crucible/ProblemCard';
 // Assume these hooks are available
 // import { useCrucibleProblems, useCrucibleSolution } from '@/hooks/crucible';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, X, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn, logger } from '@/lib/utils';
@@ -14,7 +14,7 @@ import { useAuth } from '@clerk/clerk-react';
 
 // Create a simple toast implementation since we don't have the UI component
 const useToast = () => {
-  const toast = ({ title, description, variant }: { title: string; description: string; variant?: string }) => {
+  const toast = ({ title, description }: { title: string; description: string; variant?: string }) => {
     logger.log(`${title}: ${description}`);
     // In a real implementation, this would show a toast notification
   };
@@ -134,7 +134,7 @@ export default function CruciblePage() {
   
   // Ensure auth token is set
   useClerkToken();
-  const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
+  const { isLoaded: authLoaded, isSignedIn } = useAuth();
   
   // Force loading state to end after 10 seconds maximum
   useEffect(() => {
@@ -161,10 +161,11 @@ export default function CruciblePage() {
     try {
       setIsLoading(true);
       
-      const data = await getProblems(pageNum, 10);
+      const filters = { page: pageNum, limit: 10 };
+      const problemsData = await getProblems(filters);
       
-      if (data && data.challenges && Array.isArray(data.challenges)) {
-        const newProblems = data.challenges.map(mapApiProblemToUiProblem);
+      if (problemsData && Array.isArray(problemsData)) {
+        const newProblems = problemsData.map(mapApiProblemToUiProblem);
         
         if (pageNum === 1) {
           setProblems(newProblems);

@@ -1,9 +1,12 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import CrucibleWorkspaceView from '../components/crucible/CrucibleWorkspaceView';
+import ProblemSkeleton from '../components/crucible/ProblemSkeleton';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { WorkspaceProvider } from '@/lib/WorkspaceContext';
 import { useEffect, useState } from 'react';
 import { getProblem } from '@/lib/crucibleApi';
 import { useClerkToken } from '@/lib/middleware';
+import { logger } from '@/lib/utils';
 
 // Helper function to check if ID is valid MongoDB ObjectId format
 const isValidObjectId = (id: string): boolean => {
@@ -43,7 +46,7 @@ function CrucibleProblemPage() {
           setIsLoading(false);
         })
         .catch(err => {
-          console.error('Error loading problem:', err);
+          logger.error('Error loading problem:', err);
           
           // Check if it's an authentication error
           if (err instanceof Error && err.message.includes('Unauthenticated')) {
@@ -61,7 +64,7 @@ function CrucibleProblemPage() {
   }
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading problem...</div>;
+    return <ProblemSkeleton />;
   }
 
   if (authError) {
@@ -112,7 +115,24 @@ function CrucibleProblemPage() {
 
   return (
     <WorkspaceProvider>
-      <CrucibleWorkspaceView problemId={id} />
+      <ErrorBoundary
+        fallback={
+          <div className="flex flex-col items-center justify-center h-screen p-4">
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-bold text-red-500 mb-2">Something went wrong</h2>
+              <p className="text-gray-700">There was an error loading the problem workspace.</p>
+              <button 
+                className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                onClick={() => window.location.reload()}
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        }
+      >
+        <CrucibleWorkspaceView problemId={id} />
+      </ErrorBoundary>
     </WorkspaceProvider>
   );
 }

@@ -96,17 +96,55 @@ export function debounce<T extends (...args: any[]) => any>(
   };
 }
 
-// Logger utility to control console output
+// Get environment mode
+const isDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
+
+/**
+ * Logger utility to control logging across the application
+ * In production, only errors and warnings are logged
+ * In development, all logs are shown
+ */
 export const logger = {
-  log: (message: string, ...args: any[]) => {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(message, ...args);
+  log: (...args: unknown[]) => {
+    if (isDev) {
+      console.log(...args);
     }
   },
-  error: (message: string, ...args: any[]) => {
-    console.error(message, ...args);
+  warn: (...args: unknown[]) => {
+    console.warn(...args);
   },
-  warn: (message: string, ...args: any[]) => {
-    console.warn(message, ...args);
+  error: (...args: unknown[]) => {
+    console.error(...args);
+  },
+  info: (...args: unknown[]) => {
+    if (isDev) {
+      console.info(...args);
+    }
+  },
+  debug: (...args: unknown[]) => {
+    if (isDev) {
+      console.debug(...args);
+    }
+  },
+  // Group related logs (only in development)
+  group: (label: string, fn: () => void) => {
+    if (isDev) {
+      console.group(label);
+      fn();
+      console.groupEnd();
+    } else {
+      fn();
+    }
+  },
+  // Log performance measurements
+  time: (label: string) => {
+    if (isDev) {
+      console.time(label);
+    }
+  },
+  timeEnd: (label: string) => {
+    if (isDev) {
+      console.timeEnd(label);
+    }
   }
 };

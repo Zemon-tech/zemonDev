@@ -1,79 +1,118 @@
 import { useAuth, useUser } from '@clerk/clerk-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import React from 'react';
-import { setAuthToken } from './crucibleApi';
+import { logger } from './utils';
+
+// Token cache to avoid unnecessary token refreshes
+interface TokenCache {
+  token: string;
+  expiresAt: number;
+}
+
+let tokenCache: TokenCache | null = null;
+const TOKEN_EXPIRY_BUFFER = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 /**
  * A React hook to get and set the Clerk auth token for API requests
  */
 export function useClerkToken() {
   const { getToken, isLoaded, isSignedIn } = useAuth();
-  const tokenRefreshTimerRef = useRef<number | null>(null);
-  const tokenRetryCountRef = useRef(0);
-  const MAX_RETRIES = 3;
+  const [isTokenSet, setIsTokenSet] = useState(false);
   
   useEffect(() => {
-    // Only try to get the token if Clerk is loaded
-    if (!isLoaded) return;
+    let isMounted = true;
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
     
-    // Function to get and set the token
-    async function fetchAndSetToken() {
+    const setAuthToken = async () => {
+      if (!isLoaded || !isSignedIn) {
+        if (isMounted) setIsTokenSet(false);
+        return;
+      }
+      
       try {
-        // Only attempt to get a token if the user is signed in
-        if (!isSignedIn) {
-          console.log('User not signed in, skipping token fetch');
+        // Check if we have a valid cached token
+        const now = Date.now();
+        if (tokenCache && tokenCache.expiresAt > now + TOKEN_EXPIRY_BUFFER) {
+          // Use cached token
+          logger.debug('Using cached auth token');
+          
+          // Set token in localStorage for API requests
+          localStorage.setItem('authToken', tokenCache.token);
+          
+          if (isMounted) setIsTokenSet(true);
           return;
         }
         
+        // Get a fresh token
+        logger.debug('Fetching fresh auth token');
         const token = await getToken();
+        
         if (token) {
-          setAuthToken(token);
-          console.log('Auth token set successfully');
-          // Reset retry count on success
-          tokenRetryCountRef.current = 0;
+          // Cache the token with expiration (default to 1 hour if we can't parse)
+          try {
+            // Split the token and get the payload part (second part)
+            const parts = token.split('.');
+            if (parts.length !== 3 || !parts[1]) throw new Error('Invalid JWT format');
+            
+            // Base64 decode and parse the payload
+            const decodedPayload = atob(parts[1]);
+            const payload = JSON.parse(decodedPayload);
+            const expiresAt = payload.exp * 1000; // Convert to milliseconds
+            
+            tokenCache = { token, expiresAt };
+            
+            // Schedule refresh before expiration
+            const timeToExpiry = expiresAt - now - TOKEN_EXPIRY_BUFFER;
+            if (timeToExpiry > 0) {
+              refreshTimer = setTimeout(setAuthToken, timeToExpiry);
+            }
+          } catch (e) {
+            // If token parsing fails, set a default expiration of 1 hour
+            logger.warn('Failed to parse JWT token:', e);
+            tokenCache = { token, expiresAt: now + 60 * 60 * 1000 };
+          }
+          
+          // Set token in localStorage for API requests
+          localStorage.setItem('authToken', token);
+          
+          if (isMounted) setIsTokenSet(true);
         } else {
-          console.error('No token received from Clerk');
-          handleTokenError('No token received');
+          if (isMounted) setIsTokenSet(false);
         }
       } catch (error) {
-        console.error('Error getting auth token:', error);
-        handleTokenError(error instanceof Error ? error.message : 'Unknown error');
+        logger.error('Error setting auth token:', error);
+        if (isMounted) setIsTokenSet(false);
       }
-    }
+    };
     
-    // Handle token fetch errors with retry logic
-    function handleTokenError(errorMessage: string) {
-      // Don't clear the token on error, as it might still be valid
-      // Only retry if we haven't exceeded the retry count
-      if (tokenRetryCountRef.current < MAX_RETRIES) {
-        const delay = Math.pow(2, tokenRetryCountRef.current) * 1000;
-        console.log(`Retrying token fetch in ${delay}ms... (${tokenRetryCountRef.current + 1}/${MAX_RETRIES})`);
-        
-        setTimeout(() => {
-          tokenRetryCountRef.current += 1;
-          fetchAndSetToken();
-        }, delay);
-      } else {
-        console.error(`Failed to get auth token after ${MAX_RETRIES} attempts`);
-      }
-    }
-    
-    // Initial token fetch
-    fetchAndSetToken();
-    
-    // Set up a timer to refresh the token periodically (every 5 minutes)
-    tokenRefreshTimerRef.current = window.setInterval(fetchAndSetToken, 5 * 60 * 1000);
+    setAuthToken();
     
     return () => {
-      // Clean up the timer on unmount
-      if (tokenRefreshTimerRef.current) {
-        clearInterval(tokenRefreshTimerRef.current);
-        tokenRefreshTimerRef.current = null;
-      }
-      // Don't clear the auth token on unmount, as it might be needed for other components
+      isMounted = false;
+      if (refreshTimer) clearTimeout(refreshTimer);
     };
-  }, [isLoaded, isSignedIn, getToken]);
+  }, [getToken, isLoaded, isSignedIn]);
+  
+  return { isTokenSet };
+}
+
+// Add an interceptor for API requests to include the auth token
+if (typeof window !== 'undefined') {
+  const originalFetch = window.fetch;
+  
+  window.fetch = async function(input: RequestInfo | URL, init?: RequestInit) {
+    const authToken = localStorage.getItem('authToken');
+    
+    if (authToken && init) {
+      init.headers = {
+        ...init.headers,
+        'Authorization': `Bearer ${authToken}`
+      };
+    }
+    
+    return originalFetch(input, init);
+  };
 }
 
 /**

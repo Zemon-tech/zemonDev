@@ -1,6 +1,9 @@
 import { useAuth } from '@clerk/clerk-react';
 import { logger } from './utils';
 
+// API Base URL from environment variable
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+
 // Type definitions
 export interface ICrucibleProblem {
   _id: string;
@@ -226,64 +229,158 @@ async function debouncedApiRequest(url: string, options = {}, retries = 3): Prom
   return requestPromise;
 }
 
-// Problem endpoints
-export async function getProblems(page = 1, limit = 10) {
-  const response = await debouncedApiRequest(`/api/crucible?page=${page}&limit=${limit}`);
-  return response;
+// Cache for API responses
+const apiCache = new Map<string, { data: any, timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+// Helper function to check if cache is valid
+const isCacheValid = (cacheKey: string): boolean => {
+  const cached = apiCache.get(cacheKey);
+  if (!cached) return false;
+  
+  const now = Date.now();
+  return now - cached.timestamp < CACHE_TTL;
+};
+
+// Generic fetch function with caching and error handling
+async function fetchWithCache<T>(
+  endpoint: string, 
+  options: RequestInit = {}, 
+  useCache = true,
+  cacheTTL = CACHE_TTL
+): Promise<T> {
+  const cacheKey = `${endpoint}:${JSON.stringify(options)}`;
+  
+  // Return cached data if available and not expired
+  if (useCache && isCacheValid(cacheKey)) {
+    logger.log(`Using cached data for ${endpoint}`);
+    return apiCache.get(cacheKey)!.data as T;
+  }
+  
+  // Measure API call performance
+  logger.time(`API Call: ${endpoint}`);
+  
+  try {
+    // Get the base options with auth token
+    const baseOptions = getFetchOptions();
+    const mergedOptions = { ...baseOptions, ...options };
+    
+    // Merge headers properly
+    if (options && options.headers) {
+      mergedOptions.headers = { ...baseOptions.headers, ...options.headers };
+    }
+    
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, mergedOptions);
+    
+    logger.timeEnd(`API Call: ${endpoint}`);
+    
+    // Handle non-2xx responses
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = `API Error (${response.status}): ${errorText}`;
+      
+      // Special handling for common error codes
+      if (response.status === 401) {
+        errorMessage = 'Unauthenticated: Please sign in to continue';
+      } else if (response.status === 403) {
+        errorMessage = 'Unauthorized: You do not have permission to access this resource';
+      } else if (response.status === 404) {
+        errorMessage = 'Resource not found';
+      } else if (response.status === 429) {
+        errorMessage = 'Rate limit exceeded. Please try again later.';
+      }
+      
+      throw new Error(errorMessage);
+    }
+    
+    // Parse JSON response
+    const data = await response.json();
+    
+    // Cache successful responses
+    if (useCache) {
+      apiCache.set(cacheKey, { data, timestamp: Date.now() });
+    }
+    
+    return data as T;
+  } catch (error) {
+    logger.timeEnd(`API Call: ${endpoint}`);
+    logger.error(`API Error for ${endpoint}:`, error);
+    throw error;
+  }
 }
 
-export async function getProblem(problemId: string): Promise<ICrucibleProblem> {
-  const response = await debouncedApiRequest(`/api/crucible/${problemId}`);
-  return response;
+// API Functions
+export async function getProblems(filters?: Record<string, any>): Promise<ICrucibleProblem[]> {
+  const queryParams = filters ? `?${new URLSearchParams(filters as any).toString()}` : '';
+  return fetchWithCache<{ data: ICrucibleProblem[] }>(`/crucible/problems${queryParams}`)
+    .then(response => response.data);
 }
 
-// Notes endpoints
-export async function getNotes(problemId: string): Promise<ICrucibleNote> {
-  return apiRequest(`/api/crucible/${problemId}/notes`);
+export async function getProblem(id: string): Promise<ICrucibleProblem> {
+  return fetchWithCache<{ data: ICrucibleProblem }>(`/crucible/problems/${id}`)
+    .then(response => response.data);
 }
 
-export async function updateNotes(problemId: string, data: Partial<ICrucibleNote>): Promise<ICrucibleNote> {
-  return apiRequest(`/api/crucible/${problemId}/notes`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deleteNotes(problemId: string): Promise<void> {
-  return apiRequest(`/api/crucible/${problemId}/notes`, {
-    method: 'DELETE',
-  });
-}
-
-// Draft endpoints
 export async function getDraft(problemId: string): Promise<ISolutionDraft> {
-  return apiRequest(`/api/crucible/${problemId}/draft`);
+  return fetchWithCache<{ data: ISolutionDraft }>(`/crucible/problems/${problemId}/draft`)
+    .then(response => response.data);
 }
 
 export async function updateDraft(
-  problemId: string,
-  content: string,
+  problemId: string, 
+  content: string, 
   saveAsVersion = false,
   versionDescription = ''
 ): Promise<ISolutionDraft> {
-  return apiRequest(`/api/crucible/${problemId}/draft`, {
-    method: 'PUT',
-    body: JSON.stringify({
-      currentContent: content,
-      saveAsVersion,
-      versionDescription
-    }),
-  });
+  // Don't cache POST/PUT requests
+  return fetchWithCache<{ data: ISolutionDraft }>(
+    `/crucible/problems/${problemId}/draft`, 
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        currentContent: content,
+        saveAsVersion,
+        versionDescription
+      }),
+    },
+    false // Don't use cache for updates
+  ).then(response => response.data);
 }
 
-export async function archiveDraft(problemId: string): Promise<ISolutionDraft> {
-  return apiRequest(`/api/crucible/${problemId}/draft/archive`, {
-    method: 'PUT',
-  });
+export async function getNotes(problemId: string): Promise<ICrucibleNote> {
+  return fetchWithCache<{ data: ICrucibleNote }>(`/crucible/problems/${problemId}/notes`)
+    .then(response => response.data);
 }
 
-export async function getDraftVersions(problemId: string): Promise<ISolutionDraft['versions']> {
-  return apiRequest(`/api/crucible/${problemId}/draft/versions`);
+export async function updateNotes(problemId: string, notes: ICrucibleNote): Promise<ICrucibleNote> {
+  // Don't cache POST/PUT requests
+  return fetchWithCache<{ data: ICrucibleNote }>(
+    `/crucible/problems/${problemId}/notes`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(notes),
+    },
+    false // Don't use cache for updates
+  ).then(response => response.data);
+}
+
+// Helper to clear cache for specific endpoints or all cache
+export function clearApiCache(endpoint?: string): void {
+  if (endpoint) {
+    // Clear specific endpoint cache entries
+    const keysToDelete: string[] = [];
+    apiCache.forEach((_, key) => {
+      if (key.startsWith(`${endpoint}:`)) {
+        keysToDelete.push(key);
+      }
+    });
+    keysToDelete.forEach(key => apiCache.delete(key));
+    logger.log(`Cleared cache for endpoint: ${endpoint}`);
+  } else {
+    // Clear all cache
+    apiCache.clear();
+    logger.log('Cleared all API cache');
+  }
 }
 
 // Solution submission

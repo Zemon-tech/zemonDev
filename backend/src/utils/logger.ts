@@ -13,6 +13,13 @@ export const logger = {
   },
 
   /**
+   * Log info messages (shown in development and production)
+   */
+  info: (message: string, ...args: any[]) => {
+    console.info(message, ...args);
+  },
+
+  /**
    * Log error messages (always shown)
    */
   error: (message: string, ...args: any[]) => {

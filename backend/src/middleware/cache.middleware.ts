@@ -77,10 +77,10 @@ export const cacheMiddleware = (ttl = 600) => { // Increased to 10 minutes
  */
 export const clearCache = async (pattern: string): Promise<void> => {
   try {
-    const keys = await redisClient.keys(`api:${pattern}*`);
-    if (keys && keys.length > 0) {
-      await redisClient.del(...keys);
-      logger.log(`Cleared ${keys.length} cache entries matching pattern: ${pattern}`);
+    // Use the clearByPattern method from the enhanced Redis client
+    const deletedCount = await redisClient.clearByPattern(`api:${pattern}*`);
+    if (deletedCount > 0) {
+      logger.log(`Cleared ${deletedCount} cache entries matching pattern: ${pattern}`);
     }
   } catch (error) {
     logger.error('Clear cache error:', error);

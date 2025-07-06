@@ -7,6 +7,7 @@ export interface ICrucibleNote extends Document {
   tags: string[];
   createdAt: Date;
   updatedAt: Date;
+  status: string;
 }
 
 const CrucibleNoteSchema: Schema = new Schema(
@@ -15,11 +16,13 @@ const CrucibleNoteSchema: Schema = new Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+      index: true
     },
     problemId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'CrucibleProblem',
       required: true,
+      index: true
     },
     content: {
       type: String,
@@ -29,6 +32,12 @@ const CrucibleNoteSchema: Schema = new Schema(
       type: [String],
       default: [],
     },
+    status: {
+      type: String,
+      enum: ['active', 'archived'],
+      default: 'active',
+      index: true
+    }
   },
   { timestamps: true }
 );

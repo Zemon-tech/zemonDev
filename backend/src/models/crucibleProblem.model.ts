@@ -46,6 +46,7 @@ export interface ICrucibleProblem extends Document {
   subtasks?: string[];
   communityTips?: ICommunityTip[];
   aiPrompts?: string[];
+  status: 'draft' | 'published' | 'archived';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -56,6 +57,7 @@ const CrucibleProblemSchema: Schema = new Schema(
       type: String,
       required: [true, 'Please provide a title'],
       trim: true,
+      index: true,
     },
     description: {
       type: String,
@@ -65,10 +67,12 @@ const CrucibleProblemSchema: Schema = new Schema(
       type: String,
       enum: ['easy', 'medium', 'hard', 'expert'],
       default: 'medium',
+      index: true,
     },
     tags: {
       type: [String],
       default: [],
+      index: true,
     },
     requirements: {
       functional: {
@@ -96,6 +100,7 @@ const CrucibleProblemSchema: Schema = new Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+      index: true,
     },
     metrics: {
       attempts: {
@@ -181,6 +186,12 @@ const CrucibleProblemSchema: Schema = new Schema(
       type: [String],
       default: [],
     },
+    status: {
+      type: String,
+      enum: ['draft', 'published', 'archived'],
+      default: 'published',
+      index: true,
+    },
   },
   { timestamps: true }
 );
@@ -191,5 +202,8 @@ CrucibleProblemSchema.index({ tags: 1 });
 CrucibleProblemSchema.index({ difficulty: 1 });
 CrucibleProblemSchema.index({ createdAt: -1 });
 CrucibleProblemSchema.index({ createdBy: 1 });
+
+// Text index for full-text search
+CrucibleProblemSchema.index({ title: 'text', description: 'text' });
 
 export default mongoose.model<ICrucibleProblem>('CrucibleProblem', CrucibleProblemSchema); 

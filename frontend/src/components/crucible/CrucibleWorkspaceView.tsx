@@ -4,22 +4,31 @@ import AIChatSidebar from './AIChatSidebar';
 import ProblemDetailsSidebar from './ProblemDetailsSidebar';
 import NotesCollector from './NotesCollector';
 import WorkspaceModeSelector from './WorkspaceModeSelector';
-import { useEffect, useState, useCallback, useRef } from 'react';
+import ProblemSkeleton from './ProblemSkeleton';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { getProblem, getDraft, updateDraft, getNotes, updateNotes } from '../../lib/crucibleApi';
 import type { ICrucibleProblem } from '../../lib/crucibleApi';
 import { useNavigate } from 'react-router-dom';
 import { useClerkToken } from '@/lib/middleware';
 import { useAuth } from '@clerk/clerk-react';
+import { logger } from '@/lib/utils';
 
 // Create a simple toast implementation since we don't have the UI component
 const useToast = () => {
   const toast = ({ title, description, variant }: { title: string; description: string; variant?: string }) => {
-    console.log(`${title}: ${description}`);
+    logger.log(`${title}: ${description}`);
     // In a real implementation, this would show a toast notification
   };
   
   return { toast };
 };
+
+// Partial loading state interface
+interface LoadingState {
+  problem: boolean;
+  draft: boolean;
+  notes: boolean;
+}
 
 export default function CrucibleWorkspaceView({ problemId }: { problemId: string }) {
   const navigate = useNavigate();
@@ -27,7 +36,8 @@ export default function CrucibleWorkspaceView({ problemId }: { problemId: string
     setWordCount, 
     activeContent, 
     isWorkspaceModeVisible,
-    currentMode
+    currentMode,
+    updateWorkspaceState
   } = useWorkspace();
   
   // Ensure the auth token is set
@@ -36,7 +46,7 @@ export default function CrucibleWorkspaceView({ problemId }: { problemId: string
   
   // Add debug logging for auth state
   useEffect(() => {
-    console.log('CrucibleWorkspaceView auth state:', { isLoaded, isSignedIn, problemId });
+    logger.log('CrucibleWorkspaceView auth state:', { isLoaded, isSignedIn, problemId });
   }, [isLoaded, isSignedIn, problemId]);
   
   const [showProblemSidebar, setShowProblemSidebar] = useState(true);
@@ -44,215 +54,261 @@ export default function CrucibleWorkspaceView({ problemId }: { problemId: string
   const [solutionContent, setSolutionContent] = useState('');
   const [notesContent, setNotesContent] = useState('');
   const [problem, setProblem] = useState<ICrucibleProblem | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Track loading state for each component separately
+  const [loadingState, setLoadingState] = useState<LoadingState>({
+    problem: true,
+    draft: true,
+    notes: true
+  });
+  
+  // Computed overall loading state
+  const isLoading = useMemo(() => {
+    return loadingState.problem && loadingState.draft && loadingState.notes;
+  }, [loadingState]);
+  
   const [error, setError] = useState<string | null>(null);
   const [authError, setAuthError] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const { toast } = useToast();
   
   // Use a ref to track if data has been fetched to prevent duplicate fetches
-  const hasFetchedRef = useRef(false);
+  const hasFetchedRef = useRef({
+    problem: false,
+    draft: false,
+    notes: false
+  });
 
   // Add debug logging for loading state changes
   useEffect(() => {
-    console.log('CrucibleWorkspaceView loading state changed:', { 
-      isLoading, 
+    logger.log('CrucibleWorkspaceView loading state changed:', { 
+      loadingState, 
       hasFetched: hasFetchedRef.current,
       error,
       authError
     });
-  }, [isLoading, error, authError]);
+  }, [loadingState, error, authError]);
 
-  // Fetch problem data and user's draft/notes with useCallback to ensure stable reference
-  const fetchData = useCallback(async () => {
-    if (!isLoaded) {
-      console.log('Clerk not loaded yet, skipping data fetch');
-      return;
-    }
-    
-    if (!isSignedIn) {
-      console.log('User not signed in, setting auth error');
-      setAuthError(true);
-      setIsLoading(false);
-      return;
-    }
+  // Fetch problem data with useCallback to ensure stable reference
+  const fetchProblemData = useCallback(async () => {
+    if (!isLoaded || !isSignedIn) return;
     
     // Prevent duplicate fetches
-    if (hasFetchedRef.current) {
-      console.log('Data already fetched, skipping');
+    if (hasFetchedRef.current.problem) {
+      logger.log('Problem data already fetched, skipping');
       return;
     }
     
-    console.log('Starting data fetch for problem:', problemId);
-    hasFetchedRef.current = true;
-    
-    setIsLoading(true);
-    setError(null);
-    setAuthError(false);
-    
-    // Set a timeout to ensure we don't get stuck in loading state
-    const loadingTimeout = setTimeout(() => {
-      if (isLoading) {
-        console.log('Loading timeout reached, forcing loading state to false');
-        setIsLoading(false);
-      }
-    }, 10000); // Force loading to end after 10 seconds max
+    logger.log('Starting problem data fetch:', problemId);
+    hasFetchedRef.current.problem = true;
     
     try {
       // Fetch problem details
+      logger.time('Problem data fetch');
       const problemData = await getProblem(problemId);
+      logger.timeEnd('Problem data fetch');
+      
+      // Update state with fetched data
       setProblem(problemData);
       
-      // Try to fetch user's draft solution and notes in parallel
-      const [draftResult, notesResult] = await Promise.allSettled([
-        getDraft(problemId).catch(err => {
-          // Handle draft fetch errors
-          if (err instanceof Error && err.message.includes('Unauthenticated')) {
-            throw new Error('Authentication error');
-          }
-          console.log('No existing draft found, starting with empty content');
-          return { currentContent: '' };
-        }),
-        getNotes(problemId).catch(err => {
-          // Handle notes fetch errors
-          if (err instanceof Error && err.message.includes('Unauthenticated')) {
-            throw new Error('Authentication error');
-          }
-          console.log('No existing notes found, starting with empty content');
-          return { content: '' };
-        })
-      ]);
+      // Update workspace context
+      updateWorkspaceState({
+        currentProblem: problemData
+      });
       
-      // Process draft result
-      if (draftResult.status === 'fulfilled') {
-        const draftData = draftResult.value;
-        setSolutionContent(draftData.currentContent || '');
-        setWordCount(draftData.currentContent?.trim().split(/\s+/).length || 0);
-      }
-      
-      // Process notes result
-      if (notesResult.status === 'fulfilled') {
-        const notesData = notesResult.value;
-        setNotesContent(notesData.content || '');
-      }
-      
-      // Check if either request had an authentication error
-      if (
-        (draftResult.status === 'rejected' && draftResult.reason.message === 'Authentication error') ||
-        (notesResult.status === 'rejected' && notesResult.reason.message === 'Authentication error')
-      ) {
-        setAuthError(true);
-        console.error('Authentication error when fetching user data');
-      }
+      // Mark problem as loaded
+      setLoadingState(prev => ({ ...prev, problem: false }));
       
     } catch (err) {
+      // Handle errors
       const errorMessage = err instanceof Error ? err.message : 'Failed to load problem data';
-      console.error('Error in fetchData:', errorMessage);
+      logger.error('Error in fetchProblemData:', errorMessage);
       
       // Check if it's an authentication error
       if (err instanceof Error && (
-        errorMessage.includes('Unauthenticated') || 
-        errorMessage.includes('Authentication') ||
-        errorMessage.includes('401') ||
-        errorMessage.includes('403')
+        errorMessage.includes('Authentication error') || 
+        errorMessage.includes('Unauthenticated')
       )) {
         setAuthError(true);
-        console.error('Authentication error:', err);
-      } else if (err instanceof Error && errorMessage.includes('429')) {
-        // Handle rate limiting
-        setError('Too many requests. Please wait a moment before trying again.');
-        return; // Don't set isLoading to false yet, will be handled by retry logic
       } else {
-        setError(errorMessage);
+        // General error
         toast({
           title: 'Error',
-          description: errorMessage,
-          variant: 'destructive',
+          description: `Failed to load problem data: ${errorMessage}`,
+          variant: 'destructive'
         });
       }
-    } finally {
-      clearTimeout(loadingTimeout);
-      setIsLoading(false);
-      console.log('Data fetch completed or failed, loading state set to false');
     }
-  }, [problemId, setWordCount, toast, isLoaded, isSignedIn]);
+  }, [problemId, isLoaded, isSignedIn, updateWorkspaceState, toast]);
+
+  // Fetch draft data with useCallback to ensure stable reference
+  const fetchDraftData = useCallback(async () => {
+    if (!isLoaded || !isSignedIn) return;
+    
+    // Prevent duplicate fetches
+    if (hasFetchedRef.current.draft) {
+      logger.log('Draft data already fetched, skipping');
+      return;
+    }
+    
+    logger.log('Starting draft data fetch:', problemId);
+    hasFetchedRef.current.draft = true;
+    
+    try {
+      // Fetch draft data
+      logger.time('Draft data fetch');
+      const draftData = await getDraft(problemId).catch(err => {
+        if (err instanceof Error && err.message.includes('Unauthenticated')) {
+          throw new Error('Authentication error');
+        }
+        logger.log('No existing draft found, starting with empty content');
+        return { currentContent: '' };
+      });
+      logger.timeEnd('Draft data fetch');
+      
+      // Update state with fetched data
+      setSolutionContent(draftData.currentContent);
+      
+      // Calculate word count
+      const wordCount = draftData.currentContent.trim().split(/\s+/).length;
+      setWordCount(wordCount);
+      
+      // Mark draft as loaded
+      setLoadingState(prev => ({ ...prev, draft: false }));
+      
+    } catch (err) {
+      // Handle errors
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load draft data';
+      logger.error('Error in fetchDraftData:', errorMessage);
+      
+      // Check if it's an authentication error
+      if (err instanceof Error && (
+        errorMessage.includes('Authentication error') || 
+        errorMessage.includes('Unauthenticated')
+      )) {
+        setAuthError(true);
+      }
+      
+      // Mark as loaded even on error to allow the UI to proceed
+      setLoadingState(prev => ({ ...prev, draft: false }));
+    }
+  }, [problemId, isLoaded, isSignedIn, setWordCount]);
+
+  // Fetch notes data with useCallback to ensure stable reference
+  const fetchNotesData = useCallback(async () => {
+    if (!isLoaded || !isSignedIn) return;
+    
+    // Prevent duplicate fetches
+    if (hasFetchedRef.current.notes) {
+      logger.log('Notes data already fetched, skipping');
+      return;
+    }
+    
+    logger.log('Starting notes data fetch:', problemId);
+    hasFetchedRef.current.notes = true;
+    
+    try {
+      // Fetch notes data
+      logger.time('Notes data fetch');
+      const notesData = await getNotes(problemId).catch(err => {
+        if (err instanceof Error && err.message.includes('Unauthenticated')) {
+          throw new Error('Authentication error');
+        }
+        logger.log('No existing notes found, starting with empty content');
+        return { 
+          content: '',
+          tags: [],
+          problemId
+        };
+      });
+      logger.timeEnd('Notes data fetch');
+      
+      // Update state with fetched data
+      setNotesContent(notesData.content);
+      
+      // Mark notes as loaded
+      setLoadingState(prev => ({ ...prev, notes: false }));
+      
+    } catch (err) {
+      // Handle errors
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load notes data';
+      logger.error('Error in fetchNotesData:', errorMessage);
+      
+      // Check if it's an authentication error
+      if (err instanceof Error && (
+        errorMessage.includes('Authentication error') || 
+        errorMessage.includes('Unauthenticated')
+      )) {
+        setAuthError(true);
+      }
+      
+      // Mark as loaded even on error to allow the UI to proceed
+      setLoadingState(prev => ({ ...prev, notes: false }));
+    }
+  }, [problemId, isLoaded, isSignedIn]);
   
-  // Use fetchData in useEffect
+  // Use fetchData in useEffect with progressive loading
   useEffect(() => {
     let isMounted = true;
-    let loadingTimer: ReturnType<typeof setTimeout> | null = null;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
     
     // Only fetch if auth is loaded and the component is mounted
     if (isLoaded && isMounted) {
-      // Add a small delay before showing loading indicator to prevent flashing
-      loadingTimer = setTimeout(() => {
-        if (isMounted && !hasFetchedRef.current) {
-          setIsLoading(true);
-        }
-      }, 300);
-      
       // Force loading state to end after 15 seconds as a fallback
       const maxLoadingTimer = setTimeout(() => {
-        if (isMounted && isLoading) {
-          console.log('Max loading time reached, forcing loading state to false');
-          setIsLoading(false);
+        if (isMounted) {
+          logger.log('Max loading time reached, forcing loading state to false');
+          setLoadingState({ problem: false, draft: false, notes: false });
         }
       }, 15000);
       
-      fetchData().catch(err => {
-        if (!isMounted) return;
-        
-        console.error('Error in fetchData:', err);
-        
-        // Handle rate limiting with retry
-        if (err instanceof Error && err.message.includes('429')) {
-          retryTimer = setTimeout(() => {
-            if (isMounted) {
-              console.log('Retrying API call after rate limit...');
-              hasFetchedRef.current = false; // Reset fetch flag to allow retry
-              fetchData();
-            }
-          }, 5000);
+      // First fetch problem data (highest priority)
+      fetchProblemData().then(() => {
+        // Then fetch draft and notes data in parallel
+        if (isMounted) {
+          Promise.all([
+            fetchDraftData(),
+            fetchNotesData()
+          ]).catch(err => {
+            logger.error('Error in parallel data fetch:', err);
+          });
         }
-        
-        setIsLoading(false);
+      }).catch(err => {
+        logger.error('Error in progressive data fetch:', err);
+        if (isMounted) {
+          setLoadingState({ problem: false, draft: false, notes: false });
+        }
       });
       
       return () => {
         isMounted = false;
-        if (loadingTimer) clearTimeout(loadingTimer);
-        if (retryTimer) clearTimeout(retryTimer);
-        if (maxLoadingTimer) clearTimeout(maxLoadingTimer);
+        clearTimeout(maxLoadingTimer);
       };
     }
     
     return () => {
       isMounted = false;
-      if (loadingTimer) clearTimeout(loadingTimer);
-      if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [fetchData, isLoaded, isLoading]);
+  }, [fetchProblemData, fetchDraftData, fetchNotesData, isLoaded]);
 
   // Auto-save solution draft with proper cleanup
   useEffect(() => {
-    if (!solutionContent || isLoading || authError) return;
+    if (!solutionContent || loadingState.draft || authError) return;
     
     let isMounted = true;
     const saveTimeout = setTimeout(async () => {
       if (!isMounted) return;
       
       try {
-        console.log('Auto-saving draft...');
+        logger.log('Auto-saving draft...');
         await updateDraft(problemId, solutionContent);
         if (isMounted) {
           setLastSaved(new Date());
-          console.log('Draft saved successfully');
+          logger.log('Draft saved successfully');
         }
       } catch (err) {
         if (!isMounted) return;
         
-        console.error('Failed to auto-save draft:', err);
+        logger.error('Failed to auto-save draft:', err);
         
         // Check if it's an authentication error
         if (err instanceof Error && err.message.includes('Unauthenticated')) {
@@ -277,24 +333,28 @@ export default function CrucibleWorkspaceView({ problemId }: { problemId: string
       isMounted = false;
       clearTimeout(saveTimeout);
     };
-  }, [solutionContent, problemId, isLoading, authError, toast]);
+  }, [solutionContent, problemId, loadingState.draft, authError, toast]);
   
   // Auto-save notes with proper cleanup
   useEffect(() => {
-    if (!notesContent || isLoading || authError) return;
+    if (!notesContent || loadingState.notes || authError) return;
     
     let isMounted = true;
     const saveTimeout = setTimeout(async () => {
       if (!isMounted) return;
       
       try {
-        console.log('Auto-saving notes...');
-        await updateNotes(problemId, { content: notesContent, tags: [] });
-        console.log('Notes saved successfully');
+        logger.log('Auto-saving notes...');
+        await updateNotes(problemId, { 
+          content: notesContent, 
+          tags: [],
+          problemId
+        });
+        logger.log('Notes saved successfully');
       } catch (err) {
         if (!isMounted) return;
         
-        console.error('Failed to auto-save notes:', err);
+        logger.error('Failed to auto-save notes:', err);
         
         // Check if it's an authentication error
         if (err instanceof Error && err.message.includes('Unauthenticated')) {
@@ -319,17 +379,17 @@ export default function CrucibleWorkspaceView({ problemId }: { problemId: string
       isMounted = false;
       clearTimeout(saveTimeout);
     };
-  }, [notesContent, problemId, isLoading, authError, toast]);
+  }, [notesContent, problemId, loadingState.notes, authError, toast]);
 
-  const handleEditorChange = (content: string) => {
+  const handleEditorChange = useCallback((content: string) => {
     setSolutionContent(content);
     const wordCount = content.trim().split(/\s+/).length;
     setWordCount(wordCount);
-  };
+  }, [setWordCount]);
   
-  const handleNotesChange = (content: string) => {
+  const handleNotesChange = useCallback((content: string) => {
     setNotesContent(content);
-  };
+  }, []);
 
   // Handle sidebar toggle events
   useEffect(() => {
@@ -345,8 +405,9 @@ export default function CrucibleWorkspaceView({ problemId }: { problemId: string
     };
   }, []);
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-full">Loading problem data...</div>;
+  // Show full skeleton if problem data is still loading
+  if (loadingState.problem) {
+    return <ProblemSkeleton />;
   }
 
   if (authError) {
@@ -396,25 +457,48 @@ export default function CrucibleWorkspaceView({ problemId }: { problemId: string
         </div>
         
         <div className="flex-1 overflow-auto p-2">
+          {/* Show loading indicators for draft and notes */}
           {activeContent === 'solution' ? (
             <>
-              <SolutionEditor 
-                value={solutionContent}
-                onChange={handleEditorChange} 
-                key={`solution-${problemId}-${currentMode}`} 
-              />
-              {lastSaved && (
-                <div className="text-xs text-gray-500 mt-2 text-right">
-                  Last saved: {lastSaved.toLocaleTimeString()}
+              {loadingState.draft ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+                    <p className="text-sm text-base-content/70">Loading your draft...</p>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <SolutionEditor 
+                    value={solutionContent}
+                    onChange={handleEditorChange} 
+                    key={`solution-${problemId}-${currentMode}`} 
+                  />
+                  {lastSaved && (
+                    <div className="text-xs text-gray-500 mt-2 text-right">
+                      Last saved: {lastSaved.toLocaleTimeString()}
+                    </div>
+                  )}
+                </>
               )}
             </>
           ) : (
-            <NotesCollector 
-              key={`notes-${problemId}-${currentMode}`} 
-              initialContent={notesContent}
-              onChange={handleNotesChange}
-            />
+            <>
+              {loadingState.notes ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+                    <p className="text-sm text-base-content/70">Loading your notes...</p>
+                  </div>
+                </div>
+              ) : (
+                <NotesCollector 
+                  key={`notes-${problemId}-${currentMode}`} 
+                  initialContent={notesContent}
+                  onChange={handleNotesChange}
+                />
+              )}
+            </>
           )}
         </div>
       </div>
