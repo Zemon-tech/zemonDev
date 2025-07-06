@@ -1,8 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-react";
 import { ThemeProvider } from './lib/ThemeContext';
-import { withAuth } from './lib/middleware';
+import { withAuth, useClerkToken } from './lib/middleware';
 import { WorkspaceProvider } from './lib/WorkspaceContext';
+import { useEffect } from 'react';
 
 // Layouts
 import PublicLayout from './components/layout/PublicLayout';
@@ -28,11 +29,16 @@ const ProtectedDashboard = withAuth(DashboardPage);
 const ProtectedPlaceholder = withAuth(PlaceholderPage);
 const ProtectedForgePage = withAuth(ForgePage);
 const ProtectedForgeDetailPage = withAuth(ForgeDetailPage);
+const ProtectedCruciblePage = withAuth(CruciblePage);
+const ProtectedCrucibleProblemPage = withAuth(CrucibleProblemPage);
 
 // Root route component to handle authenticated users
 function RootRoute() {
   const { isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
+  
+  // Set up the auth token
+  useClerkToken();
   
   // Wait for Clerk to load
   if (!isLoaded) {
@@ -51,15 +57,35 @@ function RootRoute() {
 }
 
 // Wrap AppLayout with WorkspaceProvider
-const WorkspaceLayout = () => (
-  <WorkspaceProvider>
-    <AppLayout />
-  </WorkspaceProvider>
-);
+const WorkspaceLayout = () => {
+  // Set up the auth token for the workspace layout
+  useClerkToken();
+  const { isSignedIn, isLoaded } = useAuth();
+  
+  // Log authentication state for debugging
+  useEffect(() => {
+    console.log('WorkspaceLayout auth state:', { isLoaded, isSignedIn });
+  }, [isLoaded, isSignedIn]);
+  
+  return (
+    <WorkspaceProvider>
+      <AppLayout />
+    </WorkspaceProvider>
+  );
+}
 
 function App() {
+  // Configure Clerk with the publishable key
+  const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || 'pk_test_placeholder';
+  
+  // Log the key for debugging (without revealing the full key)
+  useEffect(() => {
+    const keyPrefix = publishableKey.substring(0, 8);
+    console.log(`Using Clerk with key prefix: ${keyPrefix}...`);
+  }, [publishableKey]);
+  
   return (
-    <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || 'pk_test_placeholder'}>
+    <ClerkProvider publishableKey={publishableKey}>
       <ThemeProvider>
         <Router>
           <Routes>
@@ -80,8 +106,8 @@ function App() {
               <Route path="dashboard" element={<ProtectedDashboard />} />
               <Route path="forge" element={<ProtectedForgePage />} />
               <Route path="forge/:id" element={<ProtectedForgeDetailPage />} />
-              <Route path="crucible" element={<CruciblePage />} />
-              <Route path="crucible/problem/:id" element={<CrucibleProblemPage />} />
+              <Route path="crucible" element={<ProtectedCruciblePage />} />
+              <Route path="crucible/problem/:id" element={<ProtectedCrucibleProblemPage />} />
               <Route path="arena" element={<ProtectedPlaceholder title="Arena" description="Compete with peers in coding competitions." />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="settings" element={<ProtectedPlaceholder title="Settings" description="Configure your account settings and preferences." />} />

@@ -5,8 +5,6 @@ export interface ICrucibleNote extends Document {
   problemId: mongoose.Types.ObjectId;
   content: string;
   tags: string[];
-  status: 'active' | 'archived';
-  visibility: 'private' | 'public';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,16 +28,6 @@ const CrucibleNoteSchema: Schema = new Schema(
     tags: {
       type: [String],
       default: [],
-    },
-    status: {
-      type: String,
-      enum: ['active', 'archived'],
-      default: 'active',
-    },
-    visibility: {
-      type: String,
-      enum: ['private', 'public'],
-      default: 'private',
     },
   },
   { timestamps: true }

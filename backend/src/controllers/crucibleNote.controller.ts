@@ -17,8 +17,7 @@ export const getNotes = asyncHandler(
     // Try to find existing notes
     let notes = await CrucibleNote.findOne({
       userId,
-      problemId,
-      status: 'active'
+      problemId
     });
 
     // If no notes exist, create new empty notes
@@ -27,9 +26,7 @@ export const getNotes = asyncHandler(
         userId,
         problemId,
         content: '',
-        tags: [],
-        status: 'active',
-        visibility: 'private'
+        tags: []
       });
     }
 
@@ -52,13 +49,12 @@ export const updateNotes = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { problemId } = req.params;
     const userId = req.user._id;
-    const { content, tags, visibility } = req.body;
+    const { content, tags } = req.body;
 
     // Find the notes
     let notes = await CrucibleNote.findOne({
       userId,
-      problemId,
-      status: 'active'
+      problemId
     });
 
     // If no notes exist, create new notes
@@ -67,15 +63,12 @@ export const updateNotes = asyncHandler(
         userId,
         problemId,
         content: content || '',
-        tags: tags || [],
-        status: 'active',
-        visibility: visibility || 'private'
+        tags: tags || []
       });
     } else {
       // Update existing notes
       if (content !== undefined) notes.content = content;
       if (tags !== undefined) notes.tags = tags;
-      if (visibility !== undefined) notes.visibility = visibility;
       await notes.save();
     }
 
@@ -102,17 +95,15 @@ export const deleteNotes = asyncHandler(
     // Find the notes
     const notes = await CrucibleNote.findOne({
       userId,
-      problemId,
-      status: 'active'
+      problemId
     });
 
     if (!notes) {
       return next(new AppError('Notes not found', 404));
     }
 
-    // Soft delete by changing status to archived
-    notes.status = 'archived';
-    await notes.save();
+    // Hard delete the notes
+    await notes.deleteOne();
 
     res.status(200).json(
       new ApiResponse(

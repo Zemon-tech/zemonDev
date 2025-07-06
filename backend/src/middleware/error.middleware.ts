@@ -2,85 +2,75 @@ import { Request, Response, NextFunction } from 'express';
 import AppError from '../utils/AppError';
 import env from '../config/env';
 
-interface ErrorResponse {
-  success: boolean;
-  error: {
-    message: string;
-    stack?: string;
-    statusCode: number;
-  };
-}
-
 /**
- * Global error handling middleware
+ * Handles different error types and sends a standardized response.
+ * @param err The error object
+ * @param res The Express response object
  */
-const errorMiddleware = (
-  err: Error | AppError,
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+const handleKnownErrors = (err: any, res: Response) => {
   let error = { ...err };
   error.message = err.message;
 
-  // Log error in development
-  if (env.NODE_ENV === 'development') {
-    console.error('Error: ', err);
-  }
-
-  // Default error
-  let statusCode = 500;
-  let message = 'Server Error';
-
-  // AppError instance
-  if ('statusCode' in err) {
-    statusCode = err.statusCode;
-    message = err.message;
-  }
-
-  // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    statusCode = 400;
-    message = 'Validation Error';
-  }
-
-  // Mongoose duplicate key error
-  if (err.name === 'MongoServerError' && (err as any).code === 11000) {
-    statusCode = 400;
-    message = 'Duplicate field value entered';
-  }
-
-  // Mongoose cast error (invalid ID)
+  // Mongoose CastError (invalid ObjectId)
   if (err.name === 'CastError') {
-    statusCode = 404;
-    message = `Resource not found`;
+    const message = `Invalid resource identifier. Malformed ${err.path}: ${err.value}.`;
+    error = new AppError(message, 400);
   }
 
-  // JWT errors
-  if (err.name === 'JsonWebTokenError') {
-    statusCode = 401;
-    message = 'Invalid token';
+  // Mongoose Duplicate Key Error
+  if (err.code === 11000) {
+    const value = Object.keys(err.keyValue)[0];
+    const message = `Duplicate field value entered for '${value}'. Please use another value.`;
+    error = new AppError(message, 400);
   }
 
+  // Mongoose Validation Error
+  if (err.name === 'ValidationError') {
+    const errors = Object.values(err.errors).map((el: any) => el.message);
+    const message = `Invalid input data. ${errors.join('. ')}`;
+    error = new AppError(message, 400);
+  }
+
+  // Clerk/JWT Errors
+  if (err.name === 'JsonWebTokenError' || err.message?.includes('Unauthenticated')) {
+    error = new AppError('Invalid token or session. Please log in again.', 401);
+  }
   if (err.name === 'TokenExpiredError') {
-    statusCode = 401;
-    message = 'Token expired';
+    error = new AppError('Your session has expired. Please log in again.', 401);
   }
 
-  const errorResponse: ErrorResponse = {
+  // Send the refined error
+  res.status(error.statusCode || 500).json({
     success: false,
-    error: {
-      message,
-      statusCode
-    }
-  };
+    message: error.message,
+    // Only include stack in development
+    ...(env.NODE_ENV === 'development' && { stack: err.stack }),
+  });
+};
 
-  // Include stack trace in development
+/**
+ * Global Error Handling Middleware
+ * Catches all errors and sends an appropriate HTTP response.
+ */
+const errorMiddleware = (err: any, req: Request, res: Response, next: NextFunction) => {
+  err.statusCode = err.statusCode || 500;
+
+  // Log all errors for debugging purposes
+  console.error(`[ERROR] ${new Date().toISOString()} - ${err.statusCode} - ${err.message} - ${req.originalUrl} - ${req.method} - ${req.ip}`);
   if (env.NODE_ENV === 'development') {
-    errorResponse.error.stack = err.stack;
+    console.error(err.stack);
   }
-
-  res.status(statusCode).json(errorResponse);
+  
+  // For operational errors we trust, and other known errors (DB, JWT)
+  if (err.isOperational || err.name === 'CastError' || err.code === 11000 || err.name === 'ValidationError' || err.name.includes('Token')) {
+    handleKnownErrors(err, res);
+  } else {
+    // For unknown/programming errors, send a generic message in production
+    res.status(500).json({
+      success: false,
+      message: 'An unexpected internal server error occurred.',
+    });
+  }
 };
 
 export default errorMiddleware; 

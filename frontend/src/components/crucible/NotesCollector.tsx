@@ -5,9 +5,29 @@ import { useWorkspace } from '../../lib/WorkspaceContext';
 import { Button } from '@/components/ui/button';
 import { Trash2, Tag, MessageSquarePlus } from 'lucide-react';
 
-export default function NotesCollector() {
+interface NotesCollectorProps {
+  initialContent?: string;
+  onChange?: (content: string) => void;
+}
+
+export default function NotesCollector({ initialContent = '', onChange }: NotesCollectorProps) {
   const { notes, addNote, removeNote } = useWorkspace();
-  const [newNote, setNewNote] = useState('');
+  const [newNote, setNewNote] = useState(initialContent);
+
+  // Update newNote when initialContent changes
+  useEffect(() => {
+    if (initialContent !== undefined) {
+      setNewNote(initialContent);
+    }
+  }, [initialContent]);
+
+  // Notify parent component when content changes
+  useEffect(() => {
+    if (onChange) {
+      onChange(newNote);
+    }
+  }, [newNote, onChange]);
+
   const [tags, setTags] = useState<string[]>([]);
 
   // Auto-tag based on content

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 export type WorkspaceMode = 'understand' | 'brainstorm' | 'draft' | 'review';
 export type ContentType = 'solution' | 'notes';
@@ -53,26 +53,27 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [isResearchPaneOpen, setIsResearchPaneOpen] = useState(true);
   const [isWorkspaceModeVisible, setIsWorkspaceModeVisible] = useState(true);
 
-  const addNote = (note: { content: string; tags: string[] }) => {
+  // Memoize callback functions to prevent unnecessary re-renders
+  const addNote = useCallback((note: { content: string; tags: string[] }) => {
     const newNote: Note = {
       ...note,
       id: Math.random().toString(36).substr(2, 9),
       timestamp: Date.now(),
     };
     setNotes(prev => [...prev, newNote]);
-  };
+  }, []);
 
-  const removeNote = (id: string) => {
+  const removeNote = useCallback((id: string) => {
     setNotes(prev => prev.filter(note => note.id !== id));
-  };
+  }, []);
 
-  const toggleResearchPane = () => {
+  const toggleResearchPane = useCallback(() => {
     setIsResearchPaneOpen(prev => !prev);
-  };
+  }, []);
   
-  const toggleWorkspaceModeVisibility = () => {
+  const toggleWorkspaceModeVisibility = useCallback(() => {
     setIsWorkspaceModeVisible(prev => !prev);
-  };
+  }, []);
   
   // Event listeners for UI control
   useEffect(() => {
@@ -97,9 +98,10 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('switch-content', handleSwitchContent as EventListener);
       window.removeEventListener('toggle-workspace-mode', handleToggleWorkspaceMode);
     };
-  }, []);
+  }, [toggleWorkspaceModeVisibility]);
 
-  const value: WorkspaceContextType = {
+  // Memoize the context value to prevent unnecessary re-renders
+  const value = {
     currentMode,
     setMode,
     notes,

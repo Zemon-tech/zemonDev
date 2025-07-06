@@ -14,16 +14,35 @@ import {
   Bot, 
   ExternalLink 
 } from 'lucide-react';
+import type { ICrucibleProblem } from '@/lib/crucibleApi';
 
 interface Props {
   title: string;
   description: string;
-  requirements: string[];
+  requirements: ICrucibleProblem['requirements'] | string[];
   constraints: string[];
   hints: string[];
   tags: string[];
+  estimatedTime?: number;
+  learningObjectives?: string[];
   defaultWidth?: number;
   minWidth?: number;
+}
+
+// Helper function to normalize requirements
+function normalizeRequirements(reqs: Props['requirements']): string[] {
+  if (Array.isArray(reqs)) {
+    return reqs;
+  }
+  
+  if (reqs && typeof reqs === 'object') {
+    return [
+      ...(reqs.functional || []),
+      ...(reqs.nonFunctional || [])
+    ];
+  }
+  
+  return [];
 }
 
 // Mock data for new sections (in a real app, this would come from props or API)
@@ -115,11 +134,14 @@ export default function ProblemDetailsSidebar({
   constraints,
   hints,
   tags,
+  estimatedTime,
+  learningObjectives,
   defaultWidth = 320,
   minWidth = 280,
 }: Props) {
   const [width, setWidth] = useState(defaultWidth);
   const [isResizing, setIsResizing] = useState(false);
+  const normalizedRequirements = normalizeRequirements(requirements);
 
   const startResizing = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -177,7 +199,7 @@ export default function ProblemDetailsSidebar({
             <DifficultyBadge difficulty={mockData.difficulty} />
             <div className="flex items-center text-xs text-base-content/70 gap-1">
               <Clock className="w-3 h-3" />
-              <span>Est. {mockData.estimatedTime} min</span>
+              <span>Est. {estimatedTime || mockData.estimatedTime} min</span>
             </div>
           </div>
           
@@ -199,7 +221,7 @@ export default function ProblemDetailsSidebar({
               </AccordionTrigger>
               <AccordionContent className="pl-2 py-1">
                 <ul className="list-disc list-inside text-xs space-y-0.5 text-base-content/90 dark:text-base-content/80">
-                  {requirements.map((req, i) => <li key={i}>{req}</li>)}
+                  {normalizedRequirements.map((req, i) => <li key={i}>{req}</li>)}
                 </ul>
               </AccordionContent>
             </AccordionItem>
@@ -223,7 +245,7 @@ export default function ProblemDetailsSidebar({
               </AccordionTrigger>
               <AccordionContent className="pl-2 py-1">
                 <ul className="list-none text-xs space-y-1 text-base-content/90 dark:text-base-content/80">
-                  {mockData.learningObjectives.map((obj, i) => (
+                  {learningObjectives?.map((obj, i) => (
                     <li key={i} className="flex items-start gap-1">
                       <span className="text-green-500 dark:text-green-400 mt-0.5">✔️</span>
                       <span>{obj}</span>

@@ -3,11 +3,13 @@ import { useState, useCallback, useEffect } from 'react';
 interface AIChatSidebarProps {
   defaultWidth?: number;
   minWidth?: number;
+  problemId?: string;
 }
 
 export default function AIChatSidebar({ 
   defaultWidth = 320,
   minWidth = 280,
+  problemId
 }: AIChatSidebarProps) {
   const [width, setWidth] = useState(defaultWidth);
   const [isResizing, setIsResizing] = useState(false);

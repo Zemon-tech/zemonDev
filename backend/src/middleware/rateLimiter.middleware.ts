@@ -31,24 +31,44 @@ const createRateLimiter = (options: {
   return rateLimit(mergedOptions);
 };
 
-// Standard rate limiter - 100 requests per 15 minutes
-export const standardLimiter = createRateLimiter({});
+// Check if we're in development mode
+const isDevelopment = env.NODE_ENV === 'development';
 
-// Strict rate limiter for sensitive operations - 30 requests per 15 minutes
-export const strictLimiter = createRateLimiter({
-  max: 30,
-  message: 'Too many attempts, please try again after 15 minutes',
+// Development rate limiter - very high limits for local development
+export const devLimiter = createRateLimiter({
+  max: 1000, // Very high limit for development
+  windowMs: 1 * 60 * 1000, // 1 minute window
 });
 
-// Very strict limiter for auth endpoints - 10 requests per 15 minutes
-export const authLimiter = createRateLimiter({
-  max: 10,
-  message: 'Too many authentication attempts, please try again after 15 minutes',
-});
+// Standard rate limiter - increased to 500 requests per 15 minutes for development
+export const standardLimiter = isDevelopment 
+  ? devLimiter // Use dev limiter in development
+  : createRateLimiter({
+      max: 500,
+      windowMs: 15 * 60 * 1000, // 15 minutes
+    });
 
-// AI endpoints limiter - 5 requests per minute
-export const aiLimiter = createRateLimiter({
-  windowMs: 60 * 1000, // 1 minute
-  max: 5,
-  message: 'Too many AI requests, please try again after 1 minute',
-}); 
+// Strict rate limiter for sensitive operations
+export const strictLimiter = isDevelopment
+  ? devLimiter // Use dev limiter in development
+  : createRateLimiter({
+      max: 30,
+      message: 'Too many attempts, please try again after 15 minutes',
+    });
+
+// Very strict limiter for auth endpoints
+export const authLimiter = isDevelopment
+  ? devLimiter // Use dev limiter in development
+  : createRateLimiter({
+      max: 10,
+      message: 'Too many authentication attempts, please try again after 15 minutes',
+    });
+
+// AI endpoints limiter
+export const aiLimiter = isDevelopment
+  ? devLimiter // Use dev limiter in development
+  : createRateLimiter({
+      windowMs: 60 * 1000, // 1 minute
+      max: 5,
+      message: 'Too many AI requests, please try again after 1 minute',
+    }); 
