@@ -66,59 +66,50 @@ export const updateCurrentUser = asyncHandler(
 );
 
 /**
- * @desc    Handle Clerk webhook for user creation
+ * @desc    Handle Clerk webhook for user creation/updates
  * @route   POST /api/webhooks/clerk
- * @access  Public
+ * @access  Public (Webhook signature should be verified in production)
  */
 export const handleClerkWebhook = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const evt = req.body;
+    const eventType = evt.type;
 
-    // Verify the webhook signature (In production, use Clerk's webhook verification)
-    // For now, we'll just check if the event type is supported
-    
-    if (evt.type === 'user.created') {
+    if (eventType === 'user.created') {
       const { id, email_addresses, first_name, last_name } = evt.data;
-      
-      // Check if user already exists
+
       const existingUser = await User.findOne({ clerkId: id });
       if (existingUser) {
-        return res.status(200).json({ message: 'User already exists' });
+        // Idempotency: If user already exists, acknowledge successfully.
+        return res.status(200).json({ message: 'User already processed.' });
       }
 
-      // Get primary email
-      const primaryEmail = email_addresses.find((email: any) => email.id === evt.data.primary_email_address_id);
-      const emailValue = primaryEmail ? primaryEmail.email_address : '';
-      
-      // Create a new user
-      const user = await User.create({
+      const primaryEmail = email_addresses.find((e: any) => e.id === evt.data.primary_email_address_id)?.email_address;
+      if (!primaryEmail) {
+        return next(new AppError('Primary email address not found on webhook event.', 400));
+      }
+
+      const newUser = await User.create({
         clerkId: id,
-        email: emailValue,
+        email: primaryEmail,
         fullName: `${first_name || ''} ${last_name || ''}`.trim(),
-        interests: [],
-        stats: {
-          problemsSolved: 0,
-          resourcesCreated: 0,
-          reputation: 0
-        }
       });
 
-      return res.status(201).json({ success: true, userId: user._id });
-    } 
-    
-    else if (evt.type === 'user.updated') {
-      const { id, email_addresses, first_name, last_name } = evt.data;
-      
-      // Get primary email
-      const primaryEmail = email_addresses.find((email: any) => email.id === evt.data.primary_email_address_id);
-      const emailValue = primaryEmail ? primaryEmail.email_address : '';
+      return res.status(201).json(new ApiResponse(201, 'User created successfully.', { userId: newUser._id }));
 
-      // Update user
+    } else if (eventType === 'user.updated') {
+      const { id, email_addresses, first_name, last_name } = evt.data;
+
+      const primaryEmail = email_addresses.find((e: any) => e.id === evt.data.primary_email_address_id)?.email_address;
+      if (!primaryEmail) {
+        return next(new AppError('Primary email address not found on webhook event.', 400));
+      }
+
       const updatedUser = await User.findOneAndUpdate(
         { clerkId: id },
         {
           $set: {
-            email: emailValue,
+            email: primaryEmail,
             fullName: `${first_name || ''} ${last_name || ''}`.trim(),
           },
         },
@@ -126,15 +117,23 @@ export const handleClerkWebhook = asyncHandler(
       );
 
       if (!updatedUser) {
-        return res.status(404).json({ error: 'User not found' });
+        // This could happen if the created webhook failed or was missed.
+        // We could either create the user here or return an error.
+        // For now, we'll return an error.
+        return next(new AppError(`Webhook Error: User with clerkId ${id} not found for update.`, 404));
       }
 
-      return res.status(200).json({ success: true, userId: updatedUser._id });
-    } 
-    
-    else {
-      // Unsupported event type
-      return res.status(400).json({ error: 'Unsupported event type' });
+      return res.status(200).json(new ApiResponse(200, 'User updated successfully.', { userId: updatedUser._id }));
+
+    } else if (eventType === 'user.deleted') {
+      const { id } = evt.data;
+      
+      await User.findOneAndDelete({ clerkId: id });
+      
+      return res.status(200).json(new ApiResponse(200, 'User deleted successfully.'));
     }
+
+    // Acknowledge other event types without taking action
+    res.status(200).json({ message: `Webhook received: ${eventType}, no action taken.` });
   }
 ); 

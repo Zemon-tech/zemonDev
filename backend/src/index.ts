@@ -23,26 +23,30 @@ connectDB();
 // Connect to Redis
 connectRedis();
 
-// API Routes - must be registered before express.json() for webhook raw body
-app.use('/api', apiRoutes);
-
 // Middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// CORS
+// CORS - must be before API routes
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cookie']
   })
 );
 
 // Add Clerk authentication (but don't require it)
-app.use(ClerkExpressWithAuth());
+app.use(ClerkExpressWithAuth({
+  // Ensure Clerk properly handles the Bearer token in the Authorization header
+  jwtKey: process.env.CLERK_JWT_KEY,
+  authorizedParties: [process.env.CORS_ORIGIN || 'http://localhost:5173']
+}));
+
+// API Routes
+app.use('/api', apiRoutes);
 
 // 404 handler
 app.use('*', (req, res, next) => {
@@ -54,21 +58,29 @@ app.use(errorMiddleware);
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   console.log(`API available at http://localhost:${PORT}/api`);
 });
 
+// Handle uncaught exceptions
+process.on('uncaughtException', (err: Error) => {
+  console.error('UNCAUGHT EXCEPTION! 💥 Shutting down...');
+  console.error(err.name, err.message);
+  // Gracefully close server and exit
+  server.close(() => {
+    process.exit(1);
+  });
+});
+
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err: Error) => {
-  console.error('UNHANDLED REJECTION:', err.name, err.message);
-  console.error(err.stack);
-  
-  // In production, we might want to exit and let the process manager restart
-  if (process.env.NODE_ENV === 'production') {
-    console.log('Shutting down gracefully...');
+  console.error('UNHANDLED REJECTION! 💥 Shutting down...');
+  console.error(err.name, err.message);
+  // Gracefully close server and exit
+  server.close(() => {
     process.exit(1);
-  }
+  });
 });
 
 export default app; 

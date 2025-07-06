@@ -62,7 +62,14 @@ export const getAllChallenges = asyncHandler(
  */
 export const getChallengeById = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const challenge = await CrucibleProblem.findById(req.params.id)
+    const { id } = req.params;
+    
+    // Validate ID format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return next(new AppError('Invalid resource identifier. Malformed _id: ' + id, 400));
+    }
+
+    const challenge = await CrucibleProblem.findById(id)
       .select('-__v')
       .populate('createdBy', 'fullName');
 

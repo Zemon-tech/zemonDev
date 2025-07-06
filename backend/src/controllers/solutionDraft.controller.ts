@@ -56,7 +56,12 @@ export const updateDraft = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { problemId } = req.params;
     const userId = req.user._id;
-    const { content, saveAsVersion, versionDescription } = req.body;
+    const { currentContent, saveAsVersion, versionDescription } = req.body;
+
+    // Validate required fields
+    if (!currentContent && currentContent !== '') {
+      return next(new AppError('Content is required', 400));
+    }
 
     // Find the draft
     let draft = await SolutionDraft.findOne({
@@ -66,23 +71,39 @@ export const updateDraft = asyncHandler(
     });
 
     if (!draft) {
-      return next(new AppError('Draft not found', 404));
-    }
-
-    // Update content
-    draft.currentContent = content;
-    draft.lastEdited = new Date();
-
-    // Save as a new version if requested
-    if (saveAsVersion) {
-      draft.versions.push({
-        content,
-        timestamp: new Date(),
-        description: versionDescription || `Version ${draft.versions.length + 1}`
+      // If no draft exists, create a new one
+      draft = await SolutionDraft.create({
+        userId,
+        problemId,
+        currentContent,
+        versions: [{ content: currentContent, timestamp: new Date(), description: 'Initial draft' }],
+        lastEdited: new Date(),
+        status: 'active'
       });
-    }
 
-    await draft.save();
+      // Add to user's active drafts
+      await User.findByIdAndUpdate(userId, {
+        $addToSet: { activeDrafts: draft._id }
+      });
+
+      console.log(`Created new draft for user ${userId} and problem ${problemId}`);
+    } else {
+      // Update content
+      draft.currentContent = currentContent;
+      draft.lastEdited = new Date();
+
+      // Save as a new version if requested
+      if (saveAsVersion) {
+        draft.versions.push({
+          content: currentContent,
+          timestamp: new Date(),
+          description: versionDescription || `Version ${draft.versions.length + 1}`
+        });
+      }
+
+      await draft.save();
+      console.log(`Updated draft for user ${userId} and problem ${problemId}`);
+    }
 
     res.status(200).json(
       new ApiResponse(

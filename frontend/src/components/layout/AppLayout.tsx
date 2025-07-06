@@ -13,15 +13,17 @@ export default function AppLayout() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { username: urlUsername } = useParams();
   const location = useLocation();
-  const { user, isLoaded } = useUser();
+  const { isLoaded, user } = useUser();
   const navigate = useNavigate();
+  
+  // Always call useWorkspace to maintain hook order consistency
+  const workspaceContext = useWorkspace();
   
   // Show workspace nav buttons only on /:username/crucible/problem/:id
   const isCrucibleProblemPage = /^\/[\w-]+\/crucible\/problem\/.+/.test(location.pathname);
   
-  // Only use workspace context when on a problem page to avoid the error
-  const workspaceContext = isCrucibleProblemPage ? useWorkspace() : { activeContent: 'solution' };
-  const { activeContent } = workspaceContext;
+  // Only use workspace context values when on a problem page
+  const activeContent = isCrucibleProblemPage ? workspaceContext.activeContent : 'solution';
   
   // Auto-close sidebar when entering a problem page
   useEffect(() => {

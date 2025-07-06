@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
+import { Badge } from '@/components/ui/badge';
 
 export type Problem = {
   id: string;
@@ -135,6 +136,11 @@ function TagOverflow({
 }
 
 export default function ProblemCard({ problem, onSelect }: Props) {
+  // Debug logging to check if the problem data is correctly received
+  useEffect(() => {
+    console.log('ProblemCard received problem:', problem);
+  }, [problem]);
+
   // Display logic for tags
   const MAX_VISIBLE_TAGS = 4;
   const visibleTags = problem.tags.slice(0, MAX_VISIBLE_TAGS);
@@ -155,10 +161,25 @@ export default function ProblemCard({ problem, onSelect }: Props) {
     expert: 'border-red-500 text-red-700 dark:text-red-400',
   };
 
+  const [isHovered, setIsHovered] = useState(false);
+  
+  // Get difficulty color
+  const getDifficultyColor = () => {
+    switch (problem.difficulty) {
+      case 'easy': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      case 'hard': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
+      case 'expert': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    }
+  };
+
   return (
     <Card 
       className="rounded-lg border border-border/30 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer h-full flex flex-col"
       onClick={() => onSelect?.(problem)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <CardHeader className="pb-0 px-3 pt-2.5 space-y-0">
         <div className="flex items-start gap-2">
@@ -168,14 +189,9 @@ export default function ProblemCard({ problem, onSelect }: Props) {
               <CardTitle className="text-base font-bold leading-tight truncate">
                 {problem.title}
               </CardTitle>
-              <span 
-                className={cn(
-                  "text-[0.7rem] font-medium px-1.5 py-0.5 rounded-md border capitalize whitespace-nowrap",
-                  difficultyStyles[problem.difficulty]
-                )}
-              >
+              <div className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyColor()}`}>
                 {problem.difficulty}
-              </span>
+              </div>
             </div>
           </div>
         </div>
@@ -241,6 +257,12 @@ export default function ProblemCard({ problem, onSelect }: Props) {
           Solve Now
         </Button>
       </CardFooter>
+      
+      <div 
+        className={`absolute bottom-0 left-0 w-full h-1 bg-primary transform transition-transform duration-300 ${
+          isHovered ? 'scale-x-100' : 'scale-x-0'
+        }`}
+      />
     </Card>
   );
 }

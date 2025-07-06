@@ -92,3 +92,17 @@ Authorization: Bearer your_jwt_token
 - `npm run build` - Build for production
 - `npm start` - Start production server
 - `npm run lint` - Run linting 
+
+## Database Migrations
+
+Occasionally, you may need to run database migrations to update the schema or data. These migrations are located in the `src/migrations` directory.
+
+To run a specific migration:
+
+```bash
+npx ts-node src/migrations/[migration-file-name].ts
+```
+
+### Available Migrations
+
+- `remove-status-visibility-crucible-notes.ts` - Removes the status and visibility fields from CrucibleNote documents 

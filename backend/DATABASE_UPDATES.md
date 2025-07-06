@@ -55,8 +55,6 @@ interface ICrucibleNote {
   problemId: ObjectId;          // Reference to CrucibleProblem
   content: string;              // Rich text/HTML content of the notes
   tags: string[];               // User-defined tags for organization
-  status: 'active' | 'archived'; // Whether these notes are active or archived
-  visibility: 'private' | 'public'; // Whether notes are shareable
   createdAt: Date;
   updatedAt: Date;
 }
@@ -76,7 +74,6 @@ interface IAIChatHistory {
     content: string;
     timestamp: Date;
   }];
-  status: 'active' | 'archived'; // Whether this chat is active or archived
   createdAt: Date;
   updatedAt: Date;
 }
@@ -251,6 +248,17 @@ Add the following fields to track user progress:
 - Active data: Readily available in the UI
 - Archived data: Stored but not shown by default
 - Data retention: Consider policies for long-term storage
+
+## Schema Updates
+
+### 2023-06-15: CrucibleNotes Schema Update
+
+Removed the following fields from the CrucibleNotes collection:
+
+1. **status** - Previously `'active' | 'archived'` with default `'active'`
+2. **visibility** - Previously `'private' | 'public'` with default `'private'`
+
+These fields were removed to simplify the schema as they were not being actively used in the application. The delete operation for notes has been changed from a soft delete (setting status to 'archived') to a hard delete (removing the document).
 
 ## Security Considerations
 
