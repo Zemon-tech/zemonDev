@@ -155,23 +155,53 @@ export default function CrucibleWorkspaceView({ problemId }: { problemId: string
     hasFetchedRef.current.draft = true;
     
     try {
+      // Validate problemId format before proceeding
+      if (!problemId || problemId.length !== 24) {
+        logger.warn(`Invalid problem ID format: ${problemId}, using empty content`);
+        setSolutionContent('');
+        setLoadingState(prev => ({ ...prev, draft: false }));
+        return;
+      }
+
       // Fetch draft data
       logger.time('Draft data fetch');
       const draftData = await getDraft(problemId).catch(err => {
-        if (err instanceof Error && err.message.includes('Unauthenticated')) {
-          throw new Error('Authentication error');
+        logger.error('Error fetching draft:', err);
+        
+        if (err instanceof Error) {
+          // Check for authentication errors
+          if (err.message.includes('Unauthenticated') || err.message.includes('401')) {
+            throw new Error('Authentication error');
+          }
+          
+          // Check for invalid ObjectId format
+          if (err.message.includes('Invalid problem ID format')) {
+            logger.warn('Invalid ObjectId format for problem ID');
+          }
+          
+          // Check for server errors
+          if (err.message.includes('500') || err.message.includes('Internal server error')) {
+            logger.error('Server error when fetching draft');
+            toast({
+              title: 'Server Error',
+              description: 'There was a problem fetching your draft. Your work will still be saved.',
+              variant: 'destructive'
+            });
+          }
         }
-        logger.log('No existing draft found, starting with empty content');
+        
+        // Return empty content as fallback
+        logger.log('No existing draft found or error occurred, starting with empty content');
         return { currentContent: '' };
       });
       logger.timeEnd('Draft data fetch');
       
       // Update state with fetched data
-      setSolutionContent(draftData.currentContent);
+      setSolutionContent(draftData.currentContent || '');
       
       // Calculate word count
-      const wordCount = draftData.currentContent.trim().split(/\s+/).length;
-      setWordCount(wordCount);
+      const wordCount = (draftData.currentContent || '').trim().split(/\s+/).filter(Boolean).length;
+      setWordCount(wordCount > 0 ? wordCount : 0);
       
       // Mark draft as loaded
       setLoadingState(prev => ({ ...prev, draft: false }));
@@ -187,12 +217,27 @@ export default function CrucibleWorkspaceView({ problemId }: { problemId: string
         errorMessage.includes('Unauthenticated')
       )) {
         setAuthError(true);
+        toast({
+          title: 'Authentication Error',
+          description: 'Please sign in again to access your drafts.',
+          variant: 'destructive'
+        });
+      } else {
+        // For other errors, show a toast but don't set authError
+        toast({
+          title: 'Draft Load Error',
+          description: 'Could not load your draft, but you can still work on this problem.',
+          variant: 'destructive'
+        });
       }
+      
+      // Set empty content as fallback
+      setSolutionContent('');
       
       // Mark as loaded even on error to allow the UI to proceed
       setLoadingState(prev => ({ ...prev, draft: false }));
     }
-  }, [problemId, isLoaded, isSignedIn, setWordCount]);
+  }, [problemId, isLoaded, isSignedIn, setWordCount, toast]);
 
   // Fetch notes data with useCallback to ensure stable reference
   const fetchNotesData = useCallback(async () => {

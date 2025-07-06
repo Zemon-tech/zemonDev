@@ -37,12 +37,41 @@ const mapApiProblemToUiProblem = (apiProblem: any): Problem => {
   // Destructure for better performance
   const { _id, id, title, description, difficulty, tags = [] } = apiProblem;
   
+  // Handle MongoDB ObjectId in various formats
+  let problemId = 'unknown-id';
+  
+  if (_id) {
+    if (typeof _id === 'string') {
+      // Simple string ID
+      problemId = _id;
+    } else if (typeof _id === 'object') {
+      if (_id.$oid) {
+        // MongoDB extended JSON format: { $oid: "..." }
+        problemId = _id.$oid;
+      } else if (typeof _id.toString === 'function') {
+        // MongoDB ObjectId object with toString method
+        problemId = _id.toString();
+      }
+    }
+  } else if (id) {
+    // Fallback to id if _id is not available
+    problemId = typeof id === 'string' ? id : String(id);
+  }
+  
+  // Handle tags that might be a single string with comma-separated values
+  let normalizedTags = tags;
+  if (!Array.isArray(tags) && typeof tags === 'string') {
+    normalizedTags = tags.split(',').map(tag => tag.trim());
+  } else if (!Array.isArray(tags)) {
+    normalizedTags = [];
+  }
+  
   return {
-    id: _id || id || 'unknown-id',
+    id: problemId,
     title: title || 'Untitled Problem',
     description: description || 'No description available',
     difficulty: difficulty || 'medium',
-    tags: Array.isArray(tags) ? tags : [],
+    tags: normalizedTags,
   };
 };
 
@@ -177,9 +206,18 @@ export default function CruciblePage() {
         
         // Check if there are more pages
         setHasMore(newProblems.length === 10);
+        
+        // If no problems were found, use mock data
+        if (newProblems.length === 0 && pageNum === 1) {
+          logger.warn('No problems returned from API, using mock data');
+          setProblems(mockProblems);
+          setFilteredProblems(mockProblems);
+          setHasMore(false);
+        }
       } else {
         // Use mock data as fallback if no data is returned
         if (pageNum === 1) {
+          logger.warn('Invalid response format from API, using mock data');
           setProblems(mockProblems);
           setFilteredProblems(mockProblems);
           setHasMore(false);

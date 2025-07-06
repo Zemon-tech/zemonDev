@@ -99,6 +99,9 @@ export function debounce<T extends (...args: any[]) => any>(
 // Get environment mode
 const isDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
 
+// Track active timers to avoid errors
+const activeTimers = new Set<string>();
+
 /**
  * Logger utility to control logging across the application
  * In production, only errors and warnings are logged
@@ -136,15 +139,33 @@ export const logger = {
       fn();
     }
   },
-  // Log performance measurements
+  // Log performance measurements with error handling
   time: (label: string) => {
     if (isDev) {
-      console.time(label);
+      try {
+        // Only start timer if it doesn't already exist
+        if (!activeTimers.has(label)) {
+          console.time(label);
+          activeTimers.add(label);
+        }
+      } catch (error) {
+        console.debug(`Timer error: ${error}`);
+      }
     }
   },
   timeEnd: (label: string) => {
     if (isDev) {
-      console.timeEnd(label);
+      try {
+        // Only end timer if it exists
+        if (activeTimers.has(label)) {
+          console.timeEnd(label);
+          activeTimers.delete(label);
+        }
+      } catch (error) {
+        console.debug(`Timer error: ${error}`);
+        // Clean up the timer from our tracking set even if there was an error
+        activeTimers.delete(label);
+      }
     }
   }
 };

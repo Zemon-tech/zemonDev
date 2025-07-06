@@ -100,15 +100,22 @@ export default function ProfilePage() {
   const nameRef = useRef<HTMLHeadingElement>(null);
   const taglineRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
+  const buttonsRef = useRef<HTMLDivElement>(null);
 
   // Initialize GSAP animations
   useGSAP(() => {
-    if (!avatarRef.current || !taglineRef.current || !heroRef.current || !statsRef.current) return;
+    if (!avatarRef.current || !taglineRef.current || !heroRef.current || !statsRef.current || !buttonsRef.current) return;
 
-    // Hero section animations
+    // Avatar animation - scale up and fade in
     gsap.fromTo(avatarRef.current,
-      { scale: 0.8, opacity: 0 },
-      { scale: 1, opacity: 1, duration: 1, ease: "power3.out" }
+      { scale: 0.9, opacity: 0, y: 10 },
+      { scale: 1, opacity: 1, y: 0, duration: 0.8, ease: "power3.out", delay: 0.2 }
+    );
+
+    // Buttons animation
+    gsap.fromTo(buttonsRef.current.children,
+      { opacity: 0, y: 15 },
+      { opacity: 1, y: 0, duration: 0.5, stagger: 0.1, ease: "power2.out", delay: 0.6 }
     );
 
     // Name and tagline animations
@@ -149,111 +156,89 @@ export default function ProfilePage() {
       {/* LinkedIn-style Hero Section */}
       <section 
         ref={heroRef}
-        className="relative w-full h-[280px] bg-gradient-to-r from-indigo-900/20 to-blue-900/20 overflow-hidden"
+        className="relative w-full h-[140px] bg-gradient-to-r from-slate-200 to-slate-100 overflow-hidden"
       >
-        {/* Background Image */}
-        <div className="absolute inset-0 bg-[url('/city-sunset.jpg')] bg-cover bg-center opacity-20" />
+        {/* Background Image with subtle gradient overlay */}
+        <div className="absolute inset-0 bg-[url('/city-sunset.jpg')] bg-cover bg-center opacity-10" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-100/30" />
         
-        {/* Content */}
-        <div className="container mx-auto px-4">
-          <div className="relative pt-32">
-            <div ref={avatarRef} className="absolute -bottom-16 left-8">
-              <div className="relative">
-                <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-                <img
-                  src={user?.imageUrl || 'https://via.placeholder.com/200'}
-                  alt="Profile"
-                  className="w-32 h-32 rounded-full border-4 border-base-100 shadow-xl relative z-10"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Profile Content */}
-      <main className="container mx-auto px-4">
-        {/* Profile Header */}
-        <div className="mt-20 mb-8">
-          <h1 
-            ref={nameRef}
-            className="text-3xl font-bold mb-2"
-          >
-            {mockUserData.name}
-          </h1>
+        {/* Content Container */}
+        <div className="container mx-auto px-4 relative h-full">
+          {/* Action Buttons - Positioned at bottom right */}
           <div 
-            ref={taglineRef}
-            className="text-lg text-base-content/80 mb-4"
+            ref={buttonsRef}
+            className="absolute bottom-4 right-4 flex gap-3 z-10"
           >
-            {mockUserData.title.split(' ').map((word, i) => (
-              <span key={i} className="inline-block mx-1">{word}</span>
-            ))}
-          </div>
-          <div className="flex gap-3">
             <Button 
               size="sm"
-              className="gap-2"
+              variant="outline"
+              className="bg-white/80 backdrop-blur-sm hover:bg-white transition-all duration-300 text-slate-800 border border-slate-200 shadow-sm hover:shadow-md gap-2"
             >
               <Download size={16} />
               Download Résumé
             </Button>
             <Button 
-              variant="outline" 
               size="sm"
-              className="gap-2"
+              className="bg-indigo-600 hover:bg-indigo-700 transition-all duration-300 text-white shadow-sm hover:shadow-md gap-2"
             >
               <ExternalLink size={16} />
               View on Zemon
             </Button>
           </div>
         </div>
+      </section>
 
-        {/* Quick Stats Strip */}
-        <div ref={statsRef} className="grid grid-cols-4 gap-4 mb-8">
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-base-200/50 hover:bg-base-200 transition-colors">
-            <Flame size={20} className="text-primary" />
-            <div>
-              <div className="font-semibold">{mockUserData.stats.zemonStreak}</div>
-              <div className="text-xs text-base-content/60">Days Streak</div>
+      {/* Avatar - Perfectly centered vertically on the hero section border */}
+      <div className="container mx-auto px-4">
+        <div className="relative -mt-[70px] ml-6">
+          <div 
+            ref={avatarRef} 
+            className="relative inline-block"
+          >
+            <div className="absolute inset-0 rounded-full shadow-lg blur-[2px] bg-slate-500/10"></div>
+            <img
+              src={user?.imageUrl || 'https://via.placeholder.com/200'}
+              alt="Profile"
+              className="w-[140px] h-[140px] rounded-full border-4 border-white shadow-md relative z-10 transition-transform duration-300 hover:scale-[1.02]"
+            />
+          </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-base-200/50 hover:bg-base-200 transition-colors">
-            <Github size={20} className="text-primary" />
-            <div>
-              <div className="font-semibold">{mockUserData.stats.githubStreak}</div>
-              <div className="text-xs text-base-content/60">GitHub</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-base-200/50 hover:bg-base-200 transition-colors">
-            <Code size={20} className="text-primary" />
-            <div>
-              <div className="font-semibold">{mockUserData.stats.crucibleSolutions}</div>
-              <div className="text-xs text-base-content/60">Solutions</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-base-200/50 hover:bg-base-200 transition-colors">
-            <Hammer size={20} className="text-primary" />
-            <div>
-              <div className="font-semibold">{mockUserData.stats.forgeContributions}</div>
-              <div className="text-xs text-base-content/60">Forge</div>
-            </div>
+
+      {/* Profile Content */}
+      <main className="container mx-auto px-4">
+        {/* Profile Header - Reduced spacing */}
+        <div className="mt-6 mb-6 ml-6">
+          <h1 
+            ref={nameRef}
+            className="text-3xl font-bold mb-1 text-slate-800"
+          >
+            {mockUserData.name}
+          </h1>
+          <div 
+            ref={taglineRef}
+            className="text-lg text-slate-600 mb-4"
+          >
+            {mockUserData.title.split(' ').map((word, i) => (
+              <span key={i} className="inline-block mx-1">{word}</span>
+            ))}
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-3 gap-6">
-          {/* Left Column */}
-          <div className="col-span-2 space-y-6">
-            {/* About */}
-            <Card>
+        {/* Rest of the content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Main content - 2/3 width on desktop */}
+          <div className="lg:col-span-2">
+            <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
               <CardContent className="p-6">
-                <h2 className="text-xl font-semibold mb-4">About</h2>
-                <p className="text-base-content/80">{mockUserData.bio}</p>
+                <h2 className="text-xl font-semibold mb-4 text-slate-800">About</h2>
+                <p className="text-slate-600 mb-6">{mockUserData.bio}</p>
+                
                 <div className="flex flex-wrap gap-2 mt-4">
                   {mockUserData.skills.map((skill, index) => (
                     <span
                       key={index}
-                      className="px-2 py-1 rounded-full bg-primary/10 text-primary text-sm"
+                      className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-sm"
                     >
                       {skill}
                     </span>
@@ -262,151 +247,83 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
 
-            {/* Projects */}
-            <section ref={projectsRef}>
-              <h2 className="text-xl font-semibold mb-4">Featured Projects</h2>
-              <div className={`grid grid-cols-2 gap-4 transition-all duration-1000 ${projectsInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-                {mockUserData.projects.map((project, index) => (
-                  <Card key={index} className="group overflow-hidden">
-                    <CardContent className="p-0">
-                      <img
-                        src={project.image}
-                        alt={project.title}
-                        className="w-full h-40 object-cover"
-                      />
-                      <div className="p-4">
-                        <h3 className="text-lg font-semibold mb-2">{project.title}</h3>
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {project.tech.map((tech, techIndex) => (
-                            <span
-                              key={techIndex}
-                              className="px-2 py-0.5 bg-base-200 rounded text-xs"
-                            >
-                              {tech}
-                            </span>
-                          ))}
-                        </div>
-                        <p className="text-sm text-base-content/70">{project.description}</p>
-                      </div>
+            {/* Stats Section */}
+            <div 
+              ref={statsRef}
+              className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"
+            >
+              <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 bg-gradient-to-br from-indigo-50 to-white">
+                <CardContent className="p-4 flex flex-col items-center justify-center">
+                  <Flame className="w-8 h-8 text-indigo-500 mb-2" />
+                  <span className="text-2xl font-bold text-slate-800">{mockUserData.stats.zemonStreak}</span>
+                  <span className="text-sm text-slate-600">Zemon Streak</span>
+                </CardContent>
+              </Card>
+              
+              <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 bg-gradient-to-br from-emerald-50 to-white">
+                <CardContent className="p-4 flex flex-col items-center justify-center">
+                  <Code className="w-8 h-8 text-emerald-500 mb-2" />
+                  <span className="text-2xl font-bold text-slate-800">{mockUserData.stats.githubStreak}</span>
+                  <span className="text-sm text-slate-600">GitHub Streak</span>
+                </CardContent>
+              </Card>
+              
+              <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 bg-gradient-to-br from-amber-50 to-white">
+                <CardContent className="p-4 flex flex-col items-center justify-center">
+                  <BookOpen className="w-8 h-8 text-amber-500 mb-2" />
+                  <span className="text-2xl font-bold text-slate-800">{mockUserData.stats.crucibleSolutions}</span>
+                  <span className="text-sm text-slate-600">Crucible Solutions</span>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-            </section>
-
-            {/* Testimonials */}
-            <section>
-              <h2 className="text-xl font-semibold mb-4">Testimonials</h2>
-              <div className="grid grid-cols-2 gap-4">
-                {mockUserData.testimonials.map((testimonial, index) => (
-                  <Card key={index} className="bg-base-200/50">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <img
-                          src={testimonial.photo}
-                          alt={testimonial.name}
-                          className="w-10 h-10 rounded-full"
-                        />
-                        <div>
-                          <p className="text-sm italic mb-2">"{testimonial.quote}"</p>
-                          <p className="text-sm font-medium">{testimonial.name}</p>
-                          <p className="text-xs text-base-content/70">{testimonial.role}</p>
-                        </div>
-                      </div>
+              
+              <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 bg-gradient-to-br from-rose-50 to-white">
+                <CardContent className="p-4 flex flex-col items-center justify-center">
+                  <Hammer className="w-8 h-8 text-rose-500 mb-2" />
+                  <span className="text-2xl font-bold text-slate-800">{mockUserData.stats.forgeContributions}</span>
+                  <span className="text-sm text-slate-600">Forge Contributions</span>
                     </CardContent>
                   </Card>
-                ))}
               </div>
-            </section>
           </div>
 
-          {/* Right Column */}
-          <div className="space-y-6">
-            {/* Contact Info */}
-            <Card>
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <School size={16} className="text-primary" />
-                  <span className="text-sm">{mockUserData.education}</span>
+          {/* Sidebar - 1/3 width on desktop */}
+          <div>
+            <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <School className="text-slate-600" />
+                  <div>
+                    <p className="font-medium text-slate-800">B.Tech in Computer Science</p>
+                    <p className="text-sm text-slate-600">MAIT, Delhi</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <MapPin size={16} className="text-primary" />
-                  <span className="text-sm">{mockUserData.location}</span>
+                
+                <div className="flex items-center gap-3 mb-4">
+                  <MapPin className="text-slate-600" />
+                  <span className="text-slate-700">{mockUserData.location}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Mail size={16} className="text-primary" />
-                  <span className="text-sm">{mockUserData.email}</span>
+                
+                <div className="flex items-center gap-3 mb-4">
+                  <Mail className="text-slate-600" />
+                  <span className="text-slate-700">{mockUserData.email}</span>
                 </div>
-                <div className="flex gap-3 mt-4">
-                  <a href="#" className="text-base-content/70 hover:text-primary transition-colors">
-                    <Linkedin size={18} />
+                
+                <div className="flex gap-3 mt-6">
+                  <a href="#" className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors duration-300">
+                    <Github className="w-5 h-5 text-slate-700" />
                   </a>
-                  <a href="#" className="text-base-content/70 hover:text-primary transition-colors">
-                    <Github size={18} />
+                  <a href="#" className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors duration-300">
+                    <Linkedin className="w-5 h-5 text-slate-700" />
                   </a>
-                  <a href="#" className="text-base-content/70 hover:text-primary transition-colors">
-                    <Twitter size={18} />
+                  <a href="#" className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors duration-300">
+                    <Twitter className="w-5 h-5 text-slate-700" />
                   </a>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Education & Certifications */}
-            <Card>
-              <CardContent className="p-4">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <GraduationCap size={18} className="text-primary" />
-                  Education & Certifications
-                </h2>
-                <div className="space-y-4">
-                  {mockUserData.certifications.map((cert, index) => (
-                    <div key={index} className="group relative pl-4 border-l-2 border-primary/20 hover:border-primary transition-colors">
-                      <div className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-primary/20 group-hover:bg-primary transition-colors" />
-                      <div className="text-xs text-base-content/60">{cert.year}</div>
-                      <a
-                        href={cert.link}
-                        className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1"
-                      >
-                        <Award size={14} />
-                        {cert.title}
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Connect */}
-            <Card>
-              <CardContent className="p-4">
-                <h2 className="text-lg font-semibold mb-3">Quick Connect</h2>
-                <div className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start gap-2">
-                    <Mail size={16} />
-                    Send Email
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start gap-2">
-                    <Coffee size={16} />
-                    Schedule Meeting
-                  </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="mt-16 border-t border-base-300 py-6">
-        <div className="container mx-auto px-4 text-center text-sm text-base-content/70">
-          <p>© 2024 {mockUserData.name} • Built with Zemon</p>
-          <div className="mt-2">
-            <a href="#" className="hover:text-primary">Privacy</a>
-            <span className="mx-2">·</span>
-            <a href="#" className="hover:text-primary">Terms</a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 } 

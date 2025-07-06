@@ -2,7 +2,7 @@ import { useAuth } from '@clerk/clerk-react';
 import { logger } from './utils';
 
 // API Base URL from environment variable
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
 // Type definitions
 export interface ICrucibleProblem {
@@ -72,33 +72,14 @@ export interface ISolutionDraft {
 // This needs to be called within a component using the useAuth hook
 let authToken: string | null = null;
 
-// Try to get token from localStorage if available
-try {
-  const storedToken = localStorage.getItem('clerk_auth_token');
-  if (storedToken) {
-    authToken = storedToken;
-    logger.log('Auth token loaded from storage');
-  }
-} catch (e) {
-  logger.error('Error accessing localStorage:', e);
-}
-
+// Export a function to set the token from outside (e.g., from useClerkToken)
 export function setAuthToken(token: string | null) {
   authToken = token;
   logger.log(`Auth token ${token ? 'set' : 'cleared'}`);
-  
-  // Store token in localStorage for persistence
-  if (token) {
-    try {
-      localStorage.setItem('clerk_auth_token', token);
-    } catch (e) {
-      logger.error('Error storing auth token:', e);
-    }
-  }
 }
 
 // Default fetch options to include credentials and auth token if available
-function getFetchOptions() {
+function getFetchOptions(url?: string) {
   const options: RequestInit = {
     credentials: 'include' as RequestCredentials,
     headers: {
@@ -107,11 +88,16 @@ function getFetchOptions() {
   };
 
   // Add authorization header if token is available
-  if (authToken) {
-    options.headers = {
-      ...options.headers,
-      'Authorization': `Bearer ${authToken}`
-    };
+  // But don't add it for Clerk API requests to avoid conflict with Origin header
+  if (authToken && url) {
+    const isClerkRequest = url.includes('clerk.') || url.includes('/api/v1/');
+    
+    if (!isClerkRequest) {
+      options.headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${authToken}`
+      };
+    }
   }
 
   return options;
@@ -173,7 +159,7 @@ async function handleResponse(response: Response) {
 // API request helper with retry logic
 async function apiRequest(url: string, options = {}, retries = 3): Promise<any> {
   try {
-    const baseOptions = getFetchOptions();
+    const baseOptions = getFetchOptions(url);
     const mergedOptions = { ...baseOptions, ...options };
     
     // Merge headers properly
@@ -257,12 +243,15 @@ async function fetchWithCache<T>(
     return apiCache.get(cacheKey)!.data as T;
   }
   
+  // Create a unique timer ID to avoid conflicts
+  const timerId = `API_Call_${endpoint}_${Date.now()}`;
+  
   // Measure API call performance
-  logger.time(`API Call: ${endpoint}`);
+  logger.time(timerId);
   
   try {
     // Get the base options with auth token
-    const baseOptions = getFetchOptions();
+    const baseOptions = getFetchOptions(endpoint);
     const mergedOptions = { ...baseOptions, ...options };
     
     // Merge headers properly
@@ -272,7 +261,12 @@ async function fetchWithCache<T>(
     
     const response = await fetch(`${API_BASE_URL}${endpoint}`, mergedOptions);
     
-    logger.timeEnd(`API Call: ${endpoint}`);
+    try {
+      // End the timer
+      logger.timeEnd(timerId);
+    } catch (timerError) {
+      // Ignore timer errors
+    }
     
     // Handle non-2xx responses
     if (!response.ok) {
@@ -303,7 +297,13 @@ async function fetchWithCache<T>(
     
     return data as T;
   } catch (error) {
-    logger.timeEnd(`API Call: ${endpoint}`);
+    try {
+      // Make sure to end the timer in case of error
+      logger.timeEnd(timerId);
+    } catch (timerError) {
+      // Ignore timer errors
+    }
+    
     logger.error(`API Error for ${endpoint}:`, error);
     throw error;
   }
@@ -312,18 +312,56 @@ async function fetchWithCache<T>(
 // API Functions
 export async function getProblems(filters?: Record<string, any>): Promise<ICrucibleProblem[]> {
   const queryParams = filters ? `?${new URLSearchParams(filters as any).toString()}` : '';
-  return fetchWithCache<{ data: ICrucibleProblem[] }>(`/crucible/problems${queryParams}`)
-    .then(response => response.data);
+  return fetchWithCache<any>(`/crucible${queryParams}`)
+    .then(response => {
+      // Check if response has the expected structure
+      if (response && response.data && Array.isArray(response.data.challenges)) {
+        return response.data.challenges as ICrucibleProblem[];
+      } else if (response && Array.isArray(response.data)) {
+        // Fallback for direct array response
+        return response.data as ICrucibleProblem[];
+      } else if (response && response.data) {
+        // Fallback for unexpected structure but data exists
+        logger.warn('Unexpected API response structure:', response);
+        return Array.isArray(response.data) ? 
+          response.data as ICrucibleProblem[] : 
+          [response.data] as ICrucibleProblem[];
+      } else {
+        // No valid data found
+        logger.error('Invalid API response structure:', response);
+        return [] as ICrucibleProblem[];
+      }
+    });
 }
 
 export async function getProblem(id: string): Promise<ICrucibleProblem> {
-  return fetchWithCache<{ data: ICrucibleProblem }>(`/crucible/problems/${id}`)
+  return fetchWithCache<{ data: ICrucibleProblem }>(`/crucible/${id}`)
     .then(response => response.data);
 }
 
 export async function getDraft(problemId: string): Promise<ISolutionDraft> {
-  return fetchWithCache<{ data: ISolutionDraft }>(`/crucible/problems/${problemId}/draft`)
-    .then(response => response.data);
+  try {
+    // Validate ObjectId format
+    if (!problemId || problemId.length !== 24) {
+      logger.error('Invalid problem ID format:', problemId);
+      throw new Error('Invalid problem ID format');
+    }
+    
+    return fetchWithCache<{ data: ISolutionDraft }>(`/crucible/${problemId}/draft`)
+      .then(response => {
+        if (!response || !response.data) {
+          throw new Error('Invalid response format');
+        }
+        return response.data;
+      })
+      .catch(error => {
+        logger.error(`Error fetching draft for problem ${problemId}:`, error);
+        throw new Error(`Failed to load draft: ${error.message}`);
+      });
+  } catch (error) {
+    logger.error('Error in getDraft:', error);
+    throw error;
+  }
 }
 
 export async function updateDraft(
@@ -334,7 +372,7 @@ export async function updateDraft(
 ): Promise<ISolutionDraft> {
   // Don't cache POST/PUT requests
   return fetchWithCache<{ data: ISolutionDraft }>(
-    `/crucible/problems/${problemId}/draft`, 
+    `/crucible/${problemId}/draft`, 
     {
       method: 'PUT',
       body: JSON.stringify({
@@ -348,14 +386,14 @@ export async function updateDraft(
 }
 
 export async function getNotes(problemId: string): Promise<ICrucibleNote> {
-  return fetchWithCache<{ data: ICrucibleNote }>(`/crucible/problems/${problemId}/notes`)
+  return fetchWithCache<{ data: ICrucibleNote }>(`/crucible/${problemId}/notes`)
     .then(response => response.data);
 }
 
 export async function updateNotes(problemId: string, notes: ICrucibleNote): Promise<ICrucibleNote> {
   // Don't cache POST/PUT requests
   return fetchWithCache<{ data: ICrucibleNote }>(
-    `/crucible/problems/${problemId}/notes`,
+    `/crucible/${problemId}/notes`,
     {
       method: 'PUT',
       body: JSON.stringify(notes),

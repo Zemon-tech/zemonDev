@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import React from 'react';
 import { logger } from './utils';
+import { setAuthToken as setCrucibleAuthToken } from './crucibleApi';
 
 // Token cache to avoid unnecessary token refreshes
 interface TokenCache {
@@ -15,10 +16,12 @@ const TOKEN_EXPIRY_BUFFER = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 /**
  * A React hook to get and set the Clerk auth token for API requests
+ * This is used for backend API calls, not for Clerk API calls
  */
 export function useClerkToken() {
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const [isTokenSet, setIsTokenSet] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
   
   useEffect(() => {
     let isMounted = true;
@@ -26,7 +29,12 @@ export function useClerkToken() {
     
     const setAuthToken = async () => {
       if (!isLoaded || !isSignedIn) {
-        if (isMounted) setIsTokenSet(false);
+        if (isMounted) {
+          setIsTokenSet(false);
+          setToken(null);
+          // Clear the token in our API service
+          setCrucibleAuthToken(null);
+        }
         return;
       }
       
@@ -37,22 +45,26 @@ export function useClerkToken() {
           // Use cached token
           logger.debug('Using cached auth token');
           
-          // Set token in localStorage for API requests
-          localStorage.setItem('authToken', tokenCache.token);
-          
-          if (isMounted) setIsTokenSet(true);
+          // For our backend API calls (not Clerk API calls)
+          // We'll use this token in our API service modules
+          if (isMounted) {
+            setIsTokenSet(true);
+            setToken(tokenCache.token);
+            // Set the token in our API service
+            setCrucibleAuthToken(tokenCache.token);
+          }
           return;
         }
         
         // Get a fresh token
         logger.debug('Fetching fresh auth token');
-        const token = await getToken();
+        const newToken = await getToken();
         
-        if (token) {
+        if (newToken) {
           // Cache the token with expiration (default to 1 hour if we can't parse)
           try {
             // Split the token and get the payload part (second part)
-            const parts = token.split('.');
+            const parts = newToken.split('.');
             if (parts.length !== 3 || !parts[1]) throw new Error('Invalid JWT format');
             
             // Base64 decode and parse the payload
@@ -60,7 +72,7 @@ export function useClerkToken() {
             const payload = JSON.parse(decodedPayload);
             const expiresAt = payload.exp * 1000; // Convert to milliseconds
             
-            tokenCache = { token, expiresAt };
+            tokenCache = { token: newToken, expiresAt };
             
             // Schedule refresh before expiration
             const timeToExpiry = expiresAt - now - TOKEN_EXPIRY_BUFFER;
@@ -70,19 +82,31 @@ export function useClerkToken() {
           } catch (e) {
             // If token parsing fails, set a default expiration of 1 hour
             logger.warn('Failed to parse JWT token:', e);
-            tokenCache = { token, expiresAt: now + 60 * 60 * 1000 };
+            tokenCache = { token: newToken, expiresAt: now + 60 * 60 * 1000 };
           }
           
-          // Set token in localStorage for API requests
-          localStorage.setItem('authToken', token);
-          
-          if (isMounted) setIsTokenSet(true);
+          if (isMounted) {
+            setIsTokenSet(true);
+            setToken(newToken);
+            // Set the token in our API service
+            setCrucibleAuthToken(newToken);
+          }
         } else {
-          if (isMounted) setIsTokenSet(false);
+          if (isMounted) {
+            setIsTokenSet(false);
+            setToken(null);
+            // Clear the token in our API service
+            setCrucibleAuthToken(null);
+          }
         }
       } catch (error) {
         logger.error('Error setting auth token:', error);
-        if (isMounted) setIsTokenSet(false);
+        if (isMounted) {
+          setIsTokenSet(false);
+          setToken(null);
+          // Clear the token in our API service
+          setCrucibleAuthToken(null);
+        }
       }
     };
     
@@ -94,7 +118,7 @@ export function useClerkToken() {
     };
   }, [getToken, isLoaded, isSignedIn]);
   
-  return { isTokenSet };
+  return { isTokenSet, token };
 }
 
 // Add an interceptor for API requests to include the auth token
@@ -102,16 +126,44 @@ if (typeof window !== 'undefined') {
   const originalFetch = window.fetch;
   
   window.fetch = async function(input: RequestInfo | URL, init?: RequestInit) {
-    const authToken = localStorage.getItem('authToken');
+    // Create a new init object if it doesn't exist
+    const newInit = init ? { ...init } : {};
     
-    if (authToken && init) {
-      init.headers = {
-        ...init.headers,
-        'Authorization': `Bearer ${authToken}`
-      };
+    // Create headers object if it doesn't exist
+    newInit.headers = newInit.headers ? { ...newInit.headers as Record<string, string> } : {};
+    
+    // Get the URL as a string for checking
+    const url = input instanceof Request ? input.url : input.toString();
+    
+    // For Clerk API requests, don't add any Authorization header
+    // The browser will automatically add Origin header, and Clerk doesn't allow both
+    const isClerkRequest = url.includes('clerk.') || url.includes('/api/v1/');
+    
+    // For our backend API requests (not Clerk API requests), add the auth token if available
+    if (!isClerkRequest) {
+      // Check both localStorage and sessionStorage for the token
+      const authToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      if (authToken) {
+        (newInit.headers as Record<string, string>)['Authorization'] = `Bearer ${authToken}`;
+      } else if (tokenCache && tokenCache.token) {
+        // Fallback to tokenCache if available
+        (newInit.headers as Record<string, string>)['Authorization'] = `Bearer ${tokenCache.token}`;
+      }
+      
+      // Log token status for debugging (in development only)
+      if (process.env.NODE_ENV === 'development') {
+        const hasToken = !!(authToken || (tokenCache && tokenCache.token));
+        logger.debug(`API Request to ${url} - Auth token present: ${hasToken}`);
+      }
     }
     
-    return originalFetch(input, init);
+    try {
+      return await originalFetch(input, newInit);
+    } catch (error) {
+      // Log fetch errors for debugging
+      console.error('Fetch error:', error, { url });
+      throw error;
+    }
   };
 }
 

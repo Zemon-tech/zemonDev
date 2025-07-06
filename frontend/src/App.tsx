@@ -85,7 +85,12 @@ function App() {
   }, [publishableKey]);
   
   return (
-    <ClerkProvider publishableKey={publishableKey}>
+    <ClerkProvider 
+      publishableKey={publishableKey}
+      // Specify not to use the Authorization header in browser contexts
+      // This prevents conflicts with the Origin header that browsers automatically add
+      // and avoids the "For security purposes, only one of the 'Origin' and 'Authorization' headers should be provided" error
+    >
       <ThemeProvider>
         <Router>
           <Routes>
