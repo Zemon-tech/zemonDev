@@ -70,9 +70,9 @@ export const getResourceById = asyncHandler(
       return next(new AppError('Resource not found', 404));
     }
 
-    // Increment view count
-    resource.metrics.views += 1;
-    await resource.save();
+    // This logic is now handled by the POST /:id/view endpoint
+    // resource.metrics.views += 1;
+    // await resource.save();
 
     res.status(200).json(
       new ApiResponse(
@@ -207,6 +207,33 @@ export const reviewResource = asyncHandler(
           },
           newRating: resource.metrics.rating
         }
+      )
+    );
+  }
+);
+
+/**
+ * @desc    Increment resource view count
+ * @route   POST /api/forge/:id/view
+ * @access  Private
+ */
+export const incrementResourceView = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const resource = await ForgeResource.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { 'metrics.views': 1 } },
+      { new: true, select: '-__v' }
+    ).populate('createdBy', 'fullName');
+
+    if (!resource) {
+      return next(new AppError('Resource not found', 404));
+    }
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        'Resource view count incremented',
+        resource
       )
     );
   }

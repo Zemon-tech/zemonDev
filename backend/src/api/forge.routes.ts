@@ -3,7 +3,8 @@ import {
   getAllResources, 
   getResourceById, 
   bookmarkResource,
-  reviewResource 
+  reviewResource,
+  incrementResourceView
 } from '../controllers/forge.controller';
 import { protect } from '../middleware/auth.middleware';
 import { standardLimiter } from '../middleware/rateLimiter.middleware';
@@ -16,6 +17,7 @@ router.get('/', standardLimiter, cacheMiddleware(60 * 10), getAllResources); // 
 router.get('/:id', standardLimiter, cacheMiddleware(60 * 5), getResourceById); // Cache for 5 minutes
 
 // Protected routes
+router.post('/:id/view', protect, incrementResourceView);
 router.post('/:id/bookmark', protect, bookmarkResource);
 router.post('/:id/review', protect, reviewResource);
 
