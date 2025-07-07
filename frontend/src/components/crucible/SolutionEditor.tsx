@@ -58,6 +58,11 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
         blockquote: {
           HTMLAttributes: { class: 'border-l-4 border-primary/30 pl-4 italic' }
         },
+        codeBlock: {
+          HTMLAttributes: { 
+            class: 'bg-base-300 text-base-content p-4 rounded my-2 font-mono overflow-x-auto',
+          },
+        },
       }),
       Placeholder.configure({
         placeholder: placeholderText,
@@ -66,11 +71,6 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
         inline: false,
         allowBase64: true,
         HTMLAttributes: { class: 'max-w-full h-auto my-2 rounded' },
-      }),
-      CodeBlock.configure({
-        HTMLAttributes: { 
-          class: 'bg-base-300 text-base-content p-4 rounded my-2 font-mono overflow-x-auto',
-        },
       }),
       Table.configure({ resizable: true }),
       TableRow,

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { Search, ExternalLink, BookOpen, FileText, Film, Wrench, FolderGit2, FileBadge2 } from 'lucide-react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { getForgeResources, registerForgeResourceView } from '../lib/forgeApi';
@@ -38,6 +39,7 @@ type Resource = {
 };
 
 export default function ForgePage() {
+  const { getToken } = useAuth();
   const [search, setSearch] = useState('');
   const [type, setType] = useState('');
   const { username } = useParams();
@@ -132,7 +134,7 @@ export default function ForgePage() {
                   className="inline-flex items-center gap-1 text-primary text-xs font-medium group-hover:underline bg-transparent border-none outline-none cursor-pointer"
                   onClick={async (e) => {
                     e.stopPropagation();
-                    await registerForgeResourceView(resource._id);
+                    await registerForgeResourceView(resource._id, getToken);
                     window.open(resource.url, '_blank', 'noopener,noreferrer');
                   }}
                 >

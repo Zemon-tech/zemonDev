@@ -23,9 +23,7 @@ router.use('/crucible', crucibleRoutes);
 router.use('/forge', forgeRoutes);
 router.use('/ai', aiRoutes);
 
-// Only register webhook routes in production
-if (process.env.NODE_ENV === 'production') {
-  router.use('/webhooks', webhookRoutes);
-}
+// Register webhook routes
+router.use('/webhooks', webhookRoutes);
 
 export default router; 

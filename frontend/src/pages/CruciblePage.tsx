@@ -9,7 +9,6 @@ import { Search, X, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn, logger } from '@/lib/utils';
 import { getProblems } from '@/lib/crucibleApi';
-import { useClerkToken } from '@/lib/middleware';
 import { useAuth } from '@clerk/clerk-react';
 
 // Create a simple toast implementation since we don't have the UI component
@@ -161,8 +160,6 @@ export default function CruciblePage() {
   const [hasMore, setHasMore] = useState(true);
   const { toast } = useToast();
   
-  // Ensure auth token is set
-  useClerkToken();
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
   
   // Force loading state to end after 10 seconds maximum

@@ -31,12 +31,19 @@ const handleKnownErrors = (err: any, res: Response) => {
     error = new AppError(message, 400);
   }
 
-  // Clerk/JWT Errors
-  if (err.name === 'JsonWebTokenError' || err.message?.includes('Unauthenticated')) {
-    error = new AppError('Invalid token or session. Please log in again.', 401);
+  // Clerk/JWT Authentication Errors - Enhanced handling
+  if (
+    err.name === 'JsonWebTokenError' || 
+    err.message?.includes('Unauthenticated') || 
+    err.message?.includes('unauthorized') ||
+    err.message?.includes('Not authorized') ||
+    err.name === 'ClerkError' ||
+    err.name === 'AuthenticationError'
+  ) {
+    error = new AppError('Authentication failed. Please sign in again.', 401);
   }
   if (err.name === 'TokenExpiredError') {
-    error = new AppError('Your session has expired. Please log in again.', 401);
+    error = new AppError('Your session has expired. Please sign in again.', 401);
   }
 
   // Send the refined error
@@ -59,6 +66,14 @@ const errorMiddleware = (err: any, req: Request, res: Response, next: NextFuncti
   console.error(`[ERROR] ${new Date().toISOString()} - ${err.statusCode} - ${err.message} - ${req.originalUrl} - ${req.method} - ${req.ip}`);
   if (env.NODE_ENV === 'development') {
     console.error(err.stack);
+  }
+  
+  // Special handling for Clerk authentication errors to ensure 401 status
+  if (err.message === 'Unauthenticated' || err.message?.includes('Authentication')) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication failed. Please sign in again.',
+    });
   }
   
   // For operational errors we trust, and other known errors (DB, JWT)

@@ -30,10 +30,14 @@ const requiredEnvVars = [
   'MONGO_URI',
   'UPSTASH_REDIS_REST_URL',
   'UPSTASH_REDIS_REST_TOKEN',
-  'CLERK_SECRET_KEY',
 ];
 
-// In production, we strictly check required environment variables
+// Always validate Clerk Secret Key, regardless of environment
+if (!env.CLERK_SECRET_KEY) {
+  throw new Error('FATAL ERROR: CLERK_SECRET_KEY is not defined.');
+}
+
+// In production, we strictly check other required environment variables
 if (env.NODE_ENV === 'production') {
   for (const key of requiredEnvVars) {
     if (!env[key as keyof EnvConfig]) {

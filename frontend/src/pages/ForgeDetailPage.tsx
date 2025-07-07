@@ -1,4 +1,5 @@
 import { useParams } from 'react-router-dom';
+import { useAuth } from '@clerk/clerk-react';
 import { ExternalLink } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { registerForgeResourceView } from '../lib/forgeApi';
@@ -24,6 +25,7 @@ type Resource = {
 
 export default function ForgeDetailPage() {
   const { id } = useParams();
+  const { getToken } = useAuth();
   const [resource, setResource] = useState<Resource | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -31,11 +33,11 @@ export default function ForgeDetailPage() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    registerForgeResourceView(id)
+    registerForgeResourceView(id, getToken)
       .then(setResource)
       .catch(e => setError(e.message || 'Resource not found'))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, getToken]);
 
   if (loading) return <div className="flex items-center justify-center h-full py-16 text-center">Loading...</div>;
   if (error || !resource) return (

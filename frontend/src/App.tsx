@@ -1,9 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-react";
 import { ThemeProvider } from './lib/ThemeContext';
-import { withAuth, useClerkToken } from './lib/middleware';
 import { WorkspaceProvider } from './lib/WorkspaceContext';
 import { useEffect } from 'react';
+import { ToastProvider } from './components/ui/toast';
 
 // Layouts
 import PublicLayout from './components/layout/PublicLayout';
@@ -24,21 +24,10 @@ import ForgeDetailPage from './pages/ForgeDetailPage';
 import CruciblePage from './pages/CruciblePage';
 import CrucibleProblemPage from './pages/CrucibleProblemPage';
 
-// Protected route wrapper
-const ProtectedDashboard = withAuth(DashboardPage);
-const ProtectedPlaceholder = withAuth(PlaceholderPage);
-const ProtectedForgePage = withAuth(ForgePage);
-const ProtectedForgeDetailPage = withAuth(ForgeDetailPage);
-const ProtectedCruciblePage = withAuth(CruciblePage);
-const ProtectedCrucibleProblemPage = withAuth(CrucibleProblemPage);
-
 // Root route component to handle authenticated users
 function RootRoute() {
   const { isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
-  
-  // Set up the auth token
-  useClerkToken();
   
   // Wait for Clerk to load
   if (!isLoaded) {
@@ -58,8 +47,6 @@ function RootRoute() {
 
 // Wrap AppLayout with WorkspaceProvider
 const WorkspaceLayout = () => {
-  // Set up the auth token for the workspace layout
-  useClerkToken();
   const { isSignedIn, isLoaded } = useAuth();
   
   // Log authentication state for debugging
@@ -92,36 +79,38 @@ function App() {
       // and avoids the "For security purposes, only one of the 'Origin' and 'Authorization' headers should be provided" error
     >
       <ThemeProvider>
-        <Router>
-          <Routes>
-            {/* Public Routes */}
-            <Route element={<PublicLayout />}>
-              {/* Root Route - Redirects to dashboard if authenticated */}
-              <Route path="/" element={<RootRoute />} />
-              <Route path="/signin" element={<SignInPage />} />
-              <Route path="/signup" element={<SignUpPage />} />
-              <Route path="/about" element={<PlaceholderPage title="About" />} />
-              <Route path="/blogs" element={<PlaceholderPage title="Blogs" />} />
-              <Route path="/pricing" element={<PlaceholderPage title="Pricing" />} />
-              <Route path="/developers" element={<PlaceholderPage title="Developers" />} />
-            </Route>
-            
-            {/* Protected Routes - Username based */}
-            <Route path="/:username" element={<WorkspaceLayout />}>
-              <Route path="dashboard" element={<ProtectedDashboard />} />
-              <Route path="forge" element={<ProtectedForgePage />} />
-              <Route path="forge/:id" element={<ProtectedForgeDetailPage />} />
-              <Route path="crucible" element={<ProtectedCruciblePage />} />
-              <Route path="crucible/problem/:id" element={<ProtectedCrucibleProblemPage />} />
-              <Route path="arena" element={<ProtectedPlaceholder title="Arena" description="Compete with peers in coding competitions." />} />
-              <Route path="profile" element={<ProfilePage />} />
-              <Route path="settings" element={<ProtectedPlaceholder title="Settings" description="Configure your account settings and preferences." />} />
-            </Route>
-            
-            {/* Catch-all route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Router>
+        <ToastProvider>
+          <Router>
+            <Routes>
+              {/* Public Routes */}
+              <Route element={<PublicLayout />}>
+                {/* Root Route - Redirects to dashboard if authenticated */}
+                <Route path="/" element={<RootRoute />} />
+                <Route path="/signin" element={<SignInPage />} />
+                <Route path="/signup" element={<SignUpPage />} />
+                <Route path="/about" element={<PlaceholderPage title="About" />} />
+                <Route path="/blogs" element={<PlaceholderPage title="Blogs" />} />
+                <Route path="/pricing" element={<PlaceholderPage title="Pricing" />} />
+                <Route path="/developers" element={<PlaceholderPage title="Developers" />} />
+              </Route>
+              
+              {/* Protected Routes - Username based */}
+              <Route path="/:username" element={<WorkspaceLayout />}>
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="forge" element={<ForgePage />} />
+                <Route path="forge/:id" element={<ForgeDetailPage />} />
+                <Route path="crucible" element={<CruciblePage />} />
+                <Route path="crucible/problem/:id" element={<CrucibleProblemPage />} />
+                <Route path="arena" element={<PlaceholderPage title="Arena" description="Compete with peers in coding competitions." />} />
+                <Route path="profile" element={<ProfilePage />} />
+                <Route path="settings" element={<PlaceholderPage title="Settings" description="Configure your account settings and preferences." />} />
+              </Route>
+              
+              {/* Catch-all route */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Router>
+        </ToastProvider>
       </ThemeProvider>
     </ClerkProvider>
   );

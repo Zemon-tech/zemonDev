@@ -1,28 +1,59 @@
-// Utility for Forge API
-export async function getForgeResources({ type = '', tags = '', difficulty = '', page = 1, limit = 20 } = {}) {
-  const params = new URLSearchParams();
-  if (type) params.append('type', type);
-  if (tags) params.append('tags', tags);
-  if (difficulty) params.append('difficulty', difficulty);
-  params.append('page', String(page));
-  params.append('limit', String(limit));
-  const res = await fetch(`/api/forge?${params.toString()}`);
-  if (!res.ok) throw new Error('Failed to fetch resources');
-  const data = await res.json();
-  return data.data.resources;
+import { logger } from './utils';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+
+async function handleResponse<T>(response: Response): Promise<T> {
+  if (!response.ok) {
+    const errorBody = await response.text();
+    logger.error('API Error:', response.status, errorBody);
+    throw new Error(`API error: ${response.status} ${response.statusText}`);
+  }
+  try {
+    const data = await response.json();
+    return (data.data || data) as T;
+  } catch (error) {
+    logger.error('Error parsing JSON response:', error);
+    throw new Error('Invalid JSON response from server.');
+  }
 }
 
-export async function getForgeResourceById(id: string) {
-  const res = await fetch(`/api/forge/${id}`);
-  if (!res.ok) throw new Error('Resource not found');
-  const data = await res.json();
-  return data.data;
+// Utility for Forge API
+export async function getForgeResources({ type = '', tags = '', difficulty = '', page = 1, limit = 20 } = {}) {
+  const params = new URLSearchParams({ type, tags, difficulty, page: String(page), limit: String(limit) });
+  const response = await fetch(`${API_BASE_URL}/forge?${params.toString()}`);
+  const result = await handleResponse<{ resources: any[] }>(response);
+  return result.resources || [];
+}
+
+export async function getForgeResource(id: string): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/forge/${id}`);
+  return handleResponse<any>(response);
 }
 
 /**
- * Registers a view for a Forge resource (increments view count).
+ * Registers a "view" for a resource.
  * This is a side-effecting call that returns the updated resource.
  */
-export async function registerForgeResourceView(id: string) {
-  return getForgeResourceById(id);
+export async function registerForgeResourceView(id: string, getToken: () => Promise<string | null>): Promise<any> {
+  try {
+    const token = await getToken();
+    if (!token) {
+      console.warn('User not authenticated. View will not be registered.');
+      return getForgeResource(id);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/forge/${id}/view`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({}),
+    });
+
+    return handleResponse<any>(response);
+  } catch (error) {
+    console.error('Failed to register view, but fetching resource anyway:', error);
+    return getForgeResource(id);
+  }
 } 
