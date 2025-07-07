@@ -145,11 +145,6 @@ const difficultyColor: Record<Problem['difficulty'], string> = {
 };
 
 export default function ProblemCard({ problem, onSelect }: Props) {
-  // Debug logging to check if the problem data is correctly received
-  useEffect(() => {
-    console.log('ProblemCard received problem:', problem);
-  }, [problem]);
-
   // Display logic for tags
   const MAX_VISIBLE_TAGS = 4;
   const visibleTags = problem.tags.slice(0, MAX_VISIBLE_TAGS);

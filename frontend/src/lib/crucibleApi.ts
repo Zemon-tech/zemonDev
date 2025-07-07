@@ -158,8 +158,8 @@ export async function updateDraft(
   return apiRequest<ISolutionDraft>(
     `/crucible/${problemId}/draft`,
     {
-      method: 'POST',
-      body: JSON.stringify({ content }),
+      method: 'PUT',
+      body: JSON.stringify({ currentContent: content }),
     },
     getToken
   );
@@ -182,7 +182,7 @@ export async function updateNotes(
   return apiRequest<ICrucibleNote>(
     `/crucible/${problemId}/notes`,
     {
-      method: 'POST',
+      method: 'PUT',
       body: JSON.stringify(notes),
     },
     getToken

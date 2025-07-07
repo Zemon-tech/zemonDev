@@ -26,8 +26,8 @@ export const getDraft = asyncHandler(
       draft = await SolutionDraft.create({
         userId,
         problemId,
-        currentContent: '',
-        versions: [{ content: '', timestamp: new Date(), description: 'Initial draft' }],
+        currentContent: ' ',
+        versions: [{ content: ' ', timestamp: new Date(), description: 'Initial draft' }],
         lastEdited: new Date()
       });
 
@@ -76,7 +76,11 @@ export const updateDraft = asyncHandler(
         userId,
         problemId,
         currentContent,
-        versions: [{ content: currentContent, timestamp: new Date(), description: 'Initial draft' }],
+        versions: [{ 
+          content: currentContent || ' ', // Ensure there's always content, even if empty
+          timestamp: new Date(), 
+          description: 'Initial draft' 
+        }],
         lastEdited: new Date(),
         status: 'active'
       });

@@ -41,6 +41,7 @@ const SolutionDraftSchema: Schema = new Schema(
         content: {
           type: String,
           required: true,
+          default: '',
         },
         timestamp: {
           type: Date,
