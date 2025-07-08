@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -26,127 +26,54 @@ interface SolutionEditorProps {
 
 // CSS styles for the editor
 const editorStyles = `
-  /* Modern toolbar styles */
   .editor-toolbar {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.25rem;
     padding: 0.5rem;
-    background-color: var(--bg-color, #ffffff);
     border-bottom: 1px solid var(--border-color, #e2e8f0);
+    background-color: var(--bg-color, #ffffff);
     position: sticky;
     top: 0;
     z-index: 10;
     width: 100%;
   }
-
+  
   .dark .editor-toolbar {
-    background-color: var(--bg-dark, #1e1e1e);
-    border-color: var(--border-dark, #2d2d2d);
+    background-color: var(--bg-dark, #1a1a1a);
+    border-bottom: 1px solid var(--border-dark, #2d2d2d);
   }
-
-  /* Toolbar button groups */
+  
   .toolbar-group {
     display: flex;
-    align-items: center;
     gap: 0.25rem;
+    margin-right: 0.5rem;
+    align-items: center;
   }
-
-  /* Separator style */
+  
   .toolbar-separator {
     width: 1px;
-    height: 1.25rem;
+    height: 1.5rem;
     background-color: var(--border-color, #e2e8f0);
     margin: 0 0.25rem;
   }
-
+  
   .dark .toolbar-separator {
     background-color: var(--border-dark, #2d2d2d);
   }
-
-  /* Modern button style */
+  
   .toolbar-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 2rem;
-    min-width: 2rem;
-    padding: 0 0.5rem;
-    border-radius: 0.375rem;
-    border: none;
-    background: transparent;
-    color: var(--text-color, #1a1a1a);
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .dark .toolbar-button {
-    color: var(--text-color-dark, rgba(255, 255, 255, 0.8));
-  }
-
-  .toolbar-button:hover {
-    background-color: var(--hover-bg, rgba(0, 0, 0, 0.05));
-  }
-
-  .dark .toolbar-button:hover {
-    background-color: var(--hover-bg-dark, rgba(255, 255, 255, 0.1));
-  }
-
-  .toolbar-button.is-active {
-    background-color: var(--active-bg, rgba(79, 70, 229, 0.1));
-    color: var(--active-color, #4f46e5);
-  }
-
-  .dark .toolbar-button.is-active {
-    background-color: var(--active-bg-dark, rgba(139, 92, 246, 0.2));
-    color: var(--active-color-dark, #8b5cf6);
-  }
-
-  /* Popover styles */
-  .toolbar-popover {
-    position: relative;
-  }
-
-  .toolbar-popover-content {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    margin-top: 0.5rem;
-    padding: 0.5rem;
-    background-color: var(--bg-color, #ffffff);
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    z-index: 20;
-    min-width: 12rem;
-  }
-
-  .dark .toolbar-popover-content {
-    background-color: var(--bg-dark, #1e1e1e);
-    border-color: var(--border-dark, #2d2d2d);
-  }
-
-  .toolbar-popover-item {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
     display: flex;
     align-items: center;
-    padding: 0.5rem;
-    border-radius: 0.375rem;
+    justify-content: center;
     cursor: pointer;
-    color: var(--text-color, #1a1a1a);
-    transition: all 0.2s ease;
-  }
-
-  .dark .toolbar-popover-item {
-    color: var(--text-color-dark, rgba(255, 255, 255, 0.8));
-  }
-
-  .toolbar-popover-item:hover {
-    background-color: var(--hover-bg, rgba(0, 0, 0, 0.05));
-  }
-
-  .dark .toolbar-popover-item:hover {
-    background-color: var(--hover-bg-dark, rgba(255, 255, 255, 0.1));
+    background-color: transparent;
+    border: none;
+    color: var(--text-color, #333);
+    font-size: 0.75rem;
+    transition: background-color 0.2s;
   }
 
   /* Task list styles */
@@ -211,165 +138,52 @@ const editorStyles = `
     border-color: var(--border-dark, #2d2d2d);
   }
 
-  /* Enhanced Table styles */
+  /* Table styles */
   .ProseMirror table {
-    border-collapse: separate;
-    border-spacing: 0;
-    margin: 2rem 0;
+    border-collapse: collapse;
+    margin: 1rem 0;
     width: 100%;
+    text-align: left;
+    color: var(--text-color, #333);
+    background-color: var(--bg-color, #ffffff);
     border: 1px solid var(--border-color, #e2e8f0);
     border-radius: 0.5rem;
     overflow: hidden;
-    background-color: var(--bg-color, #ffffff);
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
   }
 
   .dark .ProseMirror table {
-    background-color: var(--bg-dark, #1e1e1e);
+    color: var(--text-color-dark, #f1f5f9);
+    background-color: var(--bg-dark, #1a1a1a);
     border-color: var(--border-dark, #2d2d2d);
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
   }
 
   .ProseMirror th {
     background-color: var(--bg-accent, #f8fafc);
     font-weight: 600;
     padding: 0.75rem 1rem;
-    text-align: left;
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-    color: var(--heading-color, #1a1a1a);
     border-bottom: 2px solid var(--border-color, #e2e8f0);
-    position: relative;
   }
 
   .dark .ProseMirror th {
     background-color: var(--bg-accent-dark, #2d2d2d);
-    color: var(--heading-color-dark, #f1f5f9);
     border-color: var(--border-dark, #404040);
   }
 
   .ProseMirror td {
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--border-color, #e2e8f0);
-    border-right: 1px solid var(--border-color, #e2e8f0);
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-    color: var(--text-color, #374151);
-    transition: background-color 0.2s ease;
+    border: 1px solid var(--border-color, #e2e8f0);
   }
 
   .dark .ProseMirror td {
     border-color: var(--border-dark, #2d2d2d);
-    color: var(--text-color-dark, #e5e7eb);
   }
 
-  .ProseMirror tr:last-child td {
-    border-bottom: none;
-  }
-
-  .ProseMirror td:last-child {
-    border-right: none;
-  }
-
-  /* Hover effects */
-  .ProseMirror tr:hover td {
-    background-color: var(--hover-bg, rgba(0, 0, 0, 0.02));
-  }
-
-  .dark .ProseMirror tr:hover td {
-    background-color: var(--hover-bg-dark, rgba(255, 255, 255, 0.05));
-  }
-
-  /* Zebra striping */
   .ProseMirror tr:nth-child(even) {
-    background-color: var(--bg-alt, #f9fafb);
+    background-color: var(--bg-alt, #f8fafc);
   }
 
   .dark .ProseMirror tr:nth-child(even) {
-    background-color: var(--bg-alt-dark, #1a1a1a);
-  }
-
-  /* Selected cell styles */
-  .ProseMirror .selectedCell {
-    background-color: var(--selected-bg, rgba(79, 70, 229, 0.1)) !important;
-    position: relative;
-  }
-
-  .dark .ProseMirror .selectedCell {
-    background-color: var(--selected-bg-dark, rgba(139, 92, 246, 0.2)) !important;
-  }
-
-  /* Table wrapper for better mobile handling */
-  .table-wrapper {
-    overflow-x: auto;
-    max-width: 100%;
-    margin: 2rem 0;
-    border-radius: 0.5rem;
-  }
-
-  /* Table resize handle styles */
-  .ProseMirror .column-resize-handle {
-    position: absolute;
-    right: -2px;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background-color: var(--active-color, #4f46e5);
-    cursor: col-resize;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-
-  .dark .ProseMirror .column-resize-handle {
-    background-color: var(--active-color-dark, #8b5cf6);
-  }
-
-  .ProseMirror th:hover .column-resize-handle,
-  .ProseMirror .column-resize-handle.active {
-    opacity: 1;
-  }
-
-  /* Table toolbar styles */
-  .table-toolbar {
-    display: flex;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    background-color: var(--bg-color, #ffffff);
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 0.375rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    position: absolute;
-    z-index: 50;
-    margin-top: -2.5rem;
-  }
-
-  .dark .table-toolbar {
-    background-color: var(--bg-dark, #1e1e1e);
-    border-color: var(--border-dark, #2d2d2d);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  }
-
-  .table-toolbar button {
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
-    color: var(--text-color, #374151);
-    background-color: transparent;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .dark .table-toolbar button {
-    color: var(--text-color-dark, #e5e7eb);
-  }
-
-  .table-toolbar button:hover {
-    background-color: var(--hover-bg, rgba(0, 0, 0, 0.05));
-  }
-
-  .dark .table-toolbar button:hover {
-    background-color: var(--hover-bg-dark, rgba(255, 255, 255, 0.1));
+    background-color: var(--bg-alt-dark, #1e1e1e);
   }
 
   /* Mermaid diagram styles */
@@ -453,187 +267,24 @@ const editorStyles = `
     background: rgba(255, 255, 255, 0.05);
   }
   
-  /* Content container styles */
-  .editor-content-container {
-    max-width: 46rem;
-    margin: 0 auto;
-    padding: 0 4rem;
+  .toolbar-button:hover {
+    background-color: var(--hover-bg, rgba(0, 0, 0, 0.05));
   }
-
-  /* Clean editor styles */
-  .ProseMirror {
-    padding: 4rem 0;
-    min-height: calc(100vh - 120px);
-    outline: none !important;
+  
+  .dark .toolbar-button:hover {
+    background-color: var(--hover-bg-dark, rgba(255, 255, 255, 0.1));
   }
-
-  /* Improved spacing between blocks */
-  .ProseMirror > * + * {
-    margin-top: 0.75em;
+  
+  .toolbar-button.is-active {
+    background-color: var(--active-bg, rgba(79, 70, 229, 0.1));
+    color: var(--active-color, #4f46e5);
   }
-
-  /* Better placeholder styling */
-  .ProseMirror p.is-editor-empty:first-child::before {
-    color: #adb5bd;
-    content: attr(data-placeholder);
-    float: left;
-    height: 0;
-    pointer-events: none;
-  }
-
-  /* Remove any borders from the editor */
-  .ProseMirror:focus {
-    outline: none !important;
-    box-shadow: none !important;
-    border: none !important;
+  
+  .dark .toolbar-button.is-active {
+    background-color: var(--active-bg-dark, rgba(139, 92, 246, 0.2));
+    color: var(--active-color-dark, #8b5cf6);
   }
 `;
-
-// Component for the heading popover
-const HeadingPopover = ({ editor }: { editor: any }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const headingLevels = [
-    { level: 1, label: 'Heading 1' },
-    { level: 2, label: 'Heading 2' },
-    { level: 3, label: 'Heading 3' },
-  ];
-
-  return (
-    <div className="toolbar-popover">
-      <button
-        className={`toolbar-button ${isOpen ? 'is-active' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
-        title="Heading"
-      >
-        H
-      </button>
-      {isOpen && (
-        <div className="toolbar-popover-content">
-          {headingLevels.map(({ level, label }) => (
-            <div
-              key={level}
-              className="toolbar-popover-item"
-              onClick={() => {
-                editor.chain().focus().toggleHeading({ level }).run();
-                setIsOpen(false);
-              }}
-            >
-              {label}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Component for the list popover
-const ListPopover = ({ editor }: { editor: any }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const listTypes = [
-    { type: 'bulletList', label: 'Bullet List' },
-    { type: 'orderedList', label: 'Numbered List' },
-    { type: 'taskList', label: 'Task List' },
-  ];
-
-  return (
-    <div className="toolbar-popover">
-      <button
-        className={`toolbar-button ${isOpen ? 'is-active' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
-        title="List"
-      >
-        List
-      </button>
-      {isOpen && (
-        <div className="toolbar-popover-content">
-          {listTypes.map(({ type, label }) => (
-            <div
-              key={type}
-              className="toolbar-popover-item"
-              onClick={() => {
-                if (type === 'taskList') {
-                  editor.chain().focus().toggleTaskList().run();
-                } else if (type === 'bulletList') {
-                  editor.chain().focus().toggleBulletList().run();
-                } else {
-                  editor.chain().focus().toggleOrderedList().run();
-                }
-                setIsOpen(false);
-              }}
-            >
-              {label}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Add TablePopover component
-const TablePopover = ({ editor }: { editor: any }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const handleInsertTable = (rows: number, cols: number) => {
-    editor.chain().focus().insertTable({
-      rows,
-      cols,
-      withHeaderRow: true,
-    }).run();
-    setIsOpen(false);
-  };
-
-  const tableOptions = [
-    { rows: 2, cols: 2, label: '2×2' },
-    { rows: 3, cols: 3, label: '3×3' },
-    { rows: 3, cols: 4, label: '3×4' },
-    { rows: 4, cols: 3, label: '4×3' },
-    { rows: 4, cols: 4, label: '4×4' },
-  ];
-
-  return (
-    <div className="toolbar-popover">
-      <button
-        className={`toolbar-button ${isOpen ? 'is-active' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
-        title="Insert Table"
-      >
-        Table
-      </button>
-      {isOpen && (
-        <div className="toolbar-popover-content">
-          <div className="toolbar-popover-grid" style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '0.5rem',
-            padding: '0.5rem'
-          }}>
-            {tableOptions.map(({ rows, cols, label }) => (
-              <div
-                key={`${rows}x${cols}`}
-                className="toolbar-popover-item"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '0.5rem',
-                  borderRadius: '0.375rem',
-                  cursor: 'pointer'
-                }}
-                onClick={() => handleInsertTable(rows, cols)}
-              >
-                {label}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
 // Simple code editor component
 const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
@@ -728,7 +379,8 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
     },
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert prose-base w-full min-h-[300px] focus:outline-none font-sans',
+        class:
+          'prose dark:prose-invert prose-base w-full min-h-[300px] focus:outline-none font-sans bg-base-100 rounded-xl shadow-sm border border-base-200 dark:border-base-700 px-4 py-3 transition-all duration-300 text-base-content',
         style: 'font-size: 1rem; line-height: 1.7;',
       },
     },
@@ -743,13 +395,45 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
     }
   }, [value, editor]);
 
-  const handleImageUpload = async (file: File) => {
-    // Implementation
-  };
+  const handleImageUpload = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const src = event.target?.result as string;
+          editor?.chain().focus().setImage({ src }).run();
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  }, [editor]);
 
-  const handleTableInsert = () => {
-    // Implementation
-  };
+  const handleTableInsert = useCallback(() => {
+    editor?.chain().focus().insertTable({
+      rows: 3,
+      cols: 3,
+      withHeaderRow: true
+    }).run();
+  }, [editor]);
+
+  const handleMermaidInsert = useCallback(() => {
+    const defaultFlowchart = `flowchart TD
+    Start[Start] --> Init[Initialize Data]
+    Init --> Condition{Check Condition}
+    Condition -->|Yes| Process[Process Data]
+    Condition -->|No| End[End]
+    Process --> End`;
+    
+    editor?.chain().focus().insertContent({
+      type: 'mermaid',
+      attrs: { content: defaultFlowchart }
+    }).run();
+  }, [editor]);
 
   if (!editor) return <div>Loading editor…</div>;
 
@@ -803,116 +487,217 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
       <div className="editor-toolbar">
         <div className="toolbar-group">
           <button
-            onClick={() => editor.chain().focus().undo().run()}
-            className="toolbar-button"
-            title="Undo"
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            className={`toolbar-button ${editor.isActive('heading', { level: 1 }) ? 'is-active' : ''}`}
+            title="Heading 1"
           >
-            ↩
+            H1
           </button>
           <button
-            onClick={() => editor.chain().focus().redo().run()}
-            className="toolbar-button"
-            title="Redo"
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            className={`toolbar-button ${editor.isActive('heading', { level: 2 }) ? 'is-active' : ''}`}
+            title="Heading 2"
           >
-            ↪
+            H2
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            className={`toolbar-button ${editor.isActive('heading', { level: 3 }) ? 'is-active' : ''}`}
+            title="Heading 3"
+          >
+            H3
           </button>
         </div>
-
-        <div className="toolbar-separator" />
-
-        <HeadingPopover editor={editor} />
-
-        <div className="toolbar-separator" />
-
+        
+        <div className="toolbar-separator"></div>
+        
         <div className="toolbar-group">
           <button
             onClick={() => editor.chain().focus().toggleBold().run()}
             className={`toolbar-button ${editor.isActive('bold') ? 'is-active' : ''}`}
             title="Bold"
           >
-            B
+            Bold
           </button>
           <button
             onClick={() => editor.chain().focus().toggleItalic().run()}
             className={`toolbar-button ${editor.isActive('italic') ? 'is-active' : ''}`}
             title="Italic"
           >
-            I
+            Italic
           </button>
           <button
             onClick={() => editor.chain().focus().toggleUnderline().run()}
             className={`toolbar-button ${editor.isActive('underline') ? 'is-active' : ''}`}
             title="Underline"
           >
-            U
+            Underline
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleHighlight().run()}
+            className={`toolbar-button ${editor.isActive('highlight') ? 'is-active' : ''}`}
+            title="Highlight"
+          >
+            Highlight
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleSuperscript().run()}
+            className={`toolbar-button ${editor.isActive('superscript') ? 'is-active' : ''}`}
+            title="Superscript"
+          >
+            Superscript
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleSubscript().run()}
+            className={`toolbar-button ${editor.isActive('subscript') ? 'is-active' : ''}`}
+            title="Subscript"
+          >
+            Subscript
           </button>
           <button
             onClick={() => editor.chain().focus().toggleStrike().run()}
             className={`toolbar-button ${editor.isActive('strike') ? 'is-active' : ''}`}
             title="Strike"
           >
-            S
+            Strike
           </button>
         </div>
-
-        <div className="toolbar-separator" />
-
-        <ListPopover editor={editor} />
-
-        <div className="toolbar-separator" />
-
+        
+        <div className="toolbar-separator"></div>
+        
         <div className="toolbar-group">
           <button
-            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-            className={`toolbar-button ${editor.isActive('codeBlock') ? 'is-active' : ''}`}
-            title="Code Block"
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            className={`toolbar-button ${editor.isActive('bulletList') ? 'is-active' : ''}`}
+            title="Bullet List"
           >
-            {'</>'}
+            • List
           </button>
+          <button
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            className={`toolbar-button ${editor.isActive('orderedList') ? 'is-active' : ''}`}
+            title="Numbered List"
+          >
+            1. List
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleTaskList().run()}
+            className={`toolbar-button ${editor.isActive('taskList') ? 'is-active' : ''}`}
+            title="Task List"
+          >
+            ☑ Tasks
+          </button>
+        </div>
+        
+        <div className="toolbar-separator"></div>
+        
+        <div className="toolbar-group">
           <button
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
             className={`toolbar-button ${editor.isActive('blockquote') ? 'is-active' : ''}`}
             title="Quote"
           >
-            "
+            Quote
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+            className={`toolbar-button ${editor.isActive('codeBlock') ? 'is-active' : ''}`}
+            title="Code Block"
+          >
+            Code
+          </button>
+          <button
+            onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+            className={`toolbar-button ${editor.isActive('table') ? 'is-active' : ''}`}
+            title="Insert Table"
+          >
+            Table
           </button>
         </div>
-
-        <div className="toolbar-separator" />
-
-        <TablePopover editor={editor} />
-
-        <div className="toolbar-separator" />
-
+        
+        <div className="toolbar-separator"></div>
+        
+        <div className="toolbar-group">
+          <button 
+            onClick={handleMermaidInsert}
+            className="toolbar-button"
+            title="Insert Flowchart"
+          >
+            Flowchart
+          </button>
+          <button
+            onClick={handleTableInsert}
+            className="toolbar-button"
+            title="Insert Table"
+          >
+            Table
+          </button>
+          <button
+            onClick={handleImageUpload} 
+            className="toolbar-button"
+            title="Insert Image"
+          >
+            Image
+          </button>
+          <button
+            onClick={() => editor.chain().focus().setHorizontalRule().run()}
+            className="toolbar-button"
+            title="Horizontal Rule"
+          >
+            Divider
+          </button>
+        </div>
+        
+        <div className="toolbar-separator"></div>
+        
         <div className="toolbar-group">
           <button
             onClick={() => editor.chain().focus().setTextAlign('left').run()}
-            className={`toolbar-button ${editor.isActive({ textAlign: 'left' }) ? 'is-active' : ''}`}
+            className={`toolbar-button ${editor.isActive('textAlign', { align: 'left' }) ? 'is-active' : ''}`}
             title="Align Left"
           >
-            ←
+            Left
           </button>
           <button
             onClick={() => editor.chain().focus().setTextAlign('center').run()}
-            className={`toolbar-button ${editor.isActive({ textAlign: 'center' }) ? 'is-active' : ''}`}
+            className={`toolbar-button ${editor.isActive('textAlign', { align: 'center' }) ? 'is-active' : ''}`}
             title="Align Center"
           >
-            ↔
+            Center
           </button>
           <button
             onClick={() => editor.chain().focus().setTextAlign('right').run()}
-            className={`toolbar-button ${editor.isActive({ textAlign: 'right' }) ? 'is-active' : ''}`}
+            className={`toolbar-button ${editor.isActive('textAlign', { align: 'right' }) ? 'is-active' : ''}`}
             title="Align Right"
           >
-            →
+            Right
+          </button>
+        </div>
+        
+        <div className="toolbar-separator"></div>
+        
+        <div className="toolbar-group">
+          <button
+            onClick={() => editor.chain().focus().undo().run()}
+            className="toolbar-button"
+            title="Undo"
+            disabled={!editor.can().undo()}
+          >
+            Undo
+          </button>
+          <button
+            onClick={() => editor.chain().focus().redo().run()}
+            className="toolbar-button"
+            title="Redo"
+            disabled={!editor.can().redo()}
+          >
+            Redo
           </button>
         </div>
       </div>
       
       <div className="flex-1 min-h-0 overflow-auto">
-        <div className="editor-content-container">
-          <EditorContent editor={editor} className="h-full" />
-        </div>
+        <EditorContent editor={editor} className="h-full" />
       </div>
     </div>
   );

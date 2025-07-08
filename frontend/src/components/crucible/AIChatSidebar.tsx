@@ -8,20 +8,19 @@ import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
 import { updateNotes } from '../../lib/crucibleApi';
 import { useToast } from '../ui/toast';
-import { Button } from '../ui/button';
 
 interface Message {
+  id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  id: string;
 }
 
 interface AIChatSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   problemId: string;
-  messages: Array<{
+  messages?: Array<{
     role: 'user' | 'assistant';
     content: string;
   }>;
@@ -34,19 +33,20 @@ interface CodeBlockProps {
 }
 
 const AIChatSidebar: React.FC<AIChatSidebarProps> = ({ 
-  isOpen,
   onClose,
   problemId,
-  messages,
+  messages: initialMessages = [],
 }) => {
   const { getToken } = useAuth();
   const { toast } = useToast();
-  const [messagesState, setMessages] = useState<Message[]>(messages.map((m) => ({
-    role: m.role,
-    content: m.content,
-    timestamp: new Date(),
-    id: Math.random().toString(36).substr(2, 9)
-  })));
+  const [messagesState, setMessages] = useState<Message[]>(
+    initialMessages.map((m) => ({
+      role: m.role,
+      content: m.content,
+      timestamp: new Date(),
+      id: Math.random().toString(36).substr(2, 9)
+    }))
+  );
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [width, setWidth] = useState(320);
