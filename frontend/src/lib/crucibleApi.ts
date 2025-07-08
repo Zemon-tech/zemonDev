@@ -167,23 +167,24 @@ export async function updateDraft(
 
 // Fetch notes for a problem (auth required)
 export async function getNotes(
-    problemId: string,
-    getToken: () => Promise<string | null>
-): Promise<ICrucibleNote[]> {
-  return apiRequest<ICrucibleNote[]>(`/crucible/${problemId}/notes`, {}, getToken);
+  problemId: string,
+  getToken: () => Promise<string | null>
+): Promise<ICrucibleNote> {
+  return apiRequest<ICrucibleNote>(`/crucible/${problemId}/notes`, {}, getToken);
 }
 
 // Update notes for a problem (auth required)
 export async function updateNotes(
   problemId: string,
-  notes: { content: string, tags: string[] },
+  content: string,
+  tags: string[],
   getToken: () => Promise<string | null>
 ): Promise<ICrucibleNote> {
   return apiRequest<ICrucibleNote>(
     `/crucible/${problemId}/notes`,
     {
       method: 'PUT',
-      body: JSON.stringify(notes),
+      body: JSON.stringify({ content, tags }),
     },
     getToken
   );

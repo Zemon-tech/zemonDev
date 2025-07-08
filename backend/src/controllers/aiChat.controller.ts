@@ -2,7 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import asyncHandler from '../utils/asyncHandler';
 import AppError from '../utils/AppError';
 import ApiResponse from '../utils/ApiResponse';
-import { AIChatHistory } from '../models/index';
+import { AIChatHistory, CrucibleProblem } from '../models/index';
+import { generateChatResponse } from '../services/ai.service';
 
 /**
  * @desc    Get all chat sessions for a problem
@@ -40,6 +41,12 @@ export const createChatSession = asyncHandler(
     const { problemId } = req.params;
     const userId = req.user._id;
     const { title } = req.body;
+
+    // Validate problem exists
+    const problem = await CrucibleProblem.findById(problemId);
+    if (!problem) {
+      return next(new AppError('Problem not found', 404));
+    }
 
     const chatSession = await AIChatHistory.create({
       userId,
@@ -90,7 +97,7 @@ export const getChatSession = asyncHandler(
 );
 
 /**
- * @desc    Add a message to a chat session
+ * @desc    Add a message to a chat session and get AI response
  * @route   POST /api/crucible/:problemId/chats/:chatId/messages
  * @access  Private
  */
@@ -98,35 +105,59 @@ export const addChatMessage = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { problemId, chatId } = req.params;
     const userId = req.user._id;
-    const { role, content } = req.body;
+    const { content } = req.body;
 
     // Validate request body
-    if (!role || !content) {
-      return next(new AppError('Role and content are required', 400));
+    if (!content) {
+      return next(new AppError('Message content is required', 400));
     }
 
-    if (role !== 'user' && role !== 'assistant') {
-      return next(new AppError('Role must be either "user" or "assistant"', 400));
-    }
-
-    const chatSession = await AIChatHistory.findOne({
-      _id: chatId,
-      userId,
-      problemId,
-      status: 'active'
-    });
+    // Get chat session and problem
+    const [chatSession, problem] = await Promise.all([
+      AIChatHistory.findOne({
+        _id: chatId,
+        userId,
+        problemId,
+        status: 'active'
+      }),
+      CrucibleProblem.findById(problemId)
+    ]);
 
     if (!chatSession) {
       return next(new AppError('Chat session not found', 404));
     }
 
-    // Add the message
-    chatSession.messages.push({
-      role,
+    if (!problem) {
+      return next(new AppError('Problem not found', 404));
+    }
+
+    // Add user message
+    const userMessage = {
+      role: 'user' as const,
       content,
       timestamp: new Date()
-    });
+    };
+    chatSession.messages.push(userMessage);
 
+    // Get AI response
+    const aiResponse = await generateChatResponse(
+      [...chatSession.messages],
+      problem
+    );
+
+    if (aiResponse.error) {
+      return next(new AppError(aiResponse.message, 500));
+    }
+
+    // Add AI response to chat history
+    const assistantMessage = {
+      role: 'assistant' as const,
+      content: aiResponse.message,
+      timestamp: new Date()
+    };
+    chatSession.messages.push(assistantMessage);
+
+    // Save updated chat session
     await chatSession.save();
 
     res.status(200).json(

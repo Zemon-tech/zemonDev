@@ -49,23 +49,6 @@ export default function CrucibleWorkspaceView({ problem, initialDraft, initialNo
     return () => clearTimeout(handler);
   }, [solutionContent, problem._id, getToken, initialDraft]);
 
-  // Autosave notes
-  useEffect(() => {
-    const handler = setTimeout(async () => {
-      if (notesContent === (initialNotes?.[0]?.content || '')) return;
-
-      try {
-        const token = await getToken();
-        if (!token) return;
-        await updateNotes(problem._id, { content: notesContent, tags: [] }, () => Promise.resolve(token));
-      } catch (err) {
-        logger.error('Failed to save notes:', err);
-      }
-    }, 2000);
-
-    return () => clearTimeout(handler);
-  }, [notesContent, problem._id, getToken, initialNotes]);
-
   const handleEditorChange = useCallback((content: string) => {
     setSolutionContent(content);
     setWordCount(content.trim().split(/\s+/).filter(Boolean).length);
@@ -85,7 +68,7 @@ export default function CrucibleWorkspaceView({ problem, initialDraft, initialNo
   }, []);
 
   return (
-    <div className="flex h-full bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-full bg-base-100">
       {showProblemSidebar && (
         <ProblemDetailsSidebar
           title={problem.title}
@@ -104,7 +87,11 @@ export default function CrucibleWorkspaceView({ problem, initialDraft, initialNo
           {activeContent === 'solution' ? (
             <SolutionEditor value={solutionContent} onChange={handleEditorChange} />
           ) : (
-            <NotesCollector initialContent={notesContent} onChange={handleNotesChange} />
+            <NotesCollector 
+              problemId={problem._id} 
+              initialContent={notesContent} 
+              onChange={handleNotesChange} 
+            />
           )}
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, GenerationConfig } from "@google/generative-ai";
+import { GoogleGenerativeAI, GenerationConfig, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import { ICrucibleProblem } from '../models';
 
 // --- INTERFACES ---
@@ -8,6 +8,17 @@ export interface ISolutionAnalysis {
   feedback: string;
   suggestions: string[];
   meetsRequirements: boolean;
+}
+
+export interface IChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
+export interface IChatResponse {
+  message: string;
+  error?: string;
 }
 
 // --- INITIALIZATION ---
@@ -27,19 +38,33 @@ const generationConfig: GenerationConfig = {
   maxOutputTokens: 4096,
 };
 
+const safetySettings = [
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+];
+
 const model = genAI.getGenerativeModel({
-  model: "gemini-pro",
+  model: "gemini-2.5-flash",
   generationConfig,
+  safetySettings,
 });
 
 // --- HELPER FUNCTIONS ---
 
-/**
- * Safely parses a JSON string from the AI's text response.
- * Handles cases where the JSON is wrapped in markdown ```json ... ```
- * @param text The raw text response from the AI.
- * @returns The parsed JSON object or null if parsing fails.
- */
 const safeJsonParse = <T>(text: string): T | null => {
   const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
   try {
@@ -53,7 +78,73 @@ const safeJsonParse = <T>(text: string): T | null => {
   }
 };
 
+// Format chat history for Gemini
+const formatChatHistory = (messages: IChatMessage[]): string => {
+  return messages
+    .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+    .join('\n\n');
+};
+
 // --- CORE AI SERVICES ---
+
+/**
+ * Generates a chat response using Gemini AI.
+ * @param messages Array of previous chat messages
+ * @param problemContext Optional problem context to help guide responses
+ * @returns A promise resolving to the AI's response
+ */
+export const generateChatResponse = async (
+  messages: IChatMessage[],
+  problemContext?: ICrucibleProblem
+): Promise<IChatResponse> => {
+  if (!geminiApiKey) {
+    return {
+      message: "AI chat is disabled. No API key was provided.",
+      error: "MISSING_API_KEY"
+    };
+  }
+
+  try {
+    // Build the prompt with context and history
+    let prompt = "You are an AI tutor helping engineering students solve programming challenges. ";
+    prompt += "Your responses should be clear, educational, and guide students towards understanding rather than giving direct solutions.\n\n";
+
+    // Add problem context if available
+    if (problemContext) {
+      prompt += `Current Problem:\nTitle: ${problemContext.title}\n`;
+      prompt += `Description: ${problemContext.description}\n`;
+      prompt += `Difficulty: ${problemContext.difficulty}\n\n`;
+    }
+
+    // Add chat history
+    prompt += "Previous conversation:\n";
+    prompt += formatChatHistory(messages);
+
+    // Get the last user message
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.role !== 'user') {
+      throw new Error("Invalid message history");
+    }
+
+    // Generate response
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    
+    if (!response.text()) {
+      throw new Error("Empty response from AI");
+    }
+
+    return {
+      message: response.text()
+    };
+  } catch (error) {
+    console.error("AI Service: Error in generateChatResponse", error);
+    return {
+      message: "An error occurred while generating the response. Please try again.",
+      error: error instanceof Error ? error.message : "UNKNOWN_ERROR"
+    };
+  }
+};
 
 /**
  * Analyzes a user's solution for a given problem using Gemini AI.
