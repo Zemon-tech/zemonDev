@@ -40,9 +40,8 @@ export const cacheMiddleware = (ttl = 600) => { // Increased to 10 minutes
       const cachedResponse = await redisClient.get(key);
 
       if (cachedResponse) {
-        // Return cached response
-        const data = JSON.parse(cachedResponse as string);
-        return res.status(200).json(data);
+        // Return cached response - no need to parse as the Redis client now handles it
+        return res.status(200).json(cachedResponse);
       }
 
       // Store original res.json method
@@ -52,7 +51,7 @@ export const cacheMiddleware = (ttl = 600) => { // Increased to 10 minutes
       res.json = function (body: any) {
         // Store the response in cache
         if (res.statusCode === 200 || res.statusCode === 201) {
-          redisClient.set(key, JSON.stringify(body), { ex: ttl })
+          redisClient.set(key, body, { ex: ttl })
             .catch(err => logger.error('Redis cache error:', err));
         }
 

@@ -51,10 +51,13 @@ const enhancedRedisClient = {
    */
   async set(key: string, value: any, options?: { ex?: number }): Promise<string | null> {
     try {
+      // Always serialize value to JSON string if it's an object
+      const serializedValue = typeof value === 'object' ? JSON.stringify(value) : value;
+      
       if (options?.ex) {
-        return await redisClient.set(key, value, { ex: options.ex });
+        return await redisClient.set(key, serializedValue, { ex: options.ex });
       }
-      return await redisClient.set(key, value);
+      return await redisClient.set(key, serializedValue);
     } catch (error) {
       logger.error(`Redis SET Error for key ${key}:`, error);
       return null;
@@ -64,9 +67,26 @@ const enhancedRedisClient = {
   /**
    * Get a value by key
    */
-  async get(key: string): Promise<string | null> {
+  async get(key: string): Promise<any> {
     try {
-      return await redisClient.get(key);
+      const value = await redisClient.get(key);
+      
+      // If no value, return null
+      if (value === null) return null;
+      
+      // Try to parse as JSON if it looks like a JSON string
+      if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
+        try {
+          return JSON.parse(value);
+        } catch (parseError) {
+          logger.warn(`Failed to parse Redis value as JSON for key ${key}: ${value}`);
+          // Return the raw value if parsing fails
+          return value;
+        }
+      }
+      
+      // Return as is for non-JSON values
+      return value;
     } catch (error) {
       logger.error(`Redis GET Error for key ${key}:`, error);
       return null;

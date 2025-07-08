@@ -56,8 +56,8 @@ import { cacheMiddleware } from '../middleware/cache.middleware';
 const router = express.Router();
 
 // Public routes with rate limiting and caching
-router.get('/', standardLimiter, cacheMiddleware(300), getAllChallenges);
-router.get('/:id', standardLimiter, cacheMiddleware(300), getChallengeById);
+router.get('/', standardLimiter, cacheMiddleware(600), getAllChallenges);
+router.get('/:id', standardLimiter, cacheMiddleware(600), getChallengeById);
 router.get('/:challengeId/solutions', standardLimiter, cacheMiddleware(300), getSolutions);
 
 // Protected routes

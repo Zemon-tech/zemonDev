@@ -197,11 +197,7 @@ const CrucibleProblemSchema: Schema = new Schema(
 );
 
 // Add indexes for better query performance
-CrucibleProblemSchema.index({ title: 1 });
-CrucibleProblemSchema.index({ tags: 1 });
-CrucibleProblemSchema.index({ difficulty: 1 });
 CrucibleProblemSchema.index({ createdAt: -1 });
-CrucibleProblemSchema.index({ createdBy: 1 });
 
 // Text index for full-text search
 CrucibleProblemSchema.index({ title: 'text', description: 'text' });
