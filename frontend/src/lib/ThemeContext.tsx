@@ -18,8 +18,6 @@ const applyTheme = (theme: Theme) => {
   
   // Store in localStorage
   localStorage.setItem('theme', theme);
-  
-  console.log(`Applied theme: ${theme}`);
 };
 
 // Helper to check if a theme is dark
@@ -66,7 +64,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const savedTheme = localStorage.getItem('theme');
     
     if (savedTheme) {
-      console.log(`Initializing with saved theme: ${savedTheme}`);
       setThemeState(savedTheme);
       setIsDark(isDarkTheme(savedTheme));
       applyTheme(savedTheme);
@@ -79,14 +76,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       }
     } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       // If no saved theme but system prefers dark
-      console.log('System prefers dark theme, setting dark');
       setThemeState('dark');
       setIsDark(true);
       applyTheme('dark');
       document.documentElement.classList.add('dark');
     } else {
       // Default to light theme
-      console.log('No theme preference detected, defaulting to light');
       setThemeState('light');
       setIsDark(false);
       applyTheme('light');
@@ -98,7 +93,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const handleChange = (e: MediaQueryListEvent) => {
       if (!localStorage.getItem('theme')) {
         const newTheme = e.matches ? 'dark' : 'light';
-        console.log(`System theme preference changed, setting ${newTheme}`);
         setThemeState(newTheme);
         setIsDark(e.matches);
         applyTheme(newTheme);

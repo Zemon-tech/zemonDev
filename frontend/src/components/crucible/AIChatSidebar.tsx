@@ -24,6 +24,7 @@ interface AIChatSidebarProps {
     role: 'user' | 'assistant';
     content: string;
   }>;
+  solutionContent?: string;
 }
 
 interface CodeBlockProps {
@@ -36,6 +37,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
   onClose,
   problemId,
   messages: initialMessages = [],
+  solutionContent
 }) => {
   const { getToken } = useAuth();
   const { toast } = useToast();
@@ -187,7 +189,10 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ content: contentToSend })
+        body: JSON.stringify({ 
+          content: contentToSend,
+          solutionDraftContent: solutionContent // Include solution draft content
+        })
       });
 
       const data = await response.json();
@@ -224,7 +229,6 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       // Implement file handling logic
-      console.log('File selected:', file);
     }
   };
 

@@ -105,7 +105,7 @@ export const addChatMessage = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { problemId, chatId } = req.params;
     const userId = req.user._id;
-    const { content } = req.body;
+    const { content, solutionDraftContent } = req.body;
 
     // Validate request body
     if (!content) {
@@ -142,7 +142,8 @@ export const addChatMessage = asyncHandler(
     // Get AI response
     const aiResponse = await generateChatResponse(
       [...chatSession.messages],
-      problem
+      problem,
+      solutionDraftContent
     );
 
     if (aiResponse.error) {

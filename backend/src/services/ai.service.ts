@@ -91,11 +91,13 @@ const formatChatHistory = (messages: IChatMessage[]): string => {
  * Generates a chat response using Gemini AI.
  * @param messages Array of previous chat messages
  * @param problemContext Optional problem context to help guide responses
+ * @param solutionDraftContent Optional solution draft content to provide context
  * @returns A promise resolving to the AI's response
  */
 export const generateChatResponse = async (
   messages: IChatMessage[],
-  problemContext?: ICrucibleProblem
+  problemContext?: ICrucibleProblem,
+  solutionDraftContent?: string
 ): Promise<IChatResponse> => {
   if (!geminiApiKey) {
     return {
@@ -114,6 +116,13 @@ export const generateChatResponse = async (
       prompt += `Current Problem:\nTitle: ${problemContext.title}\n`;
       prompt += `Description: ${problemContext.description}\n`;
       prompt += `Difficulty: ${problemContext.difficulty}\n\n`;
+    }
+
+    // Add solution draft content if available
+    if (solutionDraftContent) {
+      prompt += "## USER'S CURRENT SOLUTION DRAFT ##\n";
+      prompt += "The user is currently working on the following draft. Please consider this when providing assistance:\n";
+      prompt += "```\n" + solutionDraftContent + "\n```\n\n";
     }
 
     // Add chat history

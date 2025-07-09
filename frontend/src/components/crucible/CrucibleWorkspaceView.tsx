@@ -67,6 +67,10 @@ export default function CrucibleWorkspaceView({ problem, initialDraft, initialNo
     };
   }, []);
 
+  const handleCloseChatSidebar = useCallback(() => {
+    setShowChatSidebar(false);
+  }, []);
+
   return (
     <div className="flex h-full bg-base-100">
       {showProblemSidebar && (
@@ -89,13 +93,19 @@ export default function CrucibleWorkspaceView({ problem, initialDraft, initialNo
           ) : (
             <NotesCollector 
               problemId={problem._id} 
-              initialContent={notesContent} 
               onChange={handleNotesChange} 
             />
           )}
         </div>
       </div>
-      {showChatSidebar && <AIChatSidebar problemId={problem._id} />}
+      {showChatSidebar && (
+        <AIChatSidebar 
+          problemId={problem._id} 
+          solutionContent={solutionContent}
+          isOpen={showChatSidebar}
+          onClose={handleCloseChatSidebar}
+        />
+      )}
     </div>
   );
 }

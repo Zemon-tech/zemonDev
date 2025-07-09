@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-react";
 import { ThemeProvider } from './lib/ThemeContext';
 import { WorkspaceProvider } from './lib/WorkspaceContext';
-import { useEffect } from 'react';
 import { ToastProvider } from './components/ui/toast';
 
 // Layouts
@@ -47,13 +46,6 @@ function RootRoute() {
 
 // Wrap AppLayout with WorkspaceProvider
 const WorkspaceLayout = () => {
-  const { isSignedIn, isLoaded } = useAuth();
-  
-  // Log authentication state for debugging
-  useEffect(() => {
-    console.log('WorkspaceLayout auth state:', { isLoaded, isSignedIn });
-  }, [isLoaded, isSignedIn]);
-  
   return (
     <WorkspaceProvider>
       <AppLayout />
@@ -64,12 +56,6 @@ const WorkspaceLayout = () => {
 function App() {
   // Configure Clerk with the publishable key
   const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || 'pk_test_placeholder';
-  
-  // Log the key for debugging (without revealing the full key)
-  useEffect(() => {
-    const keyPrefix = publishableKey.substring(0, 8);
-    console.log(`Using Clerk with key prefix: ${keyPrefix}...`);
-  }, [publishableKey]);
   
   return (
     <ClerkProvider 

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import asyncHandler from '../utils/asyncHandler';
 import AppError from '../utils/AppError';
 import ApiResponse from '../utils/ApiResponse';
-import { analyzeSolution, generateHints } from '../services/ai.service';
+import { analyzeSolution, generateHints, generateChatResponse } from '../services/ai.service';
 import { CrucibleProblem } from '../models';
 
 /**
@@ -69,24 +69,39 @@ export const generateProblemHints = asyncHandler(
 );
 
 /**
- * @desc    Ask a general question to the AI assistant (placeholder)
+ * @desc    Ask a question to the AI assistant with context from the problem and solution draft
  * @route   POST /api/ai/ask
  * @access  Private
  */
 export const askAI = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { prompt, context } = req.body;
+    const { userMessage, problemId, solutionDraftContent, messages } = req.body;
 
-    if (!prompt) {
-      return next(new AppError('Prompt is required', 400));
+    if (!userMessage || !problemId) {
+      return next(new AppError('Both userMessage and problemId are required', 400));
     }
     
-    // This remains a placeholder as per the original plan.
-    // A full implementation would require a dedicated service function.
-    const aiResponse = {
-      success: true,
-      answer: "This is a placeholder response from the general AI assistant."
-    };
+    // Fetch the problem details
+    const problem = await CrucibleProblem.findById(problemId);
+    if (!problem) {
+      return next(new AppError('Problem not found', 404));
+    }
+
+    // Prepare chat messages
+    const chatMessages = messages || [];
+    // Add the current user message
+    chatMessages.push({
+      role: 'user',
+      content: userMessage,
+      timestamp: new Date()
+    });
+
+    // Call AI service with problem context and solution draft content
+    const aiResponse = await generateChatResponse(
+      chatMessages,
+      problem,
+      solutionDraftContent
+    );
 
     res.status(200).json(
       new ApiResponse(
