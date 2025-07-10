@@ -56,6 +56,30 @@ interface SolutionEditorProps {
 
 // CSS styles for the editor
 const editorStyles = `
+  .editor-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .editor-content-wrapper {
+    display: flex;
+    justify-content: center;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 0;
+  }
+
+  .editor-content {
+    width: 100%;
+    max-width: 46rem;
+    margin: 0 auto;
+  }
+
   .editor-toolbar {
     display: flex;
     gap: 0.25rem;
@@ -249,7 +273,113 @@ const editorStyles = `
   .dark .ProseMirror tr:nth-child(even) {
     background-color: var(--bg-alt-dark, #1e1e1e);
   }
+
+  /* Image styles */
+  .ProseMirror img {
+    max-width: 100%;
+    height: auto;
+    margin: 1rem auto;
+    border-radius: 0.5rem;
+    display: block;
+    cursor: pointer;
+    transition: filter 0.2s ease;
+    position: relative;
+  }
+
+  .ProseMirror img.ProseMirror-selectednode {
+    outline: 2px solid var(--primary, #4f46e5);
+    outline-offset: 2px;
+  }
+
+  .ProseMirror img:hover {
+    filter: brightness(0.95);
+  }
+
+  .ProseMirror img.resizing {
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .image-resizer {
+    display: inline-flex;
+    position: relative;
+    max-width: 100%;
+    margin: 1rem auto;
+  }
+
+  .image-resizer.selected::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border: 2px solid var(--primary, #4f46e5);
+    border-radius: 0.5rem;
+    pointer-events: none;
+  }
+
+  .image-resizer .resize-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background-color: var(--primary, #4f46e5);
+    border: 2px solid white;
+    border-radius: 50%;
+    pointer-events: all;
+    z-index: 20;
+  }
+
+  .image-resizer .resize-handle.top-left {
+    top: -6px;
+    left: -6px;
+    cursor: nw-resize;
+  }
+
+  .image-resizer .resize-handle.top-right {
+    top: -6px;
+    right: -6px;
+    cursor: ne-resize;
+  }
+
+  .image-resizer .resize-handle.bottom-left {
+    bottom: -6px;
+    left: -6px;
+    cursor: sw-resize;
+  }
+
+  .image-resizer .resize-handle.bottom-right {
+    bottom: -6px;
+    right: -6px;
+    cursor: se-resize;
+  }
 `;
+
+// Add ResizableImage extension
+const ResizableImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: null,
+        renderHTML: attributes => {
+          if (!attributes.width) {
+            return {};
+          }
+          return {
+            width: attributes.width,
+            style: `width: ${attributes.width}px`,
+          };
+        },
+      },
+    };
+  },
+});
+
+// Add type for image attributes
+interface ImageAttributes {
+  src: string;
+  alt?: string;
+  title?: string;
+  width?: number;
+}
 
 // Simple code editor component
 const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
@@ -310,10 +440,12 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
       Placeholder.configure({
         placeholder: placeholderText,
       }),
-      Image.configure({
+      ResizableImage.configure({
         inline: false,
         allowBase64: true,
-        HTMLAttributes: { class: 'max-w-full h-auto my-2 rounded' },
+        HTMLAttributes: {
+          class: 'max-w-[80%] mx-auto',
+        },
       }),
       Table.configure({ resizable: true }),
       TableRow,
@@ -345,7 +477,7 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
     editorProps: {
       attributes: {
         class:
-          'prose dark:prose-invert prose-base w-full min-h-[300px] focus:outline-none font-sans bg-base-100 rounded-xl shadow-sm border border-base-200 dark:border-base-700 px-4 py-3 transition-all duration-300 text-base-content',
+          'prose dark:prose-invert prose-base w-full min-h-[300px] focus:outline-none font-sans px-4 py-3 transition-all duration-300 text-base-content',
         style: 'font-size: 1rem; line-height: 1.7;',
       },
     },
@@ -400,10 +532,85 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
     }).run();
   }, [editor]);
 
+  // Add image resize handler
+  const handleImageResize = useCallback((event: MouseEvent, imageElement: HTMLImageElement) => {
+    const startWidth = imageElement.width;
+    const startX = event.pageX;
+
+    const onMouseMove = (e: MouseEvent) => {
+      const currentX = e.pageX;
+      const diffX = currentX - startX;
+      const newWidth = Math.max(100, startWidth + diffX);
+      
+      imageElement.classList.add('resizing');
+      imageElement.style.width = `${newWidth}px`;
+    };
+
+    const onMouseUp = () => {
+      imageElement.classList.remove('resizing');
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+
+      const finalWidth = imageElement.width;
+      if (editor) {
+        const attrs: ImageAttributes = {
+          src: imageElement.src,
+          width: finalWidth,
+        };
+        editor.chain().focus().setImage(attrs).run();
+      }
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, [editor]);
+
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleImageClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'IMG' && target.closest('.ProseMirror')) {
+        const imageElement = target as HTMLImageElement;
+        const resizer = document.createElement('div');
+        resizer.className = 'image-resizer selected';
+        
+        const handles = [
+          { class: 'resize-handle top-left' },
+          { class: 'resize-handle top-right' },
+          { class: 'resize-handle bottom-left' },
+          { class: 'resize-handle bottom-right' },
+        ];
+
+        handles.forEach(handle => {
+          const div = document.createElement('div');
+          div.className = handle.class;
+          div.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            handleImageResize(e, imageElement);
+          });
+          resizer.appendChild(div);
+        });
+
+        // Replace the image with the resizer wrapper
+        const parent = imageElement.parentElement;
+        if (parent && !parent.classList.contains('image-resizer')) {
+          resizer.appendChild(imageElement.cloneNode(true));
+          parent.replaceChild(resizer, imageElement);
+        }
+      }
+    };
+
+    editor.view.dom.addEventListener('click', handleImageClick);
+    return () => {
+      editor.view.dom.removeEventListener('click', handleImageClick);
+    };
+  }, [editor, handleImageResize]);
+
   if (!editor) return <div>Loading editor…</div>;
 
   return (
-    <div className="flex flex-col h-full flex-1 min-h-0 overflow-hidden">
+    <div className="editor-container">
       {bubbleMenuVisible && (
         <BubbleMenu
           editor={editor}
@@ -666,8 +873,10 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
         </button>
       </div>
       
-      <div className="flex-1 min-h-0 overflow-auto">
-        <EditorContent editor={editor} className="h-full" />
+      <div className="editor-content-wrapper">
+        <div className="editor-content">
+          <EditorContent editor={editor} />
+        </div>
       </div>
     </div>
   );
