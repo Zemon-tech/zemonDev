@@ -118,11 +118,11 @@ export default function AppLayout() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Navigation */}
         <header className="h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between px-3 shrink-0">
-          {/* Left side - Mobile menu toggle */}
+          {/* Left side - Menu toggle */}
           <div className="flex items-center gap-4">
             <button 
               onClick={toggleSidebar}
-              className="btn btn-ghost btn-sm btn-circle md:hidden"
+              className="btn btn-ghost btn-sm btn-circle"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
@@ -258,7 +258,7 @@ export default function AppLayout() {
         </header>
         
         {/* Page Content */}
-        <main className="flex-1 overflow-auto bg-base-100">
+        <main className="flex-1 overflow-auto bg-base-100 p-0">
           <Outlet />
         </main>
       </div>

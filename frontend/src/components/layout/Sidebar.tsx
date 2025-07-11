@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Settings, User, Hammer, Beaker, Swords, X, ChevronLeft, ChevronRight, Code } from 'lucide-react';
+import { Home, Settings, User, Hammer, Beaker, Swords, X, Code } from 'lucide-react';
 import React from 'react';
 
 interface SidebarProps {
@@ -28,26 +28,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, current
       bg-base-200 border-r border-base-300 flex flex-col ${isOpen ? 'w-64' : 'w-20'}`}
     >
       {/* Sidebar Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-base-300">
-        <Link to={`/${currentUsername}/dashboard`} className={`font-bold text-primary font-heading transition-all duration-200 ${isOpen ? 'text-xl' : 'text-lg'}`}>
-          {isOpen ? 'ZEMON' : 'Z'}
+      <div className="h-14 flex items-center justify-center border-b border-base-300">
+        <Link to={`/${currentUsername}/dashboard`} className={`flex items-center justify-center font-bold text-primary font-heading transition-all duration-200 ${isOpen ? 'text-xl' : 'w-10 h-10'}`}>
+          {isOpen ? (
+            'ZEMON'
+          ) : (
+            <img src="/Zemon.svg" alt="Zemon" className="w-full h-full" />
+          )}
         </Link>
-        {/* Collapse/Expand button for desktop */}
-        <button
-          className="hidden md:block text-base-content hover:text-primary transition-transform"
-          onClick={toggleSidebar}
-          aria-label={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-        >
-          {isOpen ? <ChevronLeft size={24} /> : <ChevronRight size={24} />}
-        </button>
-        {/* Close button for mobile */}
-        <button
-          className="md:hidden text-base-content hover:text-primary"
-          onClick={toggleSidebar}
-          aria-label="Close sidebar"
-        >
-          <X size={24} />
-        </button>
+        {/* Close button for mobile only */}
+        {isOpen && (
+          <button
+            className="md:hidden ml-auto mr-4 text-base-content hover:text-primary"
+            onClick={toggleSidebar}
+            aria-label="Close sidebar"
+          >
+            <X size={24} />
+          </button>
+        )}
       </div>
       
       {/* Problem indicator (when sidebar is collapsed) */}
