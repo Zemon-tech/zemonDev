@@ -12,7 +12,13 @@ import {
   CheckSquare, 
   MessageSquare, 
   Bot, 
-  ExternalLink 
+  ExternalLink,
+  Star,
+  Target,
+  Brain,
+  Zap,
+  AlertCircle,
+  Sparkles
 } from 'lucide-react';
 import type { ICrucibleProblem } from '@/lib/crucibleApi';
 
@@ -30,19 +36,11 @@ interface Props {
 }
 
 // Helper function to normalize requirements
-function normalizeRequirements(reqs: Props['requirements']): string[] {
-  if (Array.isArray(reqs)) {
-    return reqs;
+function normalizeRequirements(requirements: ICrucibleProblem['requirements'] | string[]): string[] {
+  if (Array.isArray(requirements)) {
+    return requirements;
   }
-  
-  if (reqs && typeof reqs === 'object') {
-    return [
-      ...(reqs.functional || []),
-      ...(reqs.nonFunctional || [])
-    ];
-  }
-  
-  return [];
+  return Object.entries(requirements).map(([key, value]) => `${key}: ${value}`);
 }
 
 // Mock data for new sections (in a real app, this would come from props or API)
@@ -104,8 +102,8 @@ const mockData = {
 // Helper component for section headers with icons
 function SectionHeader({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-1.5 text-sm font-medium">
-      <Icon className="w-4 h-4 text-primary/80" />
+    <div className="flex items-center gap-2 text-sm font-semibold text-base-content/90">
+      <Icon className="w-4 h-4 text-primary" />
       <span>{children}</span>
     </div>
   );
@@ -113,15 +111,19 @@ function SectionHeader({ icon: Icon, children }: { icon: React.ElementType; chil
 
 // Badge component for difficulty
 function DifficultyBadge({ difficulty }: { difficulty: string }) {
-  const colorMap: Record<string, string> = {
-    easy: 'badge-success',
-    medium: 'badge-info',
-    hard: 'badge-warning',
-    expert: 'badge-error'
+  const colorMap: Record<string, { bg: string; text: string; icon: React.ElementType }> = {
+    easy: { bg: 'bg-success/10', text: 'text-success', icon: Star },
+    medium: { bg: 'bg-info/10', text: 'text-info', icon: Target },
+    hard: { bg: 'bg-warning/10', text: 'text-warning', icon: Brain },
+    expert: { bg: 'bg-error/10', text: 'text-error', icon: Zap }
   };
 
+  const style = colorMap[difficulty] || { bg: 'bg-primary/10', text: 'text-primary', icon: Star };
+  const Icon = style.icon;
+
   return (
-    <span className={`badge ${colorMap[difficulty] || 'badge-primary'} capitalize text-xs`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md ${style.bg} ${style.text} text-xs font-medium capitalize`}>
+      <Icon className="w-3 h-3" />
       {difficulty}
     </span>
   );
@@ -173,9 +175,6 @@ export default function ProblemDetailsSidebar({
 
   // Function to handle AI prompt clicks
   const handlePromptClick = (prompt: string) => {
-    // In a real app, this would dispatch an event or call a function to populate the AI chat
-    console.log('AI prompt clicked:', prompt);
-    // Example of dispatching a custom event that could be caught by the AI chat component
     window.dispatchEvent(new CustomEvent('ai-prompt-selected', { detail: { prompt } }));
   };
 
@@ -190,223 +189,175 @@ export default function ProblemDetailsSidebar({
       }}
     >
       <ScrollArea className="flex-1 h-full overflow-y-auto">
-        <div className="p-2 space-y-2 shadow-none border-none bg-transparent">
-          {/* Title and description */}
-          <h2 className="text-base font-bold text-base-content">{title}</h2>
+        <div className="p-4 space-y-4">
+          {/* Header Section */}
+          <div className="space-y-3 pb-4 border-b border-base-200 dark:border-base-700">
+            <h2 className="text-lg font-bold text-base-content leading-tight">{title}</h2>
           
-          {/* Difficulty & Estimated Time */}
-          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="flex items-center justify-between gap-2">
             <DifficultyBadge difficulty={mockData.difficulty} />
-            <div className="flex items-center text-xs text-base-content/70 gap-1">
-              <Clock className="w-3 h-3" />
+              <div className="flex items-center text-xs text-base-content/70 gap-1.5 bg-base-200/50 dark:bg-base-700/50 px-2 py-1 rounded-md">
+                <Clock className="w-3.5 h-3.5" />
               <span>Est. {estimatedTime || mockData.estimatedTime} min</span>
             </div>
           </div>
           
-          <div className="prose-sm text-base-content/80 dark:text-base-content/70 text-xs mb-2">{description}</div>
+            <div className="prose-sm text-base-content/80 dark:text-base-content/70 text-sm">{description}</div>
           
-          {/* Tags */}
-          <div className="flex flex-wrap gap-1 mb-2">
+            <div className="flex flex-wrap gap-1.5">
             {tags.map(tag => (
-              <span key={tag} className="badge badge-sm capitalize badge-outline text-[10px] py-0 h-5 text-base-content/80 dark:text-base-content/70">{tag}</span>
+                <span 
+                  key={tag} 
+                  className="px-2 py-0.5 bg-primary/5 text-primary/90 dark:text-primary/80 rounded-md text-xs font-medium capitalize hover:bg-primary/10 transition-colors cursor-default"
+                >
+                  {tag}
+                </span>
             ))}
+            </div>
           </div>
           
           {/* Main content in accordion */}
-          <Accordion type="single" collapsible className="space-y-1" defaultValue="requirements">
+          <Accordion type="single" collapsible className="space-y-2" defaultValue="requirements">
             {/* Requirements */}
-            <AccordionItem value="requirements" className="border-b border-base-200/50 dark:border-base-700/50">
-              <AccordionTrigger className="py-1 px-2 text-xs font-medium w-full flex justify-between items-center hover:bg-base-200/20 dark:hover:bg-base-700/30 rounded text-base-content">
+            <AccordionItem value="requirements" className="border-none">
+              <AccordionTrigger className="py-2 px-3 text-sm w-full flex justify-between items-center hover:bg-base-200/50 dark:hover:bg-base-700/30 rounded-lg transition-colors">
                 <SectionHeader icon={CheckCircle2}>Requirements</SectionHeader>
               </AccordionTrigger>
-              <AccordionContent className="pl-2 py-1">
-                <ul className="list-disc list-inside text-xs space-y-0.5 text-base-content/90 dark:text-base-content/80">
-                  {normalizedRequirements.map((req, i) => <li key={i}>{req}</li>)}
-                </ul>
-              </AccordionContent>
-            </AccordionItem>
-            
-            {/* Constraints */}
-            <AccordionItem value="constraints" className="border-b border-base-200/50 dark:border-base-700/50">
-              <AccordionTrigger className="py-1 px-2 text-xs font-medium w-full flex justify-between items-center hover:bg-base-200/20 dark:hover:bg-base-700/30 rounded text-base-content">
-                <SectionHeader icon={Shield}>Constraints</SectionHeader>
-              </AccordionTrigger>
-              <AccordionContent className="pl-2 py-1">
-                <ul className="list-disc list-inside text-xs space-y-0.5 text-base-content/90 dark:text-base-content/80">
-                  {constraints.map((c, i) => <li key={i}>{c}</li>)}
+              <AccordionContent className="px-3 py-2">
+                <ul className="space-y-2">
+                  {normalizedRequirements.map((req, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-base-content/90 dark:text-base-content/80">
+                      <div className="w-5 h-5 rounded-full border-2 border-primary/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs text-primary/70">{i + 1}</span>
+                      </div>
+                      <span>{req}</span>
+                    </li>
+                  ))}
                 </ul>
               </AccordionContent>
             </AccordionItem>
             
             {/* Learning Objectives */}
-            <AccordionItem value="learning" className="border-b border-base-200/50 dark:border-base-700/50">
-              <AccordionTrigger className="py-1 px-2 text-xs font-medium w-full flex justify-between items-center hover:bg-base-200/20 dark:hover:bg-base-700/30 rounded text-base-content">
-                <SectionHeader icon={BookOpen}>You'll Learn...</SectionHeader>
+            <AccordionItem value="learning" className="border-none">
+              <AccordionTrigger className="py-2 px-3 text-sm w-full flex justify-between items-center hover:bg-base-200/50 dark:hover:bg-base-700/30 rounded-lg transition-colors">
+                <SectionHeader icon={Sparkles}>Learning Goals</SectionHeader>
               </AccordionTrigger>
-              <AccordionContent className="pl-2 py-1">
-                <ul className="list-none text-xs space-y-1 text-base-content/90 dark:text-base-content/80">
+              <AccordionContent className="px-3 py-2">
+                <ul className="space-y-2">
                   {learningObjectives?.map((obj, i) => (
-                    <li key={i} className="flex items-start gap-1">
-                      <span className="text-green-500 dark:text-green-400 mt-0.5">✔️</span>
-                      <span>{obj}</span>
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <div className="w-5 h-5 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+                      </div>
+                      <span className="text-base-content/90 dark:text-base-content/80">{obj}</span>
                     </li>
                   ))}
                 </ul>
               </AccordionContent>
             </AccordionItem>
             
-            {/* Prerequisites & Glossary */}
-            <AccordionItem value="prerequisites" className="border-b border-base-200/50 dark:border-base-700/50">
-              <AccordionTrigger className="py-1 px-2 text-xs font-medium w-full flex justify-between items-center hover:bg-base-200/20 dark:hover:bg-base-700/30 rounded text-base-content">
-                <SectionHeader icon={BookMarked}>Prerequisites</SectionHeader>
+            {/* Constraints */}
+            <AccordionItem value="constraints" className="border-none">
+              <AccordionTrigger className="py-2 px-3 text-sm w-full flex justify-between items-center hover:bg-base-200/50 dark:hover:bg-base-700/30 rounded-lg transition-colors">
+                <SectionHeader icon={AlertCircle}>Constraints</SectionHeader>
               </AccordionTrigger>
-              <AccordionContent className="pl-2 py-1">
-                <ul className="list-none text-xs space-y-1.5 text-base-content/90 dark:text-base-content/80">
-                  {mockData.prerequisites.map((prereq, i) => (
-                    <li key={i} className="flex items-center gap-1">
+              <AccordionContent className="px-3 py-2">
+                <ul className="space-y-2">
+                  {constraints.map((c, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-base-content/90 dark:text-base-content/80">
+                      <Shield className="w-4 h-4 text-warning mt-0.5" />
+                      <span>{c}</span>
+                    </li>
+                  ))}
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+            
+            {/* Prerequisites & Resources */}
+            <AccordionItem value="resources" className="border-none">
+              <AccordionTrigger className="py-2 px-3 text-sm w-full flex justify-between items-center hover:bg-base-200/50 dark:hover:bg-base-700/30 rounded-lg transition-colors">
+                <SectionHeader icon={BookMarked}>Resources</SectionHeader>
+              </AccordionTrigger>
+              <AccordionContent className="px-3 py-2">
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <h4 className="text-xs font-medium text-base-content/70">Prerequisites</h4>
+                    <ul className="space-y-1">
+                      {mockData.prerequisites.map((prereq, i) => (
+                        <li key={i}>
+                          <a 
+                            href={prereq.link} 
+                            className="text-sm text-primary hover:underline flex items-center gap-1.5 py-1 px-2 rounded hover:bg-primary/5 transition-colors"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              console.log('Navigate to:', prereq.link);
+                            }}
+                          >
+                            <BookOpen className="w-3.5 h-3.5" />
+                            {prereq.name}
+                          </a>
+                        </li>
+                  ))}
+                </ul>
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <h4 className="text-xs font-medium text-base-content/70">Related Articles</h4>
+                    <ul className="space-y-1">
+                  {mockData.relatedResources.map((resource, i) => (
+                        <li key={i}>
                       <a 
-                        href={prereq.link} 
-                        className="text-primary hover:underline flex items-center gap-1"
+                        href={resource.link} 
+                            className="text-sm text-primary hover:underline flex items-center gap-1.5 py-1 px-2 rounded hover:bg-primary/5 transition-colors"
                         onClick={(e) => {
                           e.preventDefault();
-                          // In a real app, navigate to the forge article
-                          console.log('Navigate to:', prereq.link);
+                          console.log('Navigate to:', resource.link);
                         }}
                       >
-                        {prereq.name}
-                        <ExternalLink className="w-3 h-3" />
+                            <ExternalLink className="w-3.5 h-3.5" />
+                        {resource.title}
                       </a>
                     </li>
                   ))}
                 </ul>
-              </AccordionContent>
-            </AccordionItem>
-            
-            {/* User Persona & Journey */}
-            <AccordionItem value="persona" className="border-b border-base-200/50 dark:border-base-700/50">
-              <AccordionTrigger className="py-1 px-2 text-xs font-medium w-full flex justify-between items-center hover:bg-base-200/20 dark:hover:bg-base-700/30 rounded text-base-content">
-                <SectionHeader icon={User}>User Persona</SectionHeader>
-              </AccordionTrigger>
-              <AccordionContent className="pl-2 py-1">
-                <div className="text-xs space-y-1 text-base-content/90 dark:text-base-content/80">
-                  <div className="font-medium">👤 {mockData.userPersona.name}</div>
-                  <div className="text-xs">{mockData.userPersona.journey}</div>
+                    </div>
                 </div>
               </AccordionContent>
             </AccordionItem>
             
-            {/* Data & Scale Assumptions */}
-            <AccordionItem value="data" className="border-b border-base-200/50 dark:border-base-700/50">
-              <AccordionTrigger className="py-1 px-2 text-xs font-medium w-full flex justify-between items-center hover:bg-base-200/20 dark:hover:bg-base-700/30 rounded text-base-content">
-                <SectionHeader icon={Database}>Data & Scale</SectionHeader>
+            {/* Community Tips */}
+            <AccordionItem value="community" className="border-none">
+              <AccordionTrigger className="py-2 px-3 text-sm w-full flex justify-between items-center hover:bg-base-200/50 dark:hover:bg-base-700/30 rounded-lg transition-colors">
+                <SectionHeader icon={MessageSquare}>Community Tips</SectionHeader>
               </AccordionTrigger>
-              <AccordionContent className="pl-2 py-1">
-                <ul className="list-disc list-inside text-xs space-y-0.5 text-base-content/90 dark:text-base-content/80">
-                  {mockData.dataAssumptions.map((assumption, i) => (
-                    <li key={i}>{assumption}</li>
-                  ))}
-                </ul>
-              </AccordionContent>
-            </AccordionItem>
-            
-            {/* Edge-Cases & Gotchas */}
-            <AccordionItem value="edge-cases" className="border-b border-base-200/50 dark:border-base-700/50">
-              <AccordionTrigger className="py-1 px-2 text-xs font-medium w-full flex justify-between items-center hover:bg-base-200/20 dark:hover:bg-base-700/30 rounded text-base-content">
-                <SectionHeader icon={Shield}>Watch Outs</SectionHeader>
-              </AccordionTrigger>
-              <AccordionContent className="pl-2 py-1">
-                <ul className="list-disc list-inside text-xs space-y-0.5 text-base-content/90 dark:text-base-content/80">
-                  {mockData.edgeCases.map((edge, i) => (
-                    <li key={i}>{edge}</li>
-                  ))}
-                </ul>
-              </AccordionContent>
-            </AccordionItem>
-            
-            {/* Related Resources */}
-            <AccordionItem value="resources" className="border-b border-base-200/50 dark:border-base-700/50">
-              <AccordionTrigger className="py-1 px-2 text-xs font-medium w-full flex justify-between items-center hover:bg-base-200/20 dark:hover:bg-base-700/30 rounded text-base-content">
-                <SectionHeader icon={BookMarked}>From the Forge</SectionHeader>
-              </AccordionTrigger>
-              <AccordionContent className="pl-2 py-1">
-                <ul className="list-none text-xs space-y-1.5 text-base-content/90 dark:text-base-content/80">
-                  {mockData.relatedResources.map((resource, i) => (
-                    <li key={i} className="flex items-center gap-1">
-                      <a 
-                        href={resource.link} 
-                        className="text-primary hover:underline flex items-center gap-1"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          // In a real app, navigate to the forge article
-                          console.log('Navigate to:', resource.link);
-                        }}
-                      >
-                        {resource.title}
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </AccordionContent>
-            </AccordionItem>
-            
-            {/* Subtask Checklist */}
-            <AccordionItem value="subtasks" className="border-b border-base-200/50 dark:border-base-700/50">
-              <AccordionTrigger className="py-1 px-2 text-xs font-medium w-full flex justify-between items-center hover:bg-base-200/20 dark:hover:bg-base-700/30 rounded text-base-content">
-                <SectionHeader icon={CheckSquare}>Milestones</SectionHeader>
-              </AccordionTrigger>
-              <AccordionContent className="pl-2 py-1">
-                <div className="text-xs space-y-1 text-base-content/90 dark:text-base-content/80">
-                  {mockData.subtasks.map((task, i) => (
-                    <div key={i} className="flex items-center gap-1.5">
-                      <input type="checkbox" className="checkbox checkbox-xs checkbox-primary" />
-                      <span>{i + 1}. {task}</span>
+              <AccordionContent className="px-3 py-2">
+                <div className="space-y-3">
+                  {mockData.communityTips.map((tip, i) => (
+                    <div 
+                      key={i} 
+                      className="bg-base-200/30 dark:bg-base-700/30 rounded-lg p-3 text-sm italic text-base-content/80 dark:text-base-content/70"
+                    >
+                      {tip}
                     </div>
                   ))}
                 </div>
               </AccordionContent>
             </AccordionItem>
             
-            {/* Community Tips */}
-            <AccordionItem value="community" className="border-b border-base-200/50 dark:border-base-700/50">
-              <AccordionTrigger className="py-1 px-2 text-xs font-medium w-full flex justify-between items-center hover:bg-base-200/20 dark:hover:bg-base-700/30 rounded text-base-content">
-                <SectionHeader icon={MessageSquare}>From Peers</SectionHeader>
+            {/* AI Prompts */}
+            <AccordionItem value="prompts" className="border-none">
+              <AccordionTrigger className="py-2 px-3 text-sm w-full flex justify-between items-center hover:bg-base-200/50 dark:hover:bg-base-700/30 rounded-lg transition-colors">
+                <SectionHeader icon={Bot}>Ask AI Assistant</SectionHeader>
               </AccordionTrigger>
-              <AccordionContent className="pl-2 py-1">
-                <div className="text-xs space-y-2 text-base-content/90 dark:text-base-content/80">
-                  {mockData.communityTips.map((tip, i) => (
-                    <div key={i} className="italic border-l-2 border-primary/30 pl-2 py-0.5">{tip}</div>
-                  ))}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-            
-            {/* AI Hints */}
-            <AccordionItem value="hints" className="border-b border-base-200/50 dark:border-base-700/50">
-              <AccordionTrigger className="py-1 px-2 text-xs font-medium w-full flex justify-between items-center hover:bg-base-200/20 dark:hover:bg-base-700/30 rounded text-base-content">
-                <SectionHeader icon={Bot}>AI Hints</SectionHeader>
-              </AccordionTrigger>
-              <AccordionContent className="pl-2 py-1">
-                <ul className="list-disc list-inside text-xs space-y-0.5 text-base-content/90 dark:text-base-content/80">
-                  {hints.map((h, i) => <li key={i}>{h}</li>)}
-                </ul>
-              </AccordionContent>
-            </AccordionItem>
-            
-            {/* AI Prompt Starters */}
-            <AccordionItem value="prompts" className="border-b border-base-200/50 dark:border-base-700/50">
-              <AccordionTrigger className="py-1 px-2 text-xs font-medium w-full flex justify-between items-center hover:bg-base-200/20 dark:hover:bg-base-700/30 rounded text-base-content">
-                <SectionHeader icon={Bot}>Ask the AI</SectionHeader>
-              </AccordionTrigger>
-              <AccordionContent className="pl-2 py-1">
-                <div className="text-xs space-y-1 text-base-content/90 dark:text-base-content/80">
+              <AccordionContent className="px-3 py-2">
+                <div className="space-y-2">
                   {mockData.aiPrompts.map((prompt, i) => (
                     <button 
                       key={i}
-                      className="w-full text-left py-1 px-2 hover:bg-primary/10 rounded-sm transition-colors flex items-center gap-1"
+                      className="w-full text-left py-2 px-3 text-sm bg-primary/5 hover:bg-primary/10 text-primary/90 rounded-lg transition-colors flex items-center gap-2"
                       onClick={() => handlePromptClick(prompt)}
                     >
-                      <Bot className="w-3 h-3 text-primary" />
+                      <Bot className="w-4 h-4 flex-shrink-0" />
                       <span>{prompt}</span>
                     </button>
                   ))}
@@ -416,6 +367,7 @@ export default function ProblemDetailsSidebar({
           </Accordion>
         </div>
       </ScrollArea>
+      
       {/* Resize handle */}
       <div
         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors"

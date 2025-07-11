@@ -12,7 +12,7 @@
   "dependencies": {
     "@clerk/clerk-react": "^5.32.2",
     "@floating-ui/react": "^0.27.13",
-    "@gsap/react": "^2.1.0",
+    "@gsap/react": "^2.1.2",
     "@headlessui/react": "^2.2.4",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-dialog": "^1.1.14",
@@ -60,6 +60,7 @@
     "@tiptap/react": "^2.25.0",
     "@tiptap/starter-kit": "^2.25.0",
     "@tiptap/suggestion": "^2.25.0",
+    "@types/gsap": "^1.20.2",
     "@types/react-syntax-highlighter": "^15.5.13",
     "axios": "^1.7.2",
     "class-variance-authority": "^0.7.1",
@@ -67,6 +68,7 @@
     "framer-motion": "^12.22.0",
     "gsap": "^3.13.0",
     "highlight.js": "^11.11.1",
+    "lottie-react": "^2.4.1",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.525.0",
     "mermaid": "^11.8.0",
@@ -84,7 +86,8 @@
     "tailwind-scrollbar-hide": "^4.0.0",
     "tailwindcss": "^4.1.11",
     "tailwindcss-animate": "^1.0.7",
-    "tippy.js": "^6.3.7"
+    "tippy.js": "^6.3.7",
+    "tiptap-utils": "^1.13.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
