@@ -4,13 +4,15 @@ import { UserButton, useUser } from '@clerk/clerk-react';
 import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
 import Sidebar from './Sidebar';
 import { useWorkspace } from '@/lib/WorkspaceContext';
+import { Button } from '@/components/ui/button';
 
 // Icons
-import { Search, Bell, X, MessageCircle, BookOpen, FileText, Layers, StickyNote, ArrowLeft } from 'lucide-react';
+import { Search, Bell, X, MessageCircle, BookOpen, FileText, Layers, StickyNote, ArrowLeft, Send, Loader2 } from 'lucide-react';
 
 export default function AppLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { username: urlUsername } = useParams();
   const location = useLocation();
   const { isLoaded, user } = useUser();
@@ -21,9 +23,32 @@ export default function AppLayout() {
   
   // Show workspace nav buttons only on /:username/crucible/problem/:id
   const isCrucibleProblemPage = /^\/[\w-]+\/crucible\/problem\/.+/.test(location.pathname);
+  const isResultPage = location.pathname.includes('/result');
+  
+  // Only show submit button on problem page, not on result page
+  const showSubmitButton = isCrucibleProblemPage && !isResultPage;
   
   // Only use workspace context values when on a problem page
   const activeContent = isCrucibleProblemPage ? workspaceContext.activeContent : 'solution';
+
+  // Handle solution submission
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      // TODO: Implement actual submission logic here
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulated API call
+      
+      // Extract problem ID from URL
+      const problemId = location.pathname.split('/').pop();
+      // Navigate to result page
+      navigate(`${location.pathname}/result`);
+    } catch (error) {
+      console.error('Failed to submit solution:', error);
+      // TODO: Show error toast
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   
   // Auto-close sidebar when entering a problem page
   useEffect(() => {
@@ -94,29 +119,41 @@ export default function AppLayout() {
         {/* Top Navigation */}
         <header className="h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between px-3 shrink-0">
           {/* Left side - Mobile menu toggle */}
-          <div className="md:hidden">
+          <div className="flex items-center gap-4">
             <button 
               onClick={toggleSidebar}
-              className="btn btn-ghost btn-sm btn-circle"
+              className="btn btn-ghost btn-sm btn-circle md:hidden"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
+
+            {/* Submit Button - Only show on problem page */}
+            {showSubmitButton && (
+              <Button
+                size="sm"
+                className="gap-2 bg-gradient-to-tr from-primary to-accent hover:opacity-90"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Evaluating...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Submit Solution
+                  </>
+                )}
+              </Button>
+            )}
           </div>
-          
-          {/* Back to Forge button (only on Forge detail page) */}
-          {isForgeDetailPage && (
-            <button
-              className="btn btn-ghost btn-sm text-primary font-medium flex items-center gap-1.5"
-              onClick={() => handleNavigation('/forge')}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Forge
-            </button>
-          )}
-          
-          {/* Workspace nav buttons (only on problem page) */}
+
+          {/* Center area - Workspace navigation */}
           {isCrucibleProblemPage && (
-            <div className="flex items-center">
+            <div className="hidden md:flex items-center gap-2">
+              {/* Your existing workspace navigation buttons */}
               <button 
                 className="btn btn-ghost btn-sm text-primary font-medium flex items-center gap-1.5 mr-2" 
                 onClick={() => handleNavigation('/crucible')} 
@@ -170,6 +207,17 @@ export default function AppLayout() {
                 </button>
               </div>
             </div>
+          )}
+
+          {/* Back to Forge button (only on Forge detail page) */}
+          {isForgeDetailPage && (
+            <button
+              className="btn btn-ghost btn-sm text-primary font-medium flex items-center gap-1.5"
+              onClick={() => handleNavigation('/forge')}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Forge
+            </button>
           )}
           
           {/* Search icon and input inline in navbar */}
