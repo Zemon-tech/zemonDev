@@ -46,6 +46,7 @@ export interface ICrucibleProblem extends Document {
   subtasks?: string[];
   communityTips?: ICommunityTip[];
   aiPrompts?: string[];
+  technicalParameters?: string[];
   status: 'draft' | 'published' | 'archived';
   createdAt: Date;
   updatedAt: Date;
@@ -185,6 +186,11 @@ const CrucibleProblemSchema: Schema = new Schema(
     aiPrompts: {
       type: [String],
       default: [],
+    },
+    technicalParameters: {
+      type: [String],
+      required: false,
+      default: []
     },
     status: {
       type: String,

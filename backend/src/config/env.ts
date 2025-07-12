@@ -10,6 +10,10 @@ interface EnvConfig {
   MONGO_URI: string;
   UPSTASH_REDIS_REST_URL: string;
   UPSTASH_REDIS_REST_TOKEN: string;
+  UPSTASH_VECTOR_REST_URL: string;
+  UPSTASH_VECTOR_REST_TOKEN: string;
+  GEMINI_API_KEY: string;
+  GEMINI_PRO_API_KEY: string;
   CLERK_SECRET_KEY: string;
   CORS_ORIGIN: string;
 }
@@ -21,6 +25,10 @@ const env: EnvConfig = {
   MONGO_URI: process.env.MONGO_URI || 'mongodb://localhost:27017/zemon',
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL || '',
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN || '',
+  UPSTASH_VECTOR_REST_URL: process.env.UPSTASH_VECTOR_REST_URL || '',
+  UPSTASH_VECTOR_REST_TOKEN: process.env.UPSTASH_VECTOR_REST_TOKEN || '',
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
+  GEMINI_PRO_API_KEY: process.env.GEMINI_PRO_API_KEY || '',
   CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || '',
   CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',
 };

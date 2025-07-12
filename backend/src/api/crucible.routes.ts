@@ -3,7 +3,9 @@ import {
   getAllChallenges, 
   getChallengeById, 
   submitSolution, 
-  getSolutions 
+  getSolutions,
+  analyzeUserSolution,
+  getAnalysisResult
 } from '../controllers/crucible.controller';
 import { 
   getDraft, 
@@ -62,6 +64,10 @@ router.get('/:challengeId/solutions', standardLimiter, cacheMiddleware(300), get
 
 // Protected routes
 router.post('/:challengeId/solutions', protect, submitSolution);
+
+// Solution analysis routes
+router.post('/:problemId/analyze', protect, analyzeUserSolution);
+router.get('/results/:analysisId', protect, getAnalysisResult);
 
 // Solution draft routes
 router.get('/:problemId/draft', protect, getDraft);

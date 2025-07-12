@@ -2,10 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import asyncHandler from '../utils/asyncHandler';
 import AppError from '../utils/AppError';
 import ApiResponse from '../utils/ApiResponse';
-import { CrucibleProblem, CrucibleSolution, User, SolutionDraft, CrucibleNote, AIChatHistory, CrucibleDiagram, ResearchItem } from '../models/index';
+import { CrucibleProblem, CrucibleSolution, User, SolutionDraft, CrucibleNote, AIChatHistory, CrucibleDiagram, ResearchItem, SolutionAnalysis } from '../models/index';
 import mongoose from 'mongoose';
 import logger from '../utils/logger';
 import { redisClient } from '../config/redis';
+import { generateComprehensiveAnalysis } from '../services/solutionAnalysis.service';
+import { retrieveRelevantDocuments } from '../services/rag.service';
 
 // Cache TTL in seconds
 const PROBLEM_CACHE_TTL = 60 * 60; // 1 hour
@@ -576,3 +578,117 @@ export const updateDraft = asyncHandler(async (req: Request, res: Response) => {
   
   res.status(200).json(new ApiResponse(200, 'Draft updated successfully', draft));
 }); 
+
+/**
+ * @desc    Analyze a user's solution for a problem
+ * @route   POST /api/crucible/:problemId/analyze
+ * @access  Private
+ */
+export const analyzeUserSolution = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { problemId } = req.params;
+    const userId = req.user._id;
+
+    // Validate the problem exists
+    const problem = await CrucibleProblem.findById(problemId);
+    if (!problem) {
+      return next(new AppError('Problem not found', 404));
+    }
+
+    // Get the user's solution draft
+    const solutionDraft = await SolutionDraft.findOne({
+      userId,
+      problemId,
+      status: 'active'
+    });
+
+    if (!solutionDraft || !solutionDraft.currentContent) {
+      return next(new AppError('No solution draft found for this problem', 404));
+    }
+
+    // Extract the user's solution content
+    const userSolution = solutionDraft.currentContent;
+
+    // Get technical parameters for this problem (or use empty array if not defined)
+    const technicalParameters = problem.technicalParameters || [];
+
+    // Construct a query for the RAG service
+    const queryText = `${problem.title} ${problem.description} ${userSolution.substring(0, 500)}`;
+    
+    try {
+      // Retrieve relevant documents from the RAG system
+      const ragDocuments = await retrieveRelevantDocuments(queryText);
+
+      // Generate the comprehensive analysis
+      const analysisResult = await generateComprehensiveAnalysis(
+        problem,
+        userSolution,
+        ragDocuments,
+        technicalParameters
+      );
+
+      // Create a new SolutionAnalysis document
+      const solutionAnalysis = await SolutionAnalysis.create({
+        userId,
+        problemId,
+        overallScore: analysisResult.overallScore,
+        aiConfidence: analysisResult.aiConfidence,
+        summary: analysisResult.summary,
+        evaluatedParameters: analysisResult.evaluatedParameters,
+        feedback: {
+          strengths: analysisResult.feedback.strengths,
+          areasForImprovement: analysisResult.feedback.areasForImprovement,
+          suggestions: analysisResult.feedback.suggestions
+        }
+      });
+
+      res.status(201).json(
+        new ApiResponse(
+          201,
+          'Solution analysis completed successfully',
+          { analysisId: solutionAnalysis._id }
+        )
+      );
+    } catch (error) {
+      logger.error('Error in analyzeUserSolution:', error);
+      return next(new AppError('Failed to analyze solution', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Get a specific analysis result
+ * @route   GET /api/crucible/results/:analysisId
+ * @access  Private
+ */
+export const getAnalysisResult = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { analysisId } = req.params;
+    const userId = req.user._id;
+
+    // Validate ID format
+    if (!mongoose.Types.ObjectId.isValid(analysisId)) {
+      return next(new AppError('Invalid analysis ID format', 400));
+    }
+
+    // Find the analysis document
+    const analysis = await SolutionAnalysis.findById(analysisId);
+
+    if (!analysis) {
+      return next(new AppError('Analysis result not found', 404));
+    }
+
+    // Check if the analysis belongs to the requesting user
+    if (analysis.userId.toString() !== userId.toString()) {
+      return next(new AppError('You are not authorized to view this analysis', 403));
+    }
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        'Analysis result retrieved successfully',
+        analysis
+      )
+    );
+  }
+); 

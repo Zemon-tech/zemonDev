@@ -9,6 +9,7 @@ import WorkspaceState, { IWorkspaceState } from './workspaceState.model';
 import CrucibleDiagram, { ICrucibleDiagram } from './crucibleDiagram.model';
 import ProgressTracking, { IProgressTracking } from './progressTracking.model';
 import ResearchItem, { IResearchItem } from './researchItem.model';
+import SolutionAnalysis, { ISolutionAnalysisResult, IAnalysisParameter } from './solutionAnalysis.model';
 
 export {
   User,
@@ -32,5 +33,8 @@ export {
   ProgressTracking,
   IProgressTracking,
   ResearchItem,
-  IResearchItem
+  IResearchItem,
+  SolutionAnalysis,
+  ISolutionAnalysisResult,
+  IAnalysisParameter
 }; 
