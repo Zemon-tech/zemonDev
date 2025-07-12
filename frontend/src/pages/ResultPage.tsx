@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -101,6 +101,7 @@ export default function ResultPage() {
   const { analysisId } = useParams<{ analysisId: string }>();
   const navigate = useNavigate();
   const { getToken } = useAuth();
+  const location = useLocation();
   
   const [analysis, setAnalysis] = useState<ISolutionAnalysisResult | null>(null);
   const [problem, setProblem] = useState<ICrucibleProblem | null>(null);
@@ -109,69 +110,98 @@ export default function ResultPage() {
     problem: true,
     error: null
   });
+  
+  // Extract problemId from URL if we're on the /problem/:id/result route
+  const isProblemResultRoute = location.pathname.includes('/problem/') && location.pathname.endsWith('/result');
+  const problemId = isProblemResultRoute ? location.pathname.split('/problem/')[1].split('/result')[0] : null;
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!analysisId) {
-        console.error('No analysis ID provided in URL parameters');
-        setLoading(prev => ({ ...prev, error: "No analysis ID provided" }));
-        return;
-      }
+      // If we have an analysisId, fetch the analysis directly
+      if (analysisId) {
+        console.log(`Fetching analysis with ID: ${analysisId}`);
+        try {
+          // Fetch analysis result
+          const analysisData = await getAnalysisResult(analysisId, getToken);
+          console.log('Analysis data received:', analysisData);
+          setAnalysis(analysisData);
+          setLoading(prev => ({ ...prev, analysis: false }));
 
-      console.log(`Fetching analysis with ID: ${analysisId}`);
-
-      try {
-        // Fetch analysis result
-        const analysisData = await getAnalysisResult(analysisId, getToken);
-        console.log('Analysis data received:', analysisData);
-        setAnalysis(analysisData);
-        setLoading(prev => ({ ...prev, analysis: false }));
-
-        if (!analysisData.problemId) {
-          console.error('Analysis data missing problemId');
-          setLoading(prev => ({ 
-            ...prev, 
-            problem: false,
-            error: "Analysis data is incomplete. Missing problem reference."
-          }));
-          return;
-        }
-
-        // Fetch problem details
-        console.log(`Fetching problem with ID: ${analysisData.problemId}`);
-        const problemData = await getProblem(analysisData.problemId);
-        console.log('Problem data received:', problemData);
-        setProblem(problemData);
-        setLoading(prev => ({ ...prev, problem: false }));
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        
-        // Provide more specific error messages
-        let errorMessage = "Failed to load analysis data. Please try again later.";
-        
-        if (error instanceof Error) {
-          if (error.message.includes('401') || error.message.includes('403')) {
-            errorMessage = "Authentication error. Please sign in again.";
-          } else if (error.message.includes('404')) {
-            errorMessage = "Analysis not found. It may have been deleted or never existed.";
-          } else if (error.message.includes('500')) {
-            errorMessage = "Server error. Our team has been notified.";
-          } else {
-            errorMessage = `Error: ${error.message}`;
+          if (!analysisData.problemId) {
+            console.error('Analysis data missing problemId');
+            setLoading(prev => ({ 
+              ...prev, 
+              problem: false,
+              error: "Analysis data is incomplete. Missing problem reference."
+            }));
+            return;
           }
+
+          // Fetch problem details
+          console.log(`Fetching problem with ID: ${analysisData.problemId}`);
+          const problemData = await getProblem(analysisData.problemId);
+          console.log('Problem data received:', problemData);
+          setProblem(problemData);
+          setLoading(prev => ({ ...prev, problem: false }));
+        } catch (error) {
+          handleFetchError(error);
         }
-        
+      } 
+      // If we're on the problem result route but don't have an analysisId yet
+      else if (problemId) {
+        console.log(`Waiting for analysis completion for problem ID: ${problemId}`);
+        try {
+          // Fetch problem details first
+          const problemData = await getProblem(problemId);
+          console.log('Problem data received:', problemData);
+          setProblem(problemData);
+          setLoading(prev => ({ ...prev, problem: false }));
+          
+          // We keep the analysis loading state true since we don't have an analysisId yet
+          // The user will be redirected to the correct URL once the analysis is complete
+        } catch (error) {
+          handleFetchError(error);
+        }
+      } else {
+        // Neither analysisId nor problemId available
         setLoading(prev => ({ 
           ...prev, 
           analysis: false, 
           problem: false, 
-          error: errorMessage
+          error: "No analysis or problem ID provided"
         }));
       }
     };
 
     fetchData();
-  }, [analysisId, getToken]);
+  }, [analysisId, getToken, problemId]);
+
+  // Helper function to handle fetch errors
+  const handleFetchError = (error: any) => {
+    console.error("Error fetching data:", error);
+    
+    // Provide more specific error messages
+    let errorMessage = "Failed to load analysis data. Please try again later.";
+    
+    if (error instanceof Error) {
+      if (error.message.includes('401') || error.message.includes('403')) {
+        errorMessage = "Authentication error. Please sign in again.";
+      } else if (error.message.includes('404')) {
+        errorMessage = "Analysis not found. It may have been deleted or never existed.";
+      } else if (error.message.includes('500')) {
+        errorMessage = "Server error. Our team has been notified.";
+      } else {
+        errorMessage = `Error: ${error.message}`;
+      }
+    }
+    
+    setLoading(prev => ({ 
+      ...prev, 
+      analysis: false, 
+      problem: false, 
+      error: errorMessage
+    }));
+  };
 
   // Show loading state
   if (loading.analysis || loading.problem) {
@@ -186,7 +216,8 @@ export default function ResultPage() {
           
           {/* Debug information for developers */}
           <div className="mt-8 text-xs text-base-content/50">
-            <p>Analysis ID: {analysisId}</p>
+            {analysisId && <p>Analysis ID: {analysisId}</p>}
+            {problemId && <p>Problem ID: {problemId}</p>}
             <p>Loading state: {JSON.stringify({
               analysis: loading.analysis,
               problem: loading.problem

@@ -55,7 +55,7 @@ export async function generateQueryEmbedding(text: string): Promise<number[]> {
  * @param topK - Number of results to return (default: 5)
  * @returns Array of text snippets from the most relevant documents
  */
-export async function retrieveRelevantDocuments(queryText: string, topK: number = 5): Promise<string[]> {
+export async function retrieveRelevantDocuments(queryText: string, topK: number = 15): Promise<string[]> {
   try {
     console.log(`Retrieving relevant documents for query: "${queryText.substring(0, 50)}..."`);
     

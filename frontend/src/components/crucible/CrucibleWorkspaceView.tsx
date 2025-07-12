@@ -72,47 +72,55 @@ export default function CrucibleWorkspaceView({ problem, initialDraft, initialNo
         return;
       }
 
-      // Submit the solution for analysis
-      try {
-        const response = await submitSolutionForAnalysis(problem._id, () => Promise.resolve(token));
-        
-        if (!response || !response.analysisId) {
-          logger.error('Invalid response from submitSolutionForAnalysis:', response);
-          alert("Received an invalid response from the server. Please try again.");
-          return;
-        }
-        
-        // Log the response and navigation URL for debugging
-        logger.info('Analysis response:', response);
-        logger.info(`Navigating to: /crucible/results/${response.analysisId}`);
-        
-        // Navigate to the results page with the correct URL format
-        // The URL should be /crucible/results/{analysisId} not /crucible/problem/{problemId}/result
-        navigate(`/${window.location.pathname.split('/')[1]}/crucible/results/${response.analysisId}`);
-      } catch (apiError) {
-        logger.error('API error during solution submission:', apiError);
-        
-        // Provide more specific error messages based on the error
-        if (apiError instanceof Error) {
-          if (apiError.message.includes('401') || apiError.message.includes('403')) {
-            alert("Authentication error. Please sign in again and try.");
-          } else if (apiError.message.includes('404')) {
-            alert("The problem could not be found. It may have been removed.");
-          } else if (apiError.message.includes('429')) {
-            alert("You're submitting too many solutions too quickly. Please wait a moment and try again.");
-          } else if (apiError.message.includes('500')) {
-            alert("The server encountered an error while processing your solution. Our team has been notified.");
-          } else {
-            alert(`Error submitting solution: ${apiError.message}`);
+      // Navigate to the results page immediately, before waiting for the analysis
+      // This will show the loading state while the analysis is being processed
+      const username = window.location.pathname.split('/')[1];
+      navigate(`/${username}/crucible/problem/${problem._id}/result`);
+
+      // Submit the solution for analysis in the background
+      submitSolutionForAnalysis(problem._id, () => Promise.resolve(token))
+        .then(response => {
+          if (!response || !response.analysisId) {
+            logger.error('Invalid response from submitSolutionForAnalysis:', response);
+            return;
           }
-        } else {
-          alert("There was an error submitting your solution. Please try again.");
-        }
-      }
+          
+          // Log the response and navigation URL for debugging
+          logger.info('Analysis response:', response);
+          logger.info(`Redirecting to: /crucible/results/${response.analysisId}`);
+          
+          // Navigate to the results page with the analysis ID
+          navigate(`/${username}/crucible/results/${response.analysisId}`, { replace: true });
+        })
+        .catch(apiError => {
+          logger.error('API error during solution submission:', apiError);
+          
+          // Provide more specific error messages based on the error
+          if (apiError instanceof Error) {
+            if (apiError.message.includes('401') || apiError.message.includes('403')) {
+              alert("Authentication error. Please sign in again and try.");
+            } else if (apiError.message.includes('404')) {
+              alert("The problem could not be found. It may have been removed.");
+            } else if (apiError.message.includes('429')) {
+              alert("You're submitting too many solutions too quickly. Please wait a moment and try again.");
+            } else if (apiError.message.includes('500')) {
+              alert("The server encountered an error while processing your solution. Our team has been notified.");
+            } else {
+              alert(`Error submitting solution: ${apiError.message}`);
+            }
+          } else {
+            alert("There was an error submitting your solution. Please try again.");
+          }
+          
+          // Navigate back to the problem page if there was an error
+          navigate(`/${username}/crucible/problem/${problem._id}`);
+        })
+        .finally(() => {
+          setIsSubmitting(false);
+        });
     } catch (error) {
       logger.error('Failed to submit solution:', error);
       alert("There was an error submitting your solution. Please try again.");
-    } finally {
       setIsSubmitting(false);
     }
   }, [solutionContent, problem._id, getToken, navigate]);
