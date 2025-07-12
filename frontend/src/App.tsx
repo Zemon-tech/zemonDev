@@ -89,6 +89,8 @@ function App() {
                 <Route path="crucible" element={<CruciblePage />} />
                 <Route path="crucible/problem/:id" element={<CrucibleProblemPage />} />
                 <Route path="crucible/problem/:id/result" element={<ResultPage />} />
+                {/* Add the correct route for the results page */}
+                <Route path="crucible/results/:analysisId" element={<ResultPage />} />
                 <Route path="arena" element={<PlaceholderPage title="Arena" description="Compete with peers in coding competitions." />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="settings" element={<PlaceholderPage title="Settings" description="Configure your account settings and preferences." />} />

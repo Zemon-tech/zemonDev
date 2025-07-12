@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -20,6 +20,8 @@ import {
   Zap,
   History
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 
 // Import ReactBits components
 import { Aurora } from '@/components/blocks/Aurora';
@@ -34,75 +36,17 @@ import { CircularProgress } from '@/components/blocks/CircularProgress';
 import { FloatingIcon } from '@/components/blocks/FloatingIcon';
 import { Timeline } from '@/components/blocks/Timeline';
 
-// Dummy data for development
-const dummyResult = {
-  problemTitle: "E-commerce System Design",
-  summary: "Your solution demonstrates strong understanding of distributed systems and scalability patterns. The architecture effectively addresses the core requirements while maintaining flexibility for future growth.",
-  confidence: 95,
-  evaluationParams: {
-    requirements: [
-      "High Availability (99.99%)",
-      "Horizontal Scalability",
-      "Data Consistency",
-      "Real-time Inventory Updates",
-      "Payment Processing Integration"
-    ],
-    technologies: [
-      "Kubernetes",
-      "Redis",
-      "PostgreSQL",
-      "RabbitMQ",
-      "Elasticsearch",
-      "React",
-      "Node.js"
-    ]
-  },
-  feedback: {
-    strengths: [
-      "Excellent separation of concerns in microservices",
-      "Well-thought-out caching strategy",
-      "Robust error handling mechanisms",
-      "Clear API documentation"
-    ],
-    weaknesses: [
-      "Limited discussion of security measures",
-      "Could improve database indexing strategy",
-      "Monitoring setup needs more detail"
-    ],
-    suggestions: [
-      "Consider implementing circuit breakers",
-      "Add rate limiting for API endpoints",
-      "Include performance benchmarks",
-      "Document disaster recovery plan"
-    ]
-  },
-  resources: [
-    {
-      title: "Distributed Systems Patterns",
-      description: "A comprehensive guide to common patterns in distributed systems architecture",
-      source: "Martin Fowler's Blog"
-    },
-    {
-      title: "Database Scaling Strategies",
-      description: "Best practices for scaling databases in high-traffic applications",
-      source: "AWS Documentation"
-    }
-  ],
-  history: [
-    {
-      timestamp: "2024-03-15T10:00:00Z",
-      score: 92,
-      notes: "Initial submission - Strong foundation"
-    },
-    {
-      timestamp: "2024-03-10T15:30:00Z",
-      score: 85,
-      notes: "First draft - Good start, needs refinement"
-    }
-  ]
-};
+// Import API client
+import { getAnalysisResult, ISolutionAnalysisResult, getProblem, ICrucibleProblem } from '@/lib/crucibleApi';
 
-const CharacteristicBadge = ({ icon: Icon, name, score }: any) => (
+// Define loading state interface
+interface LoadingState {
+  analysis: boolean;
+  problem: boolean;
+  error: string | null;
+}
+
+const CharacteristicBadge = ({ icon: Icon, name, score, justification }: any) => (
   <TiltCard className="relative group">
     <SpotlightCard className="p-3 flex items-center gap-3 bg-base-200/50 backdrop-blur-sm border border-base-300 rounded-lg hover:shadow-lg transition-all cursor-default">
       <FloatingIcon icon={Icon} className="w-8 h-8 text-primary" />
@@ -125,13 +69,173 @@ const CharacteristicBadge = ({ icon: Icon, name, score }: any) => (
             suffix="%"
           />
         </div>
+        <div className="hidden group-hover:block absolute top-full left-0 right-0 mt-2 p-3 bg-base-100 border border-base-300 rounded-lg shadow-lg z-10 text-sm">
+          {justification}
+        </div>
       </div>
     </SpotlightCard>
   </TiltCard>
 );
 
+// Map of parameter names to icons
+const parameterIcons: Record<string, any> = {
+  "Logical Thinking": Brain,
+  "Systems Design": Network,
+  "Creativity": Lightbulb,
+  "Trade-off Analysis": Scale,
+  "Performance": Zap,
+  "Security": AlertOctagon,
+  "Scalability": RefreshCw,
+  "Documentation": BookOpen,
+  "Code Quality": CheckCircle2,
+  "Error Handling": AlertCircle,
+  "Communication": MessageSquare,
+  "Innovation": Sparkles,
+  // Add more mappings as needed
+};
+
+// Default icon if no mapping exists
+const defaultIcon = Brain;
+
 export default function ResultPage() {
-  const { id } = useParams();
+  const { analysisId } = useParams<{ analysisId: string }>();
+  const navigate = useNavigate();
+  const { getToken } = useAuth();
+  
+  const [analysis, setAnalysis] = useState<ISolutionAnalysisResult | null>(null);
+  const [problem, setProblem] = useState<ICrucibleProblem | null>(null);
+  const [loading, setLoading] = useState<LoadingState>({
+    analysis: true,
+    problem: true,
+    error: null
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!analysisId) {
+        console.error('No analysis ID provided in URL parameters');
+        setLoading(prev => ({ ...prev, error: "No analysis ID provided" }));
+        return;
+      }
+
+      console.log(`Fetching analysis with ID: ${analysisId}`);
+
+      try {
+        // Fetch analysis result
+        const analysisData = await getAnalysisResult(analysisId, getToken);
+        console.log('Analysis data received:', analysisData);
+        setAnalysis(analysisData);
+        setLoading(prev => ({ ...prev, analysis: false }));
+
+        if (!analysisData.problemId) {
+          console.error('Analysis data missing problemId');
+          setLoading(prev => ({ 
+            ...prev, 
+            problem: false,
+            error: "Analysis data is incomplete. Missing problem reference."
+          }));
+          return;
+        }
+
+        // Fetch problem details
+        console.log(`Fetching problem with ID: ${analysisData.problemId}`);
+        const problemData = await getProblem(analysisData.problemId);
+        console.log('Problem data received:', problemData);
+        setProblem(problemData);
+        setLoading(prev => ({ ...prev, problem: false }));
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        
+        // Provide more specific error messages
+        let errorMessage = "Failed to load analysis data. Please try again later.";
+        
+        if (error instanceof Error) {
+          if (error.message.includes('401') || error.message.includes('403')) {
+            errorMessage = "Authentication error. Please sign in again.";
+          } else if (error.message.includes('404')) {
+            errorMessage = "Analysis not found. It may have been deleted or never existed.";
+          } else if (error.message.includes('500')) {
+            errorMessage = "Server error. Our team has been notified.";
+          } else {
+            errorMessage = `Error: ${error.message}`;
+          }
+        }
+        
+        setLoading(prev => ({ 
+          ...prev, 
+          analysis: false, 
+          problem: false, 
+          error: errorMessage
+        }));
+      }
+    };
+
+    fetchData();
+  }, [analysisId, getToken]);
+
+  // Show loading state
+  if (loading.analysis || loading.problem) {
+    return (
+      <div className="relative min-h-screen bg-base-100 flex items-center justify-center">
+        <Aurora className="fixed inset-0 opacity-30 pointer-events-none" />
+        <DotGrid className="fixed inset-0 opacity-10 pointer-events-none" />
+        <div className="text-center">
+          <RefreshCw className="w-12 h-12 mx-auto mb-4 text-primary animate-spin" />
+          <h2 className="text-xl font-bold">Analyzing your solution...</h2>
+          <p className="text-base-content/70 mt-2">This may take a moment</p>
+          
+          {/* Debug information for developers */}
+          <div className="mt-8 text-xs text-base-content/50">
+            <p>Analysis ID: {analysisId}</p>
+            <p>Loading state: {JSON.stringify({
+              analysis: loading.analysis,
+              problem: loading.problem
+            })}</p>
+            <div className="mt-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (loading.error) {
+    return (
+      <div className="relative min-h-screen bg-base-100 flex items-center justify-center">
+        <Aurora className="fixed inset-0 opacity-30 pointer-events-none" />
+        <DotGrid className="fixed inset-0 opacity-10 pointer-events-none" />
+        <div className="text-center max-w-md mx-auto p-6 bg-base-200/50 backdrop-blur-sm rounded-xl border border-base-300">
+          <AlertOctagon className="w-12 h-12 mx-auto mb-4 text-error" />
+          <h2 className="text-xl font-bold">Something went wrong</h2>
+          <p className="text-base-content/70 mt-2 mb-6">{loading.error}</p>
+          <Button onClick={() => navigate(-1)}>Go Back</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // If we have no data but no loading or error state, something's wrong
+  if (!analysis || !problem) {
+    return (
+      <div className="relative min-h-screen bg-base-100 flex items-center justify-center">
+        <Aurora className="fixed inset-0 opacity-30 pointer-events-none" />
+        <DotGrid className="fixed inset-0 opacity-10 pointer-events-none" />
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 mx-auto mb-4 text-warning" />
+          <h2 className="text-xl font-bold">No analysis data available</h2>
+          <Button onClick={() => navigate(-1)} className="mt-4">Go Back</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen bg-base-100 overflow-hidden">
@@ -150,16 +254,16 @@ export default function ResultPage() {
             >
               <div className="flex-1">
                 <h1 className="text-3xl font-bold font-heading mb-3 text-base-content">
-                  {dummyResult.problemTitle}
+                  {problem.title}
                 </h1>
-                <p className="text-lg text-base-content/80 mb-4">{dummyResult.summary}</p>
+                <p className="text-lg text-base-content/80 mb-4">{analysis.summary}</p>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
                     <FloatingIcon icon={Brain} className="w-5 h-5 text-primary" />
                     <span className="font-semibold text-base-content">AI Confidence:</span>
                     <CountUp 
                       from={0} 
-                      to={dummyResult.confidence} 
+                      to={analysis.aiConfidence} 
                       duration={1.5}
                       className="text-lg font-bold text-primary"
                       suffix="%"
@@ -168,13 +272,13 @@ export default function ResultPage() {
                 </div>
               </div>
               <div className="shrink-0">
-                <CircularProgress value={92} size={160} className="bg-base-100/50 backdrop-blur-sm rounded-full p-4">
+                <CircularProgress value={analysis.overallScore} size={160} className="bg-base-100/50 backdrop-blur-sm rounded-full p-4">
                   <div className="flex flex-col items-center">
                     <Trophy className="w-8 h-8 text-primary mb-1" />
                     <span className="text-sm font-medium text-base-content/70">Score</span>
                     <CountUp 
                       from={0} 
-                      to={92} 
+                      to={analysis.overallScore} 
                       duration={2}
                       className="text-3xl font-bold text-primary"
                     />
@@ -187,26 +291,22 @@ export default function ResultPage() {
 
         {/* Mind Characteristics Grid */}
         <AnimatedContent className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <CharacteristicBadge
-            icon={Brain}
-            name="Logical Thinker"
-            score={95}
-          />
-          <CharacteristicBadge
-            icon={Network}
-            name="Systems-oriented"
-            score={90}
-          />
-          <CharacteristicBadge
-            icon={Lightbulb}
-            name="Creative"
-            score={85}
-          />
-          <CharacteristicBadge
-            icon={Scale}
-            name="Trade-off Analysis"
-            score={88}
-          />
+          {analysis.evaluatedParameters && analysis.evaluatedParameters.length > 0 ? (
+            analysis.evaluatedParameters.map((param, index) => (
+              <CharacteristicBadge
+                key={index}
+                icon={parameterIcons[param.name] || defaultIcon}
+                name={param.name}
+                score={param.score}
+                justification={param.justification}
+              />
+            ))
+          ) : (
+            <div className="col-span-4 p-4 text-center text-base-content/70">
+              <AlertCircle className="w-8 h-8 mx-auto mb-2 text-warning" />
+              <p>No evaluation parameters available</p>
+            </div>
+          )}
         </AnimatedContent>
 
         {/* Problem Requirements & Technologies */}
@@ -219,18 +319,36 @@ export default function ResultPage() {
                   Problem Requirements
                 </h2>
                 <ul className="space-y-2">
-                  {dummyResult.evaluationParams.requirements.map((req, index) => (
-                    <motion.li
-                      key={index}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="flex items-center gap-2 text-base-content/80"
-                    >
-                      <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
-                      <span>{req}</span>
-                    </motion.li>
-                  ))}
+                  {problem.requirements && problem.requirements.functional && problem.requirements.functional.length > 0 ? (
+                    problem.requirements.functional.map((req, index) => (
+                      <motion.li
+                        key={`func-${index}`}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="flex items-center gap-2 text-base-content/80"
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                        <span>{req}</span>
+                      </motion.li>
+                    ))
+                  ) : (
+                    <li className="text-base-content/70">No functional requirements specified</li>
+                  )}
+                  {problem.requirements && problem.requirements.nonFunctional && problem.requirements.nonFunctional.length > 0 ? (
+                    problem.requirements.nonFunctional.map((req, index) => (
+                      <motion.li
+                        key={`nonfunc-${index}`}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: (problem.requirements.functional?.length || 0) + index * 0.1 }}
+                        className="flex items-center gap-2 text-base-content/80"
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-info shrink-0" />
+                        <span>{req}</span>
+                      </motion.li>
+                    ))
+                  ) : null}
                 </ul>
               </div>
               
@@ -240,195 +358,124 @@ export default function ResultPage() {
                   Technologies
                 </h2>
                 <div className="flex flex-wrap gap-2">
-                  {dummyResult.evaluationParams.technologies.map((tech, index) => (
-                    <motion.span
-                      key={index}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="px-3 py-1 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 backdrop-blur-sm text-sm font-medium text-primary border border-primary/20"
-                    >
-                      {tech}
-                    </motion.span>
-                  ))}
+                  {problem.tags && problem.tags.length > 0 ? (
+                    problem.tags.map((tag, index) => (
+                      <motion.span
+                        key={index}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="px-3 py-1 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 backdrop-blur-sm text-sm font-medium text-primary border border-primary/20"
+                      >
+                        {tag}
+                      </motion.span>
+                    ))
+                  ) : (
+                    <span className="text-base-content/70">No tags specified</span>
+                  )}
                 </div>
               </div>
             </div>
           </SpotlightCard>
         </AnimatedContent>
 
-        {/* Feedback Section */}
-        <AnimatedContent className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <TiltCard>
-            <SpotlightCard className="h-full p-6 bg-base-100/50 backdrop-blur-sm border border-base-200 rounded-xl">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-success">
-                <FloatingIcon icon={CheckCircle2} className="w-5 h-5" />
+        {/* Feedback Sections */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Strengths */}
+          <AnimatedContent>
+            <SpotlightCard className="h-full p-4 bg-base-100/50 backdrop-blur-sm border border-base-200 rounded-xl">
+              <h2 className="text-xl font-bold mb-3 flex items-center gap-2 text-base-content">
+                <CheckCircle2 className="w-5 h-5 text-success" />
                 Strengths
               </h2>
               <ul className="space-y-3">
-                {dummyResult.feedback.strengths.map((strength, index) => (
-                  <motion.li
-                    key={index}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex items-start gap-2 p-2 rounded-lg hover:bg-success/5 transition-colors"
-                  >
-                    <Sparkles className="w-4 h-4 text-success mt-1" />
-                    <span>{strength}</span>
-                  </motion.li>
-                ))}
+                {analysis.feedback && analysis.feedback.strengths && analysis.feedback.strengths.length > 0 ? (
+                  analysis.feedback.strengths.map((strength, index) => (
+                    <motion.li
+                      key={index}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="flex items-start gap-2 text-base-content/80"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-success shrink-0 mt-1" />
+                      <span>{strength}</span>
+                    </motion.li>
+                  ))
+                ) : (
+                  <li className="text-base-content/70">No strengths identified</li>
+                )}
               </ul>
             </SpotlightCard>
-          </TiltCard>
+          </AnimatedContent>
 
-          <TiltCard>
-            <SpotlightCard className="h-full p-6 bg-base-100/50 backdrop-blur-sm border border-base-200 rounded-xl">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-warning">
-                <FloatingIcon icon={AlertCircle} className="w-5 h-5" />
+          {/* Areas for Improvement */}
+          <AnimatedContent>
+            <SpotlightCard className="h-full p-4 bg-base-100/50 backdrop-blur-sm border border-base-200 rounded-xl">
+              <h2 className="text-xl font-bold mb-3 flex items-center gap-2 text-base-content">
+                <AlertCircle className="w-5 h-5 text-warning" />
                 Areas for Improvement
               </h2>
               <ul className="space-y-3">
-                {dummyResult.feedback.weaknesses.map((weakness, index) => (
-                  <motion.li
-                    key={index}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex items-start gap-2 p-2 rounded-lg hover:bg-warning/5 transition-colors"
-                  >
-                    <AlertOctagon className="w-4 h-4 text-warning mt-1" />
-                    <span>{weakness}</span>
-                  </motion.li>
-                ))}
+                {analysis.feedback && analysis.feedback.areasForImprovement && analysis.feedback.areasForImprovement.length > 0 ? (
+                  analysis.feedback.areasForImprovement.map((area, index) => (
+                    <motion.li
+                      key={index}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="flex items-start gap-2 text-base-content/80"
+                    >
+                      <AlertCircle className="w-4 h-4 text-warning shrink-0 mt-1" />
+                      <span>{area}</span>
+                    </motion.li>
+                  ))
+                ) : (
+                  <li className="text-base-content/70">No areas for improvement identified</li>
+                )}
               </ul>
             </SpotlightCard>
-          </TiltCard>
+          </AnimatedContent>
 
-          <TiltCard>
-            <SpotlightCard className="h-full p-6 bg-base-100/50 backdrop-blur-sm border border-base-200 rounded-xl">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-info">
-                <FloatingIcon icon={Lightbulb} className="w-5 h-5" />
+          {/* Suggestions */}
+          <AnimatedContent>
+            <SpotlightCard className="h-full p-4 bg-base-100/50 backdrop-blur-sm border border-base-200 rounded-xl">
+              <h2 className="text-xl font-bold mb-3 flex items-center gap-2 text-base-content">
+                <Lightbulb className="w-5 h-5 text-primary" />
                 Suggestions
               </h2>
               <ul className="space-y-3">
-                {dummyResult.feedback.suggestions.map((suggestion, index) => (
-                  <motion.li
-                    key={index}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex items-start gap-2 p-2 rounded-lg hover:bg-info/5 transition-colors"
-                  >
-                    <ArrowUpRight className="w-4 h-4 text-info mt-1" />
-                    <span>{suggestion}</span>
-                  </motion.li>
-                ))}
+                {analysis.feedback && analysis.feedback.suggestions && analysis.feedback.suggestions.length > 0 ? (
+                  analysis.feedback.suggestions.map((suggestion, index) => (
+                    <motion.li
+                      key={index}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="flex items-start gap-2 text-base-content/80"
+                    >
+                      <Lightbulb className="w-4 h-4 text-primary shrink-0 mt-1" />
+                      <span>{suggestion}</span>
+                    </motion.li>
+                  ))
+                ) : (
+                  <li className="text-base-content/70">No suggestions available</li>
+                )}
               </ul>
             </SpotlightCard>
-          </TiltCard>
-        </AnimatedContent>
-
-        {/* Resources Section */}
-        <AnimatedContent>
-          <h2 className="text-xl font-bold mb-3 flex items-center gap-2 text-base-content">
-            <FloatingIcon icon={BookOpen} className="w-5 h-5 text-primary" />
-            Related Resources
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {dummyResult.resources.map((resource, index) => (
-              <TiltCard key={index}>
-                <SpotlightCard
-                  className="h-[140px] p-4 bg-base-100/50 backdrop-blur-sm border border-base-200 rounded-xl hover:shadow-lg transition-all cursor-pointer"
-                >
-                  <h3 className="font-semibold flex items-center gap-2 text-base-content">
-                    {resource.title}
-                    <ArrowUpRight className="w-4 h-4" />
-                  </h3>
-                  <p className="text-sm text-base-content/70 mt-1 line-clamp-2">{resource.description}</p>
-                  <div className="text-xs text-base-content/50 mt-2">Source: {resource.source}</div>
-                </SpotlightCard>
-              </TiltCard>
-            ))}
-          </div>
-        </AnimatedContent>
-
-        {/* History Section */}
-        <AnimatedContent>
-          <h2 className="text-xl font-bold mb-3 flex items-center gap-2 text-base-content px-2 sm:px-0">
-            <FloatingIcon icon={History} className="w-5 h-5 text-primary" />
-            Evaluation History
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {dummyResult.history.map((entry, index) => (
-              <TiltCard key={index}>
-                <SpotlightCard
-                  className="p-4 bg-base-100/50 backdrop-blur-sm border border-base-200 rounded-xl hover:bg-base-200/50 transition-all duration-300"
-                >
-                  <div className="flex items-center gap-4">
-                    <CircularProgress value={entry.score} size={50} className="shrink-0">
-                      <CountUp 
-                        from={0} 
-                        to={entry.score} 
-                        duration={1.5}
-                        className="text-sm font-bold text-primary"
-                        suffix="%"
-                      />
-                    </CircularProgress>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-base-content/70">
-                          {new Date(entry.timestamp).toLocaleDateString(undefined, { 
-                            month: 'short', 
-                            day: 'numeric',
-                            year: 'numeric'
-                          })}
-                        </span>
-                        {index === 0 && (
-                          <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                            Latest
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-base-content line-clamp-2">{entry.notes}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        {entry.score >= 90 ? (
-                          <span className="text-xs text-success flex items-center gap-1">
-                            <Trophy className="w-3 h-3" /> Excellent
-                          </span>
-                        ) : entry.score >= 80 ? (
-                          <span className="text-xs text-primary flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Good Progress
-                          </span>
-                        ) : (
-                          <span className="text-xs text-warning flex items-center gap-1">
-                            <ArrowUpRight className="w-3 h-3" /> Improving
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </SpotlightCard>
-              </TiltCard>
-            ))}
-          </div>
-        </AnimatedContent>
+          </AnimatedContent>
+        </div>
 
         {/* Action Buttons */}
-        <AnimatedContent className="flex flex-wrap items-center gap-4 pt-4 px-2 sm:px-0">
-          <Button size="lg" className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90">
-            <MessageSquare className="w-5 h-5" />
-            Ask Follow-up Question
+        <div className="flex justify-center gap-4 mt-8">
+          <Button 
+            variant="outline" 
+            className="px-6 py-2"
+            onClick={() => navigate(`/crucible/${problem._id}`)}
+          >
+            Back to Problem
           </Button>
-          <Button variant="outline" size="lg" className="gap-2 border-primary/20 hover:bg-primary/5">
-            <RefreshCw className="w-5 h-5" />
-            Submit Improved Version
-          </Button>
-          <Button variant="secondary" size="lg" className="gap-2 bg-gradient-to-r from-secondary/80 to-accent/80 hover:opacity-90">
-            <AlertOctagon className="w-5 h-5" />
-            Request Human Review
-          </Button>
-        </AnimatedContent>
+        </div>
       </div>
     </div>
   );

@@ -64,6 +64,12 @@ export async function generateComprehensiveAnalysis(
       ],
     });
 
+    // Log information about the inputs
+    console.log(`Generating analysis for problem: ${problemDetails.title}`);
+    console.log(`User solution length: ${userSolution.length} characters`);
+    console.log(`RAG documents: ${ragDocuments.length} documents retrieved`);
+    console.log(`Technical parameters: ${technicalParameters.length} parameters to evaluate`);
+    
     // Construct the prompt
     const prompt = `
 You are a world-class AI system architect and engineering hiring manager with expertise in evaluating technical solutions. Your task is to analyze the user's submitted solution to a programming problem.
@@ -79,10 +85,20 @@ Non-Functional Requirements: ${problemDetails.requirements.nonFunctional.join('\
 Constraints: ${problemDetails.constraints.join('\n')}
 
 ## TECHNICAL & ARCHITECTURAL PARAMETERS TO EVALUATE ##
-${technicalParameters.join('\n')}
+${technicalParameters.length > 0 
+  ? technicalParameters.join('\n') 
+  : `
+- Code Quality: Evaluate the overall code quality, readability, and maintainability
+- Performance: Assess the solution's performance characteristics and efficiency
+- Correctness: Determine if the solution correctly addresses all requirements
+- Design: Evaluate the architectural design and structure of the solution
+- Error Handling: Assess how well the solution handles edge cases and errors
+`}
 
 ## RELEVANT KNOWLEDGE BASE DOCUMENTS (FOR CONTEXT) ##
-${ragDocuments.join('\n\n---\n\n')}
+${ragDocuments.length > 0 
+  ? ragDocuments.join('\n\n---\n\n') 
+  : "No additional context documents are available. Please evaluate based on the problem details and solution provided."}
 
 ## USER'S SUBMITTED SOLUTION ##
 ${userSolution}
@@ -115,19 +131,60 @@ Do not include any explanations, notes, or text outside the JSON object. Ensure 
 `;
 
     // Call the AI model
+    console.log('Sending prompt to Gemini 2.5 Pro...');
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
+    console.log('Received response from Gemini 2.5 Pro');
     
     // Parse the JSON response
     try {
+      console.log('Parsing AI response as JSON...');
       const analysisResult = JSON.parse(responseText) as ISolutionAnalysisResponse;
+      console.log('Successfully parsed AI response');
       return analysisResult;
     } catch (error) {
       console.error('Failed to parse AI response as JSON:', error);
-      throw new Error('AI returned an invalid response format');
+      console.error('Raw response (first 200 chars):', responseText.substring(0, 200));
+      
+      // Provide a fallback response when parsing fails
+      return {
+        overallScore: 50,
+        aiConfidence: 30,
+        summary: "The analysis could not be completed properly due to a technical issue. This is a fallback response.",
+        evaluatedParameters: [
+          {
+            name: "Technical Analysis",
+            score: 50,
+            justification: "Unable to perform detailed analysis due to a technical issue with the AI response format."
+          }
+        ],
+        feedback: {
+          strengths: ["Your solution was received and processed."],
+          areasForImprovement: ["Please try submitting again if you'd like a more detailed analysis."],
+          suggestions: ["Consider checking the solution format and resubmitting."]
+        }
+      };
     }
   } catch (error) {
     console.error('Error generating solution analysis:', error);
-    throw new Error('Failed to generate solution analysis');
+    
+    // Provide a fallback response when the AI call fails
+    return {
+      overallScore: 50,
+      aiConfidence: 30,
+      summary: "The analysis could not be completed due to a technical issue. This is a fallback response.",
+      evaluatedParameters: [
+        {
+          name: "Technical Analysis",
+          score: 50,
+          justification: "Unable to perform analysis due to a technical issue with the AI service."
+        }
+      ],
+      feedback: {
+        strengths: ["Your solution was received."],
+        areasForImprovement: ["Please try submitting again later."],
+        suggestions: ["Wait a few minutes and try again."]
+      }
+    };
   }
 } 

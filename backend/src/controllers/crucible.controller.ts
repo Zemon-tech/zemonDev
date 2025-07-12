@@ -617,38 +617,61 @@ export const analyzeUserSolution = asyncHandler(
     
     try {
       // Retrieve relevant documents from the RAG system
-      const ragDocuments = await retrieveRelevantDocuments(queryText);
+      let ragDocuments: string[] = [];
+      
+      try {
+        ragDocuments = await retrieveRelevantDocuments(queryText);
+        console.log(`Successfully retrieved ${ragDocuments.length} documents from RAG system`);
+      } catch (ragError) {
+        console.error('Error retrieving documents from RAG system:', ragError);
+        // Continue with empty documents rather than failing the whole request
+        ragDocuments = [];
+      }
 
       // Generate the comprehensive analysis
-      const analysisResult = await generateComprehensiveAnalysis(
-        problem,
-        userSolution,
-        ragDocuments,
-        technicalParameters
-      );
+      let analysisResult;
+      try {
+        analysisResult = await generateComprehensiveAnalysis(
+          problem,
+          userSolution,
+          ragDocuments,
+          technicalParameters
+        );
+        console.log('Analysis generated successfully');
+      } catch (analysisError) {
+        console.error('Error generating analysis:', analysisError);
+        return next(new AppError('Failed to analyze solution', 500));
+      }
 
       // Create a new SolutionAnalysis document
-      const solutionAnalysis = await SolutionAnalysis.create({
-        userId,
-        problemId,
-        overallScore: analysisResult.overallScore,
-        aiConfidence: analysisResult.aiConfidence,
-        summary: analysisResult.summary,
-        evaluatedParameters: analysisResult.evaluatedParameters,
-        feedback: {
-          strengths: analysisResult.feedback.strengths,
-          areasForImprovement: analysisResult.feedback.areasForImprovement,
-          suggestions: analysisResult.feedback.suggestions
-        }
-      });
+      try {
+        const solutionAnalysis = await SolutionAnalysis.create({
+          userId,
+          problemId,
+          overallScore: analysisResult.overallScore,
+          aiConfidence: analysisResult.aiConfidence,
+          summary: analysisResult.summary,
+          evaluatedParameters: analysisResult.evaluatedParameters,
+          feedback: {
+            strengths: analysisResult.feedback.strengths,
+            areasForImprovement: analysisResult.feedback.areasForImprovement,
+            suggestions: analysisResult.feedback.suggestions
+          }
+        });
 
-      res.status(201).json(
-        new ApiResponse(
-          201,
-          'Solution analysis completed successfully',
-          { analysisId: solutionAnalysis._id }
-        )
-      );
+        console.log(`Created solution analysis with ID: ${solutionAnalysis._id}`);
+
+        res.status(201).json(
+          new ApiResponse(
+            201,
+            'Solution analysis completed successfully',
+            { analysisId: solutionAnalysis._id }
+          )
+        );
+      } catch (dbError) {
+        console.error('Error saving analysis to database:', dbError);
+        return next(new AppError('Failed to save analysis results', 500));
+      }
     } catch (error) {
       logger.error('Error in analyzeUserSolution:', error);
       return next(new AppError('Failed to analyze solution', 500));

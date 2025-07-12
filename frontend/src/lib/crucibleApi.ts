@@ -36,6 +36,7 @@ export interface ICrucibleProblem {
   subtasks?: string[];
   communityTips?: Array<{ content: string; author: string }>;
   aiPrompts?: string[];
+  technicalParameters?: string[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -65,6 +66,29 @@ export interface ISolutionDraft {
   autoSaveEnabled?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+export interface IAnalysisParameter {
+  name: string;
+  score: number;
+  justification: string;
+}
+
+export interface ISolutionAnalysisResult {
+  _id: string;
+  userId: string;
+  problemId: string;
+  overallScore: number;
+  aiConfidence: number;
+  summary: string;
+  evaluatedParameters: IAnalysisParameter[];
+  feedback: {
+    strengths: string[];
+    areasForImprovement: string[];
+    suggestions: string[];
+  };
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // A helper function to get the authorization header
@@ -204,4 +228,30 @@ export async function submitSolution(
         },
         getToken
     );
+}
+
+// Submit solution for analysis (auth required)
+export async function submitSolutionForAnalysis(
+  problemId: string,
+  getToken: () => Promise<string | null>
+): Promise<{ analysisId: string }> {
+  return apiRequest<{ analysisId: string }>(
+    `/crucible/${problemId}/analyze`,
+    {
+      method: 'POST',
+    },
+    getToken
+  );
+}
+
+// Get analysis result (auth required)
+export async function getAnalysisResult(
+  analysisId: string,
+  getToken: () => Promise<string | null>
+): Promise<ISolutionAnalysisResult> {
+  return apiRequest<ISolutionAnalysisResult>(
+    `/crucible/results/${analysisId}`,
+    {},
+    getToken
+  );
 } 

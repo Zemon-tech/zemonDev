@@ -35,16 +35,15 @@ export default function AppLayout() {
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
-      // TODO: Implement actual submission logic here
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulated API call
       
-      // Extract problem ID from URL
-      const problemId = location.pathname.split('/').pop();
-      // Navigate to result page
-      navigate(`${location.pathname}/result`);
+      // Dispatch the submit-solution event
+      window.dispatchEvent(new CustomEvent('submit-solution'));
+      
+      // We don't need to navigate here as the CrucibleWorkspaceView will handle the navigation
     } catch (error) {
       console.error('Failed to submit solution:', error);
-      // TODO: Show error toast
+      // Show error message
+      alert('Failed to submit solution. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

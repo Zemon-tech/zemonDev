@@ -38,6 +38,10 @@ const requiredEnvVars = [
   'MONGO_URI',
   'UPSTASH_REDIS_REST_URL',
   'UPSTASH_REDIS_REST_TOKEN',
+  'UPSTASH_VECTOR_REST_URL',
+  'UPSTASH_VECTOR_REST_TOKEN',
+  'GEMINI_API_KEY',
+  'GEMINI_PRO_API_KEY',
 ];
 
 // Always validate Clerk Secret Key, regardless of environment
@@ -50,6 +54,22 @@ if (env.NODE_ENV === 'production') {
   for (const key of requiredEnvVars) {
     if (!env[key as keyof EnvConfig]) {
       throw new Error(`Missing required environment variable: ${key}`);
+    }
+  }
+}
+
+// In development, warn about missing RAG system variables
+if (env.NODE_ENV === 'development') {
+  const ragSystemVars = [
+    'UPSTASH_VECTOR_REST_URL',
+    'UPSTASH_VECTOR_REST_TOKEN',
+    'GEMINI_API_KEY',
+    'GEMINI_PRO_API_KEY',
+  ];
+  
+  for (const key of ragSystemVars) {
+    if (!env[key as keyof EnvConfig]) {
+      console.warn(`Warning: ${key} is not defined. RAG system features may not work correctly.`);
     }
   }
 }

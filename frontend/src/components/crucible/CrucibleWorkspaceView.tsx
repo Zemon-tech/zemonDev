@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
-import { updateDraft, updateNotes, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft } from '../../lib/crucibleApi';
+import { updateDraft, updateNotes, submitSolutionForAnalysis, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft } from '../../lib/crucibleApi';
 import { logger } from '../../lib/utils';
 import { useWorkspace } from '../../lib/WorkspaceContext';
 import SolutionEditor from './SolutionEditor';
@@ -31,6 +31,7 @@ export default function CrucibleWorkspaceView({ problem, initialDraft, initialNo
   const [notesContent, setNotesContent] = useState(initialNotes?.[0]?.content || '');
   const [showProblemSidebar, setShowProblemSidebar] = useState(true);
   const [showChatSidebar, setShowChatSidebar] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Autosave solution draft
   useEffect(() => {
@@ -56,16 +57,81 @@ export default function CrucibleWorkspaceView({ problem, initialDraft, initialNo
   
   const handleNotesChange = useCallback((content: string) => setNotesContent(content), []);
 
+  // Handle submit button click
+  const handleSubmitSolution = useCallback(async () => {
+    if (!solutionContent.trim()) {
+      alert("Please provide a solution before submitting.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const token = await getToken();
+      if (!token) {
+        alert("You need to be signed in to submit a solution.");
+        return;
+      }
+
+      // Submit the solution for analysis
+      try {
+        const response = await submitSolutionForAnalysis(problem._id, () => Promise.resolve(token));
+        
+        if (!response || !response.analysisId) {
+          logger.error('Invalid response from submitSolutionForAnalysis:', response);
+          alert("Received an invalid response from the server. Please try again.");
+          return;
+        }
+        
+        // Log the response and navigation URL for debugging
+        logger.info('Analysis response:', response);
+        logger.info(`Navigating to: /crucible/results/${response.analysisId}`);
+        
+        // Navigate to the results page with the correct URL format
+        // The URL should be /crucible/results/{analysisId} not /crucible/problem/{problemId}/result
+        navigate(`/${window.location.pathname.split('/')[1]}/crucible/results/${response.analysisId}`);
+      } catch (apiError) {
+        logger.error('API error during solution submission:', apiError);
+        
+        // Provide more specific error messages based on the error
+        if (apiError instanceof Error) {
+          if (apiError.message.includes('401') || apiError.message.includes('403')) {
+            alert("Authentication error. Please sign in again and try.");
+          } else if (apiError.message.includes('404')) {
+            alert("The problem could not be found. It may have been removed.");
+          } else if (apiError.message.includes('429')) {
+            alert("You're submitting too many solutions too quickly. Please wait a moment and try again.");
+          } else if (apiError.message.includes('500')) {
+            alert("The server encountered an error while processing your solution. Our team has been notified.");
+          } else {
+            alert(`Error submitting solution: ${apiError.message}`);
+          }
+        } else {
+          alert("There was an error submitting your solution. Please try again.");
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to submit solution:', error);
+      alert("There was an error submitting your solution. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [solutionContent, problem._id, getToken, navigate]);
+
   useEffect(() => {
     const toggleProblem = () => setShowProblemSidebar(p => !p);
     const toggleChat = () => setShowChatSidebar(p => !p);
+    const handleSubmitClick = () => handleSubmitSolution();
+    
     window.addEventListener('toggle-problem-sidebar', toggleProblem);
     window.addEventListener('toggle-chat-sidebar', toggleChat);
+    window.addEventListener('submit-solution', handleSubmitClick);
+    
     return () => {
       window.removeEventListener('toggle-problem-sidebar', toggleProblem);
       window.removeEventListener('toggle-chat-sidebar', toggleChat);
+      window.removeEventListener('submit-solution', handleSubmitClick);
     };
-  }, []);
+  }, [handleSubmitSolution]);
 
   const handleCloseChatSidebar = useCallback(() => {
     setShowChatSidebar(false);
