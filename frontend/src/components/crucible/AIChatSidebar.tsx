@@ -8,6 +8,10 @@ import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
 import { updateNotes } from '../../lib/crucibleApi';
 import { useToast } from '../ui/toast';
+import { useWorkspace } from '../../lib/WorkspaceContext';
+import ShinyText from "../blocks/TextAnimations/ShinyText/ShinyText";
+
+
 
 interface Message {
   id: string;
@@ -41,6 +45,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
 }) => {
   const { getToken } = useAuth();
   const { toast } = useToast();
+  const { chatSidebarWidth, setChatSidebarWidth } = useWorkspace();
   const [messagesState, setMessages] = useState<Message[]>(
     initialMessages.map((m) => ({
       role: m.role,
@@ -51,7 +56,6 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
   );
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [width, setWidth] = useState(320);
   const [isResizing, setIsResizing] = useState(false);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -101,10 +105,10 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
       const maxWidth = window.innerWidth / 2;
       const newWidth = window.innerWidth - e.clientX;
       if (newWidth >= 280 && newWidth <= maxWidth) {
-        setWidth(newWidth);
+        setChatSidebarWidth(newWidth);
       }
     }
-  }, [isResizing]);
+  }, [isResizing, setChatSidebarWidth]);
 
   useEffect(() => {
     window.addEventListener('mousemove', resize);
@@ -268,9 +272,9 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
 
   return (
     <aside 
-      className="h-full bg-base-100 dark:bg-base-800 border-l border-base-200 dark:border-base-700 flex flex-col overflow-hidden relative"
+      className="h-full bg-base-100 dark:bg-base-800 border-l border-base-200 dark:border-base-700 shadow-lg flex flex-col overflow-hidden relative"
       style={{ 
-        width: `${width}px`,
+        width: `${chatSidebarWidth}px`,
         minWidth: '280px',
         maxWidth: '50vw',
         transition: isResizing ? 'none' : 'width 0.1s ease-out'
@@ -297,68 +301,70 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
 
       {/* Chat messages */}
       <ScrollArea.Root className="flex-1 relative">
-        <ScrollArea.Viewport className="absolute inset-0 overflow-y-auto">
-          <div className="p-4 space-y-4">
-            {messagesState.map((message) => (
-              <div
-                key={message.id}
-                className={`chat ${message.role === 'user' ? 'chat-end' : 'chat-start'} group`}
-              >
-                <div className="chat-header opacity-50 text-xs mb-1">
-                  {message.role === 'user' ? 'You' : 'AI Assistant'}
-                </div>
-                <div className={`chat-bubble ${message.role === 'assistant' ? 'chat-bubble-primary' : ''}`}>
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        code: ({ inline, className, children, ...props }: CodeBlockProps) => {
-                          const match = /language-(\w+)/.exec(className || '');
-                          return !inline && match ? (
-                            <SyntaxHighlighter
-                              style={oneDark}
-                              language={match[1]}
-                              PreTag="div"
-                              {...props}
-                            >
-                              {String(children || '').replace(/\n$/, '')}
-                            </SyntaxHighlighter>
-                          ) : (
-                            <code className={className} {...props}>
-                              {children}
-                            </code>
-                          );
-                        }
-                      }}
-                    >
-                      {message.content}
-                    </ReactMarkdown>
+        <>
+          <ScrollArea.Viewport className="absolute inset-0 overflow-y-auto">
+            <div className="p-4 space-y-4">
+              {messagesState.map((message) => (
+                <div
+                  key={message.id}
+                  className={`chat ${message.role === 'user' ? 'chat-end' : 'chat-start'} group`}
+                >
+                  <div className="chat-header opacity-50 text-xs mb-1">
+                    {message.role === 'user' ? 'You' : 'AI Assistant'}
+                  </div>
+                  <div className={`chat-bubble ${message.role === 'assistant' ? 'chat-bubble-primary' : ''}`}>
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          code: ({ inline, className, children, ...props }: CodeBlockProps) => {
+                            const match = /language-(\w+)/.exec(className || '');
+                            return !inline && match ? (
+                              <SyntaxHighlighter
+                                style={oneDark}
+                                language={match[1]}
+                                PreTag="div"
+                                {...props}
+                              >
+                                {String(children || '').replace(/\n$/, '')}
+                              </SyntaxHighlighter>
+                            ) : (
+                              <code className={className} {...props}>
+                                {children}
+                              </code>
+                            );
+                          }
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                  <div className="chat-footer opacity-50 text-xs mt-1">
+                    <MessageActions message={message} />
                   </div>
                 </div>
-                <div className="chat-footer opacity-50 text-xs mt-1">
-                  <MessageActions message={message} />
+              ))}
+              {isLoading && (
+                <div className="chat chat-start">
+                  <div className="chat-header opacity-50 text-xs mb-1">
+                    AI Assistant
+                  </div>
+                  <div className="chat-bubble bg-base-200/50 dark:bg-base-700/50">
+                    <ShinyText text="Thinking..." className="text-sm text-base-content/70" speed={3} />
+                  </div>
                 </div>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="chat chat-start">
-                <div className="chat-header opacity-50 text-xs mb-1">
-                  AI Assistant
-                </div>
-                <div className="chat-bubble chat-bubble-primary">
-                  Thinking...
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-        </ScrollArea.Viewport>
-        <ScrollArea.Scrollbar 
-          className="flex select-none touch-none p-0.5 bg-base-200/50 transition-colors duration-150 ease-out hover:bg-base-300/50 data-[orientation=vertical]:w-2 data-[orientation=horizontal]:flex-col data-[orientation=horizontal]:h-2" 
-          orientation="vertical"
-        >
-          <ScrollArea.Thumb className="flex-1 bg-base-300 rounded-[10px] relative before:content-[''] before:absolute before:top-1/2 before:left-1/2 before:-translate-x-1/2 before:-translate-y-1/2 before:w-full before:h-full before:min-w-[44px] before:min-h-[44px]" />
-        </ScrollArea.Scrollbar>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea.Viewport>
+          <ScrollArea.Scrollbar 
+            className="flex select-none touch-none p-0.5 bg-base-200/50 transition-colors duration-150 ease-out hover:bg-base-300/50 data-[orientation=vertical]:w-2 data-[orientation=horizontal]:flex-col data-[orientation=horizontal]:h-2" 
+            orientation="vertical"
+          >
+            <ScrollArea.Thumb className="flex-1 bg-base-300 rounded-[10px] relative before:content-[''] before:absolute before:top-1/2 before:left-1/2 before:-translate-x-1/2 before:-translate-y-1/2 before:w-full before:h-full before:min-w-[44px] before:min-h-[44px]" />
+          </ScrollArea.Scrollbar>
+        </>
       </ScrollArea.Root>
       
       {/* Input area */}

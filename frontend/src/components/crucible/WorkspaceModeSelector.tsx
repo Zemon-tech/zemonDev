@@ -70,7 +70,7 @@ export default function WorkspaceModeSelector() {
   const nextMode = getNextValidMode(currentMode);
 
   return (
-    <div className="bg-base-100 dark:bg-base-800 border-b border-base-200 dark:border-base-700 mb-2">
+    <div className="bg-base-100 dark:bg-base-800 border-b border-base-200 dark:border-base-700 mb-2 shadow-md">
       {/* Tab Strip */}
       <div className="flex w-full">
         {(Object.entries(modeInfo) as [WorkspaceMode, ModeInfo][]).map(([mode, info]) => {

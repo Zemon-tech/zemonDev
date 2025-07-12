@@ -18,6 +18,12 @@ interface WorkspaceState {
   wordCount?: number;
   mode?: WorkspaceMode;
   activeContent?: ContentType;
+  showProblemSidebar?: boolean;
+  showChatSidebar?: boolean;
+  isResearchPaneOpen?: boolean;
+  isWorkspaceModeVisible?: boolean;
+  problemSidebarWidth?: number;
+  chatSidebarWidth?: number;
 }
 
 interface WorkspaceContextType {
@@ -42,13 +48,44 @@ interface WorkspaceContextType {
   toggleResearchPane: () => void;
   isWorkspaceModeVisible: boolean;
   toggleWorkspaceModeVisibility: () => void;
+  showProblemSidebar: boolean;
+  setShowProblemSidebar: (show: boolean) => void;
+  showChatSidebar: boolean;
+  setShowChatSidebar: (show: boolean) => void;
+  
+  // Sidebar widths
+  problemSidebarWidth: number;
+  setProblemSidebarWidth: (width: number) => void;
+  chatSidebarWidth: number;
+  setChatSidebarWidth: (width: number) => void;
   
   // State management
   currentProblem?: ICrucibleProblem;
   updateWorkspaceState: (state: WorkspaceState) => void;
+  loadWorkspaceState: (problemId: string) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | null>(null);
+
+// Helper function to get workspace state from localStorage
+const getStoredWorkspaceState = (problemId: string): WorkspaceState | null => {
+  try {
+    const stored = localStorage.getItem(`workspace_state_${problemId}`);
+    return stored ? JSON.parse(stored) : null;
+  } catch (error) {
+    console.error('Error reading workspace state from localStorage:', error);
+    return null;
+  }
+};
+
+// Helper function to save workspace state to localStorage
+const saveWorkspaceState = (problemId: string, state: WorkspaceState) => {
+  try {
+    localStorage.setItem(`workspace_state_${problemId}`, JSON.stringify(state));
+  } catch (error) {
+    console.error('Error saving workspace state to localStorage:', error);
+  }
+};
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   // Mode state
@@ -67,6 +104,56 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   // UI visibility states
   const [isResearchPaneOpen, setIsResearchPaneOpen] = useState(true);
   const [isWorkspaceModeVisible, setIsWorkspaceModeVisible] = useState(true);
+  const [showProblemSidebar, setShowProblemSidebar] = useState(true);
+  const [showChatSidebar, setShowChatSidebar] = useState(false);
+  
+  // Sidebar width states
+  const [problemSidebarWidth, setProblemSidebarWidth] = useState(320);
+  const [chatSidebarWidth, setChatSidebarWidth] = useState(320);
+
+  // Load workspace state for a specific problem
+  const loadWorkspaceState = useCallback((problemId: string) => {
+    const stored = getStoredWorkspaceState(problemId);
+    if (stored) {
+      if (stored.mode) setMode(stored.mode);
+      if (stored.activeContent) setActiveContent(stored.activeContent);
+      if (stored.showProblemSidebar !== undefined) setShowProblemSidebar(stored.showProblemSidebar);
+      if (stored.showChatSidebar !== undefined) setShowChatSidebar(stored.showChatSidebar);
+      if (stored.isResearchPaneOpen !== undefined) setIsResearchPaneOpen(stored.isResearchPaneOpen);
+      if (stored.isWorkspaceModeVisible !== undefined) setIsWorkspaceModeVisible(stored.isWorkspaceModeVisible);
+      if (stored.problemSidebarWidth !== undefined) setProblemSidebarWidth(stored.problemSidebarWidth);
+      if (stored.chatSidebarWidth !== undefined) setChatSidebarWidth(stored.chatSidebarWidth);
+    }
+  }, []);
+
+  // Save workspace state whenever relevant state changes
+  useEffect(() => {
+    if (currentProblem?._id) {
+      const state: WorkspaceState = {
+        mode: currentMode,
+        activeContent,
+        showProblemSidebar,
+        showChatSidebar,
+        isResearchPaneOpen,
+        isWorkspaceModeVisible,
+        wordCount,
+        problemSidebarWidth,
+        chatSidebarWidth
+      };
+      saveWorkspaceState(currentProblem._id, state);
+    }
+  }, [
+    currentProblem?._id,
+    currentMode,
+    activeContent,
+    showProblemSidebar,
+    showChatSidebar,
+    isResearchPaneOpen,
+    isWorkspaceModeVisible,
+    wordCount,
+    problemSidebarWidth,
+    chatSidebarWidth
+  ]);
 
   // Memoize callback functions to prevent unnecessary re-renders
   const addNote = useCallback((note: { content: string; tags: string[] }) => {
@@ -96,15 +183,20 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     if (state.wordCount !== undefined) setWordCount(state.wordCount);
     if (state.mode !== undefined) setMode(state.mode);
     if (state.activeContent !== undefined) setActiveContent(state.activeContent);
+    if (state.showProblemSidebar !== undefined) setShowProblemSidebar(state.showProblemSidebar);
+    if (state.showChatSidebar !== undefined) setShowChatSidebar(state.showChatSidebar);
+    if (state.isResearchPaneOpen !== undefined) setIsResearchPaneOpen(state.isResearchPaneOpen);
+    if (state.isWorkspaceModeVisible !== undefined) setIsWorkspaceModeVisible(state.isWorkspaceModeVisible);
+    if (state.problemSidebarWidth !== undefined) setProblemSidebarWidth(state.problemSidebarWidth);
+    if (state.chatSidebarWidth !== undefined) setChatSidebarWidth(state.chatSidebarWidth);
   }, []);
-  
+
   // Event listeners for UI control
   useEffect(() => {
     const handleSwitchContent = (e: CustomEvent) => {
       if (e.detail && (e.detail === 'solution' || e.detail === 'notes')) {
         setActiveContent(e.detail);
       } else {
-        // Toggle if no specific content type is provided
         setActiveContent(prev => prev === 'solution' ? 'notes' : 'solution');
       }
     };
@@ -113,7 +205,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       toggleWorkspaceModeVisibility();
     };
     
-    // Use proper event type casting
     window.addEventListener('switch-content', handleSwitchContent as EventListener);
     window.addEventListener('toggle-workspace-mode', handleToggleWorkspaceMode);
     
@@ -123,7 +214,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     };
   }, [toggleWorkspaceModeVisibility]);
 
-  // Memoize the context value to prevent unnecessary re-renders
   const value = {
     currentMode,
     setMode,
@@ -139,8 +229,17 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setActiveContent,
     isWorkspaceModeVisible,
     toggleWorkspaceModeVisibility,
+    showProblemSidebar,
+    setShowProblemSidebar,
+    showChatSidebar,
+    setShowChatSidebar,
+    problemSidebarWidth,
+    setProblemSidebarWidth,
+    chatSidebarWidth,
+    setChatSidebarWidth,
     currentProblem,
     updateWorkspaceState,
+    loadWorkspaceState
   };
 
   return (

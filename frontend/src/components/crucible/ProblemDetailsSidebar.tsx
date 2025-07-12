@@ -1,6 +1,7 @@
 import { ScrollArea } from '@radix-ui/react-scroll-area';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@radix-ui/react-accordion';
 import React, { useState, useCallback, useEffect } from 'react';
+import { useWorkspace } from '../../lib/WorkspaceContext';
 import { 
   Clock, 
   CheckCircle2, 
@@ -31,7 +32,6 @@ interface Props {
   tags: string[];
   estimatedTime?: number;
   learningObjectives?: string[];
-  defaultWidth?: number;
   minWidth?: number;
 }
 
@@ -138,10 +138,9 @@ export default function ProblemDetailsSidebar({
   tags,
   estimatedTime,
   learningObjectives,
-  defaultWidth = 320,
   minWidth = 280,
 }: Props) {
-  const [width, setWidth] = useState(defaultWidth);
+  const { problemSidebarWidth, setProblemSidebarWidth } = useWorkspace();
   const [isResizing, setIsResizing] = useState(false);
   const normalizedRequirements = normalizeRequirements(requirements);
 
@@ -159,10 +158,10 @@ export default function ProblemDetailsSidebar({
       const newWidth = e.clientX;
       const maxWidth = window.innerWidth / 2;
       if (newWidth >= minWidth && newWidth <= maxWidth) {
-        setWidth(newWidth);
+        setProblemSidebarWidth(newWidth);
       }
     }
-  }, [isResizing, minWidth]);
+  }, [isResizing, minWidth, setProblemSidebarWidth]);
 
   useEffect(() => {
     window.addEventListener('mousemove', resize);
@@ -182,7 +181,7 @@ export default function ProblemDetailsSidebar({
     <aside 
       className="h-full bg-base-100 dark:bg-base-800 border-r border-base-200 dark:border-base-700 flex flex-col overflow-hidden relative"
       style={{ 
-        width: `${width}px`,
+        width: `${problemSidebarWidth}px`,
         minWidth: `${minWidth}px`,
         maxWidth: '50vw',
         transition: isResizing ? 'none' : 'width 0.1s ease-out'
