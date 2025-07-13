@@ -25,6 +25,9 @@ export default function AppLayout() {
   const isCrucibleProblemPage = /^\/[\w-]+\/crucible\/problem\/.+/.test(location.pathname);
   const isResultPage = location.pathname.includes('/result');
   
+  // Show arena nav buttons only on /:username/arena
+  const isArenaPage = /^\/[\w-]+\/arena$/.test(location.pathname);
+  
   // Only show submit button on problem page, not on result page
   const showSubmitButton = isCrucibleProblemPage && !isResultPage;
   
@@ -204,6 +207,15 @@ export default function AppLayout() {
                   <Layers className="w-4 h-4" />
                   <span className="hidden sm:inline ml-1 text-xs">Mode</span>
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* Arena Navigation */}
+          {isArenaPage && (
+            <div className="hidden md:flex items-center gap-2">
+              <div className="flex items-center gap-4">
+                {/* Removed chat/leaderboard/showcase buttons */}
               </div>
             </div>
           )}

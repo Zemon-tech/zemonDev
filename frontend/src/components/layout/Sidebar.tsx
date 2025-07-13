@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Settings, User, Hammer, Beaker, Swords, X, Code } from 'lucide-react';
+import { Home, Settings, User, Hammer, Beaker, Swords, X, Code, PanelLeftClose } from 'lucide-react';
 import React from 'react';
 
 interface SidebarProps {
@@ -13,6 +13,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, current
   
   // Check if we're on a problem page
   const isCrucibleProblemPage = /^\/[\w-]+\/crucible\/problem\/.+/.test(location.pathname);
+  
+  // Check if we're on the arena page
+  const isArenaPage = /^\/[\w-]+\/arena/.test(location.pathname);
   
   // More precise active route check
   const isExactRouteActive = (route: string) => {
@@ -53,6 +56,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, current
         <div className="mt-2 px-2 py-1 mx-auto rounded-md bg-primary/10 flex items-center justify-center tooltip" data-tip="Problem workspace active">
           <Code size={16} className="text-primary" />
         </div>
+      )}
+      
+      {/* Arena indicator (when sidebar is collapsed) */}
+      {!isOpen && isArenaPage && (
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('toggle-arena-sidebar'))}
+          className="mt-2 px-2 py-1 mx-auto rounded-md bg-primary/10 flex items-center justify-center tooltip hover:bg-primary/20 transition-colors"
+          data-tip="Arena sidebar collapsed"
+        >
+          <PanelLeftClose size={16} className="text-primary" />
+        </button>
       )}
       
       {/* Sidebar Links */}

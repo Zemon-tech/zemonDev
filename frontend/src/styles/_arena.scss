@@ -1,0 +1,186 @@
+// Arena specific variables
+:root {
+  // Layout
+  --arena-sidebar-width: 280px;
+  --arena-header-height: 60px;
+  --arena-chat-input-height: 64px;
+  --arena-message-spacing: 1rem;
+  
+  // Colors
+  --arena-channel-hover: rgba(var(--color-primary), 0.1);
+  --arena-message-bg: var(--color-card);
+  --arena-thread-border: var(--color-border);
+  --arena-unread-bg: var(--color-primary);
+  --arena-special-text: var(--color-primary);
+  
+  // Animations
+  --arena-transition: 0.2s ease-in-out;
+  --arena-hover-scale: scale(1.02);
+  --arena-active-scale: scale(0.98);
+  
+  // Shadows
+  --arena-card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --arena-hover-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  
+  // Z-indices
+  --arena-sidebar-z: 10;
+  --arena-modal-z: 50;
+  --arena-tooltip-z: 40;
+  --arena-dropdown-z: 30;
+  --arena-overlay-z: 20;
+}
+
+// Dark mode overrides
+.dark {
+  --arena-channel-hover: rgba(var(--color-primary), 0.15);
+  --arena-message-bg: var(--color-card-dark);
+  --arena-thread-border: var(--color-border-dark);
+  --arena-card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+  --arena-hover-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.2), 0 4px 6px -4px rgb(0 0 0 / 0.2);
+}
+
+// Base layout styles
+.arena-layout {
+  display: grid;
+  height: 100vh;
+  overflow: hidden;
+  
+  @media (min-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+  
+  @media (min-width: 768px) {
+    grid-template-columns: var(--arena-sidebar-width) 1fr;
+  }
+  
+  @media (min-width: 1024px) {
+    grid-template-columns: var(--arena-sidebar-width) 1fr 280px;
+  }
+}
+
+// Sidebar styles
+.arena-sidebar {
+  background: var(--arena-message-bg);
+  border-right: 1px solid var(--arena-thread-border);
+  height: 100vh;
+  overflow-y: auto;
+  position: fixed;
+  width: var(--arena-sidebar-width);
+  z-index: var(--arena-sidebar-z);
+  
+  @apply backdrop-blur-xl;
+  
+  @media (min-width: 640px) {
+    transform: translateX(-100%);
+    transition: transform var(--arena-transition);
+    
+    &.open {
+      transform: translateX(0);
+    }
+  }
+}
+
+// Channel styles
+.arena-channel {
+  @apply rounded-lg transition-all duration-200;
+  
+  &:hover {
+    background: var(--arena-channel-hover);
+  }
+  
+  &.active {
+    background: var(--arena-channel-hover);
+    @apply text-primary;
+  }
+  
+  &.special {
+    @apply text-primary font-medium;
+  }
+}
+
+// Message styles
+.arena-message {
+  background: var(--arena-message-bg);
+  border: 1px solid var(--arena-thread-border);
+  margin-bottom: var(--arena-message-spacing);
+  @apply rounded-lg p-4;
+  
+  &:hover {
+    @apply shadow-lg;
+    transform: var(--arena-hover-scale);
+  }
+  
+  &.thread {
+    @apply ml-8 relative;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      left: -16px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--arena-thread-border);
+    }
+  }
+}
+
+// Project card styles
+.arena-project-card {
+  background: var(--arena-message-bg);
+  border: 1px solid var(--arena-thread-border);
+  @apply rounded-xl p-6 transition-all duration-200;
+  
+  &:hover {
+    transform: var(--arena-hover-scale);
+    box-shadow: var(--arena-hover-shadow);
+  }
+  
+  &:active {
+    transform: var(--arena-active-scale);
+  }
+}
+
+// Animation classes
+.arena-fade-in {
+  animation: arenaFadeIn 0.3s ease-in-out;
+}
+
+.arena-slide-in {
+  animation: arenaSlideIn 0.3s ease-in-out;
+}
+
+.arena-zoom-in {
+  animation: arenaZoomIn 0.3s ease-in-out;
+}
+
+@keyframes arenaFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes arenaSlideIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes arenaZoomIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+} 

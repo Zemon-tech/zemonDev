@@ -23,6 +23,7 @@ import ForgeDetailPage from './pages/ForgeDetailPage';
 import CruciblePage from './pages/CruciblePage';
 import CrucibleProblemPage from './pages/CrucibleProblemPage';
 import ResultPage from './pages/ResultPage';
+import ArenaPage from './pages/ArenaPage';
 
 // Root route component to handle authenticated users
 function RootRoute() {
@@ -91,7 +92,7 @@ function App() {
                 <Route path="crucible/problem/:id/result" element={<ResultPage />} />
                 {/* Add the correct route for the results page */}
                 <Route path="crucible/results/:analysisId" element={<ResultPage />} />
-                <Route path="arena" element={<PlaceholderPage title="Arena" description="Compete with peers in coding competitions." />} />
+                <Route path="arena" element={<ArenaPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="settings" element={<PlaceholderPage title="Settings" description="Configure your account settings and preferences." />} />
               </Route>
