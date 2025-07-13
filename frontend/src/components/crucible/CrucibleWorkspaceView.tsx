@@ -25,13 +25,23 @@ export default function CrucibleWorkspaceView({ problem, initialDraft, initialNo
     setWordCount,
     activeContent,
     isWorkspaceModeVisible,
+    showProblemSidebar,
+    setShowProblemSidebar,
+    showChatSidebar,
+    setShowChatSidebar,
+    loadWorkspaceState,
+    updateWorkspaceState
   } = useWorkspace();
   
   const [solutionContent, setSolutionContent] = useState(initialDraft?.currentContent || '');
   const [notesContent, setNotesContent] = useState(initialNotes?.[0]?.content || '');
-  const [showProblemSidebar, setShowProblemSidebar] = useState(true);
-  const [showChatSidebar, setShowChatSidebar] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Load workspace state when problem changes
+  useEffect(() => {
+    loadWorkspaceState(problem._id);
+    updateWorkspaceState({ currentProblem: problem });
+  }, [problem._id, loadWorkspaceState, updateWorkspaceState, problem]);
   
   // Autosave solution draft
   useEffect(() => {
@@ -126,10 +136,9 @@ export default function CrucibleWorkspaceView({ problem, initialDraft, initialNo
   }, [solutionContent, problem._id, getToken, navigate]);
 
   useEffect(() => {
-    const toggleProblem = () => setShowProblemSidebar(p => !p);
-    const toggleChat = () => setShowChatSidebar(p => !p);
+    const toggleProblem = () => setShowProblemSidebar(!showProblemSidebar);
+    const toggleChat = () => setShowChatSidebar(!showChatSidebar);
     const handleSubmitClick = () => handleSubmitSolution();
-    
     window.addEventListener('toggle-problem-sidebar', toggleProblem);
     window.addEventListener('toggle-chat-sidebar', toggleChat);
     window.addEventListener('submit-solution', handleSubmitClick);
@@ -139,11 +148,11 @@ export default function CrucibleWorkspaceView({ problem, initialDraft, initialNo
       window.removeEventListener('toggle-chat-sidebar', toggleChat);
       window.removeEventListener('submit-solution', handleSubmitClick);
     };
-  }, [handleSubmitSolution]);
+  }, [handleSubmitSolution, setShowProblemSidebar, setShowChatSidebar, showProblemSidebar, showChatSidebar]);
 
   const handleCloseChatSidebar = useCallback(() => {
     setShowChatSidebar(false);
-  }, []);
+  }, [setShowChatSidebar]);
 
   return (
     <div className="flex h-full bg-base-100">
@@ -159,9 +168,9 @@ export default function CrucibleWorkspaceView({ problem, initialDraft, initialNo
           learningObjectives={problem.learningObjectives}
         />
       )}
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-hidden flex flex-col border-x border-base-200 dark:border-base-700 shadow-lg">
         {isWorkspaceModeVisible && <WorkspaceModeSelector />}
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-auto p-4 bg-base-50 dark:bg-base-900">
           {activeContent === 'solution' ? (
             <SolutionEditor value={solutionContent} onChange={handleEditorChange} />
           ) : (

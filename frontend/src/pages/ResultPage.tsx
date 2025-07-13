@@ -46,36 +46,46 @@ interface LoadingState {
   error: string | null;
 }
 
-const CharacteristicBadge = ({ icon: Icon, name, score, justification }: any) => (
-  <TiltCard className="relative group">
-    <SpotlightCard className="p-3 flex items-center gap-3 bg-base-200/50 backdrop-blur-sm border border-base-300 rounded-lg hover:shadow-lg transition-all cursor-default">
-      <FloatingIcon icon={Icon} className="w-8 h-8 text-primary" />
-      <div className="flex-1 min-w-0">
-        <h3 className="text-sm font-medium truncate">{name}</h3>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-1.5 bg-base-300 rounded-full overflow-hidden">
-            <motion.div 
-              className="h-full bg-gradient-to-r from-primary to-accent"
-              initial={{ width: 0 }}
-              animate={{ width: `${score}%` }}
-              transition={{ duration: 1, delay: 0.5 }}
+const CharacteristicBadge = ({ icon: Icon, name, score, justification }: any) => {
+  // Determine color based on score
+  const getProgressColor = (score: number) => {
+    if (score <= 25) return "from-red-500 to-red-600";
+    if (score <= 50) return "from-orange-500 to-orange-600";
+    if (score <= 75) return "from-yellow-500 to-yellow-600";
+    return "from-green-500 to-green-600";
+  };
+
+  return (
+    <TiltCard className="relative group">
+      <SpotlightCard className="p-3 flex items-center gap-3 bg-base-200/50 backdrop-blur-sm border border-base-300 rounded-lg hover:shadow-lg transition-all cursor-default">
+        <FloatingIcon icon={Icon} className="w-8 h-8 text-primary" />
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-medium truncate">{name}</h3>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-1.5 bg-base-300 rounded-full overflow-hidden">
+              <motion.div 
+                className={`h-full bg-gradient-to-r ${getProgressColor(score)}`}
+                initial={{ width: 0 }}
+                animate={{ width: `${score}%` }}
+                transition={{ duration: 1, delay: 0.5 }}
+              />
+            </div>
+            <CountUp 
+              from={0} 
+              to={score} 
+              duration={1.5}
+              className="text-sm font-bold text-primary"
+              suffix="%"
             />
           </div>
-          <CountUp 
-            from={0} 
-            to={score} 
-            duration={1.5}
-            className="text-sm font-bold text-primary"
-            suffix="%"
-          />
+          <div className="hidden group-hover:block absolute top-full left-0 right-0 mt-2 p-3 bg-base-100 border border-base-300 rounded-lg shadow-lg z-10 text-sm">
+            {justification}
+          </div>
         </div>
-        <div className="hidden group-hover:block absolute top-full left-0 right-0 mt-2 p-3 bg-base-100 border border-base-300 rounded-lg shadow-lg z-10 text-sm">
-          {justification}
-        </div>
-      </div>
-    </SpotlightCard>
-  </TiltCard>
-);
+      </SpotlightCard>
+    </TiltCard>
+  );
+};
 
 // Map of parameter names to icons
 const parameterIcons: Record<string, any> = {
