@@ -4,6 +4,7 @@ import AppError from '../utils/AppError';
 import ApiResponse from '../utils/ApiResponse';
 import { ArenaChannel, ArenaMessage, UserChannelStatus } from '../models';
 import mongoose from 'mongoose';
+import { emitToChannel } from '../services/socket.service';
 
 /**
  * @desc    Get all channels grouped by category
@@ -159,6 +160,9 @@ export const createMessage = asyncHandler(
       { upsert: true }
     );
 
+    // Emit the new message to all users in the channel via Socket.IO
+    emitToChannel(channelId, 'new_message', populatedMessage);
+
     res.status(201).json(
       new ApiResponse(
         201,
@@ -199,6 +203,9 @@ export const deleteMessage = asyncHandler(
     message.deletedAt = new Date();
     message.deletedBy = userId;
     await message.save();
+
+    // Notify all users in the channel about the deleted message
+    emitToChannel(channelId, 'message_deleted', { messageId });
 
     res.status(200).json(
       new ApiResponse(

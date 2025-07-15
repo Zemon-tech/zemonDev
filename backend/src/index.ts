@@ -7,15 +7,20 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
+import { createServer } from 'http';
 
 import connectDB from './config/database';
 import { connectRedis } from './config/redis';
 import apiRoutes from './api';
 import errorMiddleware from './middleware/error.middleware';
 import AppError from './utils/AppError';
+import { initializeSocketIO } from './services/socket.service';
 
 // Initialize Express app
 const app = express();
+
+// Create HTTP server
+const server = createServer(app);
 
 // Connect to MongoDB
 connectDB();
@@ -56,11 +61,17 @@ app.use('*', (req, res, next) => {
 // Error handling middleware
 app.use(errorMiddleware);
 
+// Initialize Socket.IO
+const io = initializeSocketIO(server);
+
 // Start server
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
+const SOCKET_PORT = process.env.SOCKET_IO_PORT || PORT;
+
+server.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   console.log(`API available at http://localhost:${PORT}/api`);
+  console.log(`Socket.IO available on port ${PORT}`);
 });
 
 // Handle uncaught exceptions
