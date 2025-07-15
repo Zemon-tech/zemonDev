@@ -1,6 +1,13 @@
 import { Socket } from 'socket.io';
 import { verifyToken } from '@clerk/clerk-sdk-node';
 
+/**
+ * Socket.IO authentication middleware
+ * Verifies the JWT token from the socket handshake using Clerk SDK
+ * 
+ * @param socket - Socket.IO socket instance
+ * @param next - Next function to call when authentication is complete
+ */
 export const authenticateSocket = async (socket: Socket, next: Function) => {
   try {
     const token = socket.handshake.auth.token;
@@ -9,38 +16,37 @@ export const authenticateSocket = async (socket: Socket, next: Function) => {
       return next(new Error('Authentication error: Token missing'));
     }
 
+    // Extract Bearer token
+    if (!token.startsWith('Bearer ')) {
+      return next(new Error('Authentication error: Invalid token format'));
+    }
+
+    const tokenValue = token.split(' ')[1];
+    
     try {
-      // Get the token from the socket handshake
-      if (!token.startsWith('Bearer ')) {
-        return next(new Error('Authentication error: Invalid token format'));
+      // Use Clerk's proper token verification
+      const session = await verifyToken(tokenValue, {
+        secretKey: process.env.CLERK_SECRET_KEY,
+        issuer: process.env.CLERK_ISSUER || 'https://clerk.yourdomain.com'
+      });
+      
+      if (!session) {
+        return next(new Error('Authentication error: Invalid token'));
       }
       
-      const tokenValue = token.split(' ')[1];
+      // Attach user info to socket
+      socket.data.user = {
+        userId: session.sub,
+        sessionId: session.sid || ''
+      };
       
-      // Attach user info to socket based on token verification
-      // Note: In a real implementation, we would verify the token properly
-      // For now, we'll use a simplified approach since we're having issues with Clerk's verifyToken
-      
-      // Extract user ID from token (simplified for demo purposes)
-      // In production, use proper JWT verification
-      try {
-        // Parse the JWT payload (this is simplified and not secure for production)
-        const base64Payload = tokenValue.split('.')[1];
-        const payload = JSON.parse(Buffer.from(base64Payload, 'base64').toString());
-        
-        socket.data.user = {
-          userId: payload.sub,
-          sessionId: payload.sid || ''
-        };
-        
-        next();
-      } catch (error) {
-        return next(new Error('Authentication error: Could not parse token'));
-      }
+      next();
     } catch (error) {
+      console.error('Token verification error:', error);
       return next(new Error('Authentication error: Invalid token'));
     }
   } catch (error) {
+    console.error('Socket authentication error:', error);
     next(new Error('Authentication error'));
   }
 }; 
