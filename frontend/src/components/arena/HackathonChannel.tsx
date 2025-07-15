@@ -20,45 +20,17 @@ import {
   Zap,
   Target,
   GitBranch,
-  MessageSquare
+  MessageSquare,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
-
-interface Challenge {
-  id: string;
-  title: string;
-  description: string;
-  difficulty: 'easy' | 'medium' | 'hard';
-  points: number;
-  timeLimit: string;
-  startDate: Date;
-  endDate: Date;
-  participants: number;
-  submissions: number;
-  requirements: string[];
-  testCases?: string[];
-  resources?: Array<{
-    title: string;
-    url: string;
-  }>;
-}
+import { useArenaHackathon } from '@/hooks/useArenaHackathon';
 
 interface Submission {
-  id: string;
-  author: {
-    id: string;
-    name: string;
-    avatar?: string;
-    role: string;
-  };
-  submittedAt: Date;
+  userId: string;
+  username: string;
   score: number;
-  status: 'pending' | 'accepted' | 'rejected';
-  solutionUrl: string;
-  stats?: {
-    performance: number;
-    quality: number;
-    creativity: number;
-  };
+  submissionTime: Date;
 }
 
 interface HackathonChannelProps {
@@ -66,76 +38,7 @@ interface HackathonChannelProps {
 }
 
 const HackathonChannel: React.FC<HackathonChannelProps> = ({ isAdmin = false }) => {
-  // Mock data
-  const currentChallenge: Challenge = {
-    id: '1',
-    title: 'Build a Real-time Chat Application',
-    description: 'Create a real-time chat application using WebSocket technology. The application should support multiple chat rooms, private messaging, and message history.',
-    difficulty: 'medium',
-    points: 500,
-    timeLimit: '7 days',
-    startDate: new Date('2024-03-15'),
-    endDate: new Date('2024-03-22'),
-    participants: 156,
-    submissions: 42,
-    requirements: [
-      'Implement real-time messaging using WebSocket',
-      'Support multiple chat rooms',
-      'Enable private messaging between users',
-      'Store message history',
-      'Add user presence indicators',
-      'Implement basic message formatting'
-    ],
-    resources: [
-      {
-        title: 'WebSocket API Documentation',
-        url: 'https://developer.mozilla.org/en-US/docs/Web/API/WebSocket'
-      },
-      {
-        title: 'Real-time Apps with WebSocket',
-        url: 'https://example.com/websocket-tutorial'
-      }
-    ]
-  };
-
-  const topSubmissions: Submission[] = [
-    {
-      id: '1',
-      author: {
-        id: '1',
-        name: 'Alex Developer',
-        avatar: 'https://github.com/shadcn.png',
-        role: 'Expert'
-      },
-      submittedAt: new Date('2024-03-20'),
-      score: 485,
-      status: 'accepted',
-      solutionUrl: 'https://github.com/username/chat-app',
-      stats: {
-        performance: 95,
-        quality: 92,
-        creativity: 88
-      }
-    },
-    {
-      id: '2',
-      author: {
-        id: '2',
-        name: 'Jane Smith',
-        avatar: 'https://github.com/shadcn.png',
-        role: 'Advanced'
-      },
-      submittedAt: new Date('2024-03-19'),
-      score: 470,
-      status: 'accepted',
-      solutionUrl: 'https://github.com/username/realtime-chat',
-      stats: {
-        performance: 90,
-        quality: 94,
-        creativity: 85
-      }
-    }
-  ];
+  const { currentHackathon, loading, error } = useArenaHackathon();
 
   // Animation variants
   const containerVariants = {
@@ -158,14 +61,50 @@ const HackathonChannel: React.FC<HackathonChannelProps> = ({ isAdmin = false }) 
   };
 
   // Calculate time remaining
-  const timeRemaining = () => {
+  const timeRemaining = (endDate: Date) => {
     const now = new Date();
-    const end = currentChallenge.endDate;
+    const end = new Date(endDate);
     const diff = end.getTime() - now.getTime();
+    
+    if (diff <= 0) {
+      return 'Challenge ended';
+    }
+    
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     return `${days}d ${hours}h remaining`;
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <p className="mt-2 text-base-content/70">Loading hackathon data...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <AlertCircle className="w-8 h-8 text-error" />
+        <p className="mt-2 text-error">{error}</p>
+        <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (!currentHackathon) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <Trophy className="w-12 h-12 text-primary/50" />
+        <p className="mt-4 text-base-content/70">No active hackathon at the moment.</p>
+        <p className="text-base-content/50">Check back later for new challenges!</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -197,13 +136,11 @@ const HackathonChannel: React.FC<HackathonChannelProps> = ({ isAdmin = false }) 
             )}>
               <div className="flex items-center gap-3 mb-3">
                 <Trophy className="w-5 h-5 text-primary" />
-                <h3 className="font-medium text-base-content">Points</h3>
+                <h3 className="font-medium text-base-content">Status</h3>
               </div>
-              <CountUp
-                from={0}
-                to={currentChallenge.points}
-                className="text-3xl font-bold text-base-content"
-              />
+              <p className="text-2xl font-bold text-base-content">
+                {currentHackathon.isActive ? 'Active' : 'Completed'}
+              </p>
             </div>
 
             <div className={cn(
@@ -217,7 +154,7 @@ const HackathonChannel: React.FC<HackathonChannelProps> = ({ isAdmin = false }) 
               </div>
               <CountUp
                 from={0}
-                to={currentChallenge.participants}
+                to={currentHackathon.leaderboard.length}
                 className="text-3xl font-bold text-base-content"
               />
             </div>
@@ -231,7 +168,7 @@ const HackathonChannel: React.FC<HackathonChannelProps> = ({ isAdmin = false }) 
                 <Clock className="w-5 h-5 text-primary" />
                 <h3 className="font-medium text-base-content">Time Remaining</h3>
               </div>
-              <p className="text-3xl font-bold text-base-content">{timeRemaining()}</p>
+              <p className="text-xl font-bold text-base-content">{timeRemaining(currentHackathon.endDate)}</p>
             </div>
           </motion.div>
 
@@ -240,170 +177,101 @@ const HackathonChannel: React.FC<HackathonChannelProps> = ({ isAdmin = false }) 
             <div className="space-y-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-base-content">{currentChallenge.title}</h2>
+                  <h2 className="text-xl font-semibold text-base-content">{currentHackathon.title}</h2>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className={cn(
-                      "px-2 py-1 rounded-md text-xs font-medium",
-                      currentChallenge.difficulty === 'easy' && "bg-success/10 text-success",
-                      currentChallenge.difficulty === 'medium' && "bg-warning/10 text-warning",
-                      currentChallenge.difficulty === 'hard' && "bg-destructive/10 text-destructive"
-                    )}>
-                      {currentChallenge.difficulty.charAt(0).toUpperCase() + currentChallenge.difficulty.slice(1)}
-                    </span>
                     <span className="text-sm text-base-content/70">
-                      {currentChallenge.timeLimit}
+                      {new Date(currentHackathon.startDate).toLocaleDateString()} - {new Date(currentHackathon.endDate).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
-                <Button className="gap-2">
-                  Submit Solution
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
               </div>
-              <p className="text-base-content/80 leading-relaxed">
-                {currentChallenge.description}
+
+              <p className="text-base-content/80">
+                {currentHackathon.description}
               </p>
-            </div>
 
-            {/* Requirements */}
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-base-content">Requirements</h3>
-              <ul className="space-y-2">
-                {currentChallenge.requirements.map((req, index) => (
-                  <li key={index} className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                    <span className="text-base-content/80">{req}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+              <div className="p-4 bg-base-200 rounded-lg border border-base-300">
+                <h3 className="font-medium text-base-content mb-2">Problem Statement</h3>
+                <p className="text-base-content/80">{currentHackathon.problem}</p>
+              </div>
 
-            {/* Resources */}
-            {currentChallenge.resources && (
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-base-content">Helpful Resources</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {currentChallenge.resources.map((resource, index) => (
-                    <a
-                      key={index}
-                      href={resource.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+              <div>
+                <h3 className="font-medium text-base-content mb-2">Requirements</h3>
+                <ul className="space-y-2">
+                  {currentHackathon.constraints.map((constraint, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                      <span className="text-base-content/80">{constraint}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Leaderboard */}
+          <motion.div variants={itemVariants}>
+            <h3 className="text-lg font-semibold text-base-content mb-4 flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-primary" />
+              Leaderboard
+            </h3>
+
+            <div className="bg-base-200 rounded-lg border border-base-300 overflow-hidden">
+              <div className="grid grid-cols-12 gap-4 p-3 border-b border-base-300 bg-base-300/50 text-sm font-medium text-base-content">
+                <div className="col-span-1">#</div>
+                <div className="col-span-7">Participant</div>
+                <div className="col-span-2 text-right">Score</div>
+                <div className="col-span-2 text-right">Submitted</div>
+              </div>
+
+              <div className="divide-y divide-base-300">
+                {currentHackathon.leaderboard
+                  .sort((a, b) => b.score - a.score)
+                  .map((submission, index) => (
+                    <div 
+                      key={submission.userId} 
                       className={cn(
-                        "p-4 rounded-lg border",
-                        "flex items-center gap-3",
-                        "hover:bg-base-200 transition-colors"
+                        "grid grid-cols-12 gap-4 p-3 items-center hover:bg-base-300/30 transition-colors",
+                        index < 3 && "bg-primary/5"
                       )}
                     >
-                      <FileCode className="w-5 h-5 text-primary" />
-                      <span className="flex-1 text-base-content/80">{resource.title}</span>
-                      <ExternalLink className="w-4 h-4 text-base-content/60" />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-          </motion.div>
-
-          {/* Top Submissions */}
-          <motion.div variants={itemVariants}>
-            <h3 className="text-lg font-semibold text-base-content mb-4">Top Submissions</h3>
-            <div className="space-y-4">
-              {topSubmissions.map((submission, index) => (
-                <div
-                  key={submission.id}
-                  className={cn(
-                    "p-6 rounded-lg border",
-                    "bg-card/50 border-border/50",
-                    "hover:bg-card/80 transition-colors duration-200"
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-medium">
-                        {index + 1}
+                      <div className="col-span-1 font-medium">
+                        {index === 0 && <Trophy className="w-5 h-5 text-yellow-500" />}
+                        {index === 1 && <Trophy className="w-5 h-5 text-gray-400" />}
+                        {index === 2 && <Trophy className="w-5 h-5 text-amber-700" />}
+                        {index > 2 && (index + 1)}
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="w-10 h-10">
-                          {submission.author.avatar ? (
-                            <AvatarImage src={submission.author.avatar} alt={submission.author.name} />
-                          ) : (
-                            <AvatarFallback>
-                              <User className="w-5 h-5" />
-                            </AvatarFallback>
-                          )}
+                      <div className="col-span-7 flex items-center gap-3">
+                        <Avatar className="w-8 h-8">
+                          <AvatarFallback>
+                            {submission.username.charAt(0).toUpperCase()}
+                          </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-base-content">{submission.author.name}</span>
-                            <Badge variant="outline" className="text-xs font-normal">
-                              {submission.author.role}
-                            </Badge>
-                          </div>
-                          <div className="text-sm text-base-content/70">
-                            {submission.submittedAt.toLocaleDateString()}
-                          </div>
+                          <p className="font-medium text-base-content">{submission.username}</p>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-6">
-                      {/* Stats */}
-                      {submission.stats && (
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className="text-center">
-                            <div className="text-sm font-medium text-base-content">
-                              {submission.stats.performance}%
-                            </div>
-                            <div className="text-xs text-base-content/70">Performance</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-sm font-medium text-base-content">
-                              {submission.stats.quality}%
-                            </div>
-                            <div className="text-xs text-base-content/70">Quality</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-sm font-medium text-base-content">
-                              {submission.stats.creativity}%
-                            </div>
-                            <div className="text-xs text-base-content/70">Creativity</div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Score and Actions */}
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-base-content">{submission.score}</div>
-                          <div className="text-xs text-base-content/70">points</div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8"
-                            asChild
-                          >
-                            <a href={submission.solutionUrl} target="_blank" rel="noopener noreferrer">
-                              <GitBranch className="w-4 h-4" />
-                            </a>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8"
-                          >
-                            <MessageSquare className="w-4 h-4" />
-                          </Button>
-                        </div>
+                      <div className="col-span-2 text-right font-mono font-medium">
+                        {submission.score}
+                      </div>
+                      <div className="col-span-2 text-right text-sm text-base-content/70">
+                        {new Date(submission.submissionTime).toLocaleDateString()}
                       </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  ))}
+              </div>
             </div>
           </motion.div>
+
+          {/* Submit Solution Button */}
+          {currentHackathon.isActive && (
+            <motion.div variants={itemVariants} className="flex justify-center">
+              <Button className="px-8 py-6 text-lg gap-2">
+                <FileCode className="w-5 h-5" />
+                Submit Your Solution
+              </Button>
+            </motion.div>
+          )}
         </motion.div>
       </div>
     </div>
