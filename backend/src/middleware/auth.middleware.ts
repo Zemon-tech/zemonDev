@@ -3,6 +3,7 @@ import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
 import asyncHandler from '../utils/asyncHandler';
 import AppError from '../utils/AppError';
 import User from '../models/user.model';
+import { UserRole } from '../models';
 
 // Extend the Express Request interface to include user and auth
 declare global {
@@ -12,8 +13,9 @@ declare global {
       auth?: {
         userId: string;
         sessionId: string;
-        [key: string]: any;
+        getToken: () => Promise<string>;
       };
+      userRole?: any; // Add userRole property
     }
   }
 }
@@ -70,3 +72,53 @@ export const protect = [
     }
   })
 ];
+
+/**
+ * Middleware to check if user has required role
+ * @param roles Array of roles that are allowed to access the route
+ * @param checkChannel Whether to check for channel-specific role (requires channelId in request body or params)
+ */
+export const checkRole = (roles: ('admin' | 'moderator')[], checkChannel = false) => {
+  return asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    // User must be authenticated first
+    if (!req.user || !req.user._id) {
+      return next(new AppError('Unauthorized', 401));
+    }
+
+    const userId = req.user._id;
+    
+    // If checking channel-specific roles, get channelId from request
+    let channelId;
+    if (checkChannel) {
+      channelId = req.params.channelId || req.body.channelId;
+      if (!channelId) {
+        return next(new AppError('Channel ID is required', 400));
+      }
+    }
+
+    // Build query to check if user has any of the required roles
+    const query: any = {
+      userId,
+      role: { $in: roles }
+    };
+
+    // If checking channel role, add channelId to query or check for global role (null channelId)
+    if (checkChannel && channelId) {
+      query.$or = [
+        { channelId }, // Channel-specific role
+        { channelId: { $exists: false } } // Global role
+      ];
+    }
+
+    // Check if user has required role
+    const userRole = await UserRole.findOne(query);
+
+    if (!userRole) {
+      return next(new AppError(`Access denied. Required role: ${roles.join(' or ')}`, 403));
+    }
+
+    // Add role info to request for use in controllers
+    req.userRole = userRole;
+    next();
+  });
+};

@@ -236,6 +236,36 @@ const handleConnection = (socket: any) => {
         // Broadcast to channel
         io.to(`channel:${channelId}`).emit('new_message', populatedMessage);
         
+        // Get all users in the channel and update their unread counts
+        // This is done asynchronously to not block the response
+        try {
+          // Find all users who have interacted with this channel
+          const channelUsers = await UserChannelStatus.find({ 
+            channelId: new mongoose.Types.ObjectId(channelId)
+          }).distinct('userId');
+          
+          // Update unread counts for each user except the sender
+          channelUsers.forEach(async (userIdObj) => {
+            const userIdStr = userIdObj.toString();
+            if (userIdStr !== userId) {
+              try {
+                await updateUnreadCounts(userIdStr);
+              } catch (error) {
+                logger.error('Failed to update unread counts for user:', {
+                  userId: userIdStr,
+                  channelId,
+                  error: error instanceof Error ? error.message : String(error)
+                });
+              }
+            }
+          });
+        } catch (error) {
+          logger.error('Failed to get channel users:', {
+            channelId,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+
         // Send success response to sender
         callback?.({ success: true, message: populatedMessage });
         
@@ -260,6 +290,64 @@ const handleConnection = (socket: any) => {
         callback?.({ success: false, message: errorMessage });
       }
     });
+  });
+
+  // Handle message read status updates
+  socket.on('read_status', async (data: any) => {
+    try {
+      // Validate input
+      if (!data || !data.channelId) {
+        socket.emit('error', { message: 'Invalid data' });
+        return;
+      }
+
+      const { channelId } = data;
+      
+      if (!userId) {
+        socket.emit('error', { message: 'Unauthorized' });
+        return;
+      }
+
+      // Get the latest message in the channel
+      const latestMessage = await ArenaMessage.findOne({ channelId })
+        .sort({ timestamp: -1 })
+        .limit(1);
+
+      // Update user's last read timestamp and message ID
+      await UserChannelStatus.findOneAndUpdate(
+        { 
+          userId: new mongoose.Types.ObjectId(userId),
+          channelId: new mongoose.Types.ObjectId(channelId)
+        },
+        { 
+          lastReadTimestamp: new Date(),
+          lastReadMessageId: latestMessage?._id
+        },
+        { upsert: true }
+      );
+
+      // Emit event to confirm read status update
+      socket.emit('read_status_updated', { 
+        channelId,
+        lastReadTimestamp: new Date()
+      });
+
+      logger.info('Read status updated:', {
+        userId,
+        channelId,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error updating read status:', {
+        userId,
+        data,
+        socketId: socket.id,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString()
+      });
+      socket.emit('error', { message: 'Failed to update read status' });
+    }
   });
 
   // Handle typing indicator with rate limiting
@@ -350,6 +438,68 @@ export const emitToUser = (userId: string, event: string, data: any) => {
       userId,
       event,
       error: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString()
+    });
+    throw error;
+  }
+}; 
+
+/**
+ * Update unread counts for a user
+ * @param userId User ID
+ * @throws Error if Socket.IO is not initialized
+ */
+export const updateUnreadCounts = async (userId: string) => {
+  try {
+    if (!io) {
+      throw new Error('Socket.IO not initialized');
+    }
+
+    // Get all active channels
+    const channels = await ArenaChannel.find({ isActive: true });
+    
+    // Get user's status for all channels
+    const userStatuses = await UserChannelStatus.find({ 
+      userId: new mongoose.Types.ObjectId(userId)
+    });
+    
+    // Create a map of channelId to lastReadTimestamp
+    const lastReadMap = userStatuses.reduce((map, status) => {
+      map[status.channelId.toString()] = status.lastReadTimestamp;
+      return map;
+    }, {} as Record<string, Date>);
+
+    // Calculate unread counts for each channel
+    const unreadCountPromises = channels.map(async (channel: any) => {
+      const channelId = channel._id.toString();
+      const lastReadTimestamp = lastReadMap[channelId] || new Date(0);
+      
+      const unreadCount = await ArenaMessage.countDocuments({
+        channelId: new mongoose.Types.ObjectId(channelId),
+        timestamp: { $gt: lastReadTimestamp },
+        userId: { $ne: new mongoose.Types.ObjectId(userId) } // Don't count user's own messages
+      });
+
+      return {
+        channelId,
+        unreadCount
+      };
+    });
+
+    const unreadCounts = await Promise.all(unreadCountPromises);
+
+    // Emit unread counts to the user
+    io.to(`user:${userId}`).emit('unread_counts_updated', { unreadCounts });
+
+    logger.info('Unread counts updated for user:', {
+      userId,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Error updating unread counts:', {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString()
     });
     throw error;

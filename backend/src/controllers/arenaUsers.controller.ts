@@ -2,8 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import asyncHandler from '../utils/asyncHandler';
 import AppError from '../utils/AppError';
 import ApiResponse from '../utils/ApiResponse';
-import { UserChannelStatus, UserRole, ArenaChannel } from '../models';
+import { UserChannelStatus, UserRole, ArenaChannel, User } from '../models';
 import mongoose from 'mongoose';
+import { emitToUser, emitToChannel } from '../services/socket.service';
 
 /**
  * @desc    Ban user from channel
@@ -21,6 +22,12 @@ export const banUser = asyncHandler(
       return next(new AppError('Channel ID is required', 400));
     }
 
+    // Check if target user exists
+    const targetUser = await User.findById(userId);
+    if (!targetUser) {
+      return next(new AppError('User not found', 404));
+    }
+
     // Check if channel exists
     const channel = await ArenaChannel.findById(channelId);
     if (!channel) {
@@ -36,6 +43,17 @@ export const banUser = asyncHandler(
 
     if (!isModerator && !isAdmin) {
       return next(new AppError('You do not have permission to ban users', 403));
+    }
+
+    // Check if target user is a moderator or admin (can't ban higher roles)
+    const isTargetModerator = channel.moderators.some(id => id.toString() === userId.toString());
+    const isTargetAdmin = await UserRole.findOne({
+      userId,
+      role: 'admin'
+    });
+
+    if ((isTargetModerator || isTargetAdmin) && !isAdmin) {
+      return next(new AppError('You cannot ban a moderator or admin', 403));
     }
 
     // Calculate ban expiry date if duration provided (in hours)
@@ -57,10 +75,105 @@ export const banUser = asyncHandler(
       { upsert: true, new: true }
     );
 
+    // Notify the banned user via socket
+    try {
+      emitToUser(userId.toString(), 'user_banned', {
+        channelId,
+        reason: userStatus.banReason,
+        banExpiresAt: userStatus.banExpiresAt
+      });
+
+      // Notify channel moderators
+      emitToChannel(channelId, 'user_moderation', {
+        action: 'banned',
+        userId,
+        moderatorId,
+        reason: userStatus.banReason,
+        duration: duration ? `${duration} hours` : 'permanently'
+      });
+    } catch (error) {
+      // Log error but don't fail the request
+      console.error('Failed to emit socket event:', error);
+    }
+
     res.status(200).json(
       new ApiResponse(
         200,
         `User banned successfully${duration ? ` for ${duration} hours` : ''}`,
+        userStatus
+      )
+    );
+  }
+);
+
+/**
+ * @desc    Unban user from channel
+ * @route   POST /api/arena/users/:userId/unban
+ * @access  Private (Moderator/Admin)
+ */
+export const unbanUser = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { userId } = req.params;
+    const { channelId } = req.body;
+    const moderatorId = req.user._id;
+
+    // Validate input
+    if (!channelId) {
+      return next(new AppError('Channel ID is required', 400));
+    }
+
+    // Check if channel exists
+    const channel = await ArenaChannel.findById(channelId);
+    if (!channel) {
+      return next(new AppError('Channel not found', 404));
+    }
+
+    // Check if user is moderator or admin
+    const isModerator = channel.moderators.some(id => id.toString() === moderatorId.toString());
+    const isAdmin = await UserRole.findOne({ 
+      userId: moderatorId, 
+      role: 'admin' 
+    });
+
+    if (!isModerator && !isAdmin) {
+      return next(new AppError('You do not have permission to unban users', 403));
+    }
+
+    // Update user channel status
+    const userStatus = await UserChannelStatus.findOneAndUpdate(
+      { userId, channelId },
+      {
+        isBanned: false,
+        banExpiresAt: null
+      },
+      { new: true }
+    );
+
+    if (!userStatus) {
+      return next(new AppError('User was not banned from this channel', 404));
+    }
+
+    // Notify the unbanned user via socket
+    try {
+      emitToUser(userId.toString(), 'user_unbanned', {
+        channelId
+      });
+
+      // Notify channel moderators
+      emitToChannel(channelId, 'user_moderation', {
+        action: 'unbanned',
+        userId,
+        moderatorId
+      });
+    } catch (error) {
+      // Log error but don't fail the request
+      console.error('Failed to emit socket event:', error);
+    }
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        'User unbanned successfully',
         userStatus
       )
     );
@@ -83,6 +196,12 @@ export const kickUser = asyncHandler(
       return next(new AppError('Channel ID is required', 400));
     }
 
+    // Check if target user exists
+    const targetUser = await User.findById(userId);
+    if (!targetUser) {
+      return next(new AppError('User not found', 404));
+    }
+
     // Check if channel exists
     const channel = await ArenaChannel.findById(channelId);
     if (!channel) {
@@ -100,6 +219,17 @@ export const kickUser = asyncHandler(
       return next(new AppError('You do not have permission to kick users', 403));
     }
 
+    // Check if target user is a moderator or admin (can't kick higher roles)
+    const isTargetModerator = channel.moderators.some(id => id.toString() === userId.toString());
+    const isTargetAdmin = await UserRole.findOne({
+      userId,
+      role: 'admin'
+    });
+
+    if ((isTargetModerator || isTargetAdmin) && !isAdmin) {
+      return next(new AppError('You cannot kick a moderator or admin', 403));
+    }
+
     // Update or create user channel status
     const userStatus = await UserChannelStatus.findOneAndUpdate(
       { userId, channelId },
@@ -110,6 +240,25 @@ export const kickUser = asyncHandler(
       },
       { upsert: true, new: true }
     );
+
+    // Notify the kicked user via socket
+    try {
+      emitToUser(userId.toString(), 'user_kicked', {
+        channelId,
+        reason: reason || 'Violation of community guidelines'
+      });
+
+      // Notify channel moderators
+      emitToChannel(channelId, 'user_moderation', {
+        action: 'kicked',
+        userId,
+        moderatorId,
+        reason: reason || 'Violation of community guidelines'
+      });
+    } catch (error) {
+      // Log error but don't fail the request
+      console.error('Failed to emit socket event:', error);
+    }
 
     res.status(200).json(
       new ApiResponse(
@@ -137,6 +286,12 @@ export const makeModerator = asyncHandler(
       return next(new AppError('Channel ID is required', 400));
     }
 
+    // Check if target user exists
+    const targetUser = await User.findById(userId);
+    if (!targetUser) {
+      return next(new AppError('User not found', 404));
+    }
+
     // Check if channel exists
     const channel = await ArenaChannel.findById(channelId);
     if (!channel) {
@@ -160,15 +315,34 @@ export const makeModerator = asyncHandler(
     }
 
     // Create moderator role for user
-    await UserRole.findOneAndUpdate(
+    const userRole = await UserRole.findOneAndUpdate(
       { userId, channelId },
       {
         role: 'moderator',
         grantedBy: adminId,
         grantedAt: new Date()
       },
-      { upsert: true }
+      { upsert: true, new: true }
     );
+
+    // Notify the new moderator via socket
+    try {
+      emitToUser(userId.toString(), 'role_updated', {
+        channelId,
+        role: 'moderator'
+      });
+
+      // Notify channel members
+      emitToChannel(channelId, 'user_moderation', {
+        action: 'promoted',
+        userId,
+        adminId,
+        role: 'moderator'
+      });
+    } catch (error) {
+      // Log error but don't fail the request
+      console.error('Failed to emit socket event:', error);
+    }
 
     res.status(200).json(
       new ApiResponse(

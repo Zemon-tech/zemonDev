@@ -218,6 +218,97 @@ export const deleteMessage = asyncHandler(
 );
 
 /**
+ * @desc    Mark all messages in a channel as read
+ * @route   POST /api/arena/channels/:channelId/mark-read
+ * @access  Private
+ */
+export const markAllAsRead = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { channelId } = req.params;
+    const userId = req.user._id;
+
+    // Check if channel exists
+    const channel = await ArenaChannel.findById(channelId);
+    if (!channel) {
+      return next(new AppError('Channel not found', 404));
+    }
+
+    // Get the latest message in the channel
+    const latestMessage = await ArenaMessage.findOne({ channelId })
+      .sort({ timestamp: -1 })
+      .limit(1);
+
+    // Update user's last read timestamp and message ID
+    await UserChannelStatus.findOneAndUpdate(
+      { userId, channelId },
+      { 
+        lastReadTimestamp: new Date(),
+        lastReadMessageId: latestMessage?._id
+      },
+      { upsert: true }
+    );
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        'All messages marked as read',
+        { success: true }
+      )
+    );
+  }
+);
+
+/**
+ * @desc    Get unread message count for all channels
+ * @route   GET /api/arena/channels/unread-counts
+ * @access  Private
+ */
+export const getAllUnreadCounts = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user._id;
+
+    // Get all active channels
+    const channels = await ArenaChannel.find({ isActive: true });
+    
+    // Get user's status for all channels
+    const userStatuses = await UserChannelStatus.find({ userId });
+    
+    // Create a map of channelId to lastReadTimestamp
+    const lastReadMap = userStatuses.reduce((map, status) => {
+      map[status.channelId.toString()] = status.lastReadTimestamp;
+      return map;
+    }, {} as Record<string, Date>);
+
+    // Calculate unread counts for each channel
+    const unreadCountPromises = channels.map(async (channel: any) => {
+      const channelId = channel._id.toString();
+      const lastReadTimestamp = lastReadMap[channelId] || new Date(0);
+      
+      const unreadCount = await ArenaMessage.countDocuments({
+        channelId: new mongoose.Types.ObjectId(channelId),
+        timestamp: { $gt: lastReadTimestamp },
+        userId: { $ne: userId } // Don't count user's own messages
+      });
+
+      return {
+        channelId,
+        unreadCount
+      };
+    });
+
+    const unreadCounts = await Promise.all(unreadCountPromises);
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        'Unread counts retrieved successfully',
+        { unreadCounts }
+      )
+    );
+  }
+);
+
+/**
  * @desc    Get unread message count
  * @route   GET /api/arena/channels/:channelId/unread-count
  * @access  Private

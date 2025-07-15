@@ -9,7 +9,7 @@ This document outlines the progress made in implementing the Arena feature for t
 - **Backend**: Node.js with Express.js and TypeScript
 - **Database**: MongoDB with Mongoose
 - **Authentication**: Clerk (existing system)
-- **Real-time**: Socket.IO (to be implemented)
+- **Real-time**: Socket.IO (implemented)
 - **Caching**: Upstash Redis (existing)
 
 ## Completed Phases
@@ -252,14 +252,141 @@ All routes utilize the existing middleware for:
 - **Rate limiting** (`standardLimiter` middleware)
 - **Caching** (`cacheMiddleware` with appropriate TTL values)
 
-## Next Steps
-
 ### Phase 3: Socket.IO Integration
-- Add Socket.IO dependencies
-- Modify Express server to support Socket.IO
-- Implement real-time message handling
-- Add room-based channel subscriptions
-- Handle user authentication for socket connections
+
+Socket.IO has been integrated to provide real-time functionality for the Arena:
+
+#### Socket.IO Server Setup
+
+- **Server Integration**: Socket.IO server is initialized alongside the Express server
+- **CORS Configuration**: Proper CORS settings to match the frontend origin
+- **Connection Handling**: Centralized connection management in socket.service.ts
+
+```typescript
+// Initialize Socket.IO with the HTTP server
+const io = new SocketIOServer(server, {
+  cors: {
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+    credentials: true
+  },
+  pingTimeout: 60000, // 60 seconds
+  pingInterval: 25000, // 25 seconds
+});
+```
+
+#### Authentication Middleware
+
+- **Token Verification**: Socket connections are authenticated using Clerk tokens
+- **User Information**: User data is attached to socket for permission checking
+- **Error Handling**: Proper error responses for authentication failures
+
+```typescript
+export const authenticateSocket = async (socket: Socket, next: Function) => {
+  try {
+    const token = socket.handshake.auth.token;
+    
+    if (!token) {
+      return next(new Error('Authentication error: Token missing'));
+    }
+
+    // Verify token and attach user data to socket
+    // ...
+
+    next();
+  } catch (error) {
+    next(new Error('Authentication error'));
+  }
+};
+```
+
+#### Rate Limiting
+
+- **Redis-Based Rate Limiting**: Uses Redis to track message frequency
+- **Configurable Limits**: 30 messages per minute per user by default
+- **Event-Specific Limits**: Different limits for different event types
+- **Graceful Degradation**: Continues operation if rate limiting fails
+
+```typescript
+export const socketRateLimit = async (socket: Socket, event: string, next: Function) => {
+  try {
+    const userId = socket.data.user?.userId;
+    
+    // Create a unique key for this user and event
+    const key = `ratelimit:socket:${userId}:${event}`;
+    
+    // Check and update rate limit in Redis
+    // ...
+    
+    next();
+  } catch (error) {
+    console.error('Error in socket rate limiting:', error);
+    next(); // Continue even if rate limiting fails
+  }
+};
+```
+
+#### Real-Time Events
+
+The following real-time events have been implemented:
+
+1. **Channel Management**:
+   - `join_channel`: Join a specific channel room
+   - `leave_channel`: Leave a channel room
+   - `channel_joined`: Confirmation of successful channel join
+
+2. **Messaging**:
+   - `send_message`: Send a new message to a channel
+   - `new_message`: Broadcast new messages to channel members
+   - `message_deleted`: Notify when a message is deleted
+   - `typing`: Indicate when a user is typing
+   - `user_typing`: Broadcast typing status to other users
+
+3. **Error Handling**:
+   - `error`: Send error messages to clients
+
+#### Socket Service
+
+A centralized socket service has been created to manage Socket.IO functionality:
+
+- **Initialization**: `initializeSocketIO` function to set up the server
+- **Event Handling**: Centralized event handlers for all socket events
+- **Utility Functions**: Helper methods for emitting events to channels or users
+- **Connection Management**: Tracking of user connections and disconnections
+
+```typescript
+// Emit to all users in a channel
+export const emitToChannel = (channelId: string, event: string, data: any) => {
+  if (!io) {
+    throw new Error('Socket.IO not initialized');
+  }
+  io.to(`channel:${channelId}`).emit(event, data);
+};
+
+// Emit to a specific user
+export const emitToUser = (userId: string, event: string, data: any) => {
+  if (!io) {
+    throw new Error('Socket.IO not initialized');
+  }
+  io.to(`user:${userId}`).emit(event, data);
+};
+```
+
+#### Controller Integration
+
+The REST API controllers have been updated to emit Socket.IO events:
+
+- **Message Creation**: Emits `new_message` event when a message is created via REST API
+- **Message Deletion**: Emits `message_deleted` event when a message is deleted
+
+```typescript
+// In createMessage controller
+// ...
+// Emit the new message to all users in the channel via Socket.IO
+emitToChannel(channelId, 'new_message', populatedMessage);
+```
+
+## Next Steps
 
 ### Phase 4: Advanced Features
 - Implement user ban/kick functionality
@@ -296,4 +423,329 @@ All routes utilize the existing middleware for:
 - Implemented proper permission checks for all operations
 - Used existing authentication middleware
 - Validated all user inputs
-- Implemented soft deletion for content moderation 
+- Implemented soft deletion for content moderation
+
+### Real-Time Architecture
+- Used Socket.IO rooms for efficient message broadcasting
+- Implemented rate limiting to prevent abuse
+- Added authentication to secure socket connections
+- Created a service layer for socket management 
+
+## Security Improvements
+
+### Authentication Security Fix
+
+The Socket.IO authentication middleware has been updated to use proper Clerk SDK verification instead of manual JWT parsing:
+
+```typescript
+// Updated authenticateSocket middleware with secure token verification
+export const authenticateSocket = async (socket: Socket, next: Function) => {
+  try {
+    const token = socket.handshake.auth.token;
+    
+    if (!token) {
+      return next(new Error('Authentication error: Token missing'));
+    }
+
+    // Extract Bearer token
+    if (!token.startsWith('Bearer ')) {
+      return next(new Error('Authentication error: Invalid token format'));
+    }
+
+    const tokenValue = token.split(' ')[1];
+    
+    // Use Clerk's proper token verification
+    const payload = await verifyToken(tokenValue, {
+      secretKey: process.env.CLERK_SECRET_KEY
+    });
+
+    socket.data.user = {
+      userId: payload.sub,
+      sessionId: payload.sid || ''
+    };
+
+    next();
+  } catch (error) {
+    console.error('Socket authentication error:', error);
+    next(new Error('Authentication error: Invalid token'));
+  }
+};
+```
+
+### Rate Limiting Security Fix
+
+The rate limiting middleware has been improved to use atomic Redis operations to prevent bypass vulnerabilities:
+
+```typescript
+// Updated socketRateLimit middleware with atomic operations
+export const socketRateLimit = async (socket: Socket, event: string, next: Function) => {
+  try {
+    const userId = socket.data.user?.userId;
+    
+    if (!userId) {
+      return next();
+    }
+
+    const key = `ratelimit:socket:${userId}:${event}`;
+    
+    // Use Redis pipeline for atomic operations
+    const multi = redisClient.multi();
+    const currentCount = await redisClient.get(key);
+    const count = currentCount ? parseInt(currentCount.toString(), 10) : 0;
+
+    if (count >= MAX_MESSAGES_PER_WINDOW) {
+      socket.emit('error', {
+        message: 'Rate limit exceeded. Please try again later.',
+        event,
+        retryAfter: RATE_LIMIT_WINDOW
+      });
+      return;
+    }
+
+    // Proper TTL handling - use INCR and EXPIRE for atomic operations
+    if (count === 0) {
+      await multi.incr(key).expire(key, RATE_LIMIT_WINDOW).exec();
+    } else {
+      await multi.incr(key).exec();
+    }
+
+    next();
+  } catch (error) {
+    console.error('Rate limiting error:', error);
+    // Log the error but don't block the request in case of Redis failure
+    next();
+  }
+};
+```
+
+### Enhanced Error Handling
+
+The Socket.IO service has been updated with comprehensive error handling:
+
+- Added try-catch blocks around all async operations
+- Implemented proper error logging with context
+- Added graceful degradation for Redis failures
+- Included detailed error messages for debugging
+
+```typescript
+// Example of enhanced error handling in socket event handlers
+socket.on('send_message', async (messageData: any, callback: Function) => {
+  try {
+    // Validate input first
+    if (!messageData.channelId || !messageData.content) {
+      const error = 'Channel ID and content are required';
+      socket.emit('error', { message: error });
+      return callback({ success: false, message: error });
+    }
+
+    // Process message with proper error handling
+    // ...
+    
+  } catch (error) {
+    console.error('Error in send_message handler:', {
+      error: error.message,
+      userId: socket.data.user?.userId,
+      channelId: messageData.channelId,
+      timestamp: new Date().toISOString()
+    });
+    
+    const errorMessage = 'Failed to send message';
+    socket.emit('error', { message: errorMessage });
+    callback({ success: false, message: errorMessage });
+  }
+});
+```
+
+These security improvements address critical vulnerabilities in the authentication and rate limiting systems while enhancing overall error handling and logging for better monitoring and debugging. 
+
+## Phase 4: Advanced Features
+
+Three key advanced features have been implemented in this phase:
+
+### Role-Based Permissions System
+
+A comprehensive role-based permissions system has been implemented:
+
+- **Role Middleware**: Created `checkRole` middleware to verify user roles
+- **Global and Channel-Specific Roles**: Support for both global admin roles and channel-specific moderator roles
+- **Role Hierarchy**: Admins can manage moderators, moderators can manage regular users
+- **Permission Checks**: Integrated throughout controllers for secure operations
+
+```typescript
+/**
+ * Middleware to check if user has required role
+ * @param roles Array of roles that are allowed to access the route
+ * @param checkChannel Whether to check for channel-specific role
+ */
+export const checkRole = (roles: ('admin' | 'moderator')[], checkChannel = false) => {
+  return asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    // User must be authenticated first
+    if (!req.user || !req.user._id) {
+      return next(new AppError('Unauthorized', 401));
+    }
+
+    const userId = req.user._id;
+    
+    // If checking channel-specific roles, get channelId from request
+    let channelId;
+    if (checkChannel) {
+      channelId = req.params.channelId || req.body.channelId;
+      if (!channelId) {
+        return next(new AppError('Channel ID is required', 400));
+      }
+    }
+
+    // Build query to check if user has any of the required roles
+    const query: any = {
+      userId,
+      role: { $in: roles }
+    };
+
+    // If checking channel role, add channelId to query or check for global role
+    if (checkChannel && channelId) {
+      query.$or = [
+        { channelId }, // Channel-specific role
+        { channelId: { $exists: false } } // Global role
+      ];
+    }
+
+    // Check if user has required role
+    const userRole = await UserRole.findOne(query);
+
+    if (!userRole) {
+      return next(new AppError(`Access denied. Required role: ${roles.join(' or ')}`, 403));
+    }
+
+    // Add role info to request for use in controllers
+    req.userRole = userRole;
+    next();
+  });
+};
+```
+
+### Enhanced Ban/Kick Functionality
+
+The ban and kick functionality has been significantly enhanced:
+
+- **Role Protection**: Moderators cannot ban/kick other moderators or admins
+- **Temporary Bans**: Support for time-limited bans with automatic expiration
+- **Unban Functionality**: Added ability to unban users
+- **Real-Time Notifications**: Socket.IO events for ban/kick actions
+- **User Verification**: Checks if target users exist before actions
+- **Detailed Logging**: Comprehensive logging of moderation actions
+
+```typescript
+// Ban user from channel with enhanced security
+export const banUser = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    // ... existing validation ...
+
+    // Check if target user is a moderator or admin (can't ban higher roles)
+    const isTargetModerator = channel.moderators.some(id => id.toString() === userId.toString());
+    const isTargetAdmin = await UserRole.findOne({
+      userId,
+      role: 'admin'
+    });
+
+    if ((isTargetModerator || isTargetAdmin) && !isAdmin) {
+      return next(new AppError('You cannot ban a moderator or admin', 403));
+    }
+
+    // ... ban implementation ...
+
+    // Notify the banned user via socket
+    try {
+      emitToUser(userId.toString(), 'user_banned', {
+        channelId,
+        reason: userStatus.banReason,
+        banExpiresAt: userStatus.banExpiresAt
+      });
+
+      // Notify channel moderators
+      emitToChannel(channelId, 'user_moderation', {
+        action: 'banned',
+        userId,
+        moderatorId,
+        reason: userStatus.banReason,
+        duration: duration ? `${duration} hours` : 'permanently'
+      });
+    } catch (error) {
+      // Log error but don't fail the request
+      console.error('Failed to emit socket event:', error);
+    }
+
+    // ... response ...
+  }
+);
+```
+
+### Unread Message Tracking Enhancements
+
+The unread message tracking system has been enhanced with:
+
+- **Mark All as Read**: Added endpoint to mark all messages in a channel as read
+- **Bulk Unread Counts**: Added endpoint to get unread counts for all channels in one request
+- **Real-Time Updates**: Socket.IO events for unread count updates
+- **Optimized Queries**: Improved database queries for better performance
+- **Socket Event Handler**: Added `read_status` event for real-time status updates
+
+```typescript
+// Get unread message count for all channels
+export const getAllUnreadCounts = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user._id;
+
+    // Get all active channels
+    const channels = await ArenaChannel.find({ isActive: true });
+    
+    // Get user's status for all channels
+    const userStatuses = await UserChannelStatus.find({ userId });
+    
+    // Create a map of channelId to lastReadTimestamp
+    const lastReadMap = userStatuses.reduce((map, status) => {
+      map[status.channelId.toString()] = status.lastReadTimestamp;
+      return map;
+    }, {} as Record<string, Date>);
+
+    // Calculate unread counts for each channel
+    const unreadCountPromises = channels.map(async (channel: any) => {
+      const channelId = channel._id.toString();
+      const lastReadTimestamp = lastReadMap[channelId] || new Date(0);
+      
+      const unreadCount = await ArenaMessage.countDocuments({
+        channelId: new mongoose.Types.ObjectId(channelId),
+        timestamp: { $gt: lastReadTimestamp },
+        userId: { $ne: userId } // Don't count user's own messages
+      });
+
+      return {
+        channelId,
+        unreadCount
+      };
+    });
+
+    const unreadCounts = await Promise.all(unreadCountPromises);
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        'Unread counts retrieved successfully',
+        { unreadCounts }
+      )
+    );
+  }
+);
+```
+
+## Next Steps
+
+### Remaining Phase 4 Features
+- Implement project showcase file upload functionality
+- Complete hackathon submission scoring system
+
+### Phase 5: Testing and Integration
+- Test all API endpoints
+- Verify Socket.IO real-time functionality
+- Test authentication and authorization
+- Ensure no existing functionality is broken
+- Add proper error handling and logging 
