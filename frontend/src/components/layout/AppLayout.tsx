@@ -7,7 +7,9 @@ import { useWorkspace } from '@/lib/WorkspaceContext';
 import { Button } from '@/components/ui/button';
 
 // Icons
-import { Search, Bell, X, MessageCircle, BookOpen, FileText, Layers, StickyNote, ArrowLeft, Send, Loader2 } from 'lucide-react';
+import { Search, Bell, X, MessageCircle, BookOpen, FileText, Layers, StickyNote, ArrowLeft, Send, Loader2, Sparkles } from 'lucide-react';
+import gsap from 'gsap';
+import { useRef } from 'react';
 
 export default function AppLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -107,6 +109,33 @@ export default function AppLayout() {
   // Show back to forge only on /:username/forge/:id
   const isForgeDetailPage = /^\/[\w-]+\/forge\/[\w-]+$/.test(location.pathname);
   
+  // Detect if on Forge page (not detail)
+  const isForgePage = /^\/[\w-]+\/forge$/.test(location.pathname);
+
+  // GSAP animation for accent bar
+  const accentRef = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (isForgePage && accentRef.current) {
+      gsap.fromTo(
+        accentRef.current.querySelector('svg'),
+        { scale: 1, rotate: 0, filter: 'drop-shadow(0 0 0px #fbbf24)' },
+        {
+          scale: 1.18,
+          rotate: 8,
+          filter: 'drop-shadow(0 0 8px #fbbf24)',
+          yoyo: true,
+          repeat: -1,
+          duration: 1.2,
+          ease: 'power1.inOut',
+          yoyoEase: true,
+        }
+      );
+    }
+    return () => {
+      if (accentRef.current) gsap.killTweensOf(accentRef.current.querySelector('svg'));
+    };
+  }, [isForgePage]);
+  
   return (
     <div className="flex h-screen bg-base-100">
       {/* Sidebar - Desktop & Mobile */}
@@ -152,63 +181,16 @@ export default function AppLayout() {
             )}
           </div>
 
-          {/* Center area - Workspace navigation */}
-          {isCrucibleProblemPage && (
-            <div className="hidden md:flex items-center gap-2">
-              {/* Your existing workspace navigation buttons */}
-              <button 
-                className="btn btn-ghost btn-sm text-primary font-medium flex items-center gap-1.5 mr-2" 
-                onClick={() => handleNavigation('/crucible')} 
-                title="Back to Crucible"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Back to Crucible</span>
-              </button>
-              
-              <div className="flex items-center border-l border-base-200 dark:border-base-700 pl-2 gap-1">
-                <button 
-                  className="btn btn-sm btn-ghost rounded-md px-2 text-base-content/80 hover:text-base-content" 
-                  onClick={handleToggleProblemSidebar} 
-                  title="Show/Hide Problem Details"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  <span className="hidden sm:inline ml-1 text-xs">Problem</span>
-                </button>
-                <button 
-                  className="btn btn-sm btn-ghost rounded-md px-2 text-base-content/80 hover:text-base-content" 
-                  onClick={handleToggleChatSidebar} 
-                  title="Show/Hide AI Chat"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span className="hidden sm:inline ml-1 text-xs">AI Chat</span>
-                </button>
-                <button 
-                  className="btn btn-sm btn-ghost rounded-md px-2 text-base-content/80 hover:text-base-content" 
-                  onClick={handleSwitchContent} 
-                  title="Switch between Solution and Notes"
-                >
-                  {activeContent === 'solution' ? (
-                    <>
-                      <StickyNote className="w-4 h-4" />
-                      <span className="hidden sm:inline ml-1 text-xs">Notes</span>
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="w-4 h-4" />
-                      <span className="hidden sm:inline ml-1 text-xs">Solution</span>
-                    </>
-                  )}
-                </button>
-                <button 
-                  className="btn btn-sm btn-ghost rounded-md px-2 text-base-content/80 hover:text-base-content" 
-                  onClick={handleToggleWorkspaceMode} 
-                  title="Toggle Workspace Mode"
-                >
-                  <Layers className="w-4 h-4" />
-                  <span className="hidden sm:inline ml-1 text-xs">Mode</span>
-                </button>
-              </div>
-            </div>
+          {/* Center area - Forge accent bar (only on Forge page) */}
+          {isForgePage && (
+            <span
+              ref={accentRef}
+              className="hidden md:flex items-center gap-2 px-5 py-1 rounded-full bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 shadow-sm text-primary font-semibold text-sm mx-auto select-none"
+              style={{ fontFamily: 'inherit', letterSpacing: '0.01em' }}
+            >
+              <Sparkles className="w-5 h-5 text-accent" />
+              Discover, Filter & Forge Ahead!
+            </span>
           )}
 
           {/* Arena Navigation */}
