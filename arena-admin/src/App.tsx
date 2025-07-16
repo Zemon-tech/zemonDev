@@ -2,6 +2,7 @@ import { Routes, Route, Link } from 'react-router-dom'
 import './index.css'
 import ChannelsPage from './pages/ChannelsPage'
 import DashboardPage from './pages/DashboardPage'
+import MessagesPage from './pages/MessagesPage'
 
 // Layout Components
 const Sidebar = () => (
@@ -65,7 +66,7 @@ function App() {
             <Routes>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/channels" element={<ChannelsPage />} />
-              <Route path="/messages" element={<div>Messages Management</div>} />
+              <Route path="/messages" element={<MessagesPage />} />
               <Route path="/showcase" element={<div>Showcase Management</div>} />
               <Route path="/hackathons" element={<div>Hackathons Management</div>} />
               <Route path="/submissions" element={<div>Submissions Management</div>} />
