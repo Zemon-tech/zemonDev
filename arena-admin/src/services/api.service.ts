@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:3001/api/arena';
+const BASE_URL = 'http://localhost:3001/api';
 
 /**
  * Custom error class for API errors
@@ -35,7 +35,9 @@ class ApiService {
         );
       }
       
-      return await response.json();
+      const responseData = await response.json();
+      // Handle the API response structure (data is usually in the data property)
+      return responseData.data || responseData;
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
@@ -69,7 +71,8 @@ class ApiService {
         );
       }
       
-      return await response.json();
+      const responseData = await response.json();
+      return responseData.data || responseData;
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
@@ -103,7 +106,8 @@ class ApiService {
         );
       }
       
-      return await response.json();
+      const responseData = await response.json();
+      return responseData.data || responseData;
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
@@ -133,7 +137,8 @@ class ApiService {
         );
       }
       
-      return await response.json();
+      const responseData = await response.json();
+      return responseData.data || responseData;
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
@@ -143,6 +148,71 @@ class ApiService {
         0
       );
     }
+  }
+
+  // Collection-specific methods
+
+  /**
+   * Get all channels with optional pagination
+   */
+  static async getChannels() {
+    return this.get('/arena/channels');
+  }
+
+  /**
+   * Get a specific channel by ID
+   */
+  static async getChannel(id: string) {
+    return this.get(`/arena/channels/${id}`);
+  }
+
+  /**
+   * Create a new channel
+   */
+  static async createChannel(data: any) {
+    return this.post('/dev-admin/channels', data);
+  }
+
+  /**
+   * Update an existing channel
+   */
+  static async updateChannel(id: string, data: any) {
+    return this.put(`/dev-admin/channels/${id}`, data);
+  }
+
+  /**
+   * Delete a channel
+   */
+  static async deleteChannel(id: string) {
+    return this.delete(`/dev-admin/channels/${id}`);
+  }
+
+  /**
+   * Get messages for a specific channel
+   */
+  static async getChannelMessages(channelId: string, page = 1, limit = 50) {
+    return this.get(`/arena/channels/${channelId}/messages?page=${page}&limit=${limit}`);
+  }
+
+  /**
+   * Get hackathon history
+   */
+  static async getHackathons() {
+    return this.get('/arena/hackathons/history');
+  }
+
+  /**
+   * Get current hackathon
+   */
+  static async getCurrentHackathon() {
+    return this.get('/arena/hackathons/current');
+  }
+
+  /**
+   * Get showcases
+   */
+  static async getShowcases() {
+    return this.get('/arena/showcase');
   }
 }
 

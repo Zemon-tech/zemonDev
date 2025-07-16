@@ -15,9 +15,20 @@ let io: SocketIOServer;
  */
 export const initializeSocketIO = (server: HttpServer) => {
   try {
+    const allowedOrigins = [
+      process.env.CORS_ORIGIN || 'http://localhost:5173',
+      'http://localhost:5175'
+    ];
+
     io = new SocketIOServer(server, {
       cors: {
-        origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+        origin: function (origin, callback) {
+          if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+          } else {
+            callback(new Error('Not allowed by CORS'));
+          }
+        },
         methods: ['GET', 'POST'],
         credentials: true
       },
