@@ -3,6 +3,10 @@ import './index.css'
 import ChannelsPage from './pages/ChannelsPage'
 import DashboardPage from './pages/DashboardPage'
 import MessagesPage from './pages/MessagesPage'
+import ShowcasePage from './pages/ShowcasePage'
+import UsersPage from './pages/UsersPage'
+import UserRolesPage from './pages/UserRolesPage'
+import UserStatusPage from './pages/UserStatusPage'
 
 // Layout Components
 const Sidebar = () => (
@@ -33,6 +37,9 @@ const Sidebar = () => (
         </Link>
         <Link to="/user-roles" className="flex items-center px-2 py-2 text-gray-700 rounded-md hover:bg-gray-100">
           User Roles
+        </Link>
+        <Link to="/users" className="flex items-center px-2 py-2 text-gray-700 rounded-md hover:bg-gray-100">
+          Users
         </Link>
       </nav>
     </div>
@@ -67,11 +74,12 @@ function App() {
               <Route path="/" element={<DashboardPage />} />
               <Route path="/channels" element={<ChannelsPage />} />
               <Route path="/messages" element={<MessagesPage />} />
-              <Route path="/showcase" element={<div>Showcase Management</div>} />
+              <Route path="/showcase" element={<ShowcasePage />} />
               <Route path="/hackathons" element={<div>Hackathons Management</div>} />
               <Route path="/submissions" element={<div>Submissions Management</div>} />
-              <Route path="/user-status" element={<div>User Status Management</div>} />
-              <Route path="/user-roles" element={<div>User Roles Management</div>} />
+              <Route path="/user-status" element={<UserStatusPage />} />
+              <Route path="/user-roles" element={<UserRolesPage />} />
+              <Route path="/users" element={<UsersPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
