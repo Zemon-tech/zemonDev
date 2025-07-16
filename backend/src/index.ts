@@ -16,6 +16,10 @@ import errorMiddleware from './middleware/error.middleware';
 import AppError from './utils/AppError';
 import { initializeSocketIO } from './services/socket.service';
 
+console.log('[DEBUG] CLERK_SECRET_KEY:', process.env.CLERK_SECRET_KEY);
+console.log('[DEBUG] CLERK_JWT_KEY:', process.env.CLERK_JWT_KEY);
+console.log('[DEBUG] CLERK_ISSUER:', process.env.CLERK_ISSUER);
+
 // Initialize Express app
 const app = express();
 

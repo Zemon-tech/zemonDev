@@ -33,13 +33,17 @@ declare global {
  * global error handler, which returns a 401 Unauthorized response.
  */
 export const protect = [
+  (req: Request, res: Response, next: NextFunction) => {
+    console.log('[DEBUG] Incoming Authorization header:', req.headers.authorization);
+    next();
+  },
   // 1. Authenticate the request using Clerk. 
   // This will throw an error if the user is not authenticated, which is
   // caught by our global error handler. If successful, it attaches the
   // `auth` object to the request.
   ClerkExpressRequireAuth({
     onError: (err) => {
-      console.error('Clerk authentication error:', err);
+      console.error('[DEBUG] Clerk authentication error:', err);
       // The error is automatically passed to the next middleware (the error handler)
       // so we don't need to call next() here.
     }

@@ -1,5 +1,6 @@
 import { Socket } from 'socket.io';
 import { verifyToken } from '@clerk/clerk-sdk-node';
+import User, { IUser } from '../models/user.model'; // Import IUser
 
 /**
  * Socket.IO authentication middleware
@@ -33,10 +34,16 @@ export const authenticateSocket = async (socket: Socket, next: Function) => {
       if (!session) {
         return next(new Error('Authentication error: Invalid token'));
       }
-      
-      // Attach user info to socket
+
+      // Look up the user in MongoDB by clerkId
+      const user = await User.findOne({ clerkId: session.sub }) as IUser;
+      if (!user) {
+        return next(new Error('Authentication error: User not found in DB'));
+      }
+
+      // Attach MongoDB user _id as userId
       socket.data.user = {
-        userId: session.sub,
+        userId: String(user._id), // Explicitly cast to string
         sessionId: session.sid || ''
       };
       

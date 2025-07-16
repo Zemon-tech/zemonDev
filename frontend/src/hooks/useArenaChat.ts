@@ -57,7 +57,7 @@ export const useArenaChat = (channelId: string) => {
       try {
         setLoading(true);
         const response = await ApiService.getChannelMessages(channelId, getToken);
-        setMessages(response.data);
+        setMessages(response.data.messages); // FIX: use .messages
         setError(null);
       } catch (err) {
         setError('Failed to load messages');
