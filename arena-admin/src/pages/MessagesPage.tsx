@@ -45,6 +45,7 @@ const MessagesPage: React.FC = () => {
   const [form, setForm] = useState<Partial<ArenaMessage>>(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
 
   const fetchMessages = async (pageNum = 1) => {
     setLoading(true);
@@ -136,17 +137,57 @@ const MessagesPage: React.FC = () => {
     }
   };
 
+  const handleSelect = (id: string) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((mid) => mid !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selected.length === messages.length) {
+      setSelected([]);
+    } else {
+      setSelected(messages.map((m) => m._id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selected.length === 0) return;
+    if (!window.confirm(`Delete ${selected.length} selected messages?`)) return;
+    try {
+      const res = await fetch('http://localhost:3001/api/dev-admin/messages/bulk', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selected }),
+      });
+      if (!res.ok) throw new Error('Failed to bulk delete messages');
+      setSelected([]);
+      fetchMessages(page);
+    } catch (err: any) {
+      alert(err.message || 'Bulk delete failed');
+    }
+  };
+
   const totalPages = Math.ceil(total / limit);
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Arena Messages</h1>
-      <button
-        className="mb-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        onClick={openCreateModal}
-      >
-        New Message
-      </button>
+      <div className="flex items-center gap-2 mb-4">
+        <button
+          className="mb-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          onClick={openCreateModal}
+        >
+          New Message
+        </button>
+        <button
+          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
+          onClick={handleBulkDelete}
+          disabled={selected.length === 0}
+        >
+          Bulk Delete
+        </button>
+      </div>
       {error && <div className="text-red-500 mb-2">{error}</div>}
       {loading ? (
         <div>Loading...</div>
@@ -155,6 +196,13 @@ const MessagesPage: React.FC = () => {
           <table className="min-w-full bg-white border border-gray-200 mb-4">
             <thead>
               <tr>
+                <th className="px-2 py-1 border">
+                  <input
+                    type="checkbox"
+                    checked={selected.length === messages.length && messages.length > 0}
+                    onChange={handleSelectAll}
+                  />
+                </th>
                 <th className="px-2 py-1 border">Username</th>
                 <th className="px-2 py-1 border">Content</th>
                 <th className="px-2 py-1 border">Channel ID</th>
@@ -165,6 +213,13 @@ const MessagesPage: React.FC = () => {
             <tbody>
               {messages.map((msg) => (
                 <tr key={msg._id}>
+                  <td className="px-2 py-1 border text-center">
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(msg._id)}
+                      onChange={() => handleSelect(msg._id)}
+                    />
+                  </td>
                   <td className="px-2 py-1 border">{msg.username}</td>
                   <td className="px-2 py-1 border max-w-xs truncate">{msg.content}</td>
                   <td className="px-2 py-1 border">{msg.channelId}</td>
@@ -187,7 +242,7 @@ const MessagesPage: React.FC = () => {
               ))}
               {messages.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="text-center py-4">No messages found.</td>
+                  <td colSpan={6} className="text-center py-4">No messages found.</td>
                 </tr>
               )}
             </tbody>

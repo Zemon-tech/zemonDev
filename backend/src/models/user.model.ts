@@ -4,6 +4,7 @@ export interface IUser extends Document {
   clerkId: string;
   email: string;
   fullName: string;
+  username: string; // Clerk username/handle
   collegeDetails?: {
     name?: string;
     branch?: string;
@@ -55,6 +56,12 @@ const UserSchema: Schema = new Schema(
     fullName: {
       type: String,
       required: true,
+      trim: true,
+    },
+    username: {
+      type: String,
+      required: true,
+      unique: true,
       trim: true,
     },
     collegeDetails: {

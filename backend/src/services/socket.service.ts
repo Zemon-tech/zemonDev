@@ -3,6 +3,7 @@ import { Server as HttpServer } from 'http';
 import { authenticateSocket } from '../middleware/socketAuth.middleware';
 import { socketRateLimit } from '../middleware/socketRateLimit.middleware';
 import { ArenaMessage, ArenaChannel, UserChannelStatus } from '../models';
+import User from '../models/user.model'; // Add this import
 import mongoose from 'mongoose';
 import logger from '../utils/logger';
 
@@ -211,8 +212,16 @@ const handleConnection = (socket: any) => {
           return callback?.({ success: false, message: error });
         }
 
-        // Get user's name (in a real app, fetch from database)
-        const username = messageData.username || 'Anonymous';
+        // Get user's username (Clerk username) from database
+        let username = 'Anonymous';
+        try {
+          const user = await User.findById(userId);
+          if (user && user.username) {
+            username = user.username;
+          }
+        } catch (e) {
+          // fallback to Anonymous if lookup fails
+        }
 
         // Create message
         const message = await ArenaMessage.create({
@@ -364,13 +373,23 @@ const handleConnection = (socket: any) => {
   // Handle typing indicator with rate limiting
   socket.on('typing', (data: { channelId: string, isTyping: boolean }) => {
     // Apply rate limiting for typing events
-    socketRateLimit(socket, 'typing', () => {
+    socketRateLimit(socket, 'typing', async () => {
       try {
         if (!userId || !data || !data.channelId) return;
         
+        // Fetch username from DB
+        let username = 'Anonymous';
+        try {
+          const user = await User.findById(userId);
+          if (user && user.username) {
+            username = user.username;
+          }
+        } catch (e) {}
+
         // Broadcast to channel that user is typing
         socket.to(`channel:${data.channelId}`).emit('user_typing', {
           userId,
+          username, // Include username
           isTyping: data.isTyping
         });
       } catch (error) {

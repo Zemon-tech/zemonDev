@@ -160,6 +160,20 @@ router.put('/messages/:id', asyncHandler(async (req: Request, res: Response, nex
 }));
 
 /**
+ * @desc    Bulk delete messages (DEVELOPMENT ONLY)
+ * @route   DELETE /api/dev-admin/messages/bulk
+ * @access  Development only
+ */
+router.delete('/messages/bulk', asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return next(new AppError('Request body must have a non-empty array of ids', 400));
+  }
+  const result = await ArenaMessage.deleteMany({ _id: { $in: ids } });
+  res.status(200).json(new ApiResponse(200, 'Messages deleted successfully', { deletedCount: result.deletedCount }));
+}));
+
+/**
  * @desc    Delete a message (DEVELOPMENT ONLY)
  * @route   DELETE /api/dev-admin/messages/:id
  * @access  Development only
