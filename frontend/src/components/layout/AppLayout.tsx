@@ -157,7 +157,6 @@ export default function AppLayout() {
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
-
             {/* Submit Button - Only show on problem page */}
             {showSubmitButton && (
               <Button
@@ -181,17 +180,62 @@ export default function AppLayout() {
             )}
           </div>
 
-          {/* Center area - Forge accent bar (only on Forge page) */}
-          {isForgePage && (
-            <span
-              ref={accentRef}
-              className="hidden md:flex items-center gap-2 px-5 py-1 rounded-full bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 shadow-sm text-primary font-semibold text-sm mx-auto select-none"
-              style={{ fontFamily: 'inherit', letterSpacing: '0.01em' }}
-            >
-              <Sparkles className="w-5 h-5 text-accent" />
-              Discover, Filter & Forge Ahead!
-            </span>
-          )}
+          {/* Center area - Workspace nav or Forge accent bar */}
+          {isCrucibleProblemPage ? (
+            <div className="hidden md:flex items-center gap-2">
+              <button 
+                className="btn btn-ghost btn-sm text-primary font-medium flex items-center gap-1.5 mr-2" 
+                onClick={() => handleNavigation('/crucible')} 
+                title="Back to Crucible"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Back to Crucible</span>
+              </button>
+              <div className="flex items-center border-l border-base-200 dark:border-base-700 pl-2 gap-1">
+                <button 
+                  className="btn btn-sm btn-ghost rounded-md px-2 text-base-content/80 hover:text-base-content" 
+                  onClick={handleToggleProblemSidebar} 
+                  title="Show/Hide Problem Details"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span className="hidden sm:inline ml-1 text-xs">Problem</span>
+                </button>
+                <button 
+                  className="btn btn-sm btn-ghost rounded-md px-2 text-base-content/80 hover:text-base-content" 
+                  onClick={handleToggleChatSidebar} 
+                  title="Show/Hide AI Chat"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span className="hidden sm:inline ml-1 text-xs">AI Chat</span>
+                </button>
+                <button 
+                  className="btn btn-sm btn-ghost rounded-md px-2 text-base-content/80 hover:text-base-content" 
+                  onClick={handleSwitchContent} 
+                  title="Switch between Solution and Notes"
+                >
+                  {activeContent === 'solution' ? (
+                    <>
+                      <StickyNote className="w-4 h-4" />
+                      <span className="hidden sm:inline ml-1 text-xs">Notes</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4" />
+                      <span className="hidden sm:inline ml-1 text-xs">Solution</span>
+                    </>
+                  )}
+                </button>
+                <button 
+                  className="btn btn-sm btn-ghost rounded-md px-2 text-base-content/80 hover:text-base-content" 
+                  onClick={handleToggleWorkspaceMode} 
+                  title="Toggle Workspace Mode"
+                >
+                  <Layers className="w-4 h-4" />
+                  <span className="hidden sm:inline ml-1 text-xs">Mode</span>
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           {/* Arena Navigation */}
           {isArenaPage && (

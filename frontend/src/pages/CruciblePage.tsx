@@ -159,7 +159,6 @@ export default function CruciblePage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const { toast } = useToast();
-  
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
   
   // Force loading state to end after 10 seconds maximum
@@ -314,21 +313,31 @@ export default function CruciblePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-4 min-h-screen">
       {/* Search Bar */}
-      <div className="relative w-full mb-3">
-        <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-          <Search className="w-5 h-5 text-muted-foreground" />
-        </div>
+      <div className="relative w-full max-w-md mx-auto mb-4">
         <input
           type="text"
-          className="bg-background border border-input rounded-2xl w-full py-3 ps-10 pe-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+          className="rounded-full pl-10 pr-8 py-2 text-sm bg-base-100 border border-base-300 shadow-sm focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-200 text-base-content placeholder:text-base-content/60 w-full"
           placeholder="Search challenges..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          aria-label="Search challenges"
         />
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/60 pointer-events-none">
+          <Search className="w-4 h-4" />
+        </span>
+        {searchQuery && (
+          <button
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-base-content/60 hover:text-error hover:bg-error/10 transition-colors"
+            tabIndex={0}
+            aria-label="Clear search"
+            onClick={() => setSearchQuery('')}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
-
       {/* Tags Filter */}
-      <div className="mb-4 border-b pb-3">
+      <div className="mb-4 border-b border-base-300 pb-3">
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {allTags.map(tag => (
             <Badge 
@@ -336,7 +345,7 @@ export default function CruciblePage() {
               variant={selectedTags.includes(tag) ? "default" : "outline"}
               className={cn(
                 "px-3 py-1 rounded-full cursor-pointer text-xs capitalize transition-all hover:scale-105",
-                selectedTags.includes(tag) ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+                selectedTags.includes(tag) ? "bg-primary text-primary-foreground" : "hover:bg-accent bg-base-200 text-base-content border-none"
               )}
               onClick={() => toggleTag(tag)}
             >
@@ -354,32 +363,38 @@ export default function CruciblePage() {
           )}
         </div>
       </div>
-
-      {/* Problem Cards */}
-      <CrucibleBrowseView
-        problems={filteredProblems}
-        loading={isLoading}
-        onSelect={(problem) => {
-          navigate(`/${username}/crucible/problem/${problem.id}`);
-        }}
-      />
-
+      {/* Problem Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-1">
+        {isLoading ? (
+          Array(6).fill(0).map((_, i) => <ProblemCardSkeleton key={i} />)
+        ) : error ? (
+          <div className="col-span-full text-center text-error py-12">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4" />
+            <p className="text-lg font-medium">{error}</p>
+          </div>
+        ) : filteredProblems.length === 0 ? (
+          <div className="col-span-full text-center text-base-content/60 py-12">No problems found</div>
+        ) : (
+          filteredProblems.map((problem) => (
+            <ProblemCard key={problem.id} problem={problem} onSelect={(p) => navigate(`/${username}/crucible/problem/${p.id}`)} />
+          ))
+        )}
+      </div>
       {/* Load More Button */}
       {hasMore && !isLoading && filteredProblems.length > 0 && (
         <div className="flex justify-center mt-6">
           <button 
-            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
+            className="px-5 py-2 rounded-full bg-primary text-primary-foreground font-semibold shadow hover:bg-primary/90 transition-colors"
             onClick={loadMore}
           >
             Load More
           </button>
         </div>
       )}
-
       {/* No results message */}
       {!isLoading && filteredProblems.length === 0 && problems.length > 0 && (
         <div className="flex flex-col items-center justify-center py-8">
-          <p className="text-lg font-medium text-muted-foreground">No challenges match your filters</p>
+          <p className="text-lg font-medium text-base-content/70">No challenges match your filters</p>
           <button 
             className="mt-3 text-primary hover:underline"
             onClick={() => {
@@ -388,21 +403,6 @@ export default function CruciblePage() {
             }}
           >
             Clear all filters
-          </button>
-        </div>
-      )}
-      
-      {/* Error message */}
-      {error && (
-        <div className="flex flex-col items-center justify-center py-8">
-          <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-          <p className="text-lg font-medium text-red-500">Error loading problems</p>
-          <p className="text-muted-foreground">{error}</p>
-          <button 
-            className="mt-3 btn btn-primary"
-            onClick={() => window.location.reload()}
-          >
-            Try Again
           </button>
         </div>
       )}

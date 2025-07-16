@@ -21,31 +21,11 @@ type Props = {
 
 // Icon/Image subcomponent
 function ProblemIcon({ iconUrl, difficulty }: { iconUrl?: string; difficulty: Problem['difficulty'] }) {
-  const bgColorMap: Record<Problem['difficulty'], string> = {
-    easy: 'bg-gray-100 dark:bg-gray-800/40',
-    medium: 'bg-gray-100 dark:bg-gray-800/40',
-    hard: 'bg-gray-100 dark:bg-gray-800/40',
-    expert: 'bg-gray-100 dark:bg-gray-800/40',
-  };
-  
-  // Use Zemon.svg as default
-  if (!iconUrl) {
-    return (
-      <span className={cn(
-        "rounded-lg p-1.5 flex items-center justify-center w-10 h-10 shadow-sm",
-        bgColorMap[difficulty]
-      )}>
-        <img src="/Zemon.svg" alt="Problem Icon" className="w-6 h-6 object-contain" />
-      </span>
-    );
-  }
-  // If SVG or image provided
   return (
     <span className={cn(
-      "rounded-lg p-1.5 flex items-center justify-center w-10 h-10 shadow-sm",
-      bgColorMap[difficulty]
+      "rounded-lg p-1.5 flex items-center justify-center w-10 h-10 shadow-sm border border-base-200 bg-base-200 dark:bg-base-300/40"
     )}>
-      <img src={iconUrl} alt="Problem Icon" className="w-6 h-6 object-contain" />
+      <img src={iconUrl || "/Zemon.svg"} alt="Problem Icon" className="w-6 h-6 object-contain" />
     </span>
   );
 }
@@ -54,8 +34,8 @@ function ProblemIcon({ iconUrl, difficulty }: { iconUrl?: string; difficulty: Pr
 function TagBadge({ tag, onClick }: { tag: string; onClick?: (e: React.MouseEvent) => void }) {
   return (
     <Badge
-      variant="outline"
-      className="capitalize text-xs px-2 py-0.5 cursor-pointer"
+      variant="secondary"
+      className="capitalize text-xs px-2 py-0.5 rounded-full bg-base-200 text-base-content border-none shadow-none cursor-pointer"
       onClick={onClick}
     >
       {tag}
@@ -64,39 +44,28 @@ function TagBadge({ tag, onClick }: { tag: string; onClick?: (e: React.MouseEven
 }
 
 // Tag overflow component with tooltip
-function TagOverflow({ 
-  count, 
-  tags, 
-  onClick 
-}: { 
-  count: number; 
-  tags: string[]; 
-  onClick?: (e: React.MouseEvent) => void 
-}) {
+function TagOverflow({ count, tags, onClick }: { count: number; tags: string[]; onClick?: (e: React.MouseEvent) => void }) {
   const [showTooltip, setShowTooltip] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
-  
-  // Close tooltip when clicking outside
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
         setShowTooltip(false);
       }
     };
-    
     if (showTooltip) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-    
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showTooltip]);
-  
+
   return (
     <div className="relative" ref={tooltipRef}>
-      <span 
-        className="badge badge-outline badge-sm text-[0.75rem] whitespace-nowrap px-2 py-0.5 flex-shrink-0 opacity-70 hover:opacity-100 cursor-pointer bg-background/50 hover:bg-background transition-all"
+      <span
+        className="badge badge-outline badge-sm text-[0.75rem] whitespace-nowrap px-2 py-0.5 flex-shrink-0 opacity-70 hover:opacity-100 cursor-pointer bg-base-200 text-base-content border-none transition-all rounded-full"
         onClick={(e) => {
           e.stopPropagation();
           setShowTooltip(!showTooltip);
@@ -104,7 +73,6 @@ function TagOverflow({
         }}
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={(e) => {
-          // Don't hide if moving to tooltip
           if (e.relatedTarget && tooltipRef.current?.contains(e.relatedTarget as Node)) {
             return;
           }
@@ -113,136 +81,128 @@ function TagOverflow({
       >
         +{count}
       </span>
-      
       {showTooltip && (
-        <div 
-          className="absolute bottom-full left-0 mb-1.5 bg-background border border-border rounded-lg shadow-md p-2 z-10 min-w-[150px] max-w-[250px] animate-in fade-in-50 zoom-in-95 duration-100"
+        <div
+          className="absolute bottom-full left-0 mb-1.5 bg-base-100 border border-base-300 rounded-lg shadow-md p-2 z-10 min-w-[150px] max-w-[250px] animate-in fade-in-50 zoom-in-95 duration-100"
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
         >
           <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto scrollbar-hide">
             {tags.map(tag => (
-              <TagBadge 
-                key={tag} 
+              <TagBadge
+                key={tag}
                 tag={tag}
                 onClick={(e) => e.stopPropagation()}
               />
             ))}
           </div>
-          <div className="absolute w-2 h-2 bg-background border-r border-b border-border rotate-45 -bottom-1 left-3"></div>
+          <div className="absolute w-2 h-2 bg-base-100 border-r border-b border-base-300 rotate-45 -bottom-1 left-3"></div>
         </div>
       )}
     </div>
   );
 }
 
-// Replace difficulty badge with Badge and color variants
 const difficultyColor: Record<Problem['difficulty'], string> = {
-  easy: 'bg-green-100 text-green-700 border-green-300',
-  medium: 'bg-blue-100 text-blue-700 border-blue-300',
-  hard: 'bg-amber-100 text-amber-700 border-amber-300',
-  expert: 'bg-red-100 text-red-700 border-red-300',
+  easy: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+  medium: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+  hard: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
+  expert: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
 };
 
 export default function ProblemCard({ problem, onSelect }: Props) {
-  // Display logic for tags
-  const MAX_VISIBLE_TAGS = 4;
-  const visibleTags = problem.tags.slice(0, MAX_VISIBLE_TAGS);
-  const hiddenTags = problem.tags.slice(MAX_VISIBLE_TAGS);
-  const hasHiddenTags = hiddenTags.length > 0;
-  
-  // For smaller screens, show fewer tags
-  const MAX_MOBILE_TAGS = 2;
-  const visibleMobileTags = problem.tags.slice(0, MAX_MOBILE_TAGS);
-  const hiddenMobileTags = problem.tags.slice(MAX_MOBILE_TAGS);
-  const hasHiddenMobileTags = hiddenMobileTags.length > 0;
-
-  // Map difficulty to badge style
-  const difficultyStyles: Record<Problem['difficulty'], string> = {
-    easy: 'border-green-500 text-green-700 dark:text-green-400',
-    medium: 'border-blue-500 text-blue-700 dark:text-blue-400',
-    hard: 'border-amber-500 text-amber-700 dark:text-amber-400',
-    expert: 'border-red-500 text-red-700 dark:text-red-400',
-  };
+  const MAX_TAGS = 4;
+  const visibleTags = problem.tags.slice(0, MAX_TAGS);
+  const extraTags = problem.tags.length > MAX_TAGS ? problem.tags.slice(MAX_TAGS) : [];
 
   const [isHovered, setIsHovered] = useState(false);
-  
-  // Get difficulty color
-  const getDifficultyColor = () => {
-    switch (problem.difficulty) {
-      case 'easy': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-      case 'hard': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
-      case 'expert': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-    }
-  };
+  const [isButtonHovered, setIsButtonHovered] = useState(false);
 
   return (
-    <Card 
-      className="h-full flex flex-col bg-base-100 border shadow-sm rounded-xl overflow-hidden"
+    <Card
+      className={cn(
+        // Glassmorphism + premium border/shadow
+        "h-full flex flex-col bg-base-100/80 dark:bg-base-200/60 backdrop-blur-[2.5px] border border-primary/20 shadow-[0_4px_32px_0_rgba(80,80,120,0.10)] rounded-2xl overflow-hidden transition-all duration-300 relative",
+        "hover:shadow-2xl hover:scale-[1.015] cursor-pointer p-0 group"
+      )}
       onClick={() => onSelect?.(problem)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      style={{ minHeight: 240, maxHeight: 340 }}
     >
-      <CardHeader className="pb-0 px-3 pt-2.5 space-y-0">
-        <div className="flex items-start gap-2">
-          <ProblemIcon iconUrl={problem.iconUrl} difficulty={problem.difficulty} />
-          <div className="flex-1 min-w-0 flex flex-col pt-0.5">
-            <div className="flex items-center justify-between gap-2">
-              <CardTitle className="text-base font-extrabold leading-tight truncate">
-                {problem.title}
-              </CardTitle>
-              <div className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyColor()}`}>
-                {problem.difficulty}
-              </div>
-            </div>
+      {/* Animated accent icon */}
+      <span className={cn(
+        "absolute top-4 right-4 z-10 transition-transform duration-300",
+        isHovered ? "scale-110 rotate-6" : "scale-100 rotate-0"
+      )}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-sparkles drop-shadow-glow animate-spin-slow">
+          <path d="M12 2v2m0 16v2m10-10h-2M4 12H2m15.07-7.07-1.41 1.41M6.34 17.66l-1.41 1.41m12.02 0-1.41-1.41M6.34 6.34 4.93 4.93" />
+        </svg>
+      </span>
+      <CardHeader className="pb-2 pt-5 px-6 flex flex-row items-center gap-3 border-none bg-transparent">
+        <ProblemIcon iconUrl={problem.iconUrl} difficulty={problem.difficulty} />
+        <div className="flex-1 min-w-0 flex flex-col pt-0.5">
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-xl font-extrabold font-sans leading-tight line-clamp-2 tracking-tight text-primary drop-shadow-sm">
+              {problem.title}
+            </CardTitle>
+            <span className={cn(
+              "px-3 py-1 rounded-full text-xs font-semibold capitalize border-none shadow-none ml-2",
+              difficultyColor[problem.difficulty]
+            )}>
+              {problem.difficulty}
+            </span>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex-1 min-h-[3.5em] pb-2 pt-0 px-6">
-        <CardDescription 
-          className="line-clamp-3 text-[0.97rem] text-muted-foreground leading-snug min-h-[3.5em]"
+      <CardContent className="flex-1 flex flex-col gap-2 px-6 pb-2 pt-0 min-h-[72px]">
+        <CardDescription
+          className="line-clamp-3 text-base text-base-content/80 leading-relaxed mb-1 font-medium min-h-[3.5em]"
           title={problem.description}
         >
           {problem.description}
         </CardDescription>
-      </CardContent>
-      <CardFooter className="flex flex-col gap-2 items-stretch px-6 pt-0 pb-4 mt-auto">
-        <div className="flex flex-wrap gap-1 min-h-[2.2em]">
-          {/* Desktop view (>= md) */}
-          <div className="hidden md:flex items-center gap-1 flex-wrap">
-            {visibleTags.map((tag) => (
-              <TagBadge key={tag} tag={tag} onClick={e => e.stopPropagation()} />
-            ))}
-            {hasHiddenTags && (
-              <TagOverflow count={hiddenTags.length} tags={hiddenTags} onClick={e => e.stopPropagation()} />
-            )}
-          </div>
-          {/* Mobile view (< md) */}
-          <div className="flex md:hidden items-center gap-1 flex-wrap">
-            {visibleMobileTags.map((tag) => (
-              <TagBadge key={tag} tag={tag} onClick={e => e.stopPropagation()} />
-            ))}
-            {hasHiddenMobileTags && (
-              <TagOverflow count={hiddenMobileTags.length} tags={hiddenMobileTags} onClick={e => e.stopPropagation()} />
-            )}
-          </div>
+        {/* Tags */}
+        <div className="flex flex-wrap gap-1 mt-auto">
+          {visibleTags.map((tag) => (
+            <TagBadge key={tag} tag={tag} onClick={e => e.stopPropagation()} />
+          ))}
+          {extraTags.length > 0 && (
+            <TagOverflow count={extraTags.length} tags={extraTags} onClick={e => e.stopPropagation()} />
+          )}
         </div>
+      </CardContent>
+      <CardFooter className="flex items-end justify-end px-6 pb-5 pt-2 mt-auto border-none bg-transparent">
         <Button
-          size="lg"
-          className="w-full mt-2 rounded-full px-6 py-2 h-10 shadow bg-gradient-to-r from-primary to-accent text-primary-content font-bold text-base hover:scale-105 hover:from-primary/80 hover:to-accent/80 transition-all focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "font-semibold text-primary text-xs px-5 py-2 rounded-full border border-primary/30 min-h-0 h-9 relative overflow-hidden",
+            "transition-all duration-200",
+            isButtonHovered ? "shadow-[0_0_0_3px_rgba(167,139,250,0.18)] bg-gradient-to-tr from-primary/10 to-accent/10 scale-105" : "hover:shadow-[0_0_0_4px_rgba(167,139,250,0.22)] hover:bg-gradient-to-tr hover:from-primary/20 hover:to-accent/20"
+          )}
+          style={{ boxShadow: isButtonHovered ? '0 2px 16px 0 rgba(167,139,250,0.10)' : undefined }}
           onClick={e => { e.stopPropagation(); onSelect?.(problem); }}
-          variant="default"
+          onMouseEnter={() => setIsButtonHovered(true)}
+          onMouseLeave={() => setIsButtonHovered(false)}
         >
-          Solve Now
+          <span className="relative z-10 flex items-center gap-1">
+            <svg className="w-4 h-4 text-primary animate-bounce-x" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+            Solve Now
+          </span>
+          {/* Glowing animated effect */}
+          <span className={cn(
+            "absolute inset-0 rounded-full pointer-events-none transition-opacity duration-300",
+            isButtonHovered ? "opacity-60 bg-gradient-to-tr from-primary/30 via-accent/20 to-secondary/20 blur-[6px] animate-pulse" : "opacity-0"
+          )}></span>
         </Button>
       </CardFooter>
-      
-      <div 
-        className={`absolute bottom-0 left-0 w-full h-1 bg-primary transform transition-transform duration-300 ${
-          isHovered ? 'scale-x-100' : 'scale-x-0'
-        }`}
+      {/* Subtle animated accent bar on hover */}
+      <div
+        className={cn(
+          "absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-accent to-secondary transform transition-transform duration-300",
+          isHovered ? "scale-x-100" : "scale-x-0"
+        )}
       />
     </Card>
   );
