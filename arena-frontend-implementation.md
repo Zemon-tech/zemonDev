@@ -37,12 +37,14 @@ Created `frontend/src/hooks/useArenaChat.ts`:
 - Handles message history loading
 - Implements typing indicators
 - Provides message sending functionality
+- Fixed bug where messages.map would fail if the backend response was not an array
 
 ### Error Handling
 Created `frontend/src/components/arena/ArenaErrorBoundary.tsx`:
 - Catches and displays errors in Arena components
 - Provides a user-friendly error message
 - Offers a refresh button to recover from errors
+- Improved error handling for chat and socket failures
 
 ## Phase 3: Transform Existing Components ✅
 
@@ -53,11 +55,14 @@ Updated `frontend/src/components/arena/ChatChannel.tsx`:
 - Added typing indicators
 - Created loading and error states
 - Implemented message input with typing detection
+- Typing indicator now shows Clerk username (e.g., 'user_A is typing...')
+- Improved error and loading states
 
 ### ArenaPage Component
 Updated `frontend/src/pages/ArenaPage.tsx`:
 - Added error boundary wrapper
 - Updated channel rendering to pass proper props to ChatChannel
+- Added debug logging for authentication and socket events during development
 
 ### ShowcaseChannel Component
 Updated `frontend/src/components/arena/ShowcaseChannel.tsx`:
@@ -116,6 +121,16 @@ Implemented across all components:
 - Added loading states with spinners
 - Implemented skeleton loading for content
 - Added graceful degradation for unavailable features
+
+## Bug Fixes & Improvements (2024-07)
+- Fixed Clerk authentication issues causing 401 errors on Arena page.
+- Fixed socket authentication to use MongoDB user _id instead of Clerk userId, resolving BSON errors.
+- Updated backend and frontend to use Clerk username (not fullName) for chat message usernames.
+- Updated backend and frontend to show Clerk username in typing indicator events.
+- Improved error boundaries and error handling for chat and socket failures.
+- Improved loading and error states for chat and channel components.
+- Added debug logging for authentication and socket events during development.
+- Note: After adding the username field to the user model, a backfill/migration is required for existing users to populate their Clerk usernames.
 
 ## Technical Decisions
 

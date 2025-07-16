@@ -139,30 +139,36 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
               </div>
             </motion.div>
           ))}
-
-          {/* Typing indicator */}
-          {typing.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="px-4 py-2"
-            >
-              <div className="flex items-center gap-2 text-base-content/60">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                  <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '600ms' }}></div>
-                </div>
-                <span className="text-sm">
-                  {typing.join(', ')} {typing.length === 1 ? 'is' : 'are'} typing...
-                </span>
-              </div>
-            </motion.div>
-          )}
-          
           <div ref={messagesEndRef} />
         </div>
       </div>
+      {/* Typing indicator - moved outside scrollable area */}
+      {typing.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="px-4 py-2"
+          style={{
+            background: '#ffeeba',
+            color: '#222',
+            borderRadius: '6px',
+            margin: '8px 24px',
+            fontWeight: 600,
+            marginBottom: '8px'
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <div className="flex space-x-1">
+              <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '600ms' }}></div>
+            </div>
+            <span className="text-sm" style={{ color: '#222' }}>
+              {typing.join(', ')} {typing.length === 1 ? 'is' : 'are'} typing...
+            </span>
+          </div>
+        </motion.div>
+      )}
 
       {/* Message Input */}
       {canMessage && (

@@ -34,7 +34,7 @@ export const authenticateSocket = async (socket: Socket, next: Function) => {
       if (!session) {
         return next(new Error('Authentication error: Invalid token'));
       }
-
+      
       // Look up the user in MongoDB by clerkId
       const user = await User.findOne({ clerkId: session.sub }) as IUser;
       if (!user) {

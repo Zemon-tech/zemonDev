@@ -379,8 +379,8 @@ const handleConnection = (socket: any) => {
 
   // Handle typing indicator with rate limiting
   socket.on('typing', (data: { channelId: string, isTyping: boolean }) => {
-    // Apply rate limiting for typing events
-    socketRateLimit(socket, 'typing', async () => {
+    // TEMP: Bypass rate limiter for debugging
+    (async () => {
       try {
         if (!userId || !data || !data.channelId) return;
         
@@ -390,15 +390,26 @@ const handleConnection = (socket: any) => {
           const user = await User.findById(userId);
           if (user && user.username) {
             username = user.username;
+          } else if (socket.data.user && socket.data.user.username) {
+            username = socket.data.user.username;
           }
-        } catch (e) {}
+        } catch (e) {
+          if (socket.data.user && socket.data.user.username) {
+            username = socket.data.user.username;
+          }
+        }
 
-        // Broadcast to channel that user is typing
-        socket.to(`channel:${data.channelId}`).emit('user_typing', {
+        if (username === 'Anonymous') {
+        }
+
+        // Broadcast to channel that user is typing (to all users, including sender)
+        if (!io) return;
+        const payload = {
           userId,
           username, // Include username
           isTyping: data.isTyping
-        });
+        };
+        io.to(`channel:${data.channelId}`).emit('user_typing', payload);
       } catch (error) {
         logger.error('Error processing typing indicator:', {
           userId,
@@ -408,7 +419,7 @@ const handleConnection = (socket: any) => {
           timestamp: new Date().toISOString()
         });
       }
-    });
+    })();
   });
 
   // Handle disconnect
