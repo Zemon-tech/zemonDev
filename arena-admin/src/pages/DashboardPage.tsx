@@ -53,19 +53,10 @@ const DashboardPage = () => {
         
         // Count total channels
         let channelsCount = 0;
-        let firstChannelId = '';
-        
-        // Process channels data - it's grouped by category
         for (const category in channelsData) {
           if (Object.prototype.hasOwnProperty.call(channelsData, category)) {
             if (Array.isArray(channelsData[category])) {
               channelsCount += channelsData[category].length;
-              
-              // Store first channel ID for messages count
-              if (!firstChannelId && channelsData[category].length > 0) {
-                const firstChannel = channelsData[category][0];
-                firstChannelId = firstChannel._id;
-              }
             }
           }
         }
@@ -100,17 +91,12 @@ const DashboardPage = () => {
           console.warn('Could not fetch showcases:', err);
         }
         
-        // Sample channel to get message count (using the first channel)
+        // Get total messages count (across all channels)
         let messagesCount = 0;
-        if (firstChannelId) {
-          try {
-            const messagesData = await ApiService.getChannelMessages(firstChannelId) as MessagesResponse;
-            if (messagesData && messagesData.messages) {
-              messagesCount = messagesData.messages.length;
-            }
-          } catch (err) {
-            console.warn('Could not fetch messages count:', err);
-          }
+        try {
+          messagesCount = await ApiService.getTotalMessagesCount();
+        } catch (err) {
+          console.warn('Could not fetch total messages count:', err);
         }
 
         setStats({

@@ -13,7 +13,9 @@ import { emitToChannel } from '../services/socket.service';
  */
 export const getChannels = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const channels = await ArenaChannel.find({ isActive: true })
+    // const channels = await ArenaChannel.find({ isActive: true })
+    // Return all channels, not just isActive: true
+    const channels = await ArenaChannel.find({})
       .sort({ group: 1, name: 1 });
     
     // Group by category
@@ -267,8 +269,8 @@ export const getAllUnreadCounts = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.user._id;
 
-    // Get all active channels
-    const channels = await ArenaChannel.find({ isActive: true });
+    // Get all channels (not just isActive: true)
+    const channels = await ArenaChannel.find({});
     
     // Get user's status for all channels
     const userStatuses = await UserChannelStatus.find({ userId });

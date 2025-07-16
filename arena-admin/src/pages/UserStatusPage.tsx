@@ -5,7 +5,7 @@ interface UserChannelStatus {
   userId: string;
   channelId: string;
   isBanned?: boolean;
-  isMuted?: boolean;
+  isKicked?: boolean;
   createdAt: string;
 }
 
@@ -20,7 +20,7 @@ const emptyForm: Partial<UserChannelStatus> = {
   userId: '',
   channelId: '',
   isBanned: false,
-  isMuted: false,
+  isKicked: false,
 };
 
 const UserStatusPage: React.FC = () => {
@@ -85,7 +85,7 @@ const UserStatusPage: React.FC = () => {
       userId: status.userId,
       channelId: status.channelId,
       isBanned: status.isBanned || false,
-      isMuted: status.isMuted || false,
+      isKicked: status.isKicked || false,
     });
     setEditId(status._id);
     setFormError(null);
@@ -154,7 +154,7 @@ const UserStatusPage: React.FC = () => {
                 <th className="px-2 py-1 border">User ID</th>
                 <th className="px-2 py-1 border">Channel ID</th>
                 <th className="px-2 py-1 border">Banned</th>
-                <th className="px-2 py-1 border">Muted</th>
+                <th className="px-2 py-1 border">Kicked</th>
                 <th className="px-2 py-1 border">Created At</th>
                 <th className="px-2 py-1 border">Actions</th>
               </tr>
@@ -165,7 +165,7 @@ const UserStatusPage: React.FC = () => {
                   <td className="px-2 py-1 border">{s.userId}</td>
                   <td className="px-2 py-1 border">{s.channelId}</td>
                   <td className="px-2 py-1 border text-center">{s.isBanned ? 'Yes' : 'No'}</td>
-                  <td className="px-2 py-1 border text-center">{s.isMuted ? 'Yes' : 'No'}</td>
+                  <td className="px-2 py-1 border text-center">{s.isKicked ? 'Yes' : 'No'}</td>
                   <td className="px-2 py-1 border">{new Date(s.createdAt).toLocaleString()}</td>
                   <td className="px-2 py-1 border flex gap-2">
                     <button
@@ -246,8 +246,8 @@ const UserStatusPage: React.FC = () => {
                   required
                 />
               </div>
-              <div className="flex gap-4">
-                <label className="inline-flex items-center">
+              <div className="flex items-center gap-4 mt-2">
+                <label className="flex items-center">
                   <input
                     type="checkbox"
                     name="isBanned"
@@ -257,15 +257,15 @@ const UserStatusPage: React.FC = () => {
                   />
                   Banned
                 </label>
-                <label className="inline-flex items-center">
+                <label className="flex items-center">
                   <input
                     type="checkbox"
-                    name="isMuted"
-                    checked={!!form.isMuted}
+                    name="isKicked"
+                    checked={!!form.isKicked}
                     onChange={handleFormChange}
                     className="mr-2"
                   />
-                  Muted
+                  Kicked
                 </label>
               </div>
               <div className="flex justify-end gap-2">

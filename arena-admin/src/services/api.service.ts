@@ -214,6 +214,22 @@ class ApiService {
   static async getShowcases() {
     return this.get('/arena/showcase');
   }
+
+  /**
+   * Get all messages (paginated, dev only)
+   */
+  static async getAllMessages(page = 1, limit = 1) {
+    return this.get(`/dev-admin/messages?page=${page}&limit=${limit}`);
+  }
+
+  /**
+   * Get the total number of messages (dev only)
+   */
+  static async getTotalMessagesCount() {
+    // Fetch just 1 message, but get the total from the response
+    const response = await this.getAllMessages(1, 1) as { total?: number };
+    return response.total || 0;
+  }
 }
 
 export default ApiService; 

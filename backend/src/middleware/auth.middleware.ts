@@ -34,7 +34,7 @@ declare global {
  */
 export const protect = [
   (req: Request, res: Response, next: NextFunction) => {
-    console.log('[DEBUG] Incoming Authorization header:', req.headers.authorization);
+    // Removed noisy debug log for Authorization header
     next();
   },
   // 1. Authenticate the request using Clerk. 

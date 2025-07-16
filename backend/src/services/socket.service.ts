@@ -111,6 +111,7 @@ const handleConnection = (socket: any) => {
       logger.info(`User joined channel:`, {
         userId,
         channelId,
+        channelName: channel.name,
         socketId: socket.id,
         timestamp: new Date().toISOString()
       });
@@ -129,17 +130,23 @@ const handleConnection = (socket: any) => {
   });
 
   // Handle leaving a channel
-  socket.on('leave_channel', (channelId: string) => {
+  socket.on('leave_channel', async (channelId: string) => {
     try {
       // Validate input
       if (!channelId || typeof channelId !== 'string') {
         return;
       }
-      
+      // Fetch channel name for logging
+      let channelName = undefined;
+      try {
+        const channel = await ArenaChannel.findById(channelId);
+        if (channel) channelName = channel.name;
+      } catch {}
       socket.leave(`channel:${channelId}`);
       logger.info(`User left channel:`, {
         userId,
         channelId,
+        channelName,
         socketId: socket.id,
         timestamp: new Date().toISOString()
       });
