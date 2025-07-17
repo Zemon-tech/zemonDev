@@ -63,6 +63,14 @@ export class ApiService {
     );
   }
 
+  static async submitShowcaseProject(data: any, getToken: () => Promise<string | null>) {
+    return this.makeRequest(
+      '/api/arena/showcase',
+      { method: 'POST', body: JSON.stringify(data) },
+      getToken
+    );
+  }
+
   // Hackathon API
   static async getCurrentHackathon(getToken: () => Promise<string | null>) {
     return this.makeRequest('/api/arena/hackathons/current', {}, getToken);

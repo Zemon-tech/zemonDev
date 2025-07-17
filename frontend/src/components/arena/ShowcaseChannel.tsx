@@ -5,9 +5,69 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ThumbsUp, MessageSquare, Share2, ExternalLink, Plus, Hash, Loader2, AlertCircle } from 'lucide-react';
 import { useArenaShowcase, Project as ShowcaseProject } from '@/hooks/useArenaShowcase';
+import { useAuth, useUser } from '@clerk/clerk-react';
+import { ApiService } from '@/services/api.service';
 
 const ShowcaseChannel: React.FC = () => {
-  const { projects, loading, error, upvoteProject } = useArenaShowcase();
+  const { projects, loading, error, upvoteProject, refetch } = useArenaShowcase();
+  const { getToken, isSignedIn } = useAuth();
+  const { user } = useUser();
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    images: ['', '', ''],
+    gitRepositoryUrl: '',
+    demoUrl: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    if (name.startsWith('image')) {
+      const idx = parseInt(name.replace('image', ''));
+      setForm((f) => ({ ...f, images: f.images.map((img, i) => (i === idx ? value : img)) }));
+    } else {
+      setForm((f) => ({ ...f, [name]: value }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+    if (!isSignedIn || !user) {
+      setFormError('You must be signed in to submit a project.');
+      return;
+    }
+    if (!form.title || !form.gitRepositoryUrl || !form.demoUrl) {
+      setFormError('Title, repository URL, and demo URL are required.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await ApiService.submitShowcaseProject({
+        title: form.title,
+        description: form.description,
+        images: form.images.filter(Boolean),
+        gitRepositoryUrl: form.gitRepositoryUrl,
+        demoUrl: form.demoUrl,
+        userId: user.id,
+        username: user.username || user.firstName || 'user',
+        upvotes: 0,
+        upvotedBy: [],
+        submittedAt: new Date().toISOString(),
+        isApproved: false,
+      }, getToken);
+      setShowModal(false);
+      setForm({ title: '', description: '', images: ['', '', ''], gitRepositoryUrl: '', demoUrl: '' });
+      refetch();
+    } catch (err: any) {
+      setFormError(err.message || 'Failed to submit project.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -149,11 +209,50 @@ const ShowcaseChannel: React.FC = () => {
             "text-primary-content border-none",
             "flex items-center justify-center gap-2"
           )}
+          onClick={() => setShowModal(true)}
         >
           <Plus className="w-5 h-5" />
           <span>Share Your Project</span>
         </Button>
       </div>
+      {/* Project Submission Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 relative">
+            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-600" onClick={() => setShowModal(false)}>&times;</button>
+            <h2 className="text-xl font-bold mb-4">Share Your Project</h2>
+            {formError && <div className="text-red-500 mb-2">{formError}</div>}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Title *</label>
+                <input name="title" value={form.title} onChange={handleFormChange} className="w-full border rounded px-3 py-2" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <textarea name="description" value={form.description} onChange={handleFormChange} className="w-full border rounded px-3 py-2" rows={3} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Image URLs (up to 3)</label>
+                {[0,1,2].map(i => (
+                  <input key={i} name={`image${i}`} value={form.images[i]} onChange={handleFormChange} className="w-full border rounded px-3 py-2 mb-1" placeholder={`Image URL ${i+1}`} />
+                ))}
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Repository URL *</label>
+                <input name="gitRepositoryUrl" value={form.gitRepositoryUrl} onChange={handleFormChange} className="w-full border rounded px-3 py-2" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Demo URL *</label>
+                <input name="demoUrl" value={form.demoUrl} onChange={handleFormChange} className="w-full border rounded px-3 py-2" required />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" onClick={() => setShowModal(false)} disabled={submitting}>Cancel</Button>
+                <Button type="submit" disabled={submitting}>{submitting ? 'Submitting...' : 'Submit'}</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

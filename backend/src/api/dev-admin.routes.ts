@@ -9,6 +9,7 @@ import asyncHandler from '../utils/asyncHandler';
 import ApiResponse from '../utils/ApiResponse';
 import AppError from '../utils/AppError';
 import mongoose from 'mongoose';
+import { clearCache } from '../middleware/cache.middleware';
 
 const router = Router();
 
@@ -262,6 +263,12 @@ router.put('/showcase/:id', asyncHandler(async (req: Request, res: Response, nex
   const project = await ProjectShowcase.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
   if (!project) {
     return next(new AppError('Showcase project not found', 404));
+  }
+  // If project is approved, clear the cache for instant update
+  if (req.body.isApproved === true) {
+    // Clear all cache keys for /api/arena/showcase (with any query params)
+    await clearCache('anonymous:/api/arena/showcase');
+    console.log('[DEBUG] Cleared cache for pattern: anonymous:/api/arena/showcase*');
   }
   res.status(200).json(new ApiResponse(200, 'Showcase project updated successfully', project));
 }));

@@ -21,29 +21,26 @@ export const useArenaShowcase = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      const response = await ApiService.getShowcaseProjects(getToken);
+      if (response?.data?.projects && Array.isArray(response.data.projects)) {
+        setProjects(response.data.projects);
+      } else {
+        setProjects([]);
+      }
+      setError(null);
+    } catch (err) {
+      setError('Failed to fetch projects');
+      console.error('Error fetching projects:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!isSignedIn) return;
-
-    const fetchProjects = async () => {
-      try {
-        const response = await ApiService.getShowcaseProjects(getToken);
-        // FIX: Always expect an array for projects
-        if (response && Array.isArray(response.projects)) {
-          setProjects(response.projects);
-        } else if (Array.isArray(response.data)) {
-        setProjects(response.data);
-        } else {
-          setProjects([]);
-        }
-        setError(null);
-      } catch (err) {
-        setError('Failed to fetch projects');
-        console.error('Error fetching projects:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchProjects();
   }, [getToken, isSignedIn]);
 
@@ -60,5 +57,5 @@ export const useArenaShowcase = () => {
     }
   };
 
-  return { projects, loading, error, upvoteProject };
+  return { projects, loading, error, upvoteProject, refetch: fetchProjects };
 }; 

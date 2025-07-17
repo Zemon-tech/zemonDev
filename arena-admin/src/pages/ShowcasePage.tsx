@@ -31,6 +31,7 @@ const ShowcasePage: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   const fetchProjects = async (pageNum = 1) => {
     setLoading(true);
@@ -55,6 +56,23 @@ const ShowcasePage: React.FC = () => {
     fetchProjects(page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
+
+  const handleApprove = async (id: string) => {
+    setApprovingId(id);
+    try {
+      const res = await fetch(`http://localhost:3001/api/dev-admin/showcase/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isApproved: true }),
+      });
+      if (!res.ok) throw new Error('Failed to approve project');
+      await fetchProjects(page);
+    } catch (err: any) {
+      alert(err.message || 'Approve failed');
+    } finally {
+      setApprovingId(null);
+    }
+  };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this project?')) return;
@@ -111,7 +129,16 @@ const ShowcasePage: React.FC = () => {
                   <td className="px-2 py-1 border text-center">{proj.upvotes}</td>
                   <td className="px-2 py-1 border text-center">{proj.isApproved ? 'Yes' : 'No'}</td>
                   <td className="px-2 py-1 border">{new Date(proj.submittedAt).toLocaleString()}</td>
-                  <td className="px-2 py-1 border">
+                  <td className="px-2 py-1 border flex gap-2">
+                    {!proj.isApproved && (
+                      <button
+                        className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 disabled:opacity-50"
+                        onClick={() => handleApprove(proj._id)}
+                        disabled={approvingId === proj._id}
+                      >
+                        {approvingId === proj._id ? 'Approving...' : 'Approve'}
+                      </button>
+                    )}
                     <button
                       className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
                       onClick={() => handleDelete(proj._id)}

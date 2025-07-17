@@ -3,6 +3,7 @@ import asyncHandler from '../utils/asyncHandler';
 import AppError from '../utils/AppError';
 import ApiResponse from '../utils/ApiResponse';
 import { ProjectShowcase } from '../models';
+import { clearCache } from '../middleware/cache.middleware';
 
 /**
  * @desc    Get all showcased projects
@@ -99,6 +100,9 @@ export const submitProject = asyncHandler(
       upvotes: 0,
       upvotedBy: []
     });
+
+    // Clear showcase cache so new projects appear instantly after approval
+    await clearCache('anonymous:/api/arena/showcase');
 
     res.status(201).json(
       new ApiResponse(
