@@ -12,6 +12,7 @@ export interface IUserChannelStatus extends Document {
   isKicked: boolean;
   kickedAt?: Date;
   kickedBy?: mongoose.Types.ObjectId;
+  status: 'pending' | 'approved' | 'denied';
 }
 
 const UserChannelStatusSchema: Schema = new Schema(
@@ -58,6 +59,12 @@ const UserChannelStatusSchema: Schema = new Schema(
     kickedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'denied'],
+      default: 'pending',
+      required: true,
     },
   },
   { timestamps: true }

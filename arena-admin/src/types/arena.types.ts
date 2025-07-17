@@ -114,6 +114,7 @@ export interface UserChannelStatus {
   lastRead: Date;
   isMuted: boolean;
   isPinned: boolean;
+  status: 'pending' | 'approved' | 'denied'; // <-- Add this
 }
 
 /**

@@ -480,20 +480,71 @@ router.post('/user-status', asyncHandler(async (req: Request, res: Response, nex
       return next(new AppError(`Missing required field: ${field}`, 400));
     }
   }
-  const status = await UserChannelStatus.create(req.body);
-  res.status(201).json(new ApiResponse(201, 'User channel status created successfully', status));
+  // Validate status
+  let status = req.body.status;
+  if (!status) status = 'pending';
+  if (!['pending', 'approved', 'denied'].includes(status)) {
+    return next(new AppError('Invalid status value', 400));
+  }
+  const statusDoc = await UserChannelStatus.create({ ...req.body, status });
+  res.status(201).json(new ApiResponse(201, 'User channel status created successfully', statusDoc));
 }));
+
+const ensureSubchannelsAndAddUser = async (userId: string, parentChannelId: string) => {
+  const subchannelNames = ['chat', 'announcement', 'showcase'];
+  // Get a valid user ID for createdBy (use the first user or create a system user)
+  let systemUserId: mongoose.Types.ObjectId = new mongoose.Types.ObjectId();
+  try {
+    const firstUser = await User.findOne().select('_id');
+    if (firstUser && firstUser._id) {
+      systemUserId = firstUser._id as mongoose.Types.ObjectId;
+    }
+  } catch (error) {
+    // If no users exist, use a generated ObjectId
+    console.warn('No users found for system channel creation, using generated ID');
+  }
+  
+  for (const name of subchannelNames) {
+    let sub = await ArenaChannel.findOne({ name, parentChannelId });
+    if (!sub) {
+      sub = await ArenaChannel.create({
+        name,
+        type: name === 'announcement' ? 'announcement' : 'text',
+        group: 'community', // or inherit from parent if needed
+        isActive: true,
+        createdBy: systemUserId, // Use valid ObjectId instead of string
+        moderators: [],
+        permissions: { canMessage: true, canRead: true },
+        parentChannelId,
+      });
+    }
+    // Add user to subchannel if not already present
+    const exists = await UserChannelStatus.findOne({ userId, channelId: sub._id });
+    if (!exists) {
+      await UserChannelStatus.create({ userId, channelId: sub._id, status: 'approved' });
+    }
+  }
+};
 
 router.put('/user-status/:id', asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return next(new AppError('Invalid user status ID', 400));
   }
-  const status = await UserChannelStatus.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
-  if (!status) {
+  // Validate status if provided
+  if (req.body.status && !['pending', 'approved', 'denied'].includes(req.body.status)) {
+    return next(new AppError('Invalid status value', 400));
+  }
+  const prev = await UserChannelStatus.findById(id);
+  const statusDoc = await UserChannelStatus.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+  if (!statusDoc) {
     return next(new AppError('User channel status not found', 404));
   }
-  res.status(200).json(new ApiResponse(200, 'User channel status updated successfully', status));
+  // If status transitioned to 'approved', add to subchannels
+  if (prev && req.body.status === 'approved' && prev.status !== 'approved') {
+    await ensureSubchannelsAndAddUser(prev.userId.toString(), prev.channelId.toString());
+  }
+  res.status(200).json(new ApiResponse(200, 'User channel status updated successfully', statusDoc));
 }));
 
 router.delete('/user-status/:id', asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
