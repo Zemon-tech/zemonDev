@@ -31,7 +31,7 @@ export const useArenaShowcase = () => {
         if (response && Array.isArray(response.projects)) {
           setProjects(response.projects);
         } else if (Array.isArray(response.data)) {
-          setProjects(response.data);
+        setProjects(response.data);
         } else {
           setProjects([]);
         }

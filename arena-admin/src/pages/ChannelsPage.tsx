@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import type { SubmitHandler } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,6 +13,9 @@ import SuccessAlert from '../components/SuccessAlert';
 import ApiService from '../services/api.service';
 import type { ArenaChannel } from '../types/arena.types';
 import { formatDate } from '../utils/helpers';
+import Modal from '../components/Modal';
+import FormField from '../components/FormField';
+import { InformationCircleIcon } from '@heroicons/react/24/outline';
 
 // Form validation schema
 const channelSchema = z.object({
@@ -51,7 +54,7 @@ const ChannelsPage = () => {
   const [actionError, setActionError] = useState<string | null>(null);
   
   // Form setup
-  const { register, handleSubmit, reset, formState: { errors }, setValue } = useForm<ChannelFormData>({
+  const methods = useForm<ChannelFormData>({
     resolver: zodResolver(channelSchema) as any, // Type assertion to fix compatibility issue
     defaultValues: {
       isActive: true,
@@ -63,6 +66,7 @@ const ChannelsPage = () => {
       parentChannelId: null,
     },
   });
+  const { register, handleSubmit, reset, formState: { errors }, setValue, watch } = methods;
 
   // Fetch channels on mount and page change
   useEffect(() => {
@@ -169,84 +173,108 @@ const ChannelsPage = () => {
     setIsDeleteModalOpen(true);
   };
 
-  // Table columns configuration
-  const columns = [
-    { header: 'Name', accessor: (item: ArenaChannel) => (
-      <span style={{ paddingLeft: item.parentChannelId ? 24 : 0 }}>
-        {item.parentChannelId ? '↳ ' : ''}{item.name}
-      </span>
-    ) },
-    { header: 'Type', accessor: 'type' as keyof ArenaChannel },
-    { header: 'Group', accessor: 'group' as keyof ArenaChannel },
-    { 
-      header: 'Active', 
-      accessor: (item: ArenaChannel): ReactNode => (item.isActive ? 'Yes' : 'No')
-    },
-    { 
-      header: 'Created At', 
-      accessor: (item: ArenaChannel): ReactNode => formatDate(item.createdAt || new Date())
-    },
-    {
-      header: 'Actions',
-      accessor: (item: ArenaChannel): ReactNode => (
-        <div className="flex space-x-2">
-          <Button
-            variant="primary"
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEdit(item);
-            }}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="danger"
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDeleteClick(item._id || '');
-            }}
-          >
-            Delete
-          </Button>
-        </div>
-      ),
-    },
-  ];
+  // 1. Group channels by category and show hierarchy
+  const groupedChannels = ['getting-started', 'community', 'hackathons'].map((cat) => ({
+    group: cat,
+    channels: channels.filter((c) => c.group === cat && !c.parentChannelId),
+  }));
+
+  // Helper to get sub-channels
+  const getSubChannels = (parentId: string): ArenaChannel[] => channels.filter((c) => c.parentChannelId === parentId);
+
+  // Helper to render channel rows recursively (as table rows, with styling for sub-channels)
+  const renderChannelRow = (channel: ArenaChannel, level = 0): React.ReactNode[] => {
+    const isSub = level > 0;
+    return [
+      <tr
+        key={channel._id}
+        className={
+          isSub
+            ? 'bg-blue-50/40 border-l-4 border-blue-200 text-gray-700 hover:bg-blue-100/60 transition'
+            : 'hover:bg-gray-50 transition'
+        }
+      >
+        <td className="px-6 py-3 whitespace-nowrap font-medium flex items-center" style={{ paddingLeft: 24 * level }}>
+          {isSub && <span className="mr-2 text-blue-400">↳</span>}
+          {channel.name}
+        </td>
+        <td className="px-6 py-3 whitespace-nowrap text-sm">{channel.type}</td>
+        <td className="px-6 py-3 whitespace-nowrap text-sm">{channel.group}</td>
+        <td className="px-6 py-3 whitespace-nowrap text-sm">{channel.isActive ? 'Yes' : 'No'}</td>
+        <td className="px-6 py-3 whitespace-nowrap text-sm">{channel.createdAt ? formatDate(channel.createdAt) : '-'}</td>
+        <td className="px-6 py-3 whitespace-nowrap text-sm">
+          <div className="flex space-x-2">
+            <Button variant="primary" size="small" onClick={() => { handleEdit(channel); }}>Edit</Button>
+            <Button variant="danger" size="small" onClick={() => handleDeleteClick(channel._id || '')}>Delete</Button>
+          </div>
+        </td>
+      </tr>,
+      ...getSubChannels(channel._id || '').flatMap((sub) => renderChannelRow(sub, level + 1)),
+    ];
+  };
+
+  // Add state for dynamic form logic
+  const [isParent, setIsParent] = useState(false);
+  const [allowedSubTypes, setAllowedSubTypes] = useState<string[]>([]);
+
+  // Watch parentChannelId to determine if this is a sub-channel
+  const parentChannelId = watch('parentChannelId');
+  useEffect(() => {
+    if (parentChannelId) {
+      setIsParent(false);
+      setAllowedSubTypes([]);
+    }
+  }, [parentChannelId]);
+
+  // Watch type for standalone
+  const type = watch('type');
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Channels Management</h1>
-        <Button onClick={() => setIsModalOpen(true)}>Add Channel</Button>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">Channels Management</h1>
+        <Button onClick={() => { setIsModalOpen(true); setEditingChannel(null); }} size="large" className="shadow-md">+ Add Channel</Button>
       </div>
-
-      {/* Success message */}
-      {successMessage && (
-        <SuccessAlert
-          message={successMessage}
-          onClose={() => setSuccessMessage('')}
-        />
-      )}
-
-      {/* Error message */}
+      {successMessage && <SuccessAlert message={successMessage} onClose={() => setSuccessMessage('')} />}
       {error && <ErrorAlert message={error} />}
-
-      {/* Channels table */}
+      {/* Channels table - grouped by category and hierarchy */}
       {loading ? (
-        <div className="flex justify-center py-8">
+        <div className="flex justify-center py-16">
           <LoadingSpinner size="large" />
         </div>
       ) : (
         <>
-          <Table
-            columns={columns}
-            data={channels}
-            // FIX 4: Defensive keyExtractor
-            keyExtractor={(item) => item._id ? String(item._id) : ''}
-            emptyMessage="No channels found"
-          />
+          {groupedChannels.map(({ group, channels: groupChannels }) => (
+            <div key={group} className="mb-10">
+              <div className="flex items-center mb-2">
+                <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-semibold mr-2">
+                  {group.replace('-', ' ').toUpperCase()}
+                </span>
+                <span className="text-gray-400 text-xs">{groupChannels.length} channels</span>
+              </div>
+              <div className="overflow-x-auto rounded-lg shadow border border-gray-200 bg-white">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Group</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Active</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Created At</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {groupChannels.length === 0 ? (
+                      <tr><td colSpan={6} className="text-center py-6 text-gray-400">No channels</td></tr>
+                    ) : (
+                      groupChannels.flatMap((ch) => renderChannelRow(ch))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -255,183 +283,94 @@ const ChannelsPage = () => {
           />
         </>
       )}
-
-      {/* Create/Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
-            <h2 className="text-xl font-bold mb-4">
-              {editingChannel ? 'Edit Channel' : 'Add New Channel'}
-            </h2>
-            
-            {actionError && <ErrorAlert message={actionError} />}
-            
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              {/* Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Name
-                </label>
-                <input
-                  type="text"
-                  {...register('name')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-                {errors.name && (
-                  <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
-                )}
+      {/* Create/Edit Modal - beautiful, modern, clean */}
+      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingChannel(null); }} title={editingChannel ? 'Edit Channel' : 'Add New Channel'} size="lg">
+        <FormProvider {...methods}>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField name="name" label="Channel Name" error={errors.name?.message} placeholder="e.g. General, Announcements" />
+              <FormField name="group" label="Category" type="select" error={errors.group?.message}>
+                <option value="getting-started">Getting Started</option>
+                <option value="community">Community</option>
+                <option value="hackathons">Hackathons</option>
+              </FormField>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField name="parentChannelId" label="Parent Channel" type="select" error={errors.parentChannelId?.message}>
+                <option value="">None (Top-level)</option>
+                {channels.filter(c => !c.parentChannelId && (!editingChannel || c._id !== editingChannel._id)).map(c => (
+                  <option key={c._id} value={c._id}>{c.name}</option>
+                ))}
+              </FormField>
+              <div className="flex items-center text-xs text-gray-500 mt-2 md:mt-0">
+                <InformationCircleIcon className="h-5 w-5 mr-1 text-blue-400" />
+                If selected, this channel will be a sub-channel (chat/announcement/showcase only).
               </div>
-
-              {/* Type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Type
-                </label>
-                <select
-                  {...register('type')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="text">Text</option>
-                  <option value="announcement">Announcement</option>
-                  <option value="readonly">Read Only</option>
-                </select>
-                {errors.type && (
-                  <p className="mt-1 text-sm text-red-600">{errors.type.message}</p>
-                )}
-              </div>
-
-              {/* Group */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Group
-                </label>
-                <select
-                  {...register('group')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="getting-started">Getting Started</option>
-                  <option value="community">Community</option>
-                  <option value="hackathons">Hackathons</option>
-                </select>
-                {errors.group && (
-                  <p className="mt-1 text-sm text-red-600">{errors.group.message}</p>
-                )}
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  {...register('description')}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-                {errors.description && (
-                  <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
-                )}
-              </div>
-
-              {/* Creator ID */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Creator ID
-                </label>
-                <input
-                  type="text"
-                  {...register('createdBy')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-                {errors.createdBy && (
-                  <p className="mt-1 text-sm text-red-600">{errors.createdBy.message}</p>
-                )}
-              </div>
-
-              {/* Active Status */}
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  {...register('isActive')}
-                  className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-                />
-                <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
-                  Active
-                </label>
-              </div>
-
-              {/* Permissions */}
-              <div className="border border-gray-200 rounded-md p-4">
-                <h3 className="font-medium mb-2">Permissions</h3>
-                <div className="flex flex-col space-y-2">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="canMessage"
-                      {...register('permissions.canMessage')}
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-                    />
-                    <label htmlFor="canMessage" className="ml-2 block text-sm text-gray-700">
-                      Can Message
+            </div>
+            {!parentChannelId && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Channel Type</label>
+                  <div className="flex items-center space-x-6 mt-2">
+                    <label className="flex items-center cursor-pointer">
+                      <input type="radio" checked={isParent} onChange={() => setIsParent(true)} className="mr-2 accent-blue-600" />
+                      <span className="font-medium">Parent (can have sub-channels)</span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input type="radio" checked={!isParent} onChange={() => setIsParent(false)} className="mr-2 accent-blue-600" />
+                      <span className="font-medium">Standalone (pick function)</span>
                     </label>
                   </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="canRead"
-                      {...register('permissions.canRead')}
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-                    />
-                    <label htmlFor="canRead" className="ml-2 block text-sm text-gray-700">
-                      Can Read
-                    </label>
+                  <div className="flex items-center text-xs text-gray-500 mt-2">
+                    <InformationCircleIcon className="h-5 w-5 mr-1 text-blue-400" />
+                    Parent channels can have sub-channels. Standalone channels must pick a function.
                   </div>
                 </div>
-              </div>
-
-              {/* Parent Channel Dropdown */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Parent Channel
-                </label>
-                <select
-                  {...register('parentChannelId')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  defaultValue=""
-                >
-                  <option value="">None (Top-level)</option>
-                  {channels.filter(c => !c.parentChannelId && (!editingChannel || c._id !== editingChannel._id)).map(c => (
-                    <option key={c._id} value={c._id}>{c.name}</option>
-                  ))}
-                </select>
-                {errors.parentChannelId && (
-                  <p className="mt-1 text-sm text-red-600">{errors.parentChannelId.message as string}</p>
+                {isParent && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Allowed Sub-Channel Types</label>
+                    <div className="flex space-x-4 mt-2">
+                      {['text', 'announcement', 'readonly'].map((t) => (
+                        <label key={t} className="flex items-center cursor-pointer">
+                          <input type="checkbox" checked={allowedSubTypes.includes(t)} onChange={() => setAllowedSubTypes((prev) => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])} className="mr-2 accent-blue-600" />
+                          <span className="font-medium">{t.charAt(0).toUpperCase() + t.slice(1)}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex items-center text-xs text-gray-500 mt-2">
+                      <InformationCircleIcon className="h-5 w-5 mr-1 text-blue-400" />
+                      Select which types of sub-channels this parent can have.
+                    </div>
+                  </div>
                 )}
               </div>
-
-              {/* Form actions */}
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsModalOpen(false)}
-                  type="button"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  isLoading={actionLoading}
-                  loadingText="Saving..."
-                >
-                  {editingChannel ? 'Update' : 'Create'}
-                </Button>
+            )}
+            {((!parentChannelId && !isParent) || parentChannelId) && (
+              <FormField name="type" label="Function" type="select" error={errors.type?.message}>
+                <option value="text">Chat</option>
+                <option value="announcement">Announcement</option>
+                <option value="readonly">Showcase</option>
+              </FormField>
+            )}
+            <FormField name="description" label="Description" type="textarea" error={errors.description?.message} placeholder="Describe the purpose of this channel..." rows={3} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField name="createdBy" label="Creator ID" error={errors.createdBy?.message} placeholder="User ID of creator" />
+              <FormField name="isActive" label="Active" type="checkbox" error={errors.isActive?.message} />
+            </div>
+            <div className="border border-gray-100 rounded-lg p-4 bg-gray-50">
+              <h3 className="font-semibold mb-2 text-gray-700 flex items-center"><InformationCircleIcon className="h-5 w-5 mr-2 text-blue-400" />Permissions</h3>
+              <div className="flex flex-col md:flex-row md:space-x-8 space-y-2 md:space-y-0">
+                <FormField name="permissions.canMessage" label="Can Message" type="checkbox" error={errors.permissions?.canMessage?.message} />
+                <FormField name="permissions.canRead" label="Can Read" type="checkbox" error={errors.permissions?.canRead?.message} />
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-
+            </div>
+            <div className="flex justify-end space-x-3 pt-4">
+              <Button variant="outline" onClick={() => setIsModalOpen(false)} type="button" size="large">Cancel</Button>
+              <Button type="submit" isLoading={actionLoading} loadingText="Saving..." size="large">{editingChannel ? 'Update' : 'Create'}</Button>
+            </div>
+          </form>
+        </FormProvider>
+      </Modal>
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">

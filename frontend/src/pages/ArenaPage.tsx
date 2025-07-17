@@ -239,17 +239,17 @@ const ArenaPage: React.FC = () => {
                     >
                       {buildChannelTree(channelList).map(({ parent, children }) => (
                         <div key={parent._id}>
-                          <button
+                        <button
                             onClick={() => setActiveChannelId(parent._id)}
-                            className={cn(
-                              "w-full flex items-center gap-2 px-2 py-1.5 rounded-md",
-                              "hover:bg-base-300 transition-colors",
+                          className={cn(
+                            "w-full flex items-center gap-2 px-2 py-1.5 rounded-md",
+                            "hover:bg-base-300 transition-colors",
                               activeChannelId === parent._id && "bg-base-300",
-                              "justify-between"
-                            )}
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className="text-base-content/70">
+                            "justify-between"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="text-base-content/70">
                                 {getChannelIcon(parent)}
                               </div>
                               <span className="text-sm text-base-content/90 truncate font-semibold">
@@ -282,14 +282,14 @@ const ArenaPage: React.FC = () => {
                                     </div>
                                     <span className="text-sm text-base-content/80 truncate">
                                       {child.name}
-                                    </span>
-                                  </div>
+                            </span>
+                          </div>
                                   {child.unreadCount && (
-                                    <span className="text-xs bg-primary text-primary-content px-1.5 py-0.5 rounded-full">
+                            <span className="text-xs bg-primary text-primary-content px-1.5 py-0.5 rounded-full">
                                       {child.unreadCount}
-                                    </span>
-                                  )}
-                                </button>
+                            </span>
+                          )}
+                        </button>
                               ))}
                             </div>
                           )}
