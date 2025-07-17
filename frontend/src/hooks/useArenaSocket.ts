@@ -9,17 +9,35 @@ export const useArenaSocket = () => {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    if (!isSignedIn) return;
+    if (!isSignedIn) {
+      console.log('Not signed in, skipping socket connection');
+      return;
+    }
 
     const initSocket = async () => {
       try {
+        console.log('Initializing socket connection...');
         const token = await getToken();
         if (token) {
+          console.log('Token obtained, connecting socket...');
           const newSocket = socketService.connect(token);
           setSocket(newSocket);
 
-          newSocket.on('connect', () => setIsConnected(true));
-          newSocket.on('disconnect', () => setIsConnected(false));
+          newSocket.on('connect', () => {
+            console.log('Socket connected successfully!');
+            setIsConnected(true);
+          });
+          
+          newSocket.on('disconnect', () => {
+            console.log('Socket disconnected');
+            setIsConnected(false);
+          });
+          
+          newSocket.on('error', (error) => {
+            console.error('Socket error:', error);
+          });
+        } else {
+          console.error('Failed to get token for socket connection');
         }
       } catch (error) {
         console.error('Socket connection error:', error);
@@ -29,6 +47,7 @@ export const useArenaSocket = () => {
     initSocket();
 
     return () => {
+      console.log('Cleaning up socket connection');
       socketService.disconnect();
       setSocket(null);
       setIsConnected(false);

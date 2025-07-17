@@ -71,12 +71,28 @@ export const useArenaChat = (channelId: string) => {
   }, [channelId, getToken, isSignedIn]);
 
   const sendMessage = useCallback((content: string) => {
-    if (socket && content.trim()) {
-      socket.emit('send_message', {
-        channelId,
-        content: content.trim()
-      });
+    if (!socket) {
+      console.error('Cannot send message: Socket not connected');
+      return;
     }
+    
+    if (!content.trim()) {
+      console.warn('Cannot send empty message');
+      return;
+    }
+    
+    console.log('Sending message to channel:', { channelId, contentLength: content.trim().length });
+    
+    socket.emit('send_message', {
+      channelId,
+      content: content.trim()
+    }, (response: any) => {
+      if (response?.success) {
+        console.log('Message sent successfully:', response);
+      } else {
+        console.error('Failed to send message:', response);
+      }
+    });
   }, [socket, channelId]);
 
   const sendTyping = useCallback((isTyping: boolean) => {

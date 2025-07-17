@@ -163,20 +163,31 @@ const handleConnection = (socket: any) => {
 
   // Handle sending a message with rate limiting
   socket.on('send_message', async (messageData: any, callback: Function = () => {}) => {
+    // Log the incoming message attempt
+    logger.info('Message send attempt:', {
+      userId,
+      socketId: socket.id,
+      messageData: JSON.stringify(messageData),
+      timestamp: new Date().toISOString()
+    });
+    
     // Apply rate limiting
     socketRateLimit(socket, 'send_message', async () => {
       try {
         // Validate input first
         if (!messageData || typeof messageData !== 'object') {
           const error = 'Invalid message data';
+          logger.error('Message validation error:', { error, messageData: JSON.stringify(messageData) });
           socket.emit('error', { message: error });
           return callback?.({ success: false, message: error });
         }
         
         const { channelId, content, replyToId } = messageData;
+        logger.info('Message data extracted:', { channelId, contentLength: content?.length, replyToId });
         
         if (!userId) {
           const error = 'Unauthorized';
+          logger.error('Message unauthorized error:', { error, socketId: socket.id });
           socket.emit('error', { message: error });
           return callback?.({ success: false, message: error });
         }
@@ -188,19 +199,24 @@ const handleConnection = (socket: any) => {
         }
 
         // Check if channel exists
+        logger.info('Finding channel:', { channelId });
         const channel = await ArenaChannel.findById(channelId);
         if (!channel) {
           const error = 'Channel not found';
+          logger.error('Channel not found error:', { error, channelId });
           socket.emit('error', { message: error });
           return callback?.({ success: false, message: error });
         }
+        logger.info('Channel found:', { channelId, channelName: channel.name });
 
         // Check if user can post in this channel
         if (!channel.permissions.canMessage) {
           const error = 'You do not have permission to post in this channel';
+          logger.error('Permission error:', { error, channelId, userId });
           socket.emit('error', { message: error });
           return callback?.({ success: false, message: error });
         }
+        logger.info('User has permission to post in channel:', { channelId, userId });
 
         // Check if user is banned from this channel
         const userStatus = await UserChannelStatus.findOne({
@@ -231,37 +247,61 @@ const handleConnection = (socket: any) => {
         }
 
         // Create message
-        const message = await ArenaMessage.create({
-          channelId,
-          userId,
-          username,
-          content,
-          replyToId: replyToId || null,
-          mentions: messageData.mentions || [],
-          timestamp: new Date(),
-          type: 'text'
-        });
+        logger.info('Creating message:', { channelId, userId, contentLength: content?.length });
+        let message;
+        try {
+          message = await ArenaMessage.create({
+            channelId,
+            userId,
+            username,
+            content,
+            replyToId: replyToId || null,
+            mentions: messageData.mentions || [],
+            timestamp: new Date(),
+            type: 'text'
+          });
+          logger.info('Message created successfully:', { messageId: message._id });
 
-        // Populate user info
-        const populatedMessage = await ArenaMessage.findById(message._id)
-          .populate('userId', 'fullName')
-          .populate('replyToId');
+          // Populate user info
+          logger.info('Populating message with user info:', { messageId: message._id });
+          message = await ArenaMessage.findById(message._id)
+            .populate('userId', 'fullName')
+            .populate('replyToId');
+          
+          if (!message) {
+            logger.error('Failed to populate message');
+            const error = 'Failed to process message';
+            socket.emit('error', { message: error });
+            return callback?.({ success: false, message: error });
+          }
 
-        // Update user's last read timestamp
-        await UserChannelStatus.findOneAndUpdate(
-          { 
-            userId: new mongoose.Types.ObjectId(userId),
-            channelId: new mongoose.Types.ObjectId(channelId)
-          },
-          { 
-            lastReadTimestamp: new Date(),
-            lastReadMessageId: message._id
-          },
-          { upsert: true }
-        );
+          // Update user's last read timestamp
+          logger.info('Updating user\'s last read timestamp:', { userId, channelId });
+          await UserChannelStatus.findOneAndUpdate(
+            { 
+              userId: new mongoose.Types.ObjectId(userId),
+              channelId: new mongoose.Types.ObjectId(channelId)
+            },
+            { 
+              lastReadTimestamp: new Date(),
+              lastReadMessageId: message._id
+            },
+            { upsert: true }
+          );
 
-        // Broadcast to channel
-        io.to(`channel:${channelId}`).emit('new_message', populatedMessage);
+          // Broadcast to channel
+          logger.info('Broadcasting message to channel:', { channelId, messageId: message?._id });
+          io.to(`channel:${channelId}`).emit('new_message', message);
+          logger.info('Message broadcast completed');
+        } catch (createError) {
+          logger.error('Error creating message:', { 
+            error: createError instanceof Error ? createError.message : String(createError),
+            stack: createError instanceof Error ? createError.stack : undefined
+          });
+          const error = 'Failed to create message';
+          socket.emit('error', { message: error });
+          return callback?.({ success: false, message: error });
+        }
         
         // Get all users in the channel and update their unread counts
         // This is done asynchronously to not block the response
@@ -294,7 +334,8 @@ const handleConnection = (socket: any) => {
         }
 
         // Send success response to sender
-        callback?.({ success: true, message: populatedMessage });
+        logger.info('Sending success response to sender:', { messageId: message._id });
+        callback?.({ success: true, message: message });
         
         logger.info('Message sent:', {
           userId,

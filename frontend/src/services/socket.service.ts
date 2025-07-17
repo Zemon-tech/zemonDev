@@ -6,9 +6,12 @@ class SocketService {
 
   connect(token: string) {
     if (this.socket) {
+      console.log('Existing socket found, disconnecting first');
       this.disconnect();
     }
 
+    console.log('Creating new socket connection to:', import.meta.env.VITE_BACKEND_URL);
+    
     this.socket = io(import.meta.env.VITE_BACKEND_URL, {
       auth: { token: `Bearer ${token}` },
       transports: ['websocket'],
@@ -19,12 +22,20 @@ class SocketService {
 
     this.socket.on("connect", () => {
       this.isConnected = true;
-      console.log('Connected to Arena socket');
+      console.log('Connected to Arena socket with ID:', this.socket?.id);
     });
 
-    this.socket.on("disconnect", () => {
+    this.socket.on("disconnect", (reason) => {
       this.isConnected = false;
-      console.log('Disconnected from Arena socket');
+      console.log('Disconnected from Arena socket. Reason:', reason);
+    });
+
+    this.socket.on("connect_error", (error) => {
+      console.error('Socket connection error:', error.message);
+    });
+
+    this.socket.on("error", (error) => {
+      console.error('Socket error:', error);
     });
 
     return this.socket;

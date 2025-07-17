@@ -3,7 +3,7 @@ import { redisClient } from '../config/redis';
 
 // Rate limit settings
 const RATE_LIMIT_WINDOW = 60; // 60 seconds
-const MAX_MESSAGES_PER_WINDOW = 30; // 30 messages per minute
+const MAX_MESSAGES_PER_WINDOW = 300; // Increased to 300 messages per minute for development
 
 /**
  * Rate limit middleware for Socket.IO connections
@@ -18,45 +18,34 @@ export const socketRateLimit = async (socket: Socket, event: string, next: Funct
   try {
     const userId = socket.data.user?.userId;
     
+    console.log('Rate limiting check for:', { userId, event, socketId: socket.id });
+    
     // Skip rate limiting if no user ID (though this shouldn't happen with auth middleware)
     if (!userId) {
+      console.log('Skipping rate limit - no userId found');
       return next();
     }
     
     // Create a unique key for this user and event
     const key = `ratelimit:socket:${userId}:${event}`;
     
-    // Get current count from Redis
-    const currentCount = await redisClient.get(key);
-    const count = currentCount ? parseInt(currentCount.toString(), 10) : 0;
+    // Use atomic INCR and set expiry if first message in window
+    const count = await redisClient.incr(key);
+    if (count === 1) {
+      // Set expiration only when the key is first created
+      await redisClient.expire(key, RATE_LIMIT_WINDOW);
+    }
+    console.log('Current rate limit count:', { userId, event, count, max: MAX_MESSAGES_PER_WINDOW });
     
     // Check if user has exceeded rate limit
-    if (count >= MAX_MESSAGES_PER_WINDOW) {
+    if (count > MAX_MESSAGES_PER_WINDOW) {
+      console.log('Rate limit exceeded:', { userId, event, count });
       socket.emit('error', { 
         message: 'Rate limit exceeded. Please try again later.',
         event,
         retryAfter: RATE_LIMIT_WINDOW
       });
       return;
-    }
-    
-    // Use atomic operations to increment and set expiry if needed
-    if (count === 0) {
-      // For new keys, set the value to 1 and set expiry
-      await redisClient.set(key, '1', { ex: RATE_LIMIT_WINDOW });
-    } else {
-      // For existing keys, increment the value but don't reset the TTL
-      // First check if key exists and get its TTL
-      const ttl = await redisClient.exists(key);
-      
-      if (ttl) {
-        // Increment the counter and preserve TTL
-        const newValue = (count + 1).toString();
-        await redisClient.set(key, newValue);
-      } else {
-        // If key doesn't exist or TTL has expired, set new value with TTL
-        await redisClient.set(key, '1', { ex: RATE_LIMIT_WINDOW });
-      }
     }
     
     next();
