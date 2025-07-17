@@ -93,9 +93,9 @@ const ShowcaseChannel: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-base-100">
       {/* Projects List */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {projects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-base-content/70">
+          <div className="flex flex-col items-center justify-center h-full text-base-content/70 col-span-full">
             <p>No projects have been shared yet.</p>
             <p className="mt-2">Be the first to share your work!</p>
           </div>
@@ -106,94 +106,82 @@ const ShowcaseChannel: React.FC = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className={cn(
-                "group bg-base-200 rounded-lg overflow-hidden",
-                "border border-base-300 hover:border-base-400",
-                "transition-all duration-200"
+                "group bg-white rounded-xl border border-base-200 shadow-sm hover:shadow-lg transition-all duration-200 flex flex-col min-h-0 h-64", // fixed height
+                "hover:-translate-y-1 hover:border-primary/40"
               )}
+              style={{ maxWidth: 340, minWidth: 0 }}
             >
-              {project.images && project.images.length > 0 && (
-                <div className="aspect-video w-full overflow-hidden">
+              {/* Image Thumbnail */}
+              <div className="h-24 w-full bg-base-200 rounded-t-xl overflow-hidden flex items-center justify-center">
+                {project.images && project.images[0] ? (
                   <img
                     src={project.images[0]}
                     alt={project.title}
-                    className="w-full h-full object-cover"
+                    className="object-cover w-full h-full"
                   />
-                </div>
-              )}
-              
-              <div className="p-4">
-                {/* Project Header */}
-                <div className="flex items-start gap-4">
-                  <Avatar className="w-10 h-10 rounded-full">
-                    <AvatarFallback>
-                      {project.username.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold text-base-content">{project.title}</h3>
-                        <div className="flex items-center gap-2 text-xs text-base-content/70">
-                          <span>{project.username}</span>
-                          <span>•</span>
-                          <span>{new Date(project.submittedAt).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                      <a
-                        href={project.demoUrl || project.gitRepositoryUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-base-content/70 hover:text-base-content transition-colors duration-200"
-                      >
-                        <ExternalLink className="w-5 h-5" />
-                      </a>
-                    </div>
-                    
-                    {/* Project Description */}
-                    {project.description && (
-                      <p className="mt-2 text-sm text-base-content/80">
-                        {project.description}
-                      </p>
-                    )}
-                    
-                    {/* Actions */}
-                    <div className="flex items-center gap-4 mt-4">
-                      <button
-                        onClick={() => upvoteProject(project._id)}
-                        disabled={project.hasUpvoted}
-                        className={cn(
-                          "flex items-center gap-1.5 text-sm",
-                          "transition-colors duration-200",
-                          project.hasUpvoted
-                            ? "text-primary"
-                            : "text-base-content/70 hover:text-base-content"
-                        )}
-                      >
-                        <ThumbsUp className="w-4 h-4" />
-                        <span>{project.upvotes}</span>
-                      </button>
-                      <a 
-                        href={project.gitRepositoryUrl} 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-sm text-base-content/70 hover:text-base-content transition-colors duration-200"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        <span>Repository</span>
-                      </a>
-                      {project.demoUrl && (
-                        <a 
-                          href={project.demoUrl} 
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 text-sm text-base-content/70 hover:text-base-content transition-colors duration-200"
-                        >
-                          <Share2 className="w-4 h-4" />
-                          <span>Demo</span>
-                        </a>
-                      )}
-                    </div>
+                ) : (
+                  <div className="flex items-center justify-center w-full h-full text-base-content/30 text-4xl">
+                    <Hash className="w-8 h-8" />
                   </div>
+                )}
+              </div>
+              {/* Card Content */}
+              <div className="flex-1 flex flex-col px-3 py-2 gap-1 min-h-0">
+                {/* Header: Avatar, Username, Date */}
+                <div className="flex items-center gap-2 text-xs text-base-content/70 mb-0 min-w-0">
+                  <Avatar className="w-6 h-6">
+                    <AvatarFallback>{project.username.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium text-base-content/80 truncate max-w-[80px]">{project.username}</span>
+                  <span className="mx-1">•</span>
+                  <span className="truncate max-w-[60px]">{new Date(project.submittedAt).toLocaleDateString()}</span>
+                </div>
+                {/* Title */}
+                <h3 className="font-semibold text-base-content text-sm truncate line-clamp-1" title={project.title}>{project.title}</h3>
+                {/* Description (truncated) */}
+                {project.description && (
+                  <p className="text-xs text-base-content/70 line-clamp-2 min-h-0" title={project.description}>{project.description}</p>
+                )}
+                {/* Actions */}
+                <div className="flex items-center gap-2 mt-auto pt-1 pb-1 justify-between">
+                  {/* Upvote */}
+                  <span title={project.hasUpvoted ? 'You upvoted' : 'Upvote'}>
+                    <button
+                      onClick={() => upvoteProject(project._id)}
+                      disabled={project.hasUpvoted}
+                      className={cn(
+                        "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border border-base-200",
+                        project.hasUpvoted ? "bg-primary/10 text-primary border-primary" : "bg-base-100 text-base-content/70 hover:bg-primary/10 hover:text-primary"
+                      )}
+                    >
+                      <ThumbsUp className="w-4 h-4" />
+                      <span>{project.upvotes}</span>
+                    </button>
+                  </span>
+                  {/* Repo */}
+                  <span title="View Repository">
+                    <a
+                      href={project.gitRepositoryUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 rounded-full hover:bg-base-200 text-base-content/70 hover:text-primary transition-colors"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </span>
+                  {/* Demo */}
+                  {project.demoUrl && (
+                    <span title="View Demo">
+                      <a
+                        href={project.demoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-full hover:bg-base-200 text-base-content/70 hover:text-primary transition-colors"
+                      >
+                        <Share2 className="w-4 h-4" />
+                      </a>
+                    </span>
+                  )}
                 </div>
               </div>
             </motion.div>
