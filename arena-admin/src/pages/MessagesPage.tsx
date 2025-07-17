@@ -47,6 +47,60 @@ const MessagesPage: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
 
+  // TEMP: Replace with real user context/auth
+  const currentUserId = 'admin-user-id'; // TODO: Replace with real current user ID
+  const [userRoles, setUserRoles] = useState<{ userId: string; role: string }[]>([]);
+
+  useEffect(() => {
+    // Fetch user roles for permission check
+    fetch('http://localhost:3001/api/dev-admin/user-roles?page=1&limit=1000')
+      .then(res => res.json())
+      .then(data => setUserRoles(data.data.roles || []));
+  }, []);
+
+  const isAdminOrMod = userRoles.some(r => r.userId === currentUserId && (r.role === 'admin' || r.role === 'moderator'));
+
+  const [banModal, setBanModal] = useState<{ open: boolean; msg: ArenaMessage | null }>({ open: false, msg: null });
+  const [banDuration, setBanDuration] = useState<number>(1);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const handleKick = async (msg: ArenaMessage) => {
+    setActionLoading(true);
+    try {
+      await fetch('http://localhost:3001/api/dev-admin/user-status', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: msg.userId, channelId: msg.channelId, isKicked: true }),
+      });
+      fetchMessages(page);
+    } catch (err) {
+      alert('Kick failed');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+  const handleBan = (msg: ArenaMessage) => {
+    setBanModal({ open: true, msg });
+  };
+  const confirmBan = async () => {
+    if (!banModal.msg) return;
+    setActionLoading(true);
+    setBanModal({ open: false, msg: null });
+    const banExpiresAt = new Date(Date.now() + banDuration * 24 * 60 * 60 * 1000).toISOString();
+    try {
+      await fetch('http://localhost:3001/api/dev-admin/user-status', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: banModal.msg.userId, channelId: banModal.msg.channelId, isBanned: true, banExpiresAt }),
+      });
+      fetchMessages(page);
+    } catch (err) {
+      alert('Ban failed');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const fetchMessages = async (pageNum = 1) => {
     setLoading(true);
     setError(null);
@@ -237,6 +291,20 @@ const MessagesPage: React.FC = () => {
                     >
                       Delete
                     </button>
+                    <button
+                      className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600"
+                      onClick={() => handleKick(msg)}
+                      disabled={actionLoading}
+                    >
+                      Kick
+                    </button>
+                    <button
+                      className="bg-orange-500 text-white px-2 py-1 rounded hover:bg-orange-600"
+                      onClick={() => handleBan(msg)}
+                      disabled={actionLoading}
+                    >
+                      Ban
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -364,6 +432,23 @@ const MessagesPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {banModal.open && banModal.msg && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded shadow-lg p-6 w-full max-w-xs relative">
+            <h2 className="text-lg font-bold mb-4">Ban User</h2>
+            <div className="mb-4">Select ban duration:</div>
+            <div className="flex gap-2 mb-4">
+              {[1, 3, 7].map(d => (
+                <button key={d} className={`px-3 py-1 rounded ${banDuration === d ? 'bg-blue-600 text-white' : 'bg-gray-200'}`} onClick={() => setBanDuration(d)}>{d}d</button>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <button className="px-4 py-2 bg-gray-200 rounded" onClick={() => setBanModal({ open: false, msg: null })}>Cancel</button>
+              <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={confirmBan} disabled={actionLoading}>Ban</button>
+            </div>
           </div>
         </div>
       )}
