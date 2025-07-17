@@ -34,6 +34,22 @@ interface LeaderboardUser {
   role: string;
 }
 
+// Helper: Build parent/sub-channel tree for each group
+function buildChannelTree(channelList: ArenaChannel[]) {
+  const parents = channelList.filter(c => !c.parentChannelId);
+  const children = channelList.filter(c => c.parentChannelId);
+  const childMap: Record<string, ArenaChannel[]> = {};
+  children.forEach(child => {
+    if (!child.parentChannelId) return;
+    if (!childMap[child.parentChannelId]) childMap[child.parentChannelId] = [];
+    childMap[child.parentChannelId].push(child);
+  });
+  return parents.map(parent => ({
+    parent,
+    children: childMap[parent._id] || []
+  }));
+}
+
 const ArenaPage: React.FC = () => {
   const { theme } = useTheme();
   const { channels, loading, error } = useArenaChannels();
@@ -45,17 +61,22 @@ const ArenaPage: React.FC = () => {
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
+  const [showNirvana, setShowNirvana] = useState(true); // Show Nirvana by default
 
   // Set initial channel
   useEffect(() => {
-    if (!loading && !error && !activeChannelId && Object.keys(channels).length > 0) {
-      const firstGroupKey = Object.keys(channels)[0];
-      if (firstGroupKey && channels[firstGroupKey]?.length > 0) {
-        setActiveChannelId(channels[firstGroupKey][0]._id);
+    if (!loading && !error && Object.keys(channels).length > 0) {
+      // If no channel is selected, show Nirvana by default
+      if (!activeChannelId) {
+        setShowNirvana(true);
       }
     }
   }, [channels, loading, error, activeChannelId]);
 
+  // When a channel is selected, hide Nirvana
+  useEffect(() => {
+    if (activeChannelId) setShowNirvana(false);
+  }, [activeChannelId]);
 
   // Listen for tab change events from AppLayout
   useEffect(() => {
@@ -102,6 +123,9 @@ const ArenaPage: React.FC = () => {
     : null;
 
   const renderChannelContent = () => {
+    if (showNirvana) {
+      return <NirvanaChannel />;
+    }
     if (!activeChannel) {
       // Find and render nirvana channel by default if available
       const nirvanaChannel = Object.values(channels).flat().find(c => c.name === 'nirvana');
@@ -162,6 +186,23 @@ const ArenaPage: React.FC = () => {
           )}
           animate={{ width: isLeftSidebarCollapsed ? 0 : 240 }}
         >
+          {/* Nirvana Page Button */}
+          <div className="px-2 py-2">
+            <button
+              className={cn(
+                "w-full flex items-center gap-2 px-2 py-1.5 rounded-md",
+                "hover:bg-base-300 transition-colors",
+                showNirvana && !activeChannelId && "bg-base-300"
+              )}
+              onClick={() => {
+                setActiveChannelId(null);
+                setShowNirvana(true);
+              }}
+            >
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span className="text-sm text-base-content/90 font-semibold">Nirvana</span>
+            </button>
+          </div>
           {/* Channel Groups */}
           <div className="space-y-2 py-2">
             {Object.entries(channels).map(([group, channelList]) => (
@@ -186,7 +227,7 @@ const ArenaPage: React.FC = () => {
                   </motion.div>
                 </button>
 
-                {/* Channels */}
+                {/* Channels (parent/sub-channel tree) */}
                 <AnimatePresence>
                   {!collapsedGroups.includes(group) && (
                     <motion.div
@@ -196,31 +237,63 @@ const ArenaPage: React.FC = () => {
                       transition={{ duration: 0.2 }}
                       className="space-y-0.5 mt-1"
                     >
-                      {channelList.map((channel) => (
-                        <button
-                          key={channel._id}
-                          onClick={() => setActiveChannelId(channel._id)}
-                          className={cn(
-                            "w-full flex items-center gap-2 px-2 py-1.5 rounded-md",
-                            "hover:bg-base-300 transition-colors",
-                            activeChannelId === channel._id && "bg-base-300",
-                            "justify-between"
-                          )}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className="text-base-content/70">
-                              {getChannelIcon(channel)}
+                      {buildChannelTree(channelList).map(({ parent, children }) => (
+                        <div key={parent._id}>
+                          <button
+                            onClick={() => setActiveChannelId(parent._id)}
+                            className={cn(
+                              "w-full flex items-center gap-2 px-2 py-1.5 rounded-md",
+                              "hover:bg-base-300 transition-colors",
+                              activeChannelId === parent._id && "bg-base-300",
+                              "justify-between"
+                            )}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="text-base-content/70">
+                                {getChannelIcon(parent)}
+                              </div>
+                              <span className="text-sm text-base-content/90 truncate font-semibold">
+                                {parent.name}
+                              </span>
                             </div>
-                            <span className="text-sm text-base-content/90 truncate">
-                              {channel.name}
-                            </span>
-                          </div>
-                          {channel.unreadCount && (
-                            <span className="text-xs bg-primary text-primary-content px-1.5 py-0.5 rounded-full">
-                              {channel.unreadCount}
-                            </span>
+                            {parent.unreadCount && (
+                              <span className="text-xs bg-primary text-primary-content px-1.5 py-0.5 rounded-full">
+                                {parent.unreadCount}
+                              </span>
+                            )}
+                          </button>
+                          {/* Sub-channels */}
+                          {children.length > 0 && (
+                            <div className="ml-6 border-l border-base-300 pl-2 mt-0.5 space-y-0.5">
+                              {children.map(child => (
+                                <button
+                                  key={child._id}
+                                  onClick={() => setActiveChannelId(child._id)}
+                                  className={cn(
+                                    "w-full flex items-center gap-2 px-2 py-1.5 rounded-md",
+                                    "hover:bg-base-300 transition-colors",
+                                    activeChannelId === child._id && "bg-base-300",
+                                    "justify-between"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <div className="text-base-content/60">
+                                      {getChannelIcon(child)}
+                                    </div>
+                                    <span className="text-sm text-base-content/80 truncate">
+                                      {child.name}
+                                    </span>
+                                  </div>
+                                  {child.unreadCount && (
+                                    <span className="text-xs bg-primary text-primary-content px-1.5 py-0.5 rounded-full">
+                                      {child.unreadCount}
+                                    </span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
                           )}
-                        </button>
+                        </div>
                       ))}
                     </motion.div>
                   )}

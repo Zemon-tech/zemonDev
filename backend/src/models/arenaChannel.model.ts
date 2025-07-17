@@ -14,6 +14,7 @@ export interface IArenaChannel extends Document {
     canMessage: boolean;
     canRead: boolean;
   };
+  parentChannelId?: mongoose.Types.ObjectId | null; // <-- Added for sub-channel support
 }
 
 const ArenaChannelSchema: Schema = new Schema(
@@ -62,6 +63,11 @@ const ArenaChannelSchema: Schema = new Schema(
         type: Boolean,
         default: true,
       },
+    },
+    parentChannelId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ArenaChannel',
+      default: null,
     },
   },
   { timestamps: true }

@@ -30,6 +30,7 @@ const channelSchema = z.object({
     canMessage: true,
     canRead: true,
   }),
+  parentChannelId: z.string().nullable().optional(), // <-- Add parentChannelId
 });
 
 type ChannelFormData = z.infer<typeof channelSchema>;
@@ -59,6 +60,7 @@ const ChannelsPage = () => {
         canMessage: true,
         canRead: true,
       },
+      parentChannelId: null,
     },
   });
 
@@ -87,6 +89,7 @@ const ChannelsPage = () => {
       setValue('moderators', editingChannel.moderators);
       setValue('permissions.canMessage', editingChannel.permissions.canMessage);
       setValue('permissions.canRead', editingChannel.permissions.canRead);
+      setValue('parentChannelId', editingChannel.parentChannelId || null); // <-- Prefill parentChannelId
     }
   }, [editingChannel, setValue]);
 
@@ -95,19 +98,9 @@ const ChannelsPage = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await ApiService.getChannels() as any;
-      
-      // Process the grouped channels into a flat array
-      const flattenedChannels: ArenaChannel[] = [];
-      for (const group in response) {
-        if (Object.prototype.hasOwnProperty.call(response, group)) {
-          flattenedChannels.push(...response[group]);
-        }
-      }
-      
-      setChannels(flattenedChannels);
-      // In a real API, you would get total pages from response metadata
-      // This is a placeholder calculation
+      // Use dev-admin endpoint for flat, up-to-date list
+      const response = await ApiService.getAllDevChannels() as ArenaChannel[];
+      setChannels(response);
       setTotalPages(Math.ceil(response.length / 10) || 1);
     } catch (err) {
       console.error('Error fetching channels:', err);
@@ -122,7 +115,8 @@ const ChannelsPage = () => {
     try {
       setActionLoading(true);
       setActionError(null);
-      
+      // FIX 2: Ensure parentChannelId is null if empty string
+      if (data.parentChannelId === '') data.parentChannelId = null;
       if (editingChannel) {
         // Update existing channel
         await ApiService.updateChannel(editingChannel._id || '', data);
@@ -132,9 +126,9 @@ const ChannelsPage = () => {
         await ApiService.createChannel(data);
         setSuccessMessage('Channel created successfully!');
       }
-      
       setIsModalOpen(false);
-      fetchChannels();
+      // FIX 3: Always await fetchChannels after modal closes
+      await fetchChannels();
     } catch (err) {
       console.error('Error saving channel:', err);
       setActionError('Failed to save channel. Please try again later.');
@@ -146,7 +140,6 @@ const ChannelsPage = () => {
   // Handle delete confirmation
   const handleDelete = async () => {
     if (!deleteId) return;
-    
     try {
       setActionLoading(true);
       setActionError(null);
@@ -154,7 +147,8 @@ const ChannelsPage = () => {
       setSuccessMessage('Channel deleted successfully!');
       setIsDeleteModalOpen(false);
       setDeleteId(null);
-      fetchChannels();
+      // FIX 3: Always await fetchChannels after modal closes
+      await fetchChannels();
     } catch (err) {
       console.error('Error deleting channel:', err);
       setActionError('Failed to delete channel. Please try again later.');
@@ -177,7 +171,11 @@ const ChannelsPage = () => {
 
   // Table columns configuration
   const columns = [
-    { header: 'Name', accessor: 'name' as keyof ArenaChannel },
+    { header: 'Name', accessor: (item: ArenaChannel) => (
+      <span style={{ paddingLeft: item.parentChannelId ? 24 : 0 }}>
+        {item.parentChannelId ? '↳ ' : ''}{item.name}
+      </span>
+    ) },
     { header: 'Type', accessor: 'type' as keyof ArenaChannel },
     { header: 'Group', accessor: 'group' as keyof ArenaChannel },
     { 
@@ -245,7 +243,8 @@ const ChannelsPage = () => {
           <Table
             columns={columns}
             data={channels}
-            keyExtractor={(item) => item._id || ''}
+            // FIX 4: Defensive keyExtractor
+            keyExtractor={(item) => item._id ? String(item._id) : ''}
             emptyMessage="No channels found"
           />
           <Pagination
@@ -389,6 +388,26 @@ const ChannelsPage = () => {
                     </label>
                   </div>
                 </div>
+              </div>
+
+              {/* Parent Channel Dropdown */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Parent Channel
+                </label>
+                <select
+                  {...register('parentChannelId')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  defaultValue=""
+                >
+                  <option value="">None (Top-level)</option>
+                  {channels.filter(c => !c.parentChannelId && (!editingChannel || c._id !== editingChannel._id)).map(c => (
+                    <option key={c._id} value={c._id}>{c.name}</option>
+                  ))}
+                </select>
+                {errors.parentChannelId && (
+                  <p className="mt-1 text-sm text-red-600">{errors.parentChannelId.message as string}</p>
+                )}
               </div>
 
               {/* Form actions */}

@@ -27,7 +27,14 @@ export const useArenaShowcase = () => {
     const fetchProjects = async () => {
       try {
         const response = await ApiService.getShowcaseProjects(getToken);
-        setProjects(response.data);
+        // FIX: Always expect an array for projects
+        if (response && Array.isArray(response.projects)) {
+          setProjects(response.projects);
+        } else if (Array.isArray(response.data)) {
+          setProjects(response.data);
+        } else {
+          setProjects([]);
+        }
         setError(null);
       } catch (err) {
         setError('Failed to fetch projects');

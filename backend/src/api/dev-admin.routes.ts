@@ -19,6 +19,12 @@ const router = Router();
  */
 router.post('/channels', asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Ensure parentChannelId is null or a valid ObjectId
+    if (req.body.parentChannelId === '' || req.body.parentChannelId === undefined) {
+      req.body.parentChannelId = null;
+    } else if (req.body.parentChannelId && !mongoose.Types.ObjectId.isValid(req.body.parentChannelId)) {
+      return next(new AppError('Invalid parentChannelId', 400));
+    }
     const channel = await ArenaChannel.create(req.body);
     res.status(201).json(
       new ApiResponse(
@@ -46,7 +52,12 @@ router.put('/channels/:id', asyncHandler(async (req: Request, res: Response, nex
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return next(new AppError('Invalid channel ID', 400));
   }
-  
+  // Ensure parentChannelId is null or a valid ObjectId
+  if (req.body.parentChannelId === '' || req.body.parentChannelId === undefined) {
+    req.body.parentChannelId = null;
+  } else if (req.body.parentChannelId && !mongoose.Types.ObjectId.isValid(req.body.parentChannelId)) {
+    return next(new AppError('Invalid parentChannelId', 400));
+  }
   const channel = await ArenaChannel.findByIdAndUpdate(
     id,
     req.body,
@@ -91,6 +102,16 @@ router.delete('/channels/:id', asyncHandler(async (req: Request, res: Response, 
       { id }
     )
   );
+}));
+
+/**
+ * @desc    Get all channels (DEVELOPMENT ONLY)
+ * @route   GET /api/dev-admin/channels
+ * @access  Development only
+ */
+router.get('/channels', asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const channels = await ArenaChannel.find({}).sort({ group: 1, name: 1 });
+  res.status(200).json(new ApiResponse(200, 'Channels fetched successfully', channels));
 }));
 
 /**

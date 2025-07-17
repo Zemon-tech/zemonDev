@@ -12,6 +12,7 @@ export interface Channel {
     canMessage: boolean;
     canRead: boolean;
   };
+  parentChannelId?: string | null; // <-- Add for sub-channel support
 }
 
 export const useArenaChannels = () => {

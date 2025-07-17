@@ -16,6 +16,7 @@ export interface ArenaChannel {
   };
   createdAt?: Date;
   updatedAt?: Date;
+  parentChannelId?: string | null; // <-- Add for sub-channel support
 }
 
 /**

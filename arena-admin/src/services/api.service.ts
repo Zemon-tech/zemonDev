@@ -230,6 +230,13 @@ class ApiService {
     const response = await this.getAllMessages(1, 1) as { total?: number };
     return response.total || 0;
   }
+
+  /**
+   * Get all channels (flat, dev-admin only)
+   */
+  static async getAllDevChannels() {
+    return this.get('/dev-admin/channels');
+  }
 }
 
 export default ApiService; 
