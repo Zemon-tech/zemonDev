@@ -577,4 +577,22 @@ router.delete('/user-status/bulk', asyncHandler(async (req: Request, res: Respon
   res.status(200).json(new ApiResponse(200, 'User channel status deleted successfully', { deletedCount: result.deletedCount }));
 }));
 
+/**
+ * @desc    Get all users with 'approved' status for a given channel
+ * @route   GET /api/dev-admin/channels/:channelId/approved-users
+ * @access  Development only
+ */
+router.get('/channels/:channelId/approved-users', asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { channelId } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(channelId)) {
+    return next(new AppError('Invalid channel ID', 400));
+  }
+  // Find all user-channel statuses for this channel with status 'approved'
+  const statuses = await UserChannelStatus.find({ channelId, status: 'approved' });
+  const userIds = statuses.map(s => s.userId);
+  // Fetch user details
+  const users = await User.find({ _id: { $in: userIds } }).select('_id username fullName email');
+  res.status(200).json(new ApiResponse(200, 'Approved users fetched successfully', users));
+}));
+
 export default router; 

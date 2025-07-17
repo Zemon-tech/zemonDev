@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import type { SubmitHandler } from 'react-hook-form';
@@ -52,7 +52,9 @@ const ChannelsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  
+  const [approvedUsers, setApprovedUsers] = useState<{ _id: string; username: string; fullName: string }[]>([]);
+  const [moderatorError, setModeratorError] = useState<string | null>(null);
+
   // Form setup
   const methods = useForm<ChannelFormData>({
     resolver: zodResolver(channelSchema) as any, // Type assertion to fix compatibility issue
@@ -96,6 +98,31 @@ const ChannelsPage = () => {
       setValue('parentChannelId', editingChannel.parentChannelId || null); // <-- Prefill parentChannelId
     }
   }, [editingChannel, setValue]);
+
+  // Fetch approved users for the selected channel
+  const fetchApprovedUsers = useCallback(async (channelId?: string) => {
+    if (!channelId) {
+      setApprovedUsers([]);
+      return;
+    }
+    try {
+      const res = await fetch(`http://localhost:3001/api/dev-admin/channels/${channelId}/approved-users`);
+      if (!res.ok) throw new Error('Failed to fetch approved users');
+      const data = await res.json();
+      setApprovedUsers(data.data);
+    } catch (err) {
+      setApprovedUsers([]);
+    }
+  }, []);
+
+  // Fetch approved users when editing a channel
+  useEffect(() => {
+    if (editingChannel && editingChannel._id) {
+      fetchApprovedUsers(editingChannel._id);
+    } else {
+      setApprovedUsers([]);
+    }
+  }, [editingChannel, fetchApprovedUsers]);
 
   // Fetch channels
   const fetchChannels = async () => {
@@ -362,6 +389,33 @@ const ChannelsPage = () => {
               <div className="flex flex-col md:flex-row md:space-x-8 space-y-2 md:space-y-0">
                 <FormField name="permissions.canMessage" label="Can Message" type="checkbox" error={errors.permissions?.canMessage?.message} />
                 <FormField name="permissions.canRead" label="Can Read" type="checkbox" error={errors.permissions?.canRead?.message} />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Moderators (max 3)</label>
+                <select
+                  multiple
+                  className="w-full border rounded px-2 py-1"
+                  value={watch('moderators')}
+                  onChange={e => {
+                    const selected = Array.from(e.target.selectedOptions).map(opt => opt.value);
+                    if (selected.length > 3) {
+                      setModeratorError('You can select up to 3 moderators.');
+                    } else {
+                      setModeratorError(null);
+                      setValue('moderators', selected);
+                    }
+                  }}
+                >
+                  {approvedUsers.map(user => (
+                    <option key={user._id} value={user._id}>
+                      {user.username || user.fullName}
+                    </option>
+                  ))}
+                </select>
+                {moderatorError && <div className="text-red-500 text-xs mt-1">{moderatorError}</div>}
+                <div className="text-xs text-gray-500 mt-1">Only users who have joined this channel can be assigned as moderators.</div>
               </div>
             </div>
             <div className="flex justify-end space-x-3 pt-4">
