@@ -142,6 +142,18 @@ const enhancedRedisClient = {
       logger.error(`Redis CLEAR Error for pattern ${pattern}:`, error);
       return 0;
     }
+  },
+
+  /**
+   * Atomically increment a key
+   */
+  async incr(key: string): Promise<number> {
+    try {
+      return await redisClient.incr(key);
+    } catch (error) {
+      logger.error(`Redis INCR Error for key ${key}:`, error);
+      return 0;
+    }
   }
 };
 

@@ -1,30 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Plus, Image, Gift, Smile, User, Heart, MessageSquare, Share2, MoreHorizontal } from 'lucide-react';
-
-interface Message {
-  id: string;
-  content: string;
-  author: {
-    name: string;
-    avatar?: string;
-    role: string;
-  };
-  timestamp: Date;
-  reactions: {
-    emoji: string;
-    count: number;
-    reacted: boolean;
-  }[];
-  attachments?: {
-    type: 'image' | 'file';
-    url: string;
-    name: string;
-  }[];
-}
+import { Plus, Image, Gift, Smile, User, Loader2, AlertCircle } from 'lucide-react';
+import { useArenaChat } from '@/hooks/useArenaChat';
 
 interface DirectMessageChannelProps {
   recipientName: string;
@@ -39,8 +19,61 @@ const DirectMessageChannel: React.FC<DirectMessageChannelProps> = ({
   recipientStatus = 'offline',
   recipientRole = 'Member'
 }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  // Use the DM channel ID based on recipient name
+  const channelId = `dm-${recipientName.toLowerCase().replace(/\s+/g, '-')}`;
+  
+  const { messages, loading, typing, error, sendMessage, sendTyping } = useArenaChat(channelId);
   const [messageInput, setMessageInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSendMessage = () => {
+    if (messageInput.trim()) {
+      sendMessage(messageInput);
+      setMessageInput('');
+      handleStopTyping();
+    }
+  };
+
+  const handleTyping = (value: string) => {
+    setMessageInput(value);
+    
+    if (!isTyping) {
+      setIsTyping(true);
+      sendTyping(true);
+    }
+    
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      handleStopTyping();
+    }, 1000);
+  };
+
+  const handleStopTyping = () => {
+    if (isTyping) {
+      setIsTyping(false);
+      sendTyping(false);
+    }
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -50,6 +83,27 @@ const DirectMessageChannel: React.FC<DirectMessageChannelProps> = ({
       default: return 'bg-base-300';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <p className="mt-2 text-base-content/70">Loading messages...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <AlertCircle className="w-8 h-8 text-error" />
+        <p className="mt-2 text-error">{error}</p>
+        <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -62,7 +116,7 @@ const DirectMessageChannel: React.FC<DirectMessageChannelProps> = ({
                 <AvatarImage src={recipientAvatar} alt={recipientName} />
               ) : (
                 <AvatarFallback>
-                  <User className="w-5 h-5" />
+                  {recipientName.charAt(0).toUpperCase()}
                 </AvatarFallback>
               )}
             </Avatar>
@@ -84,96 +138,68 @@ const DirectMessageChannel: React.FC<DirectMessageChannelProps> = ({
             </div>
           </div>
         </div>
-        <Button variant="ghost" size="icon" className="text-base-content/70 hover:text-base-content">
-          <MoreHorizontal className="w-5 h-5" />
-        </Button>
       </div>
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-6 py-4 space-y-6">
-          {messages.map((message) => (
-            <motion.div
-              key={message.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={cn(
-                "group px-4 py-2 -mx-4 hover:bg-base-200 rounded-lg",
-                "transition-colors duration-200"
-              )}
-            >
-              <div className="flex items-start gap-4">
-                <Avatar className="w-10 h-10">
-                  {message.author.avatar ? (
-                    <AvatarImage src={message.author.avatar} alt={message.author.name} />
-                  ) : (
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full py-12 text-base-content/70">
+              <p>No messages yet.</p>
+              <p className="mt-2">Send a message to start the conversation!</p>
+            </div>
+          ) : (
+            messages.map((message) => (
+              <motion.div
+                key={message._id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(
+                  "group px-4 py-2 -mx-4 hover:bg-base-200 rounded-lg",
+                  "transition-colors duration-200"
+                )}
+              >
+                <div className="flex items-start gap-4">
+                  <Avatar className="w-10 h-10">
                     <AvatarFallback>
-                      <User className="w-5 h-5" />
+                      {message.username.charAt(0).toUpperCase()}
                     </AvatarFallback>
-                  )}
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-base-content">{message.author.name}</span>
-                    <span className="text-xs text-base-content/70">
-                      {message.timestamp.toLocaleTimeString()}
-                    </span>
-                  </div>
-                  <p className="text-base-content/80 mt-1 whitespace-pre-line">{message.content}</p>
-                  
-                  {/* Attachments */}
-                  {message.attachments && message.attachments.length > 0 && (
-                    <div className="mt-2 space-y-2">
-                      {message.attachments.map((attachment, idx) => (
-                        <div key={idx} className="rounded-lg overflow-hidden">
-                          {attachment.type === 'image' && (
-                            <img
-                              src={attachment.url}
-                              alt={attachment.name}
-                              className="max-w-md rounded-lg border border-base-300"
-                            />
-                          )}
-                        </div>
-                      ))}
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-base-content">{message.username}</span>
+                      <span className="text-xs text-base-content/70">
+                        {new Date(message.timestamp).toLocaleTimeString()}
+                      </span>
                     </div>
-                  )}
-
-                  {/* Reactions */}
-                  <div className="flex items-center gap-4 mt-2">
-                    <div className="flex gap-1">
-                      {message.reactions.map((reaction, idx) => (
-                        <button
-                          key={idx}
-                          className={cn(
-                            "px-2 py-1 rounded-full text-xs",
-                            "flex items-center gap-1",
-                            "transition-colors duration-200",
-                            reaction.reacted
-                              ? "bg-primary/20 text-primary"
-                              : "bg-base-300 hover:bg-base-300/80 text-base-content/70"
-                          )}
-                        >
-                          <span>{reaction.emoji}</span>
-                          <span>{reaction.count}</span>
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-1 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors">
-                        <Heart className="w-4 h-4" />
-                      </button>
-                      <button className="p-1 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors">
-                        <MessageSquare className="w-4 h-4" />
-                      </button>
-                      <button className="p-1 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors">
-                        <Share2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <p className="text-base-content/80 mt-1 whitespace-pre-line">{message.content}</p>
                   </div>
                 </div>
+              </motion.div>
+            ))
+          )}
+
+          {/* Typing indicator */}
+          {typing.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="px-4 py-2"
+            >
+              <div className="flex items-center gap-2 text-base-content/60">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '600ms' }}></div>
+                </div>
+                <span className="text-sm">
+                  {typing.join(', ')} {typing.length === 1 ? 'is' : 'are'} typing...
+                </span>
               </div>
             </motion.div>
-          ))}
+          )}
+          
+          <div ref={messagesEndRef} />
         </div>
       </div>
 
@@ -191,7 +217,8 @@ const DirectMessageChannel: React.FC<DirectMessageChannelProps> = ({
           <input
             type="text"
             value={messageInput}
-            onChange={(e) => setMessageInput(e.target.value)}
+            onChange={(e) => handleTyping(e.target.value)}
+            onKeyPress={handleKeyPress}
             placeholder={`Message ${recipientName}`}
             className={cn(
               "w-full bg-base-300 rounded-lg pl-24 pr-24 py-3",

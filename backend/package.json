@@ -21,6 +21,7 @@
   "dependencies": {
     "@clerk/clerk-sdk-node": "^4.13.23",
     "@google/generative-ai": "^0.24.1",
+    "@types/socket.io": "^3.0.1",
     "@upstash/redis": "^1.35.1",
     "cheerio": "^1.1.0",
     "cookie-parser": "^1.4.7",
@@ -35,6 +36,7 @@
     "rate-limit-redis": "^4.2.1",
     "redis": "^4.6.13",
     "serpapi": "^2.1.0",
+    "socket.io": "^4.8.1",
     "svix": "^1.24.0"
   },
   "devDependencies": {

@@ -4,7 +4,9 @@ import { useTheme } from '@/lib/ThemeContext';
 import { cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Search, Hash, Volume2, User, Trophy, Crown, Star, ArrowLeftFromLine, ArrowRightFromLine, ChevronDown, Sparkles, BookOpen, AlertCircle } from 'lucide-react';
+import { Search, Hash, Volume2, User, Trophy, Crown, Star, ArrowLeftFromLine, ArrowRightFromLine, ChevronDown, Sparkles, BookOpen, AlertCircle, Loader2 } from 'lucide-react';
+import ArenaErrorBoundary from '@/components/arena/ArenaErrorBoundary';
+import { useArenaChannels, Channel as ArenaChannel } from '@/hooks/useArenaChannels';
 
 // Import channel components
 import AnnouncementsChannel from '@/components/arena/AnnouncementsChannel';
@@ -18,19 +20,8 @@ import StartHereChannel from '@/components/arena/StartHereChannel';
 import NirvanaChannel from '@/components/arena/NirvanaChannel';
 
 // Types
-type ChannelGroup = 'GETTING STARTED' | 'COMMUNITY' | 'HACKATHONS' | 'DIRECT MESSAGES';
 type ArenaTab = 'Chat' | 'Showcase' | 'Leaderboard';
 type TimeFilter = 'Weekly' | 'Monthly' | 'All Time';
-
-interface Channel {
-  id: string;
-  name: string;
-  icon: React.ReactNode;
-  unreadCount?: number;
-  group: ChannelGroup;
-  showTabs?: ArenaTab[];
-  description?: string;
-}
 
 interface LeaderboardUser {
   rank: number;
@@ -43,16 +34,49 @@ interface LeaderboardUser {
   role: string;
 }
 
+// Helper: Build parent/sub-channel tree for each group
+function buildChannelTree(channelList: ArenaChannel[]) {
+  const parents = channelList.filter(c => !c.parentChannelId);
+  const children = channelList.filter(c => c.parentChannelId);
+  const childMap: Record<string, ArenaChannel[]> = {};
+  children.forEach(child => {
+    if (!child.parentChannelId) return;
+    if (!childMap[child.parentChannelId]) childMap[child.parentChannelId] = [];
+    childMap[child.parentChannelId].push(child);
+  });
+  return parents.map(parent => ({
+    parent,
+    children: childMap[parent._id] || []
+  }));
+}
+
 const ArenaPage: React.FC = () => {
   const { theme } = useTheme();
+  const { channels, loading, error } = useArenaChannels();
   const [activeTab, setActiveTab] = useState<ArenaTab>('Chat');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('Weekly');
   const [searchQuery, setSearchQuery] = useState('');
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
-  const [collapsedGroups, setCollapsedGroups] = useState<ChannelGroup[]>([]);
-  const [activeChannel, setActiveChannel] = useState<string>('nirvana');
+  const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
+  const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
+  const [showNirvana, setShowNirvana] = useState(true); // Show Nirvana by default
+
+  // Set initial channel
+  useEffect(() => {
+    if (!loading && !error && Object.keys(channels).length > 0) {
+      // If no channel is selected, show Nirvana by default
+      if (!activeChannelId) {
+        setShowNirvana(true);
+      }
+    }
+  }, [channels, loading, error, activeChannelId]);
+
+  // When a channel is selected, hide Nirvana
+  useEffect(() => {
+    if (activeChannelId) setShowNirvana(false);
+  }, [activeChannelId]);
 
   // Listen for tab change events from AppLayout
   useEffect(() => {
@@ -74,7 +98,7 @@ const ArenaPage: React.FC = () => {
   }, []);
 
   // Toggle group collapse
-  const toggleGroupCollapse = (group: ChannelGroup) => {
+  const toggleGroupCollapse = (group: string) => {
     setCollapsedGroups(prev => 
       prev.includes(group) 
         ? prev.filter(g => g !== group)
@@ -82,337 +106,215 @@ const ArenaPage: React.FC = () => {
     );
   };
 
-  // Channel groups data
-  const channelGroups: Record<ChannelGroup, Channel[]> = {
-    'GETTING STARTED': [
-      { id: 'nirvana', name: 'nirvana', icon: <Sparkles />, group: 'GETTING STARTED' },
-      { id: 'start-here', name: 'start-here', icon: <BookOpen />, group: 'GETTING STARTED' },
-      { id: 'rules', name: 'rules', icon: <AlertCircle />, group: 'GETTING STARTED' },
-      { id: 'announcements', name: 'announcements', icon: <Hash />, unreadCount: 2, group: 'GETTING STARTED' },
-    ],
-    'COMMUNITY': [
-      { id: 'general-chat', name: 'general-chat', icon: <Hash />, group: 'COMMUNITY' },
-      { id: 'showcase', name: 'showcase', icon: <Sparkles />, unreadCount: 5, group: 'COMMUNITY' },
-    ],
-    'HACKATHONS': [
-      { id: 'weekly-challenge', name: 'weekly-challenge', icon: <Trophy />, group: 'HACKATHONS' },
-      { id: 'hackathon-chat', name: 'hackathon-chat', icon: <Hash />, group: 'HACKATHONS' },
-    ],
-    'DIRECT MESSAGES': [
-      { id: 'codemaster', name: 'CodeMaster', icon: <User />, unreadCount: 1, group: 'DIRECT MESSAGES' },
-      { id: 'techexpert', name: 'TechExpert', icon: <User />, group: 'DIRECT MESSAGES' },
-    ],
-  };
-
-  // Sample leaderboard data
-  const leaderboardUsers: LeaderboardUser[] = [
-    {
-      rank: 1,
-      username: 'CodeMaster',
-      avatar: 'https://github.com/shadcn.png',
-      badges: ['Champion', 'Streak'],
-      points: 15420,
-      trend: 'up',
-      isOnline: true,
-      role: 'Expert'
-    },
-    {
-      rank: 2,
-      username: 'AlgoNinja',
-      avatar: 'https://github.com/shadcn.png',
-      badges: ['Expert', 'Speed'],
-      points: 14950,
-      trend: 'down',
-      isOnline: true,
-      role: 'Expert'
+  const getChannelIcon = (channel: ArenaChannel) => {
+    switch (channel.name) {
+      case 'nirvana': return <Sparkles className="w-4 h-4" />;
+      case 'start-here': return <BookOpen className="w-4 h-4" />;
+      case 'rules': return <AlertCircle className="w-4 h-4" />;
+      case 'announcements': return <Volume2 className="w-4 h-4" />;
+      case 'showcase': return <Sparkles className="w-4 h-4" />;
+      case 'weekly-challenge': return <Trophy className="w-4 h-4" />;
+      default: return <Hash className="w-4 h-4" />;
     }
-  ];
-
-  // Get current channel
-  const currentChannel = Object.values(channelGroups)
-    .flat()
-    .find(channel => channel.id === activeChannel);
-
-  // Check if tab should be visible for current channel
-  const isTabVisible = (tab: ArenaTab) => {
-    return currentChannel?.showTabs?.includes(tab) || false;
   };
+
+  const activeChannel = activeChannelId
+    ? Object.values(channels).flat().find(c => c._id === activeChannelId)
+    : null;
+
+  const renderChannelContent = () => {
+    if (showNirvana) {
+      return <NirvanaChannel />;
+    }
+    if (!activeChannel) {
+      // Find and render nirvana channel by default if available
+      const nirvanaChannel = Object.values(channels).flat().find(c => c.name === 'nirvana');
+      if (nirvanaChannel) {
+        return <NirvanaChannel />;
+      }
+      return <div className="flex-1 flex items-center justify-center"><p>Select a channel</p></div>;
+    }
+
+    switch (activeChannel.name) {
+      case 'nirvana': return <NirvanaChannel />;
+      case 'start-here': return <StartHereChannel />;
+      case 'rules': return <RulesChannel />;
+      case 'announcements': return <AnnouncementsChannel isAdmin={activeChannel.permissions.canMessage} />;
+      case 'showcase': return <ShowcaseChannel />;
+      case 'weekly-challenge': return <HackathonChannel isAdmin={activeChannel.permissions.canMessage} />;
+      default:
+        return (
+          <ChatChannel
+            channelId={activeChannel._id}
+            channelName={activeChannel.name}
+            canMessage={activeChannel.permissions.canMessage}
+          />
+        );
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-base-100 items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+        <p className="ml-4 text-lg">Loading Arena...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen bg-base-100 items-center justify-center text-center">
+        <div>
+          <AlertCircle className="w-10 h-10 text-error mx-auto mb-4" />
+          <p className="text-lg text-error mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-full flex bg-base-100">
-      {/* Left Sidebar */}
-      <motion.aside 
-        className={cn(
-          "h-full border-r border-base-300",
-          "bg-base-200 transition-all duration-200 relative",
-          isLeftSidebarCollapsed ? "w-0 overflow-hidden" : "w-[240px]"
-        )}
-        animate={{ width: isLeftSidebarCollapsed ? 0 : 240 }}
-      >
-        {/* Channel Groups */}
-        <div className="space-y-2 py-2">
-          {(Object.keys(channelGroups) as ChannelGroup[]).map((group) => (
-            <div key={group} className="px-2">
-              {/* Group Header */}
-              <button
-                onClick={() => toggleGroupCollapse(group)}
-                className={cn(
-                  "w-full flex items-center gap-2 px-2 py-1 rounded-md",
-                  "hover:bg-base-300 transition-colors",
-                  "justify-between"
-                )}
-              >
-                <span className="text-xs font-semibold text-base-content/70">
-                  {group}
-                </span>
-                <motion.div
-                  animate={{ rotate: collapsedGroups.includes(group) ? -90 : 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ChevronDown className="w-4 h-4 text-base-content/60" />
-                </motion.div>
-              </button>
-
-              {/* Channels */}
-              <AnimatePresence>
-                {!collapsedGroups.includes(group) && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="space-y-0.5 mt-1"
-                  >
-                    {channelGroups[group].map((channel) => (
-                      <button
-                        key={channel.id}
-                        onClick={() => setActiveChannel(channel.id)}
-                        className={cn(
-                          "w-full flex items-center gap-2 px-2 py-1.5 rounded-md",
-                          "hover:bg-base-300 transition-colors",
-                          activeChannel === channel.id && "bg-base-300",
-                          "justify-between"
-                        )}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="text-base-content/70">
-                            {channel.icon}
-                          </div>
-                          <span className="text-sm text-base-content/90 truncate">
-                            {channel.name}
-                          </span>
-                        </div>
-                        {channel.unreadCount && (
-                          <span className="text-xs bg-primary text-primary-content px-1.5 py-0.5 rounded-full">
-                            {channel.unreadCount}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          ))}
-        </div>
-      </motion.aside>
-
-      {/* Main Panel */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Main Panel */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          {/* Channel Content */}
-          <div className="flex-1 overflow-hidden flex flex-col">
-            {activeChannel === 'nirvana' && <NirvanaChannel />}
-            {activeChannel === 'start-here' && <StartHereChannel />}
-            {activeChannel === 'rules' && <RulesChannel />}
-            {activeChannel === 'announcements' && <AnnouncementsChannel isAdmin={true} />}
-            {activeChannel === 'general-chat' && <ChatChannel channelName="general-chat" description="General discussion" />}
-            {activeChannel === 'showcase' && <ShowcaseChannel />}
-            {activeChannel === 'weekly-challenge' && <HackathonChannel isAdmin={true} />}
-            {activeChannel === 'hackathon-chat' && <ChatChannel channelName="hackathon-chat" description="Hackathon discussions" />}
-            {activeChannel === 'codemaster' && (
-              <DirectMessageChannel
-                recipientName="CodeMaster"
-                recipientAvatar="https://github.com/shadcn.png"
-                recipientStatus="online"
-                recipientRole="Expert"
-              />
-            )}
-            {activeChannel === 'techexpert' && (
-              <DirectMessageChannel
-                recipientName="TechExpert"
-                recipientAvatar="https://github.com/shadcn.png"
-                recipientStatus="away"
-                recipientRole="Advanced"
-              />
-            )}
-            {!Object.values(channelGroups).flat().find(channel => channel.id === activeChannel) && <NirvanaChannel />}
-
-            {/* Leaderboard View */}
-            {activeTab === 'Leaderboard' && isTabVisible('Leaderboard') && (
-              <div className="h-full flex flex-col">
-                <div className="flex items-center justify-between p-6 border-b border-base-300">
-                  <div className="flex items-center gap-3">
-                    <Trophy className="w-8 h-8 text-primary" />
-                    <div>
-                      <h1 className="text-2xl font-bold text-base-content">Leaderboard</h1>
-                      <p className="text-sm text-base-content/70">Top performers in the arena</p>
-                    </div>
-                  </div>
-
-                  {/* Time Filter */}
-                  <div className="flex gap-2 bg-base-200 rounded-lg p-1">
-                    {(['Weekly', 'Monthly', 'All Time'] as TimeFilter[]).map((filter) => (
-                      <button
-                        key={filter}
-                        onClick={() => setTimeFilter(filter)}
-                        className={cn(
-                          "px-4 py-2 rounded-md text-sm font-medium transition-colors",
-                          timeFilter === filter
-                            ? "bg-base-300 text-base-content"
-                            : "text-base-content/70 hover:text-base-content"
-                        )}
-                      >
-                        {filter}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Leaderboard List */}
-                <div className="flex-1 overflow-y-auto px-6 py-4">
-                  <div className="space-y-2">
-                    {leaderboardUsers.map((user) => (
-                      <div
-                        key={user.username}
-                        className={cn(
-                          "flex items-center gap-4 p-4 rounded-lg",
-                          "bg-base-200 hover:bg-base-300 transition-colors"
-                        )}
-                      >
-                        {/* Rank */}
-                        <div className="w-8 text-center font-bold text-lg text-base-content">
-                          {user.rank === 1 && <Crown className="w-6 h-6 text-yellow-500" />}
-                          {user.rank === 2 && <Trophy className="w-6 h-6 text-gray-400" />}
-                          {user.rank === 3 && <Star className="w-6 h-6 text-amber-700" />}
-                          {user.rank > 3 && user.rank}
-                        </div>
-
-                        {/* User Info */}
-                        <Avatar className="w-10 h-10">
-                          <img src={user.avatar} alt={user.username} />
-                        </Avatar>
-
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-base-content">{user.username}</span>
-                            {user.badges.map((badge) => (
-                              <span
-                                key={badge}
-                                className="px-2 py-0.5 rounded-full text-xs bg-primary text-primary-content"
-                              >
-                                {badge}
-                              </span>
-                            ))}
-                          </div>
-                          <span className="text-sm text-base-content/70">{user.role}</span>
-                        </div>
-
-                        {/* Points */}
-                        <div className="flex items-center gap-2">
-                          <div className="text-right">
-                            <div className="font-bold text-base-content">{user.points.toLocaleString()}</div>
-                            <div className="text-xs text-base-content/70">points</div>
-                          </div>
-                          {user.trend === 'up' && <div className="text-success">↑</div>}
-                          {user.trend === 'down' && <div className="text-error">↓</div>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Panel */}
-        <AnimatePresence>
-          {!isRightSidebarCollapsed && (
-            <motion.div 
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 240, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="h-full border-l border-base-300 bg-base-200 relative"
+    <ArenaErrorBoundary>
+      <div className="h-full flex bg-base-100">
+        {/* Left Sidebar */}
+        <motion.aside 
+          className={cn(
+            "h-full border-r border-base-300",
+            "bg-base-200 transition-all duration-200 relative",
+            isLeftSidebarCollapsed ? "w-0 overflow-hidden" : "w-[240px]"
+          )}
+          animate={{ width: isLeftSidebarCollapsed ? 0 : 240 }}
+        >
+          {/* Nirvana Page Button */}
+          <div className="px-2 py-2">
+            <button
+              className={cn(
+                "w-full flex items-center gap-2 px-2 py-1.5 rounded-md",
+                "hover:bg-base-300 transition-colors",
+                showNirvana && !activeChannelId && "bg-base-300"
+              )}
+              onClick={() => {
+                setActiveChannelId(null);
+                setShowNirvana(true);
+              }}
             >
-              {/* Collapse Right Sidebar Button */}
-              <button
-                onClick={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
-                className="absolute -left-3 top-[60px] bg-base-200 border border-base-300 rounded-full p-1 z-50 hover:bg-base-300 transition-colors"
-              >
-                <ArrowRightFromLine className="w-4 h-4 text-base-content" />
-              </button>
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span className="text-sm text-base-content/90 font-semibold">Nirvana</span>
+            </button>
+          </div>
+          {/* Channel Groups */}
+          <div className="space-y-2 py-2">
+            {Object.entries(channels).map(([group, channelList]) => (
+              <div key={group} className="px-2">
+                {/* Group Header */}
+                <button
+                  onClick={() => toggleGroupCollapse(group)}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-2 py-1 rounded-md",
+                    "hover:bg-base-300 transition-colors",
+                    "justify-between"
+                  )}
+                >
+                  <span className="text-xs font-semibold text-base-content/70 uppercase">
+                    {group.replace('-', ' ')}
+                  </span>
+                  <motion.div
+                    animate={{ rotate: collapsedGroups.includes(group) ? -90 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown className="w-4 h-4 text-base-content/60" />
+                  </motion.div>
+                </button>
 
-              {/* Panel Content */}
-              <div className="p-4 space-y-6">
-                {/* Search Members */}
-                <div className="relative">
-                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-base-content/60" />
-                  <input
-                    type="text"
-                    placeholder="Search members..."
-                    className="w-full bg-base-300 text-sm rounded-md pl-8 pr-3 py-1.5 text-base-content placeholder:text-base-content/60 focus:outline-none focus:ring-1 focus:ring-primary/20"
-                    value={memberSearchQuery}
-                    onChange={(e) => setMemberSearchQuery(e.target.value)}
-                  />
-                </div>
-
-                {/* Members List */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-semibold text-base-content">Members</h3>
-                    <span className="text-xs text-base-content/70">{leaderboardUsers.length}</span>
-                  </div>
-                  <div className="space-y-1">
-                    {leaderboardUsers.map((user) => (
-                      <div
-                        key={user.username}
-                        className="flex items-center gap-2 p-2 rounded hover:bg-base-300 transition-colors"
-                      >
-                        <div className="relative">
-                          <Avatar className="w-8 h-8">
-                            <img src={user.avatar} alt={user.username} />
-                          </Avatar>
-                          {user.isOnline && (
-                            <div className="absolute bottom-0 right-0 w-3 h-3 bg-success rounded-full border-2 border-base-200" />
+                {/* Channels (parent/sub-channel tree) */}
+                <AnimatePresence>
+                  {!collapsedGroups.includes(group) && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="space-y-0.5 mt-1"
+                    >
+                      {buildChannelTree(channelList).map(({ parent, children }) => (
+                        <div key={parent._id}>
+                        <button
+                            onClick={() => setActiveChannelId(parent._id)}
+                          className={cn(
+                            "w-full flex items-center gap-2 px-2 py-1.5 rounded-md",
+                            "hover:bg-base-300 transition-colors",
+                              activeChannelId === parent._id && "bg-base-300",
+                            "justify-between"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="text-base-content/70">
+                                {getChannelIcon(parent)}
+                              </div>
+                              <span className="text-sm text-base-content/90 truncate font-semibold">
+                                {parent.name}
+                              </span>
+                            </div>
+                            {parent.unreadCount && (
+                              <span className="text-xs bg-primary text-primary-content px-1.5 py-0.5 rounded-full">
+                                {parent.unreadCount}
+                              </span>
+                            )}
+                          </button>
+                          {/* Sub-channels */}
+                          {children.length > 0 && (
+                            <div className="ml-6 border-l border-base-300 pl-2 mt-0.5 space-y-0.5">
+                              {children.map(child => (
+                                <button
+                                  key={child._id}
+                                  onClick={() => setActiveChannelId(child._id)}
+                                  className={cn(
+                                    "w-full flex items-center gap-2 px-2 py-1.5 rounded-md",
+                                    "hover:bg-base-300 transition-colors",
+                                    activeChannelId === child._id && "bg-base-300",
+                                    "justify-between"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <div className="text-base-content/60">
+                                      {getChannelIcon(child)}
+                                    </div>
+                                    <span className="text-sm text-base-content/80 truncate">
+                                      {child.name}
+                            </span>
+                          </div>
+                                  {child.unreadCount && (
+                            <span className="text-xs bg-primary text-primary-content px-1.5 py-0.5 rounded-full">
+                                      {child.unreadCount}
+                            </span>
+                          )}
+                        </button>
+                              ))}
+                            </div>
                           )}
                         </div>
-                        <div>
-                          <div className="text-sm font-medium text-base-content">{user.username}</div>
-                          <div className="text-xs text-base-content/70">{user.role}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            ))}
+          </div>
+        </motion.aside>
 
-        {/* Floating Right Sidebar Button (when collapsed) */}
-        {isRightSidebarCollapsed && (
-          <button
-            onClick={() => setIsRightSidebarCollapsed(false)}
-            className="absolute right-2 top-[60px] bg-base-200 border border-base-300 rounded-full p-1 z-50 hover:bg-base-300 transition-colors"
-          >
-            <ArrowLeftFromLine className="w-4 h-4 text-base-content" />
-          </button>
-        )}
+        {/* Main Panel */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Main Panel */}
+          <div className="flex-1 overflow-hidden flex flex-col">
+            {/* Channel Content */}
+            <div className="flex-1 overflow-hidden flex flex-col">
+              {renderChannelContent()}
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </ArenaErrorBoundary>
   );
 };
 

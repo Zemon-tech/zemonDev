@@ -55,7 +55,7 @@ export const clerkWebhookHandler = asyncHandler(
 
     // Handle the user.created event
     if (evt.type === 'user.created') {
-      const { id, email_addresses, first_name, last_name } = evt.data;
+      const { id, email_addresses, first_name, last_name, username } = evt.data;
       logger.info(`Processing user.created event for Clerk ID: ${id}`);
       
       try {
@@ -70,6 +70,7 @@ export const clerkWebhookHandler = asyncHandler(
           clerkId: id,
           email: email,
           fullName: finalFullName,
+          username: username, // Save Clerk username
         });
 
         await newUser.save();

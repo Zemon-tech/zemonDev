@@ -4,68 +4,15 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { PlusCircle, Pin, MessageSquare, Heart, Share2, User } from 'lucide-react';
-
-interface Announcement {
-  id: string;
-  title: string;
-  content: string;
-  isPinned: boolean;
-  createdAt: Date;
-  author: {
-    name: string;
-    avatar?: string;
-    role: string;
-  };
-  stats: {
-    likes: number;
-    comments: number;
-    shares: number;
-  };
-}
+import { PlusCircle, Pin, MessageSquare, Heart, Share2, User, Loader2, AlertCircle } from 'lucide-react';
+import { useArenaChat, Message } from '@/hooks/useArenaChat';
 
 interface AnnouncementsChannelProps {
   isAdmin?: boolean;
 }
 
 const AnnouncementsChannel: React.FC<AnnouncementsChannelProps> = ({ isAdmin = false }) => {
-  // Mock announcements data
-  const announcements: Announcement[] = [
-    {
-      id: '1',
-      title: 'Welcome to the Arena!',
-      content: 'This is your space to connect, learn, and grow with fellow developers. Check out our weekly challenges and showcase your projects!',
-      isPinned: true,
-      createdAt: new Date('2024-03-15'),
-      author: {
-        name: 'Alex Developer',
-        avatar: 'https://github.com/shadcn.png',
-        role: 'Admin'
-      },
-      stats: {
-        likes: 42,
-        comments: 12,
-        shares: 5
-      }
-    },
-    {
-      id: '2',
-      title: 'New Feature: Project Showcase',
-      content: 'You can now showcase your projects in the community tab. Share your work and get feedback from other developers!',
-      isPinned: false,
-      createdAt: new Date('2024-03-14'),
-      author: {
-        name: 'Sarah Tech',
-        avatar: 'https://github.com/shadcn.png',
-        role: 'Moderator'
-      },
-      stats: {
-        likes: 28,
-        comments: 8,
-        shares: 3
-      }
-    }
-  ];
+  const { messages, loading, error, sendMessage } = useArenaChat('announcements');
 
   // Animation variants
   const containerVariants = {
@@ -86,6 +33,63 @@ const AnnouncementsChannel: React.FC<AnnouncementsChannelProps> = ({ isAdmin = f
       transition: { duration: 0.3 }
     }
   };
+
+  // Helper to determine if a message is pinned (based on content)
+  const isPinned = (message: Message): boolean => {
+    return message.content.includes('[PINNED]') || 
+           message.type === 'system' || 
+           message.content.toLowerCase().includes('important');
+  };
+
+  // Helper to extract title from message content
+  const getMessageTitle = (message: Message): string => {
+    const lines = message.content.split('\n');
+    if (lines.length > 1) {
+      return lines[0].replace('[PINNED]', '').trim();
+    }
+    
+    // If no line breaks, try to extract a title from the first sentence
+    const firstSentence = message.content.split('.')[0];
+    if (firstSentence.length < 50) {
+      return firstSentence.replace('[PINNED]', '').trim();
+    }
+    
+    // Fallback to a generic title
+    return 'Announcement';
+  };
+
+  // Helper to extract content from message
+  const getMessageContent = (message: Message): string => {
+    const lines = message.content.split('\n');
+    if (lines.length > 1) {
+      return lines.slice(1).join('\n').trim();
+    }
+    return message.content.replace('[PINNED]', '').trim();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <p className="mt-2 text-base-content/70">Loading announcements...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <AlertCircle className="w-8 h-8 text-error" />
+        <p className="mt-2 text-error">{error}</p>
+        <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  const pinnedMessages = messages.filter(isPinned);
+  const regularMessages = messages.filter(msg => !isPinned(msg));
 
   return (
     <div className="flex flex-col h-full">
@@ -112,122 +116,108 @@ const AnnouncementsChannel: React.FC<AnnouncementsChannelProps> = ({ isAdmin = f
           className="p-6 space-y-6"
         >
           {/* Pinned Announcements */}
-          {announcements.filter(a => a.isPinned).map(announcement => (
-            <motion.div
-              key={announcement.id}
-              variants={itemVariants}
-              className={cn(
-                "relative p-6 rounded-xl border",
-                "bg-primary/5 border-primary/10",
-                "hover:bg-primary/10 transition-colors duration-200"
-              )}
-            >
-              <div className="absolute top-4 right-4">
-                <Pin className="w-4 h-4 text-primary" />
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <Avatar className="w-10 h-10">
-                    {announcement.author.avatar ? (
-                      <AvatarImage src={announcement.author.avatar} alt={announcement.author.name} />
-                    ) : (
-                      <AvatarFallback>
-                        <User className="w-5 h-5" />
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-semibold text-base-content">{announcement.title}</h3>
-                      <Badge variant="secondary" className="bg-primary/20 text-primary border-none">Pinned</Badge>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1 text-sm text-base-content/70">
-                      <span className="font-medium">{announcement.author.name}</span>
-                      <span>•</span>
-                      <Badge variant="outline" className="text-xs font-normal">
-                        {announcement.author.role}
-                      </Badge>
-                      <span>•</span>
-                      <span>{announcement.createdAt.toLocaleDateString()}</span>
-                    </div>
+          {pinnedMessages.length > 0 && (
+            <div className="space-y-4">
+              {pinnedMessages.map(message => (
+                <motion.div
+                  key={message._id}
+                  variants={itemVariants}
+                  className={cn(
+                    "relative p-6 rounded-xl border",
+                    "bg-primary/5 border-primary/10",
+                    "hover:bg-primary/10 transition-colors duration-200"
+                  )}
+                >
+                  <div className="absolute top-4 right-4">
+                    <Pin className="w-4 h-4 text-primary" />
                   </div>
-                </div>
-                <p className="text-base-content/80 leading-relaxed">{announcement.content}</p>
-                <div className="flex items-center gap-6 pt-2">
-                  <button className="flex items-center gap-2 text-base-content/70 hover:text-primary transition-colors">
-                    <Heart className="w-4 h-4" />
-                    <span className="text-sm">{announcement.stats.likes}</span>
-                  </button>
-                  <button className="flex items-center gap-2 text-base-content/70 hover:text-primary transition-colors">
-                    <MessageSquare className="w-4 h-4" />
-                    <span className="text-sm">{announcement.stats.comments}</span>
-                  </button>
-                  <button className="flex items-center gap-2 text-base-content/70 hover:text-primary transition-colors">
-                    <Share2 className="w-4 h-4" />
-                    <span className="text-sm">{announcement.stats.shares}</span>
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-
-          {/* Regular Announcements */}
-          <div className="space-y-4">
-            {announcements.filter(a => !a.isPinned).map(announcement => (
-              <motion.div
-                key={announcement.id}
-                variants={itemVariants}
-                className={cn(
-                  "p-6 rounded-xl border",
-                  "bg-card/50 border-border/50",
-                  "hover:bg-card/80 transition-colors duration-200"
-                )}
-              >
-                <div className="space-y-4">
-                  <div className="flex items-start gap-4">
-                    <Avatar className="w-10 h-10">
-                      {announcement.author.avatar ? (
-                        <AvatarImage src={announcement.author.avatar} alt={announcement.author.name} />
-                      ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-4">
+                      <Avatar className="w-10 h-10">
                         <AvatarFallback>
-                          <User className="w-5 h-5" />
+                          {message.username.charAt(0).toUpperCase()}
                         </AvatarFallback>
-                      )}
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold text-base-content">{announcement.title}</h3>
-                      <div className="flex items-center gap-2 mt-1 text-sm text-base-content/70">
-                        <span className="font-medium">{announcement.author.name}</span>
-                        <span>•</span>
-                        <Badge variant="outline" className="text-xs font-normal">
-                          {announcement.author.role}
-                        </Badge>
-                        <span>•</span>
-                        <span>{announcement.createdAt.toLocaleDateString()}</span>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg font-semibold text-base-content">{getMessageTitle(message)}</h3>
+                          <Badge variant="secondary" className="bg-primary/20 text-primary border-none">Pinned</Badge>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 text-sm text-base-content/70">
+                          <span className="font-medium">{message.username}</span>
+                          <span>•</span>
+                          <Badge variant="outline" className="text-xs font-normal">
+                            {message.type === 'system' ? 'System' : 'Admin'}
+                          </Badge>
+                          <span>•</span>
+                          <span>{new Date(message.timestamp).toLocaleDateString()}</span>
+                        </div>
                       </div>
                     </div>
+                    <p className="text-base-content/80 leading-relaxed whitespace-pre-line">{getMessageContent(message)}</p>
                   </div>
-                  <p className="text-base-content/80 leading-relaxed">{announcement.content}</p>
-                  <div className="flex items-center gap-6 pt-2">
-                    <button className="flex items-center gap-2 text-base-content/70 hover:text-primary transition-colors">
-                      <Heart className="w-4 h-4" />
-                      <span className="text-sm">{announcement.stats.likes}</span>
-                    </button>
-                    <button className="flex items-center gap-2 text-base-content/70 hover:text-primary transition-colors">
-                      <MessageSquare className="w-4 h-4" />
-                      <span className="text-sm">{announcement.stats.comments}</span>
-                    </button>
-                    <button className="flex items-center gap-2 text-base-content/70 hover:text-primary transition-colors">
-                      <Share2 className="w-4 h-4" />
-                      <span className="text-sm">{announcement.stats.shares}</span>
-                    </button>
+                </motion.div>
+              ))}
+            </div>
+          )}
+
+          {/* Regular Announcements */}
+          {regularMessages.length > 0 ? (
+            <div className="space-y-4">
+              {regularMessages.map(message => (
+                <motion.div
+                  key={message._id}
+                  variants={itemVariants}
+                  className={cn(
+                    "p-6 rounded-xl border",
+                    "bg-card/50 border-border/50",
+                    "hover:bg-card/80 transition-colors duration-200"
+                  )}
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-4">
+                      <Avatar className="w-10 h-10">
+                        <AvatarFallback>
+                          {message.username.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-semibold text-base-content">{getMessageTitle(message)}</h3>
+                        <div className="flex items-center gap-2 mt-1 text-sm text-base-content/70">
+                          <span className="font-medium">{message.username}</span>
+                          <span>•</span>
+                          <span>{new Date(message.timestamp).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-base-content/80 leading-relaxed whitespace-pre-line">{getMessageContent(message)}</p>
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-base-content/70">
+              <p>No announcements yet.</p>
+              {isAdmin && <p className="mt-2">Use the New button to create one!</p>}
+            </div>
+          )}
         </motion.div>
       </div>
+
+      {/* Admin Post Form */}
+      {isAdmin && (
+        <div className="p-4 border-t border-base-300 bg-base-200">
+          <Button className="w-full" onClick={() => {
+            const announcement = prompt("Enter your announcement (prefix with [PINNED] to pin):");
+            if (announcement) {
+              sendMessage(announcement);
+            }
+          }}>
+            <PlusCircle className="w-5 h-5 mr-2" />
+            Post New Announcement
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
