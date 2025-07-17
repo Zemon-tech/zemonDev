@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
   const { messages, loading, typing, error, sendMessage, sendTyping } = useArenaChat(channelId);
   const [messageInput, setMessageInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [replyTo, setReplyTo] = useState<{_id: string, username: string, content: string} | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
@@ -33,7 +34,8 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
 
   const handleSendMessage = () => {
     if (messageInput.trim()) {
-      sendMessage(messageInput);
+      sendMessage(messageInput, replyTo?._id);
+      setReplyTo(null);
       setMessageInput('');
       handleStopTyping();
     }
@@ -93,6 +95,69 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
     );
   }
 
+  // Add ReplyPreviewBox component
+  const ReplyPreviewBox: React.FC<{ parent: Message; onClick?: () => void }> = ({ parent, onClick }) => (
+    <div
+      className="inline-block mb-1 px-3 py-1 rounded-lg bg-base-200/80 border border-base-300 text-xs text-base-content/70 max-w-full cursor-pointer shadow-sm transition hover:bg-primary/10"
+      style={{ fontSize: '12px', lineHeight: '1.3', overflow: 'hidden', textOverflow: 'ellipsis' }}
+      onClick={onClick}
+      tabIndex={0}
+      title={parent.content}
+    >
+      <span className="font-semibold text-primary mr-1">{parent.username}</span>
+      <span className="truncate align-middle">{parent.content.length > 80 ? parent.content.slice(0, 80) + '…' : parent.content}</span>
+    </div>
+  );
+
+  // Add ChatMessage component for per-message hooks
+  const ChatMessage: React.FC<{
+    msg: Message;
+    isLastInGroup: boolean;
+    repliedMessage?: Message | null;
+    onReply: (msg: Message) => void;
+  }> = ({ msg, isLastInGroup, repliedMessage, onReply }) => {
+    const [highlighted, setHighlighted] = useState(false);
+    const msgRef = useRef<HTMLDivElement>(null);
+    // Highlight and scroll logic
+    const handlePreviewClick = () => {
+      if (msgRef.current) {
+        msgRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setHighlighted(true);
+        setTimeout(() => setHighlighted(false), 1500);
+      }
+    };
+    return (
+      <div
+        ref={msgRef}
+        className={cn('flex flex-col w-full transition', highlighted && 'ring-2 ring-primary bg-primary/10')}
+      >
+        {/* Inline reply preview box above the message bubble */}
+        {msg.replyToId && repliedMessage && (
+          <ReplyPreviewBox parent={repliedMessage} onClick={handlePreviewClick} />
+        )}
+        <span className="whitespace-pre-line text-[15px] text-base-content/90 leading-relaxed px-0 py-0.5">{msg.content}</span>
+        {/* Reaction panel, only visible on hover, floating popover with animation, fixed to viewport if near right edge */}
+        {isLastInGroup && (
+          <AnimatePresence>
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.18 }}
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-20 hidden group-hover/message:flex gap-1 bg-base-100 border border-base-300 rounded-xl shadow-lg px-2 py-1"
+              style={{ minWidth: 120, maxWidth: 220 }}
+            >
+              <button onClick={() => alert('👍 reaction!')} className="hover:bg-base-200 rounded-full p-1 text-base-content/70 text-xs font-medium transition-colors">👍</button>
+              <button onClick={() => alert('❤️ reaction!')} className="hover:bg-base-200 rounded-full p-1 text-base-content/70 text-xs font-medium transition-colors">❤️</button>
+              <button onClick={() => alert('😂 reaction!')} className="hover:bg-base-200 rounded-full p-1 text-base-content/70 text-xs font-medium transition-colors">😂</button>
+              <button onClick={() => onReply(msg)} className="hover:bg-base-200 rounded-full p-1 text-primary text-xs font-medium transition-colors">Reply</button>
+            </motion.div>
+          </AnimatePresence>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Channel Header */}
@@ -110,35 +175,78 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto">
-        <div className="px-6 py-4 space-y-6">
-          {messages.map((message) => (
-            <motion.div
-              key={message._id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={cn(
-                "group px-4 py-2 -mx-4 hover:bg-base-200 rounded-lg",
-                "transition-colors duration-200"
-              )}
-            >
-              <div className="flex items-start gap-4">
-                <Avatar className="w-10 h-10">
-                  <AvatarFallback>
-                    {message.username.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-base-content">{message.username}</span>
-                    <span className="text-xs text-base-content/70">
-                      {new Date(message.timestamp).toLocaleTimeString()}
-                    </span>
+        <div className="px-0 py-4">
+          {/* Date divider logic */}
+          {(() => {
+            // Group consecutive messages from the same user (within 5min)
+            const merged: Array<{ group: Message[]; showDate: boolean }> = [];
+            let group: Message[] = [];
+            let lastDate: string | null = null;
+            messages.forEach((msg, idx) => {
+              const prev = messages[idx - 1];
+              const msgDate = new Date(msg.timestamp).toDateString();
+              const prevDate = prev ? new Date(prev.timestamp).toDateString() : null;
+              const timeGap = prev ? (new Date(msg.timestamp).getTime() - new Date(prev.timestamp).getTime()) / 1000 / 60 : 0;
+              const isSameUser = prev && prev.username === msg.username;
+              const isSameDay = prevDate === msgDate;
+              const isClose = isSameUser && isSameDay && timeGap < 5;
+              if (!prev || !isSameUser || !isSameDay || !isClose) {
+                if (group.length) merged.push({ group, showDate: lastDate !== msgDate });
+                group = [msg];
+                lastDate = msgDate;
+              } else {
+                group.push(msg);
+              }
+            });
+            if (group.length) merged.push({ group, showDate: false });
+            // Render merged groups
+            return merged.map(({ group, showDate }, i) => {
+              const first = group[0];
+              return (
+                <React.Fragment key={first._id + '-' + i}>
+                  {showDate && (
+                    <div className="flex items-center justify-center my-6">
+                      <span className="px-4 py-1 rounded-full bg-base-300 text-xs text-base-content/60 font-medium shadow-sm">
+                        {new Date(first.timestamp).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                      </span>
+                    </div>
+                  )}
+                  <div className={cn(
+                    "group flex items-start w-full px-6 py-1.5 hover:bg-base-200/80 transition-colors relative"
+                  )}>
+                    {/* Avatar only for first in group, aligned top, premium style */}
+                    <Avatar className="w-11 h-11 mt-0.5 mr-3 flex-shrink-0 border-2 border-base-300 shadow-sm bg-base-100">
+                      <AvatarFallback className="font-bold text-lg bg-primary/80 text-primary-foreground">
+                        {first.username.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-semibold text-base-content text-[15px] leading-tight">{first.username}</span>
+                        <span className="text-xs text-base-content/50 leading-tight mt-0.5">{new Date(first.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <div className="relative group/message mt-0.5">
+                        {/* Render all messages in the group */}
+                        {group.map((msg, j) => {
+                          // Only show inline reply preview for actual replies
+                          const repliedMessage = msg.replyToId ? messages.find(m => m._id === msg.replyToId) : null;
+                          return (
+                            <ChatMessage
+                              key={msg._id + '-' + j}
+                              msg={msg}
+                              isLastInGroup={j === group.length - 1}
+                              repliedMessage={repliedMessage}
+                              onReply={(m) => setReplyTo({ _id: m._id, username: m.username, content: m.content })}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-base-content/80 mt-1 whitespace-pre-line">{message.content}</p>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+                </React.Fragment>
+              );
+            });
+          })()}
           <div ref={messagesEndRef} />
         </div>
       </div>
@@ -169,10 +277,17 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
           </div>
         </motion.div>
       )}
-
-      {/* Message Input */}
+      {/* Message Input with reply bar */}
       {canMessage && (
         <div className="px-6 py-4 border-t border-base-300 bg-base-200">
+          {/* Reply bar (show if replying) */}
+          {replyTo && (
+            <div className="flex items-center gap-2 mb-2 px-4 py-2 bg-primary/10 border-l-4 border-primary rounded-md">
+              <span className="text-xs font-semibold text-primary">Replying to {replyTo.username}</span>
+              <span className="text-xs text-base-content/60 truncate max-w-[180px]">{replyTo.content.slice(0, 40)}{replyTo.content.length > 40 ? '…' : ''}</span>
+              <button className="ml-auto text-xs text-base-content/60 hover:text-error" onClick={() => setReplyTo(null)}>✕</button>
+            </div>
+          )}
           <div className="relative">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
               <button className="p-1.5 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors">

@@ -70,7 +70,7 @@ export const useArenaChat = (channelId: string) => {
     loadMessages();
   }, [channelId, getToken, isSignedIn]);
 
-  const sendMessage = useCallback((content: string) => {
+  const sendMessage = useCallback((content: string, replyToId?: string) => {
     if (!socket) {
       console.error('Cannot send message: Socket not connected');
       return;
@@ -85,7 +85,8 @@ export const useArenaChat = (channelId: string) => {
     
     socket.emit('send_message', {
       channelId,
-      content: content.trim()
+      content: content.trim(),
+      ...(replyToId ? { replyToId } : {})
     }, (response: any) => {
       if (response?.success) {
         console.log('Message sent successfully:', response);
