@@ -11,6 +11,8 @@ interface ProjectShowcase {
   username: string;
   upvotes: number;
   upvotedBy: string[];
+  downvotes: number;
+  downvotedBy: string[];
   submittedAt: string;
   isApproved: boolean;
   approvedAt?: string;
@@ -106,6 +108,7 @@ const ShowcasePage: React.FC = () => {
                 <th className="px-2 py-1 border">Git Repo</th>
                 <th className="px-2 py-1 border">Demo URL</th>
                 <th className="px-2 py-1 border">Upvotes</th>
+                <th className="px-2 py-1 border">Downvotes</th>
                 <th className="px-2 py-1 border">Approved</th>
                 <th className="px-2 py-1 border">Submitted At</th>
                 <th className="px-2 py-1 border">Actions</th>
@@ -127,6 +130,7 @@ const ShowcasePage: React.FC = () => {
                     </a>
                   </td>
                   <td className="px-2 py-1 border text-center">{proj.upvotes}</td>
+                  <td className="px-2 py-1 border text-center">{proj.downvotes}</td>
                   <td className="px-2 py-1 border text-center">{proj.isApproved ? 'Yes' : 'No'}</td>
                   <td className="px-2 py-1 border">{new Date(proj.submittedAt).toLocaleString()}</td>
                   <td className="px-2 py-1 border flex gap-2">

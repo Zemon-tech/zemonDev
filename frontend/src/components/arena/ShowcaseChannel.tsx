@@ -3,13 +3,13 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { ThumbsUp, MessageSquare, Share2, ExternalLink, Plus, Hash, Loader2, AlertCircle } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, MessageSquare, Share2, ExternalLink, Plus, Hash, Loader2, AlertCircle } from 'lucide-react';
 import { useArenaShowcase, Project as ShowcaseProject } from '@/hooks/useArenaShowcase';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { ApiService } from '@/services/api.service';
 
 const ShowcaseChannel: React.FC = () => {
-  const { projects, loading, error, upvoteProject, refetch } = useArenaShowcase();
+  const { projects, loading, error, upvoteProject, downvoteProject, removeDownvoteProject, refetch } = useArenaShowcase();
   const { getToken, isSignedIn } = useAuth();
   const { user } = useUser();
   const [showModal, setShowModal] = useState(false);
@@ -148,7 +148,7 @@ const ShowcaseChannel: React.FC = () => {
                   <span title={project.hasUpvoted ? 'You upvoted' : 'Upvote'}>
                     <button
                       onClick={() => upvoteProject(project._id)}
-                      disabled={project.hasUpvoted}
+                      disabled={project.hasUpvoted || project.hasDownvoted}
                       className={cn(
                         "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border border-base-200",
                         project.hasUpvoted ? "bg-primary/10 text-primary border-primary" : "bg-base-100 text-base-content/70 hover:bg-primary/10 hover:text-primary"
@@ -156,6 +156,20 @@ const ShowcaseChannel: React.FC = () => {
                     >
                       <ThumbsUp className="w-4 h-4" />
                       <span>{project.upvotes}</span>
+                    </button>
+                  </span>
+                  {/* Downvote */}
+                  <span title={project.hasDownvoted ? 'You downvoted' : 'Downvote'}>
+                    <button
+                      onClick={() => project.hasDownvoted ? removeDownvoteProject(project._id) : downvoteProject(project._id)}
+                      disabled={project.hasUpvoted}
+                      className={cn(
+                        "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border border-base-200",
+                        project.hasDownvoted ? "bg-red-100 text-red-600 border-red-300" : "bg-base-100 text-base-content/70 hover:bg-red-100 hover:text-red-600"
+                      )}
+                    >
+                      <ThumbsDown className="w-4 h-4" />
+                      <span>{project.downvotes}</span>
                     </button>
                   </span>
                   {/* Repo */}

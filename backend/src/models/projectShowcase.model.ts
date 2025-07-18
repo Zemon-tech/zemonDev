@@ -10,6 +10,8 @@ export interface IProjectShowcase extends Document {
   username: string;
   upvotes: number;
   upvotedBy: mongoose.Types.ObjectId[];
+  downvotes: number;
+  downvotedBy: mongoose.Types.ObjectId[];
   submittedAt: Date;
   isApproved: boolean;
   approvedAt?: Date;
@@ -66,6 +68,16 @@ const ProjectShowcaseSchema: Schema = new Schema(
         ref: 'User',
       },
     ],
+    downvotes: {
+      type: Number,
+      default: 0,
+    },
+    downvotedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     submittedAt: {
       type: Date,
       default: Date.now,
@@ -87,6 +99,7 @@ const ProjectShowcaseSchema: Schema = new Schema(
 
 // Add indexes for better query performance
 ProjectShowcaseSchema.index({ upvotes: -1 }); // For sorting by popularity
+ProjectShowcaseSchema.index({ downvotes: -1 }); // For sorting by most downvoted
 ProjectShowcaseSchema.index({ submittedAt: -1 }); // For sorting by newest
 ProjectShowcaseSchema.index({ userId: 1 }); // For fetching user's projects
 ProjectShowcaseSchema.index({ isApproved: 1 }); // For filtering approved projects

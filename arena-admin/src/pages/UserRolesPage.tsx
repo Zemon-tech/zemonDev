@@ -8,6 +8,12 @@ interface UserRole {
   createdAt: string;
 }
 
+interface User {
+  _id: string;
+  username: string;
+  fullName: string;
+}
+
 interface ApiResponse {
   roles: UserRole[];
   page: number;
@@ -23,6 +29,8 @@ const emptyForm: Partial<UserRole> = {
 
 const UserRolesPage: React.FC = () => {
   const [roles, setRoles] = useState<UserRole[]>([]);
+  const [users, setUsers] = useState<Record<string, User>>({});
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [total, setTotal] = useState(0);
@@ -32,6 +40,37 @@ const UserRolesPage: React.FC = () => {
   const [form, setForm] = useState<Partial<UserRole>>(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Fetch user details for all unique user IDs
+  const fetchUserDetails = async (userIds: string[]) => {
+    try {
+      const res = await fetch(`http://localhost:3001/api/dev-admin/users?page=1&limit=1000`);
+      if (res.ok) {
+        const data = await res.json();
+        const userMap: Record<string, User> = {};
+        data.data.users.forEach((user: User) => {
+          userMap[user._id] = user;
+        });
+        setUsers(userMap);
+        setAllUsers(data.data.users);
+      }
+    } catch (error) {
+      console.warn('Failed to fetch user details:', error);
+    }
+  };
+
+  // Fetch all users for dropdowns
+  const fetchAllUsers = async () => {
+    try {
+      const res = await fetch(`http://localhost:3001/api/dev-admin/users?page=1&limit=1000`);
+      if (res.ok) {
+        const data = await res.json();
+        setAllUsers(data.data.users);
+      }
+    } catch (error) {
+      console.warn('Failed to fetch all users:', error);
+    }
+  };
 
   const fetchRoles = async (pageNum = 1) => {
     setLoading(true);
@@ -45,6 +84,13 @@ const UserRolesPage: React.FC = () => {
       setRoles(data.data.roles);
       setPage(data.data.page);
       setTotal(data.data.total);
+      
+      // Fetch user details for all unique user IDs in the roles
+      const userIds = [...new Set([
+        ...data.data.roles.map((r: UserRole) => r.userId),
+        ...data.data.roles.map((r: UserRole) => r.grantedBy)
+      ])];
+      await fetchUserDetails(userIds);
     } catch (err: any) {
       setError(err.message || 'Unknown error');
     } finally {
@@ -52,8 +98,15 @@ const UserRolesPage: React.FC = () => {
     }
   };
 
+  // Helper function to get username from userId
+  const getUsername = (userId: string): string => {
+    const user = users[userId];
+    return user ? (user.username || user.fullName || userId) : userId;
+  };
+
   useEffect(() => {
     fetchRoles(page);
+    fetchAllUsers(); // Fetch all users for dropdowns
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
@@ -143,8 +196,9 @@ const UserRolesPage: React.FC = () => {
           <table className="min-w-full bg-white border border-gray-200 mb-4">
             <thead>
               <tr>
-                <th className="px-2 py-1 border">User ID</th>
+                <th className="px-2 py-1 border">User Name</th>
                 <th className="px-2 py-1 border">Role</th>
+                <th className="px-2 py-1 border">Granted By</th>
                 <th className="px-2 py-1 border">Created At</th>
                 <th className="px-2 py-1 border">Actions</th>
               </tr>
@@ -152,8 +206,9 @@ const UserRolesPage: React.FC = () => {
             <tbody>
               {roles.map((role) => (
                 <tr key={role._id}>
-                  <td className="px-2 py-1 border">{role.userId}</td>
+                  <td className="px-2 py-1 border">{getUsername(role.userId)}</td>
                   <td className="px-2 py-1 border">{role.role}</td>
+                  <td className="px-2 py-1 border">{getUsername(role.grantedBy)}</td>
                   <td className="px-2 py-1 border">{new Date(role.createdAt).toLocaleString()}</td>
                   <td className="px-2 py-1 border flex gap-2">
                     <button
@@ -173,7 +228,7 @@ const UserRolesPage: React.FC = () => {
               ))}
               {roles.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="text-center py-4">No user roles found.</td>
+                  <td colSpan={5} className="text-center py-4">No user roles found.</td>
                 </tr>
               )}
             </tbody>
@@ -213,15 +268,21 @@ const UserRolesPage: React.FC = () => {
             {formError && <div className="text-red-500 mb-2">{formError}</div>}
             <form onSubmit={handleFormSubmit} className="space-y-3">
               <div>
-                <label className="block text-sm font-medium">User ID</label>
-                <input
-                  type="text"
+                <label className="block text-sm font-medium">User</label>
+                <select
                   name="userId"
                   value={form.userId || ''}
                   onChange={handleFormChange}
                   className="w-full border rounded px-2 py-1"
                   required
-                />
+                >
+                  <option value="">Select user</option>
+                  {allUsers.map((user) => (
+                    <option key={user._id} value={user._id}>
+                      {user.username || user.fullName || user._id}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium">Role</label>
@@ -239,15 +300,21 @@ const UserRolesPage: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium">Granted By (User ID)</label>
-                <input
-                  type="text"
+                <label className="block text-sm font-medium">Granted By</label>
+                <select
                   name="grantedBy"
                   value={form.grantedBy || ''}
                   onChange={handleFormChange}
                   className="w-full border rounded px-2 py-1"
                   required
-                />
+                >
+                  <option value="">Select user</option>
+                  {allUsers.map((user) => (
+                    <option key={user._id} value={user._id}>
+                      {user.username || user.fullName || user._id}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="flex justify-end gap-2">
                 <button

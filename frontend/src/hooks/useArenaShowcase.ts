@@ -12,6 +12,8 @@ export interface Project {
   username: string;
   upvotes: number;
   hasUpvoted: boolean;
+  downvotes: number; // ADDED
+  hasDownvoted: boolean; // ADDED
   submittedAt: Date;
 }
 
@@ -25,8 +27,13 @@ export const useArenaShowcase = () => {
     try {
       setLoading(true);
       const response = await ApiService.getShowcaseProjects(getToken);
+      const userId = isSignedIn && response?.data?.userId ? response.data.userId : null;
       if (response?.data?.projects && Array.isArray(response.data.projects)) {
-        setProjects(response.data.projects);
+        setProjects(response.data.projects.map((project: any) => ({
+          ...project,
+          hasUpvoted: userId ? (project.upvotedBy || []).some((id: string) => id === userId) : false,
+          hasDownvoted: userId ? (project.downvotedBy || []).some((id: string) => id === userId) : false,
+        })));
       } else {
         setProjects([]);
       }
@@ -57,5 +64,31 @@ export const useArenaShowcase = () => {
     }
   };
 
-  return { projects, loading, error, upvoteProject, refetch: fetchProjects };
+  const downvoteProject = async (projectId: string) => {
+    try {
+      await ApiService.downvoteProject(projectId, getToken);
+      setProjects(prev => prev.map(project =>
+        project._id === projectId
+          ? { ...project, downvotes: project.downvotes + 1, hasDownvoted: true }
+          : project
+      ));
+    } catch (error) {
+      console.error('Failed to downvote project:', error);
+    }
+  };
+
+  const removeDownvoteProject = async (projectId: string) => {
+    try {
+      await ApiService.removeDownvoteProject(projectId, getToken);
+      setProjects(prev => prev.map(project =>
+        project._id === projectId
+          ? { ...project, downvotes: project.downvotes - 1, hasDownvoted: false }
+          : project
+      ));
+    } catch (error) {
+      console.error('Failed to remove downvote:', error);
+    }
+  };
+
+  return { projects, loading, error, upvoteProject, downvoteProject, removeDownvoteProject, refetch: fetchProjects };
 }; 

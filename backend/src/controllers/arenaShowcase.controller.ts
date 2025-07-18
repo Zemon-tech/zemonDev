@@ -130,6 +130,10 @@ export const upvoteProject = asyncHandler(
       return next(new AppError('Project not found', 404));
     }
 
+    // Prevent upvoting if already downvoted
+    if (project.downvotedBy.some(id => id.toString() === userId.toString())) {
+      return next(new AppError('You have already downvoted this project. Remove downvote before upvoting.', 400));
+    }
     // Check if user has already upvoted
     if (project.upvotedBy.some(id => id.toString() === userId.toString())) {
       return next(new AppError('You have already upvoted this project', 400));
@@ -190,6 +194,92 @@ export const removeUpvote = asyncHandler(
           projectId,
           upvotes: project.upvotes,
           hasUpvoted: false
+        }
+      )
+    );
+  }
+); 
+
+/**
+ * @desc    Downvote project
+ * @route   POST /api/arena/showcase/:projectId/downvote
+ * @access  Private
+ */
+export const downvoteProject = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { projectId } = req.params;
+    const userId = req.user._id;
+
+    // Check if project exists
+    const project = await ProjectShowcase.findById(projectId);
+    if (!project) {
+      return next(new AppError('Project not found', 404));
+    }
+
+    // Prevent downvoting if already upvoted
+    if (project.upvotedBy.some(id => id.toString() === userId.toString())) {
+      return next(new AppError('You have already upvoted this project. Remove upvote before downvoting.', 400));
+    }
+    // Prevent double downvote
+    if (project.downvotedBy.some(id => id.toString() === userId.toString())) {
+      return next(new AppError('You have already downvoted this project', 400));
+    }
+
+    // Add downvote
+    project.downvotes += 1;
+    project.downvotedBy.push(userId);
+    await project.save();
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        'Project downvoted successfully',
+        {
+          projectId,
+          downvotes: project.downvotes,
+          hasDownvoted: true
+        }
+      )
+    );
+  }
+);
+
+/**
+ * @desc    Remove downvote
+ * @route   DELETE /api/arena/showcase/:projectId/downvote
+ * @access  Private
+ */
+export const removeDownvote = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { projectId } = req.params;
+    const userId = req.user._id;
+
+    // Check if project exists
+    const project = await ProjectShowcase.findById(projectId);
+    if (!project) {
+      return next(new AppError('Project not found', 404));
+    }
+
+    // Check if user has downvoted
+    if (!project.downvotedBy.some(id => id.toString() === userId.toString())) {
+      return next(new AppError('You have not downvoted this project', 400));
+    }
+
+    // Remove downvote
+    project.downvotes -= 1;
+    project.downvotedBy = project.downvotedBy.filter(
+      id => id.toString() !== userId.toString()
+    );
+    await project.save();
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        'Downvote removed successfully',
+        {
+          projectId,
+          downvotes: project.downvotes,
+          hasDownvoted: false
         }
       )
     );

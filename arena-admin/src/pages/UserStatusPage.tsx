@@ -281,29 +281,29 @@ const UserStatusPage: React.FC = () => {
             <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
               <h2 className="text-lg font-semibold mb-2 text-yellow-800">Pending Join Requests (User Level)</h2>
               <table className="min-w-full bg-white border border-gray-200 mb-2">
-                <thead>
-                  <tr>
+            <thead>
+              <tr>
                     <th className="px-2 py-1 border">User Name</th>
                     <th className="px-2 py-1 border">Pending Requests</th>
-                    <th className="px-2 py-1 border">Actions</th>
+                <th className="px-2 py-1 border">Actions</th>
                     <th className="px-2 py-1 border">Details</th>
-                  </tr>
-                </thead>
-                <tbody>
+              </tr>
+            </thead>
+            <tbody>
                   {usersWithPending.map(user => (
                     <React.Fragment key={user.userId}>
                       <tr>
                         <td className="px-2 py-1 border font-semibold align-top">{user.username}</td>
                         <td className="px-2 py-1 border text-center align-top">{user.pendingCount}</td>
                         <td className="px-2 py-1 border flex gap-2 align-top">
-                          <button
+                    <button
                             className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 disabled:opacity-50 font-bold"
                             onClick={() => handleApproveAll(user.userId, user.requestIds)}
                             disabled={actionLoading === user.userId}
-                          >
+                    >
                             {actionLoading === user.userId ? 'Approving...' : 'Approve All'}
-                          </button>
-                          <button
+                    </button>
+                    <button
                             className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 disabled:opacity-50 font-bold"
                             onClick={() => handleDenyAll(user.userId, user.requestIds)}
                             disabled={actionLoading === user.userId}
@@ -317,8 +317,8 @@ const UserStatusPage: React.FC = () => {
                             onClick={() => toggleExpand(user.userId)}
                           >
                             {expandedUsers[user.userId] ? 'Hide' : 'Show'}
-                          </button>
-                        </td>
+                    </button>
+                  </td>
                       </tr>
                       {/* Collapsible sub-table for this user's pending requests */}
                       {expandedUsers[user.userId] && (
@@ -342,76 +342,76 @@ const UserStatusPage: React.FC = () => {
                                     <td className="px-2 py-1 border text-center">{req.isKicked ? 'Yes' : 'No'}</td>
                                     <td className="px-2 py-1 border text-center">{req.status}</td>
                                     <td className="px-2 py-1 border">{new Date(req.createdAt).toLocaleString()}</td>
-                                  </tr>
-                                ))}
+                </tr>
+              ))}
                               </tbody>
                             </table>
                           </td>
-                        </tr>
-                      )}
+                </tr>
+              )}
                     </React.Fragment>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {/* Modal */}
-          {modalOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-              <div className="bg-white rounded shadow-lg p-6 w-full max-w-md relative">
-                <button
-                  className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-                  onClick={closeModal}
-                >
-                  &times;
-                </button>
-                <h2 className="text-xl font-bold mb-4">{editId ? 'Edit Status' : 'New Status'}</h2>
-                {formError && <div className="text-red-500 mb-2">{formError}</div>}
-                <form onSubmit={handleFormSubmit} className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium">User ID</label>
-                    <input
-                      type="text"
-                      name="userId"
-                      value={form.userId || ''}
-                      onChange={handleFormChange}
-                      className="w-full border rounded px-2 py-1"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Channel ID</label>
-                    <input
-                      type="text"
-                      name="channelId"
-                      value={form.channelId || ''}
-                      onChange={handleFormChange}
-                      className="w-full border rounded px-2 py-1"
-                      required
-                    />
-                  </div>
-                  <div className="flex items-center gap-4 mt-2">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="isBanned"
-                        checked={!!form.isBanned}
-                        onChange={handleFormChange}
-                        className="mr-2"
-                      />
-                      Banned
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="isKicked"
-                        checked={!!form.isKicked}
-                        onChange={handleFormChange}
-                        className="mr-2"
-                      />
-                      Kicked
-                    </label>
-                  </div>
+            </tbody>
+          </table>
+          </div>
+      )}
+      {/* Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded shadow-lg p-6 w-full max-w-md relative">
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+              onClick={closeModal}
+            >
+              &times;
+            </button>
+            <h2 className="text-xl font-bold mb-4">{editId ? 'Edit Status' : 'New Status'}</h2>
+            {formError && <div className="text-red-500 mb-2">{formError}</div>}
+            <form onSubmit={handleFormSubmit} className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium">User ID</label>
+                <input
+                  type="text"
+                  name="userId"
+                  value={form.userId || ''}
+                  onChange={handleFormChange}
+                  className="w-full border rounded px-2 py-1"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Channel ID</label>
+                <input
+                  type="text"
+                  name="channelId"
+                  value={form.channelId || ''}
+                  onChange={handleFormChange}
+                  className="w-full border rounded px-2 py-1"
+                  required
+                />
+              </div>
+              <div className="flex items-center gap-4 mt-2">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="isBanned"
+                    checked={!!form.isBanned}
+                    onChange={handleFormChange}
+                    className="mr-2"
+                  />
+                  Banned
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="isKicked"
+                    checked={!!form.isKicked}
+                    onChange={handleFormChange}
+                    className="mr-2"
+                  />
+                  Kicked
+                </label>
+              </div>
                   <div className="mb-2">
                     <label className="block text-sm font-medium mb-1">Status</label>
                     <select
@@ -425,24 +425,24 @@ const UserStatusPage: React.FC = () => {
                       <option value="denied">Denied</option>
                     </select>
                   </div>
-                  <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      className="px-4 py-2 bg-gray-200 rounded"
-                      onClick={closeModal}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                      {editId ? 'Update' : 'Create'}
-                    </button>
-                  </div>
-                </form>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-gray-200 rounded"
+                  onClick={closeModal}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  {editId ? 'Update' : 'Create'}
+                </button>
               </div>
-            </div>
+            </form>
+          </div>
+        </div>
           )}
         </>
       )}

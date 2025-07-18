@@ -54,7 +54,7 @@ const ChannelsPage = () => {
   const [actionError, setActionError] = useState<string | null>(null);
   const [approvedUsers, setApprovedUsers] = useState<{ _id: string; username: string; fullName: string }[]>([]);
   const [moderatorError, setModeratorError] = useState<string | null>(null);
-
+  
   // Form setup
   const methods = useForm<ChannelFormData>({
     resolver: zodResolver(channelSchema) as any, // Type assertion to fix compatibility issue
