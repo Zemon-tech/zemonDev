@@ -14,6 +14,7 @@ import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
 
 import ProfilePage from './pages/ProfilePage';
+import SettingsPage from './pages/SettingsPage';
 
 // App Pages
 import DashboardPage from './pages/DashboardPage';
@@ -94,7 +95,7 @@ function App() {
                 <Route path="crucible/results/:analysisId" element={<ResultPage />} />
                 <Route path="arena" element={<ArenaPage />} />
                 <Route path="profile" element={<ProfilePage />} />
-                <Route path="settings" element={<PlaceholderPage title="Settings" description="Configure your account settings and preferences." />} />
+                <Route path="settings" element={<SettingsPage />} />
               </Route>
               
               {/* Catch-all route */}
