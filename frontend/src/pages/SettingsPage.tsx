@@ -420,7 +420,7 @@ export default function SettingsPage() {
   return (
     <div className="flex w-full bg-gradient-to-br from-base-100 via-base-50 to-base-200" style={{ height: '95vh', overflow: 'hidden' }}>
       <SectionSidebar active={active} setActive={setActive} />
-      <main className="flex-1 flex flex-col h-full w-full" style={{ height: '90vh', overflow: 'hidden' }}>
+      <main className="flex-1 flex flex-col h-full w-full" style={{ height: '95vh', overflow: 'hidden' }}>
         <AnimatePresence mode="wait">
           {active === 'profile' && (
             <motion.section key="profile" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.3 }} className="h-full w-full" style={{ height: '90vh', overflow: 'hidden' }}>

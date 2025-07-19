@@ -347,44 +347,6 @@ const ArenaPage: React.FC = () => {
         <div className="flex-1 flex overflow-hidden">
           {/* Main Panel */}
           <div className="flex-1 overflow-hidden flex flex-col">
-            {/* Broadcast Announcement UI (only for mods/admins) */}
-            {canBroadcastChannels.length > 0 && (
-              <div className="p-4 border-b border-base-300 bg-base-200 flex flex-col gap-2">
-                <div className="flex items-center gap-2 mb-1">
-                  <PlusCircle className="w-5 h-5 text-primary" />
-                  <span className="font-semibold text-base-content">Broadcast Announcement</span>
-                </div>
-                <textarea
-                  className="w-full border rounded p-2 text-base-content bg-base-100"
-                  rows={2}
-                  placeholder="Enter announcement..."
-                  value={broadcastText}
-                  onChange={e => setBroadcastText(e.target.value)}
-                  disabled={broadcasting}
-                />
-                <div className="flex items-center gap-2">
-                  <select
-                    multiple
-                    className="border rounded p-1 text-base-content bg-base-100"
-                    value={selectedChannels}
-                    onChange={e => setSelectedChannels(Array.from(e.target.selectedOptions, o => o.value))}
-                    disabled={broadcasting}
-                  >
-                    {canBroadcastChannels.map(ch => (
-                      <option key={ch._id} value={ch._id}>{ch.name}</option>
-                    ))}
-                  </select>
-                  <Button
-                    className="ml-2"
-                    onClick={handleBroadcast}
-                    disabled={broadcasting || !broadcastText.trim() || selectedChannels.length === 0}
-                  >
-                    Post Announcement
-                  </Button>
-                </div>
-                <span className="text-xs text-base-content/60">Only moderators/admins can broadcast. Announcement will be posted to the announcement subchannel of each selected channel.</span>
-              </div>
-            )}
             {/* Channel Content */}
             <div className="flex-1 overflow-hidden flex flex-col">
               {renderChannelContent()}

@@ -95,4 +95,9 @@ export class ApiService {
   static async getHackathonLeaderboard(hackathonId: string, getToken: () => Promise<string | null>) {
     return this.makeRequest(`/api/arena/hackathons/${hackathonId}/leaderboard`, {}, getToken);
   }
+
+  // Fetch current user's MongoDB profile
+  static async getCurrentUser(getToken: () => Promise<string | null>) {
+    return this.makeRequest('/api/users/me', {}, getToken);
+  }
 } 

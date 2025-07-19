@@ -491,6 +491,10 @@ router.post('/user-status', asyncHandler(async (req: Request, res: Response, nex
 }));
 
 const ensureSubchannelsAndAddUser = async (userId: string, parentChannelId: string) => {
+  if (!parentChannelId || !mongoose.Types.ObjectId.isValid(parentChannelId)) {
+    // Do not create subchannels if parentChannelId is missing or invalid
+    return;
+  }
   const subchannelNames = ['chat', 'announcement', 'showcase'];
   // Get a valid user ID for createdBy (use the first user or create a system user)
   let systemUserId: mongoose.Types.ObjectId = new mongoose.Types.ObjectId();
@@ -503,7 +507,6 @@ const ensureSubchannelsAndAddUser = async (userId: string, parentChannelId: stri
     // If no users exist, use a generated ObjectId
     console.warn('No users found for system channel creation, using generated ID');
   }
-  
   for (const name of subchannelNames) {
     let sub = await ArenaChannel.findOne({ name, parentChannelId });
     if (!sub) {
@@ -593,6 +596,30 @@ router.get('/channels/:channelId/approved-users', asyncHandler(async (req: Reque
   // Fetch user details
   const users = await User.find({ _id: { $in: userIds } }).select('_id username fullName email');
   res.status(200).json(new ApiResponse(200, 'Approved users fetched successfully', users));
+}));
+
+/**
+ * @desc    Create a new top-level joinable channel (utility endpoint)
+ * @route   POST /api/dev-admin/channels/joinable
+ * @access  Development only
+ */
+router.post('/channels/joinable', asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { name, description, createdBy, group } = req.body;
+  if (!name || !createdBy) {
+    return next(new AppError('Missing required fields: name, createdBy', 400));
+  }
+  const channel = await ArenaChannel.create({
+    name,
+    type: 'text',
+    group: group || 'community',
+    description: description || '',
+    isActive: true,
+    createdBy,
+    moderators: [],
+    permissions: { canMessage: true, canRead: false },
+    parentChannelId: null
+  });
+  res.status(201).json(new ApiResponse(201, 'Joinable channel created successfully', channel));
 }));
 
 export default router; 

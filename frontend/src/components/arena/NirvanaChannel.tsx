@@ -163,14 +163,28 @@ const NirvanaChannel: React.FC = () => {
     { id: '2', name: 'AMA with AI Experts', date: '2024-07-22T16:00:00Z', description: 'Ask Me Anything with top AI professionals.' },
   ];
 
-  const { channels, loading: channelsLoading } = useArenaChannels();
+  const { channels, loading: channelsLoading } = useArenaChannels(); // Optionally pass refreshKey as a dependency if needed
   const { getToken } = useAuth();
   const { user } = useUser();
+  const [mongoUserId, setMongoUserId] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    const fetchMongoUserId = async () => {
+      try {
+        const res = await ApiService.getCurrentUser(getToken);
+        if (res && res.data && res.data._id) {
+          setMongoUserId(res.data._id);
+        }
+      } catch (err) {
+        setMongoUserId(null);
+      }
+    };
+    fetchMongoUserId();
+  }, [getToken]);
   const [selected, setSelected] = React.useState<Record<string, boolean>>({});
   const [requesting, setRequesting] = React.useState(false);
   const [requestStatus, setRequestStatus] = React.useState<string | null>(null);
   const [search, setSearch] = React.useState('');
-  const { theme, setTheme } = useTheme();
+  // const { theme, setTheme } = useTheme(); // Remove unused destructure
   const [joinChannelsOpen, setJoinChannelsOpen] = React.useState(true);
   // Example personalized suggestion
   const suggestion = {
@@ -181,9 +195,9 @@ const NirvanaChannel: React.FC = () => {
 
   // Flatten all channels for joinable list
   const allChannels = Object.values(channels).flat();
-  // Filter joinable: not subchannels, not already joined (no canRead), not readonly/announcement
+  // Only show top-level channels that are not already joined (canRead is false) and are of type 'text'
   const joinableChannels = allChannels.filter(
-    (c) => !c.parentChannelId && !c.permissions.canRead && c.type === 'text'
+    (c) => (!c.parentChannelId || c.parentChannelId === null) && c.permissions?.canRead === false && c.type === 'text'
   );
 
   // Group channels by group/category
@@ -229,12 +243,13 @@ const NirvanaChannel: React.FC = () => {
     setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const [refreshKey, setRefreshKey] = React.useState(0);
   const handleJoinRequest = async () => {
     setRequesting(true);
     setRequestStatus(null);
     try {
       const toRequest = Object.entries(selected).filter(([id, v]) => v).map(([id]) => id);
-      if (!user || toRequest.length === 0) {
+      if (!mongoUserId || toRequest.length === 0) {
         setRequestStatus('Select at least one channel.');
         setRequesting(false);
         return;
@@ -246,7 +261,7 @@ const NirvanaChannel: React.FC = () => {
             '/api/dev-admin/user-status',
             {
               method: 'POST',
-              body: JSON.stringify({ userId: user?.id, channelId, status: 'pending' })
+              body: JSON.stringify({ userId: mongoUserId, channelId, status: 'pending' })
             },
             getToken
           )
@@ -254,6 +269,7 @@ const NirvanaChannel: React.FC = () => {
       );
       setRequestStatus('Join request(s) sent! Await moderator approval.');
       setSelected({});
+      setRefreshKey((k) => k + 1); // Trigger refresh
     } catch (e) {
       setRequestStatus('Failed to send join request.');
     } finally {
@@ -318,7 +334,10 @@ const NirvanaChannel: React.FC = () => {
                 {channelsLoading ? (
                   <div className="text-xs text-base-content/60">Loading channels...</div>
                 ) : Object.keys(filteredGroups).length === 0 ? (
-                  <div className="text-xs text-base-content/60">No joinable channels found.</div>
+                  <div className="text-xs text-base-content/60">
+                    No joinable channels found.<br />
+                    <span className="text-xs text-primary">Ask an admin to create a new joinable channel.</span>
+                  </div>
                 ) : (
                   <form onSubmit={e => { e.preventDefault(); handleJoinRequest(); }}>
                     <div className="space-y-4 mb-4">

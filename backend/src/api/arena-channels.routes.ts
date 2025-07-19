@@ -14,8 +14,8 @@ import { cacheMiddleware } from '../middleware/cache.middleware';
 
 const router = Router();
 
-// Get all channels grouped by category
-router.get('/', standardLimiter, cacheMiddleware(300), getChannels); // Cache for 5 minutes
+// Get all channels grouped by category (user-specific permissions)
+router.get('/', standardLimiter, protect, cacheMiddleware(300), getChannels); // Cache for 5 minutes
 
 // Get all unread counts for all channels
 router.get('/unread-counts', standardLimiter, protect, getAllUnreadCounts);

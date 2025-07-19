@@ -13,13 +13,32 @@ import { emitToChannel } from '../services/socket.service';
  */
 export const getChannels = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    // const channels = await ArenaChannel.find({ isActive: true })
-    // Return all channels, not just isActive: true
-    const channels = await ArenaChannel.find({})
-      .sort({ group: 1, name: 1 });
-    
+    const userId = req.user?._id;
+    const channels = await ArenaChannel.find({}).sort({ group: 1, name: 1 });
+    let userStatuses: any[] = [];
+    if (userId) {
+      userStatuses = await UserChannelStatus.find({ userId });
+    }
+    // Map channelId to status
+    const statusMap = userStatuses.reduce((acc, s) => {
+      acc[s.channelId.toString()] = s.status === 'approved';
+      return acc;
+    }, {} as Record<string, boolean>);
+
+    // Attach user-specific permissions
+    const channelsWithPerms = channels.map((ch: any) => {
+      const isMember = statusMap[ch._id.toString()] || false;
+      return {
+        ...ch.toObject(),
+        permissions: {
+          canRead: isMember,
+          canMessage: isMember && ch.type === 'text',
+        },
+      };
+    });
+
     // Group by category
-    const groupedChannels = channels.reduce((acc: Record<string, any[]>, channel) => {
+    const groupedChannels = channelsWithPerms.reduce((acc: Record<string, any[]>, channel) => {
       if (!acc[channel.group]) acc[channel.group] = [];
       acc[channel.group].push(channel);
       return acc;
@@ -69,14 +88,15 @@ export const getChannelMessages = asyncHandler(
       .populate('replyToId');
 
     // Update user's last read timestamp for this channel
-    await UserChannelStatus.findOneAndUpdate(
-      { userId, channelId },
-      { 
-        lastReadTimestamp: new Date(),
-        lastReadMessageId: messages.length > 0 ? messages[0]._id : undefined
-      },
-      { upsert: true }
-    );
+    // Only update read status if user is approved for this channel
+    const userStatus = await UserChannelStatus.findOne({ userId, channelId, status: 'approved' });
+    if (userStatus) {
+      userStatus.lastReadTimestamp = new Date();
+      if (messages.length > 0 && mongoose.isValidObjectId(messages[0]._id)) {
+        userStatus.lastReadMessageId = new mongoose.Types.ObjectId(String(messages[0]._id));
+      }
+      await userStatus.save();
+    }
 
     res.status(200).json(
       new ApiResponse(
@@ -153,14 +173,15 @@ export const createMessage = asyncHandler(
       .populate('replyToId');
 
     // Update user's last read timestamp
-    await UserChannelStatus.findOneAndUpdate(
-      { userId, channelId },
-      { 
-        lastReadTimestamp: new Date(),
-        lastReadMessageId: message._id
-      },
-      { upsert: true }
-    );
+    // Only update read status if user is approved for this channel
+    const userStatus2 = await UserChannelStatus.findOne({ userId, channelId, status: 'approved' });
+    if (userStatus2) {
+      userStatus2.lastReadTimestamp = new Date();
+      if (message._id && mongoose.isValidObjectId(message._id)) {
+        userStatus2.lastReadMessageId = new mongoose.Types.ObjectId(String(message._id));
+      }
+      await userStatus2.save();
+    }
 
     // Emit the new message to all users in the channel via Socket.IO
     emitToChannel(channelId, 'new_message', populatedMessage);
@@ -241,14 +262,15 @@ export const markAllAsRead = asyncHandler(
       .limit(1);
 
     // Update user's last read timestamp and message ID
-    await UserChannelStatus.findOneAndUpdate(
-      { userId, channelId },
-      { 
-        lastReadTimestamp: new Date(),
-        lastReadMessageId: latestMessage?._id
-      },
-      { upsert: true }
-    );
+    // Only update read status if user is approved for this channel
+    const userStatus3 = await UserChannelStatus.findOne({ userId, channelId, status: 'approved' });
+    if (userStatus3) {
+      userStatus3.lastReadTimestamp = new Date();
+      if (latestMessage && latestMessage._id && mongoose.isValidObjectId(latestMessage._id)) {
+        userStatus3.lastReadMessageId = new mongoose.Types.ObjectId(String(latestMessage._id));
+      }
+      await userStatus3.save();
+    }
 
     res.status(200).json(
       new ApiResponse(
