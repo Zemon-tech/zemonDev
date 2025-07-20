@@ -3,6 +3,7 @@ import asyncHandler from '../utils/asyncHandler';
 import AppError from '../utils/AppError';
 import ApiResponse from '../utils/ApiResponse';
 import User from '../models/user.model';
+import UserRole from '../models/userRole.model';
 
 /**
  * @desc    Get current user profile
@@ -135,5 +136,49 @@ export const handleClerkWebhook = asyncHandler(
 
     // Acknowledge other event types without taking action
     res.status(200).json({ message: `Webhook received: ${eventType}, no action taken.` });
+  }
+);
+
+/**
+ * @desc    Get current user role
+ * @route   GET /api/users/me/role
+ * @access  Private
+ */
+export const getUserRole = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const user = await User.findById(req.user._id);
+    
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+
+    // Find the highest role for the user (admin > moderator > user)
+    const userRoles = await UserRole.find({ userId: user._id })
+      .sort({ role: 1 }) // This will sort: admin, moderator, user
+      .select('role channelId');
+
+    let highestRole = 'user';
+    
+    if (userRoles.length > 0) {
+      // Check for admin role first
+      const adminRole = userRoles.find(role => role.role === 'admin');
+      if (adminRole) {
+        highestRole = 'admin';
+      } else {
+        // Check for moderator role
+        const moderatorRole = userRoles.find(role => role.role === 'moderator');
+        if (moderatorRole) {
+          highestRole = 'moderator';
+        }
+      }
+    }
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        'User role retrieved successfully',
+        { role: highestRole, roles: userRoles }
+      )
+    );
   }
 ); 

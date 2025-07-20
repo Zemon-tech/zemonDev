@@ -1,7 +1,18 @@
-import { Link } from 'react-router-dom';
-import { SignInButton, SignUpButton } from '@clerk/clerk-react';
+import { Link, useLocation } from 'react-router-dom';
+import { SignInButton, SignUpButton, useAuth } from '@clerk/clerk-react';
+import { useUserRole } from '@/context/UserRoleContext';
+import { Settings } from 'lucide-react';
+import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher';
 
 export default function Navbar() {
+  const { isSignedIn } = useAuth();
+  const { hasAdminAccess } = useUserRole();
+  const location = useLocation();
+  
+  // Extract username from path for admin link
+  const pathSegments = location.pathname.split('/');
+  const username = pathSegments[1];
+  
   return (
     <nav className="navbar bg-background border-b border-border">
       <div className="container mx-auto flex justify-between items-center">
@@ -24,15 +35,33 @@ export default function Navbar() {
           <Link to="/arena" className="text-text hover:text-primary transition-colors">
             Arena
           </Link>
-          <ThemeToggle />
-          <SignInButton mode="modal">
-            <button className="btn btn-ghost">Login</button>
-          </SignInButton>
-          <SignUpButton mode="modal">
-            <button className="btn btn-primary">Sign Up</button>
-          </SignUpButton>
+          
+          {/* Admin Panel Button - Only visible to admins/moderators */}
+          {isSignedIn && hasAdminAccess() && (
+            <Link 
+              to={`/${username}/admin`} 
+              className="btn btn-ghost btn-sm"
+              title="Admin Panel"
+            >
+              <Settings className="w-4 h-4" />
+              Admin
+            </Link>
+          )}
+          
+          <ThemeSwitcher />
+          
+          {!isSignedIn ? (
+            <>
+              <SignInButton mode="modal">
+                <button className="btn btn-ghost">Login</button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button className="btn btn-primary">Sign Up</button>
+              </SignUpButton>
+            </>
+          ) : null}
         </div>
       </div>
     </nav>
   );
-} 
+}

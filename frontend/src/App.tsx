@@ -25,6 +25,9 @@ import CruciblePage from './pages/CruciblePage';
 import CrucibleProblemPage from './pages/CrucibleProblemPage';
 import ResultPage from './pages/ResultPage';
 import ArenaPage from './pages/ArenaPage';
+import AdminPage from './pages/AdminPage';
+import ProtectedAdminRoute from './components/admin/ProtectedAdminRoute';
+import { UserRoleProvider } from './context/UserRoleContext';
 
 // Root route component to handle authenticated users
 function RootRoute() {
@@ -47,11 +50,13 @@ function RootRoute() {
   return <LandingPage />;
 }
 
-// Wrap AppLayout with WorkspaceProvider
+// Wrap AppLayout with WorkspaceProvider and UserRoleProvider
 const WorkspaceLayout = () => {
   return (
     <WorkspaceProvider>
-      <AppLayout />
+      <UserRoleProvider>
+        <AppLayout />
+      </UserRoleProvider>
     </WorkspaceProvider>
   );
 }
@@ -94,6 +99,11 @@ function App() {
                 {/* Add the correct route for the results page */}
                 <Route path="crucible/results/:analysisId" element={<ResultPage />} />
                 <Route path="arena" element={<ArenaPage />} />
+                <Route path="admin" element={
+                  <ProtectedAdminRoute>
+                    <AdminPage />
+                  </ProtectedAdminRoute>
+                } />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Route>

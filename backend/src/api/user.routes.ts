@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getCurrentUser, updateCurrentUser, handleClerkWebhook } from '../controllers/user.controller';
+import { getCurrentUser, updateCurrentUser, handleClerkWebhook, getUserRole } from '../controllers/user.controller';
 import { protect } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -9,6 +9,7 @@ router.post('/webhooks/clerk', handleClerkWebhook);
 
 // Protected routes
 router.get('/me', protect, getCurrentUser);
+router.get('/me/role', protect, getUserRole);
 router.patch('/me', protect, updateCurrentUser);
 
-export default router; 
+export default router;

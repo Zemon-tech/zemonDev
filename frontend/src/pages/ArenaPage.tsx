@@ -2,19 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/lib/ThemeContext';
 import { cn } from '@/lib/utils';
-import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Search, Hash, Volume2, User, Trophy, Crown, Star, ArrowLeftFromLine, ArrowRightFromLine, ChevronDown, Sparkles, BookOpen, AlertCircle, Loader2, PlusCircle } from 'lucide-react';
+import { Search, Hash, Volume2, User, Trophy, Crown, Star, ArrowLeftFromLine, ArrowRightFromLine, ChevronDown, Sparkles, BookOpen, AlertCircle, Loader2, PlusCircle, Settings } from 'lucide-react';
 import ArenaErrorBoundary from '@/components/arena/ArenaErrorBoundary';
 import { useArenaChannels, Channel as ArenaChannel } from '@/hooks/useArenaChannels';
 import { useArenaChat } from '@/hooks/useArenaChat';
 import { useUser } from '@clerk/clerk-react';
+import { useUserRole } from '@/context/UserRoleContext';
+import AdminPanel from '@/components/admin/AdminPanel';
 
 // Import channel components
 import AnnouncementsChannel from '@/components/arena/AnnouncementsChannel';
 import ChatChannel from '@/components/arena/ChatChannel';
 import HackathonChannel from '@/components/arena/HackathonChannel';
-import DirectMessageChannel from '@/components/arena/DirectMessageChannel';
 import ShowcaseChannel from '@/components/arena/ShowcaseChannel';
 import RulesChannel from '@/components/arena/RulesChannel';
 import StartHereChannel from '@/components/arena/StartHereChannel';
@@ -64,7 +64,9 @@ const ArenaPage: React.FC = () => {
   const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [showNirvana, setShowNirvana] = useState(true); // Show Nirvana by default
+  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const { user } = useUser();
+  const { hasAdminAccess } = useUserRole();
   const [broadcastText, setBroadcastText] = useState('');
   const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
   const [broadcasting, setBroadcasting] = useState(false);
@@ -216,7 +218,8 @@ const ArenaPage: React.FC = () => {
 
   return (
     <ArenaErrorBoundary>
-      <div className="h-full flex bg-base-100">
+      <div className="h-full flex bg-base-100 relative">
+        {/* Left Sidebar */}
         {/* Left Sidebar */}
         <motion.aside 
           className={cn(
@@ -242,6 +245,22 @@ const ArenaPage: React.FC = () => {
               <Sparkles className="w-4 h-4 text-primary" />
               <span className="text-sm text-base-content/90 font-semibold">Nirvana</span>
             </button>
+            
+            {/* Admin Panel Button - Only visible to admins/moderators */}
+            {hasAdminAccess() && (
+              <button
+                className={cn(
+                  "w-full flex items-center gap-2 px-2 py-1.5 rounded-md mt-1",
+                  "hover:bg-base-300 transition-colors",
+                  isAdminPanelOpen && "bg-base-300"
+                )}
+                onClick={() => setIsAdminPanelOpen(true)}
+                title="Admin Panel"
+              >
+                <Settings className="w-4 h-4 text-warning" />
+                <span className="text-sm text-base-content/90 font-semibold">Admin Panel</span>
+              </button>
+            )}
           </div>
           {/* Channel Groups */}
           <div className="space-y-2 py-2">
@@ -344,7 +363,7 @@ const ArenaPage: React.FC = () => {
         </motion.aside>
 
         {/* Main Panel */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex h-full overflow-hidden relative">
           {/* Main Panel */}
           <div className="flex-1 overflow-hidden flex flex-col">
             {/* Channel Content */}
@@ -352,10 +371,16 @@ const ArenaPage: React.FC = () => {
               {renderChannelContent()}
             </div>
           </div>
-        </div>
+          
+
+        {/* Admin Panel Drawer - covers sidebar and content */}
+        <AdminPanel 
+          isOpen={isAdminPanelOpen} 
+          onClose={() => setIsAdminPanelOpen(false)} 
+        />
       </div>
-    </ArenaErrorBoundary>
-  );
+    </div>
+  </ArenaErrorBoundary>);
 };
 
 export default ArenaPage; 
