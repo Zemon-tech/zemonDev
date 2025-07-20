@@ -27,7 +27,10 @@ export const useArenaChannels = () => {
     const fetchChannels = async () => {
       try {
         const response = await ApiService.getChannels(getToken);
-        setChannels(response.data);
+        const fetchedChannels = response.data;
+
+
+        setChannels(fetchedChannels);
         setError(null);
       } catch (err) {
         setError('Failed to fetch channels');

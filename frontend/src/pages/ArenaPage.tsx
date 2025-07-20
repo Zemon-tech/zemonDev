@@ -9,7 +9,8 @@ import { useArenaChannels, Channel as ArenaChannel } from '@/hooks/useArenaChann
 import { useArenaChat } from '@/hooks/useArenaChat';
 import { useUser } from '@clerk/clerk-react';
 import { useUserRole } from '@/context/UserRoleContext';
-import AdminPanel from '@/components/admin/AdminPanel';
+
+
 
 // Import channel components
 import AnnouncementsChannel from '@/components/arena/AnnouncementsChannel';
@@ -20,6 +21,7 @@ import RulesChannel from '@/components/arena/RulesChannel';
 import StartHereChannel from '@/components/arena/StartHereChannel';
 // Import NirvanaChannel
 import NirvanaChannel from '@/components/arena/NirvanaChannel';
+import AdminPage from '@/pages/AdminPage';
 
 // Types
 type ArenaTab = 'Chat' | 'Showcase' | 'Leaderboard';
@@ -64,17 +66,23 @@ const ArenaPage: React.FC = () => {
   const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [showNirvana, setShowNirvana] = useState(true); // Show Nirvana by default
-  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+
   const { user } = useUser();
   const { hasAdminAccess } = useUserRole();
+
   const [broadcastText, setBroadcastText] = useState('');
   const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
   const [broadcasting, setBroadcasting] = useState(false);
+
+  const handleChannelSelect = (channelId: string) => {
+    setActiveChannelId(channelId);
+    setShowNirvana(false);
+    setShowAdminPanel(false);
+  };
   const allChannels = Object.values(channels).flat();
   // Find all parent channels where user is mod/admin (canMessage)
-  const canBroadcastChannels = allChannels.filter(
-    c => c.permissions.canMessage && c.type === 'text' && !c.parentChannelId
-  );
+
   // Find announcement subchannels for each parent
   const announcementSubs = allChannels.filter(
     c => c.type === 'announcement' && c.parentChannelId
@@ -165,6 +173,9 @@ const ArenaPage: React.FC = () => {
     : null;
 
   const renderChannelContent = () => {
+    if (showAdminPanel) {
+      return <AdminPage />;
+    }
     if (showNirvana) {
       return <NirvanaChannel />;
     }
@@ -220,8 +231,7 @@ const ArenaPage: React.FC = () => {
     <ArenaErrorBoundary>
       <div className="h-full flex bg-base-100 relative">
         {/* Left Sidebar */}
-        {/* Left Sidebar */}
-        <motion.aside 
+        <motion.aside
           className={cn(
             "h-full border-r border-base-300",
             "bg-base-200 transition-all duration-200 relative",
@@ -229,136 +239,145 @@ const ArenaPage: React.FC = () => {
           )}
           animate={{ width: isLeftSidebarCollapsed ? 0 : 240 }}
         >
-          {/* Nirvana Page Button */}
-          <div className="px-2 py-2">
-            <button
-              className={cn(
-                "w-full flex items-center gap-2 px-2 py-1.5 rounded-md",
-                "hover:bg-base-300 transition-colors",
-                showNirvana && !activeChannelId && "bg-base-300"
-              )}
-              onClick={() => {
-                setActiveChannelId(null);
-                setShowNirvana(true);
-              }}
-            >
-              <Sparkles className="w-4 h-4 text-primary" />
-              <span className="text-sm text-base-content/90 font-semibold">Nirvana</span>
-            </button>
-            
-            {/* Admin Panel Button - Only visible to admins/moderators */}
-            {hasAdminAccess() && (
+          <div className="flex flex-col h-full">
+            <div className="p-2">
+              {/* Nirvana Page Button */}
               <button
                 className={cn(
-                  "w-full flex items-center gap-2 px-2 py-1.5 rounded-md mt-1",
+                  "w-full flex items-center gap-2 px-2 py-1.5 rounded-md",
                   "hover:bg-base-300 transition-colors",
-                  isAdminPanelOpen && "bg-base-300"
+                  showNirvana && "bg-base-300"
                 )}
-                onClick={() => setIsAdminPanelOpen(true)}
-                title="Admin Panel"
+                onClick={() => {
+                  setShowNirvana(true);
+                  setShowAdminPanel(false);
+                  setActiveChannelId(null);
+                }}
+                title="Nirvana"
               >
-                <Settings className="w-4 h-4 text-warning" />
-                <span className="text-sm text-base-content/90 font-semibold">Admin Panel</span>
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span className="text-sm text-base-content/90 font-semibold">Nirvana</span>
               </button>
-            )}
-          </div>
-          {/* Channel Groups */}
-          <div className="space-y-2 py-2">
-            {Object.entries(channels).map(([group, channelList]) => (
-              <div key={group} className="px-2">
-                {/* Group Header */}
-                <button
-                  onClick={() => toggleGroupCollapse(group)}
-                  className={cn(
-                    "w-full flex items-center gap-2 px-2 py-1 rounded-md",
-                    "hover:bg-base-300 transition-colors",
-                    "justify-between"
-                  )}
-                >
-                  <span className="text-xs font-semibold text-base-content/70 uppercase">
-                    {group.replace('-', ' ')}
-                  </span>
-                  <motion.div
-                    animate={{ rotate: collapsedGroups.includes(group) ? -90 : 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <ChevronDown className="w-4 h-4 text-base-content/60" />
-                  </motion.div>
-                </button>
 
-                {/* Channels (parent/sub-channel tree) */}
-                <AnimatePresence>
-                  {!collapsedGroups.includes(group) && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="space-y-0.5 mt-1"
-                    >
-                      {buildChannelTree(channelList).map(({ parent, children }) => (
-                        <div key={parent._id}>
-                        <button
-                            onClick={() => setActiveChannelId(parent._id)}
-                          className={cn(
-                            "w-full flex items-center gap-2 px-2 py-1.5 rounded-md",
-                            "hover:bg-base-300 transition-colors",
-                              activeChannelId === parent._id && "bg-base-300",
-                            "justify-between"
-                          )}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className="text-base-content/70">
-                                {getChannelIcon(parent)}
-                              </div>
-                              <span className="text-sm text-base-content/90 truncate font-semibold">
-                                {parent.name}
-                              </span>
-                            </div>
-                            {parent.unreadCount && (
-                              <span className="text-xs bg-primary text-primary-content px-1.5 py-0.5 rounded-full">
-                                {parent.unreadCount}
-                              </span>
-                            )}
-                          </button>
-                          {/* Sub-channels */}
-                          {children.length > 0 && (
-                            <div className="ml-6 border-l border-base-300 pl-2 mt-0.5 space-y-0.5">
-                              {children.map(child => (
-                                <button
-                                  key={child._id}
-                                  onClick={() => setActiveChannelId(child._id)}
-                                  className={cn(
-                                    "w-full flex items-center gap-2 px-2 py-1.5 rounded-md",
-                                    "hover:bg-base-300 transition-colors",
-                                    activeChannelId === child._id && "bg-base-300",
-                                    "justify-between"
-                                  )}
-                                >
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <div className="text-base-content/60">
-                                      {getChannelIcon(child)}
-                                    </div>
-                                    <span className="text-sm text-base-content/80 truncate">
-                                      {child.name}
-                            </span>
-                          </div>
-                                  {child.unreadCount && (
-                            <span className="text-xs bg-primary text-primary-content px-1.5 py-0.5 rounded-full">
-                                      {child.unreadCount}
-                            </span>
-                          )}
-                        </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </motion.div>
+              {/* Admin Panel Button - Only visible to admins/moderators */}
+              {hasAdminAccess() && (
+                <button
+                  className={cn(
+                    "w-full flex items-center gap-2 px-2 py-1.5 rounded-md mt-1",
+                    "hover:bg-base-300 transition-colors",
+                    showAdminPanel && "bg-base-300"
                   )}
-                </AnimatePresence>
-              </div>
-            ))}
+                  onClick={() => {
+                    setShowAdminPanel(true);
+                    setShowNirvana(false);
+                    setActiveChannelId(null);
+                  }}
+                  title="Admin Panel"
+                >
+                  <Settings className="w-4 h-4 text-warning" />
+                  <span className="text-sm text-base-content/90 font-semibold">Admin Panel</span>
+                </button>
+              )}
+            </div>
+
+            {/* Channel Groups */}
+            <div className="flex-1 overflow-y-auto space-y-2 py-2">
+              {Object.entries(channels).map(([group, channelList]) => (
+                <div key={group} className="px-2">
+                  {/* Group Header */}
+                  <button
+                    onClick={() => toggleGroupCollapse(group)}
+                    className={cn(
+                      "w-full flex items-center gap-2 px-2 py-1 rounded-md",
+                      "hover:bg-base-300 transition-colors",
+                      "justify-between"
+                    )}
+                  >
+                    <span className="text-xs font-semibold text-base-content/70 uppercase">
+                      {group.replace('-', ' ')}
+                    </span>
+                    <motion.div
+                      animate={{ rotate: collapsedGroups.includes(group) ? -90 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ChevronDown className="w-4 h-4 text-base-content/60" />
+                    </motion.div>
+                  </button>
+
+                  {/* Channels (parent/sub-channel tree) */}
+                  <AnimatePresence>
+                    {!collapsedGroups.includes(group) && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-0.5 mt-1"
+                      >
+                        {buildChannelTree(channelList).map(({ parent, children }) => (
+                          <div key={parent._id}>
+                            <button
+                              onClick={() => handleChannelSelect(parent._id)}
+                              className={cn(
+                                "w-full flex items-center gap-2 px-2 py-1.5 rounded-md",
+                                "hover:bg-base-300 transition-colors",
+                                activeChannelId === parent._id && "bg-base-300",
+                                "justify-between"
+                              )}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="text-base-content/70">
+                                  {getChannelIcon(parent)}
+                                </div>
+                                <span className="text-sm text-base-content/90 truncate font-semibold">
+                                  {parent.name}
+                                </span>
+                              </div>
+                              {parent.unreadCount && (
+                                <span className="text-xs bg-primary text-primary-content px-1.5 py-0.5 rounded-full">
+                                  {parent.unreadCount}
+                                </span>
+                              )}
+                            </button>
+                            {/* Sub-channels */}
+                            {children.length > 0 && (
+                              <div className="ml-6 border-l border-base-300 pl-2 mt-0.5 space-y-0.5">
+                                {children.map(child => (
+                                  <button
+                                    key={child._id}
+                                    onClick={() => handleChannelSelect(child._id)}
+                                    className={cn(
+                                      "w-full flex items-center gap-2 px-2 py-1.5 rounded-md",
+                                      "hover:bg-base-300 transition-colors",
+                                      activeChannelId === child._id && "bg-base-300",
+                                      "justify-between"
+                                    )}
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div className="text-base-content/60">
+                                        {getChannelIcon(child)}
+                                      </div>
+                                      <span className="text-sm text-base-content/80 truncate">
+                                        {child.name}
+                                      </span>
+                                    </div>
+                                    {child.unreadCount && (
+                                      <span className="text-xs bg-primary text-primary-content px-1.5 py-0.5 rounded-full">
+                                        {child.unreadCount}
+                                      </span>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ))}
+            </div>
           </div>
         </motion.aside>
 
@@ -371,16 +390,10 @@ const ArenaPage: React.FC = () => {
               {renderChannelContent()}
             </div>
           </div>
-          
-
-        {/* Admin Panel Drawer - covers sidebar and content */}
-        <AdminPanel 
-          isOpen={isAdminPanelOpen} 
-          onClose={() => setIsAdminPanelOpen(false)} 
-        />
+        </div>
       </div>
-    </div>
-  </ArenaErrorBoundary>);
+    </ArenaErrorBoundary>
+  );
 };
 
 export default ArenaPage; 

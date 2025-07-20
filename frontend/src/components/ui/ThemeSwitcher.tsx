@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/ThemeContext";
@@ -41,19 +41,10 @@ const themes: Theme[] = [
   { id: "winter", name: "Winter" },
 ];
 
-// Default theme as a constant
-const DEFAULT_THEME = "light";
 
 export function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    // Get theme from localStorage or default to system preference
-    const savedTheme = localStorage.getItem("theme") || DEFAULT_THEME;
-    setTheme(savedTheme);
-    document.documentElement.setAttribute("data-theme", savedTheme);
-  }, []);
 
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme);
