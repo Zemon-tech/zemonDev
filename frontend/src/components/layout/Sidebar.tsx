@@ -36,7 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, current
           {isOpen ? (
             'ZEMON'
           ) : (
-            <img src="/Zemon.svg" alt="Zemon" className="w-full h-full" />
+            <img src="/Subject.svg" alt="Zemon" className="w-full h-full" />
           )}
         </Link>
         {/* Close button for mobile only */}
