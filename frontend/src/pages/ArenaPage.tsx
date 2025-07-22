@@ -71,6 +71,7 @@ const ArenaPage: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const { user, isLoaded, isSignedIn } = useUser();
+  const { getToken } = useAuth();
   const { hasAdminAccess } = useUserRole();
 
   const [broadcastText, setBroadcastText] = useState('');
@@ -117,20 +118,23 @@ const ArenaPage: React.FC = () => {
 
   // Fetch user channel statuses
   useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
+    console.log('Fetching user channel statuses, isLoaded:', isLoaded, 'isSignedIn:', isSignedIn);
     const fetchStatuses = async () => {
       try {
-        const res = await ApiService.getUserChannelStatuses(async () => null);
+        const res = await ApiService.getUserChannelStatuses(getToken); // Use real getToken from useAuth
+        console.log('Raw user channel status response:', res.data);
         const map: Record<string, string> = {};
         (res.data || []).forEach((s: any) => {
-          map[s.channelId] = s.status;
+          map[String(s.channelId)] = s.status;
         });
+        console.log('Mapped userChannelStatuses:', map);
         setUserChannelStatuses(map);
       } catch (err) {
         setUserChannelStatuses({});
+        console.error('Failed to fetch user channel statuses:', err);
       }
     };
-    fetchStatuses();
+    if (isLoaded && isSignedIn) fetchStatuses();
   }, [isLoaded, isSignedIn, refreshKey]);
 
   // Set initial channel
@@ -221,6 +225,7 @@ const ArenaPage: React.FC = () => {
           <ChatChannel
             channelId={activeChannel._id}
             channelName={activeChannel.name}
+            userChannelStatuses={userChannelStatuses}
           />
         );
     }

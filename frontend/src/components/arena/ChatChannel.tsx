@@ -12,15 +12,51 @@ interface ChatChannelProps {
   channelName: string;
   description?: string;
   canMessage?: boolean;
+  userChannelStatuses: Record<string, string>;
 }
 
 const ChatChannel: React.FC<ChatChannelProps> = ({ 
   channelId = 'general-chat', 
   channelName, 
   description, 
-  canMessage = true 
+  canMessage = true, 
+  userChannelStatuses
 }) => {
-  const { messages, loading, typing, error, sendMessage, sendTyping } = useArenaChat(channelId);
+  if (!userChannelStatuses) {
+    throw new Error('ChatChannel: userChannelStatuses prop is required');
+  }
+  const status = userChannelStatuses[String(channelId)];
+  console.log('ChatChannel: channelId', channelId, 'userChannelStatuses', userChannelStatuses);
+  if (status === 'pending') {
+    return (
+      <div className="flex flex-col h-full items-center justify-center text-center">
+        <p className="text-warning">Your join request is pending moderator approval.<br/>You will be able to view and send messages once approved.</p>
+      </div>
+    );
+  }
+  if (status === 'denied') {
+    return (
+      <div className="flex flex-col h-full items-center justify-center text-center">
+        <p className="text-error">Your join request was denied.<br/>You cannot access this channel.</p>
+      </div>
+    );
+  }
+  if (status === undefined && Object.keys(userChannelStatuses).length > 0) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center text-center">
+        <p className="text-base-content/70">You are not a member of this channel.<br/>Join the channel to view and send messages.</p>
+      </div>
+    );
+  }
+  if (status === undefined) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <p className="mt-2 text-base-content/70">Loading membership status...</p>
+      </div>
+    );
+  }
+  const { messages, loading, typing, error, sendMessage, sendTyping } = useArenaChat(channelId, userChannelStatuses);
   const [messageInput, setMessageInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [replyTo, setReplyTo] = useState<{_id: string, username: string, content: string} | null>(null);

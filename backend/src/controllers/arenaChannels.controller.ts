@@ -488,6 +488,6 @@ export const getUserChannelStatus = asyncHandler(
       name: (s.channelId as any).name,
       type: (s.channelId as any).type
     }));
-    res.status(200).json(result);
+    res.status(200).json({ data: result });
   }
 ); 
