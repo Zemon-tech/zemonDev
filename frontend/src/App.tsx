@@ -15,10 +15,11 @@ import SignUpPage from './pages/SignUpPage';
 
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
+import AboutPage from './pages/AboutPage';
 
 // App Pages
 import DashboardPage from './pages/DashboardPage';
-import PlaceholderPage from './pages/PlaceholderPage';
+
 import ForgePage from './pages/ForgePage';
 import ForgeDetailPage from './pages/ForgeDetailPage';
 import CruciblePage from './pages/CruciblePage';
@@ -28,6 +29,9 @@ import ArenaPage from './pages/ArenaPage';
 import AdminPage from './pages/AdminPage';
 import ProtectedAdminRoute from './components/admin/ProtectedAdminRoute';
 import { UserRoleProvider } from './context/UserRoleContext';
+import BlogsPage from './pages/BlogsPage';
+import PricingPage from './pages/PricingPage';
+import DevelopersPage from './pages/DevelopersPage';
 
 // Root route component to handle authenticated users
 function RootRoute() {
@@ -82,10 +86,10 @@ function App() {
                 <Route path="/" element={<RootRoute />} />
                 <Route path="/signin" element={<SignInPage />} />
                 <Route path="/signup" element={<SignUpPage />} />
-                <Route path="/about" element={<PlaceholderPage title="About" />} />
-                <Route path="/blogs" element={<PlaceholderPage title="Blogs" />} />
-                <Route path="/pricing" element={<PlaceholderPage title="Pricing" />} />
-                <Route path="/developers" element={<PlaceholderPage title="Developers" />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/blogs" element={<BlogsPage />} />
+                <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/developers" element={<DevelopersPage />} />
               </Route>
               
               {/* Protected Routes - Username based */}
