@@ -5,6 +5,7 @@ import ApiResponse from '../utils/ApiResponse';
 import { ArenaChannel, ArenaMessage, UserChannelStatus } from '../models';
 import mongoose from 'mongoose';
 import { emitToChannel } from '../services/socket.service';
+import User from '../models/user.model';
 
 /**
  * @desc    Get all channels grouped by category
@@ -13,32 +14,11 @@ import { emitToChannel } from '../services/socket.service';
  */
 export const getChannels = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.user?._id;
-    const channels = await ArenaChannel.find({}).sort({ group: 1, name: 1 });
-    let userStatuses: any[] = [];
-    if (userId) {
-      userStatuses = await UserChannelStatus.find({ userId });
-    }
-    // Map channelId to status
-    const statusMap = userStatuses.reduce((acc, s) => {
-      acc[s.channelId.toString()] = s.status === 'approved';
-      return acc;
-    }, {} as Record<string, boolean>);
-
-    // Attach user-specific permissions
-    const channelsWithPerms = channels.map((ch: any) => {
-      const isMember = statusMap[ch._id.toString()] || false;
-      return {
-        ...ch.toObject(),
-        permissions: {
-          canRead: isMember,
-          canMessage: isMember && ch.type === 'text',
-        },
-      };
-    });
+    // Fetch only active channels
+    const channels = await ArenaChannel.find({ isActive: true }).sort({ group: 1, name: 1 });
 
     // Group by category
-    const groupedChannels = channelsWithPerms.reduce((acc: Record<string, any[]>, channel) => {
+    const groupedChannels = channels.reduce((acc: Record<string, any[]>, channel) => {
       if (!acc[channel.group]) acc[channel.group] = [];
       acc[channel.group].push(channel);
       return acc;
@@ -131,15 +111,16 @@ export const createMessage = asyncHandler(
       return next(new AppError('Message content is required', 400));
     }
 
+    // Check if user is a member (approved) of this channel
+    const userStatus = await UserChannelStatus.findOne({ userId, channelId, status: 'approved' });
+    if (!userStatus) {
+      return next(new AppError('You are not a member of this channel', 403));
+    }
+
     // Check if channel exists
     const channel = await ArenaChannel.findById(channelId);
     if (!channel) {
       return next(new AppError('Channel not found', 404));
-    }
-
-    // Check if user can post in this channel
-    if (!channel.permissions.canMessage) {
-      return next(new AppError('You do not have permission to post in this channel', 403));
     }
 
     // Check if reply message exists if replyToId is provided
@@ -156,6 +137,7 @@ export const createMessage = asyncHandler(
     const mentions: mongoose.Types.ObjectId[] = []; // This would be populated with actual user IDs in a real implementation
 
     // Create new message
+    // Always use type: 'text' for user messages (not channel type)
     const message = await ArenaMessage.create({
       channelId,
       userId,
@@ -366,5 +348,146 @@ export const getUnreadMessageCount = asyncHandler(
         { unreadCount }
       )
     );
+  }
+); 
+
+/**
+ * @desc    Request to join a parent channel (and all its active child channels)
+ * @route   POST /api/arena/channels/:channelId/join
+ * @access  Private
+ */
+export const joinChannelRequest = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user._id;
+    const { channelId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(channelId)) {
+      return next(new AppError('Invalid channel ID', 400));
+    }
+    // Find parent channel
+    const parentChannel = await ArenaChannel.findOne({ _id: channelId, isActive: true });
+    if (!parentChannel) {
+      return next(new AppError('Channel not found or inactive', 404));
+    }
+    // Find all active child channels
+    const childChannels = await ArenaChannel.find({ parentChannelId: channelId, isActive: true });
+    // Build list of all channels to join (parent + children)
+    const allChannelIds = [parentChannel._id, ...childChannels.map(ch => ch._id)];
+    // For each, create UserChannelStatus (status: 'pending') if not already present
+    const affected: string[] = [];
+    for (const chId of allChannelIds) {
+      const exists = await UserChannelStatus.findOne({ userId, channelId: chId });
+      if (!exists) {
+        await UserChannelStatus.create({ userId, channelId: chId, status: 'pending' });
+        affected.push(String(chId));
+      }
+    }
+    res.status(201).json(new ApiResponse(201, 'Join request(s) submitted', { affected }));
+  }
+); 
+
+/**
+ * @desc    Get all pending join requests, grouped by user
+ * @route   GET /api/arena/channels/join-requests
+ * @access  Private (Admin/Moderator)
+ */
+export const getAllJoinRequests = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  // Only isActive: true channels
+  const pending = await UserChannelStatus.find({ status: 'pending' })
+    .populate('userId', 'username fullName')
+    .populate('channelId', 'name isActive');
+  // Group by user
+  const grouped: Record<string, { username: string, fullName: string, requests: { channelId: string, channelName: string }[] }> = {};
+  for (const req of pending) {
+    if (!req.channelId || !(req.channelId as any).isActive) continue;
+    const user = req.userId as any;
+    if (!grouped[user._id]) {
+      grouped[user._id] = { username: user.username, fullName: user.fullName, requests: [] };
+    }
+    grouped[user._id].requests.push({ channelId: String(req.channelId._id), channelName: (req.channelId as any).name });
+  }
+  res.status(200).json(new ApiResponse(200, 'Pending join requests', grouped));
+});
+
+/**
+ * @desc    Accept a single join request
+ * @route   POST /api/arena/channels/join-requests/:userId/:channelId/accept
+ * @access  Private (Admin/Moderator)
+ */
+export const acceptJoinRequest = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { userId, channelId } = req.params;
+  const status = await UserChannelStatus.findOneAndUpdate(
+    { userId, channelId, status: 'pending' },
+    { status: 'approved' },
+    { new: true }
+  );
+  if (!status) return next(new AppError('Request not found', 404));
+  res.status(200).json(new ApiResponse(200, 'Join request approved', status));
+});
+
+/**
+ * @desc    Reject a single join request
+ * @route   POST /api/arena/channels/join-requests/:userId/:channelId/reject
+ * @access  Private (Admin/Moderator)
+ */
+export const rejectJoinRequest = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { userId, channelId } = req.params;
+  const status = await UserChannelStatus.findOneAndUpdate(
+    { userId, channelId, status: 'pending' },
+    { status: 'denied' },
+    { new: true }
+  );
+  if (!status) return next(new AppError('Request not found', 404));
+  res.status(200).json(new ApiResponse(200, 'Join request denied', status));
+});
+
+/**
+ * @desc    Accept all pending join requests for a user
+ * @route   POST /api/arena/channels/join-requests/:userId/accept-all
+ * @access  Private (Admin/Moderator)
+ */
+export const acceptAllJoinRequests = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { userId } = req.params;
+  const result = await UserChannelStatus.updateMany(
+    { userId, status: 'pending' },
+    { status: 'approved' }
+  );
+  res.status(200).json(new ApiResponse(200, 'All join requests approved', result));
+});
+
+/**
+ * @desc    Reject all pending join requests for a user
+ * @route   POST /api/arena/channels/join-requests/:userId/reject-all
+ * @access  Private (Admin/Moderator)
+ */
+export const rejectAllJoinRequests = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { userId } = req.params;
+  const result = await UserChannelStatus.updateMany(
+    { userId, status: 'pending' },
+    { status: 'denied' }
+  );
+  res.status(200).json(new ApiResponse(200, 'All join requests denied', result));
+}); 
+
+/**
+ * @desc    Get all channel membership statuses for the current user
+ * @route   GET /api/arena/user-channel-status
+ * @access  Private
+ */
+export const getUserChannelStatus = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user._id;
+    // Find all UserChannelStatus for this user
+    const statuses = await UserChannelStatus.find({ userId })
+      .populate('channelId', 'isActive name type');
+    // Only include channels where isActive: true
+    const filtered = statuses.filter(s => s.channelId && (s.channelId as any).isActive);
+    // Return array of { channelId, status, name, type }
+    const result = filtered.map(s => ({
+      channelId: s.channelId._id,
+      status: s.status,
+      name: (s.channelId as any).name,
+      type: (s.channelId as any).type
+    }));
+    res.status(200).json(result);
   }
 ); 

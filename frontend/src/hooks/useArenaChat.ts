@@ -14,7 +14,7 @@ export interface Message {
   type: 'text' | 'system';
 }
 
-export const useArenaChat = (channelId: string) => {
+export const useArenaChat = (channelId: string, userChannelStatuses: Record<string, string>) => {
   const { getToken, isSignedIn } = useAuth();
   const { socket } = useArenaSocket();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -22,9 +22,12 @@ export const useArenaChat = (channelId: string) => {
   const [typing, setTyping] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Only allow if user is a member (approved)
+  const isMember = userChannelStatuses[channelId] === 'approved';
+
   // Join channel on socket connection
   useEffect(() => {
-    if (socket && channelId && isSignedIn) {
+    if (socket && channelId && isSignedIn && isMember) {
       socket.emit('join_channel', channelId);
 
       // Listen for new messages
@@ -46,12 +49,14 @@ export const useArenaChat = (channelId: string) => {
         socket.off('user_typing');
         socket.emit('leave_channel', channelId);
       };
+    } else if (!isMember) {
+      setError('You are not a member of this channel.');
     }
-  }, [socket, channelId, isSignedIn]);
+  }, [socket, channelId, isSignedIn, isMember]);
 
   // Load initial messages
   useEffect(() => {
-    if (!channelId || !isSignedIn) return;
+    if (!channelId || !isSignedIn || !isMember) return;
 
     const loadMessages = async () => {
       try {
@@ -68,21 +73,21 @@ export const useArenaChat = (channelId: string) => {
     };
 
     loadMessages();
-  }, [channelId, getToken, isSignedIn]);
+  }, [channelId, getToken, isSignedIn, isMember]);
 
   const sendMessage = useCallback((content: string, replyToId?: string) => {
     if (!socket) {
       console.error('Cannot send message: Socket not connected');
       return;
     }
-    
+    if (!isMember) {
+      setError('You are not a member of this channel.');
+      return;
+    }
     if (!content.trim()) {
       console.warn('Cannot send empty message');
       return;
     }
-    
-    console.log('Sending message to channel:', { channelId, contentLength: content.trim().length });
-    
     socket.emit('send_message', {
       channelId,
       content: content.trim(),
@@ -91,16 +96,17 @@ export const useArenaChat = (channelId: string) => {
       if (response?.success) {
         console.log('Message sent successfully:', response);
       } else {
+        setError('Failed to send message.');
         console.error('Failed to send message:', response);
       }
     });
-  }, [socket, channelId]);
+  }, [socket, channelId, isMember]);
 
   const sendTyping = useCallback((isTyping: boolean) => {
-    if (socket) {
+    if (socket && isMember) {
       socket.emit('typing', { channelId, isTyping });
     }
-  }, [socket, channelId]);
+  }, [socket, channelId, isMember]);
 
   return {
     messages,

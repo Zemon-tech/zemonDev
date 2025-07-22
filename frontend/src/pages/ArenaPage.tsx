@@ -7,9 +7,9 @@ import { Search, Hash, Volume2, User, Trophy, Crown, Star, ArrowLeftFromLine, Ar
 import ArenaErrorBoundary from '@/components/arena/ArenaErrorBoundary';
 import { useArenaChannels, Channel as ArenaChannel } from '@/hooks/useArenaChannels';
 import { useArenaChat } from '@/hooks/useArenaChat';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import { useUserRole } from '@/context/UserRoleContext';
-
+import { ApiService } from '@/services/api.service';
 
 
 // Import channel components
@@ -67,8 +67,10 @@ const ArenaPage: React.FC = () => {
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [showNirvana, setShowNirvana] = useState(true); // Show Nirvana by default
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [userChannelStatuses, setUserChannelStatuses] = useState<Record<string, string>>({}); // channelId -> status
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const { user } = useUser();
+  const { user, isLoaded, isSignedIn } = useUser();
   const { hasAdminAccess } = useUserRole();
 
   const [broadcastText, setBroadcastText] = useState('');
@@ -103,7 +105,7 @@ const ArenaPage: React.FC = () => {
         // Use [OFFICIAL] prefix for visual distinction
         const msg = `[OFFICIAL]\n${broadcastText.trim()}`;
         // Use sendMessage from useArenaChat for each subchannel
-        const { sendMessage } = useArenaChat(announcementId);
+        const { sendMessage } = useArenaChat(announcementId, userChannelStatuses);
         sendMessage(msg);
       }));
       setBroadcastText('');
@@ -112,6 +114,24 @@ const ArenaPage: React.FC = () => {
       setBroadcasting(false);
     }
   };
+
+  // Fetch user channel statuses
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    const fetchStatuses = async () => {
+      try {
+        const res = await ApiService.getUserChannelStatuses(async () => null);
+        const map: Record<string, string> = {};
+        (res.data || []).forEach((s: any) => {
+          map[s.channelId] = s.status;
+        });
+        setUserChannelStatuses(map);
+      } catch (err) {
+        setUserChannelStatuses({});
+      }
+    };
+    fetchStatuses();
+  }, [isLoaded, isSignedIn, refreshKey]);
 
   // Set initial channel
   useEffect(() => {
@@ -192,15 +212,15 @@ const ArenaPage: React.FC = () => {
       case 'nirvana': return <NirvanaChannel />;
       case 'start-here': return <StartHereChannel />;
       case 'rules': return <RulesChannel />;
-      case 'announcements': return <AnnouncementsChannel isAdmin={activeChannel.permissions.canMessage} />;
+      case 'announcements': return <AnnouncementsChannel />;
       case 'showcase': return <ShowcaseChannel />;
-      case 'weekly-challenge': return <HackathonChannel isAdmin={activeChannel.permissions.canMessage} />;
+      case 'weekly-challenge': return <HackathonChannel />;
       default:
+        // TODO: Pass UserChannelStatus to ChatChannel for membership/posting logic
         return (
           <ChatChannel
             channelId={activeChannel._id}
             channelName={activeChannel.name}
-            canMessage={activeChannel.permissions.canMessage}
           />
         );
     }

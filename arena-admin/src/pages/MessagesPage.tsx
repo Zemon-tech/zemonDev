@@ -6,7 +6,7 @@ interface ArenaMessage {
   userId: string;
   username: string;
   content: string;
-  type: 'text' | 'system';
+  type: 'chat' | 'system';
   replyToId?: string;
   mentions: string[];
   timestamp: string;
@@ -29,7 +29,7 @@ const emptyForm: Partial<ArenaMessage> = {
   userId: '',
   username: '',
   content: '',
-  type: 'text',
+  type: 'chat',
   mentions: [],
   timestamp: '',
 };
@@ -396,12 +396,12 @@ const MessagesPage: React.FC = () => {
                 <label className="block text-sm font-medium">Type</label>
                 <select
                   name="type"
-                  value={form.type || 'text'}
+                  value={form.type || 'chat'}
                   onChange={handleFormChange}
                   className="w-full border rounded px-2 py-1"
                   required
                 >
-                  <option value="text">Text</option>
+                  <option value="chat">Chat</option>
                   <option value="system">System</option>
                 </select>
               </div>

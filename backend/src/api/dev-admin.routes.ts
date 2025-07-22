@@ -512,7 +512,7 @@ const ensureSubchannelsAndAddUser = async (userId: string, parentChannelId: stri
     if (!sub) {
       sub = await ArenaChannel.create({
         name,
-        type: name === 'announcement' ? 'announcement' : 'text',
+        type: name === 'announcement' ? 'announcement' : name,
         group: 'community', // or inherit from parent if needed
         isActive: true,
         createdBy: systemUserId, // Use valid ObjectId instead of string
@@ -610,7 +610,7 @@ router.post('/channels/joinable', asyncHandler(async (req: Request, res: Respons
   }
   const channel = await ArenaChannel.create({
     name,
-    type: 'text',
+    type: 'chat',
     group: group || 'community',
     description: description || '',
     isActive: true,

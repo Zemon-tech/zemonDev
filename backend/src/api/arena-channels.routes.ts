@@ -6,9 +6,16 @@ import {
   deleteMessage,
   getUnreadMessageCount,
   markAllAsRead,
-  getAllUnreadCounts
+  getAllUnreadCounts,
+  joinChannelRequest,
+  getAllJoinRequests,
+  acceptJoinRequest,
+  rejectJoinRequest,
+  acceptAllJoinRequests,
+  rejectAllJoinRequests,
+  getUserChannelStatus
 } from '../controllers/arenaChannels.controller';
-import { protect } from '../middleware/auth.middleware';
+import { protect, checkRole } from '../middleware/auth.middleware';
 import { standardLimiter } from '../middleware/rateLimiter.middleware';
 import { cacheMiddleware } from '../middleware/cache.middleware';
 
@@ -34,5 +41,18 @@ router.get('/:channelId/unread-count', standardLimiter, protect, getUnreadMessag
 
 // Mark all messages as read
 router.post('/:channelId/mark-read', standardLimiter, protect, markAllAsRead);
+
+// Add join channel request route
+router.post('/:channelId/join', standardLimiter, protect, joinChannelRequest);
+
+// Admin join request management routes
+router.get('/join-requests', standardLimiter, protect, checkRole(['admin', 'moderator']), getAllJoinRequests);
+router.post('/join-requests/:userId/:channelId/accept', standardLimiter, protect, checkRole(['admin', 'moderator']), acceptJoinRequest);
+router.post('/join-requests/:userId/:channelId/reject', standardLimiter, protect, checkRole(['admin', 'moderator']), rejectJoinRequest);
+router.post('/join-requests/:userId/accept-all', standardLimiter, protect, checkRole(['admin', 'moderator']), acceptAllJoinRequests);
+router.post('/join-requests/:userId/reject-all', standardLimiter, protect, checkRole(['admin', 'moderator']), rejectAllJoinRequests);
+
+// User channel status route
+router.get('/user-channel-status', protect, getUserChannelStatus);
 
 export default router; 

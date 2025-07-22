@@ -4,7 +4,7 @@
 export interface ArenaChannel {
   _id?: string;
   name: string;
-  type: 'text' | 'announcement' | 'readonly';
+  type: 'chat' | 'announcement' | 'showcase';
   group: 'getting-started' | 'community' | 'hackathons';
   description?: string;
   isActive: boolean;

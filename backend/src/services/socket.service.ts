@@ -88,6 +88,19 @@ const handleConnection = (socket: any) => {
         return;
       }
 
+      // Check if user is a member (approved) of this channel
+      if (userId) {
+        const approvedStatus = await UserChannelStatus.findOne({
+          userId: new mongoose.Types.ObjectId(userId),
+          channelId: new mongoose.Types.ObjectId(channelId),
+          status: 'approved'
+        });
+        if (!approvedStatus) {
+          socket.emit('error', { message: 'You are not a member of this channel' });
+          return;
+        }
+      }
+
       // Check if user is banned from this channel
       if (userId) {
         const userStatus = await UserChannelStatus.findOne({
@@ -209,14 +222,17 @@ const handleConnection = (socket: any) => {
         }
         logger.info('Channel found:', { channelId, channelName: channel.name });
 
-        // Check if user can post in this channel
-        if (!channel.permissions.canMessage) {
-          const error = 'You do not have permission to post in this channel';
-          logger.error('Permission error:', { error, channelId, userId });
+        // Check if user is a member (approved) of this channel
+        const approvedStatus = await UserChannelStatus.findOne({
+          userId: new mongoose.Types.ObjectId(userId),
+          channelId: new mongoose.Types.ObjectId(channelId),
+          status: 'approved'
+        });
+        if (!approvedStatus) {
+          const error = 'You are not a member of this channel';
           socket.emit('error', { message: error });
           return callback?.({ success: false, message: error });
         }
-        logger.info('User has permission to post in channel:', { channelId, userId });
 
         // Check if user is banned from this channel
         const userStatus = await UserChannelStatus.findOne({
@@ -250,16 +266,17 @@ const handleConnection = (socket: any) => {
         logger.info('Creating message:', { channelId, userId, contentLength: content?.length });
         let message;
         try {
-          message = await ArenaMessage.create({
-            channelId,
-            userId,
-            username,
-            content,
-            replyToId: replyToId || null,
-            mentions: messageData.mentions || [],
-            timestamp: new Date(),
-            type: 'text'
-          });
+            // Always use type: 'text' for user messages (not channel type)
+            message = await ArenaMessage.create({
+              channelId,
+              userId,
+              username,
+              content,
+              replyToId: replyToId || null,
+              mentions: messageData.mentions || [],
+              timestamp: new Date(),
+              type: 'text'
+            });
           logger.info('Message created successfully:', { messageId: message._id });
 
           // Populate user info

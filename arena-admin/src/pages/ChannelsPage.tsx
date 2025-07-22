@@ -20,7 +20,7 @@ import { InformationCircleIcon } from '@heroicons/react/24/outline';
 // Form validation schema
 const channelSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters').max(50, 'Name must be less than 50 characters'),
-  type: z.enum(['text', 'announcement', 'readonly']),
+  type: z.enum(['chat', 'announcement', 'showcase']),
   group: z.enum(['getting-started', 'community', 'hackathons']),
   description: z.string().optional(),
   isActive: z.boolean().default(true),
@@ -357,7 +357,7 @@ const ChannelsPage = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Allowed Sub-Channel Types</label>
                     <div className="flex space-x-4 mt-2">
-                      {['text', 'announcement', 'readonly'].map((t) => (
+                      {['chat', 'announcement', 'showcase'].map((t) => (
                         <label key={t} className="flex items-center cursor-pointer">
                           <input type="checkbox" checked={allowedSubTypes.includes(t)} onChange={() => setAllowedSubTypes((prev) => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])} className="mr-2 accent-blue-600" />
                           <span className="font-medium">{t.charAt(0).toUpperCase() + t.slice(1)}</span>
@@ -374,9 +374,9 @@ const ChannelsPage = () => {
             )}
             {((!parentChannelId && !isParent) || parentChannelId) && (
               <FormField name="type" label="Function" type="select" error={errors.type?.message}>
-                <option value="text">Chat</option>
+                <option value="chat">Chat</option>
                 <option value="announcement">Announcement</option>
-                <option value="readonly">Showcase</option>
+                <option value="showcase">Showcase</option>
               </FormField>
             )}
             <FormField name="description" label="Description" type="textarea" error={errors.description?.message} placeholder="Describe the purpose of this channel..." rows={3} />

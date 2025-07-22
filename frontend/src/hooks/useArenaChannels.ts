@@ -5,7 +5,7 @@ import { ApiService } from '../services/api.service';
 export interface Channel {
   _id: string;
   name: string;
-  type: 'text' | 'announcement' | 'readonly';
+  type: 'chat' | 'announcement' | 'showcase';
   group: 'getting-started' | 'community' | 'hackathons';
   unreadCount?: number;
   permissions: {

@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import UserList from './UserList';
+import JoinRequestsTable from './JoinRequestsTable';
 
 
 const AdminPanel: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'users' | 'channels' | 'content'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'channels' | 'content' | 'joinRequests'>('users');
 
   const tabs = [
     { id: 'users' as const, label: 'Users', icon: '👥' },
     { id: 'channels' as const, label: 'Channels', icon: '📺' },
     { id: 'content' as const, label: 'Content', icon: '📝' },
+    { id: 'joinRequests' as const, label: 'Join Requests', icon: '🔗' },
   ];
 
   const renderTabContent = () => {
@@ -37,6 +39,8 @@ const AdminPanel: React.FC = () => {
             </p>
           </div>
         );
+      case 'joinRequests':
+        return <JoinRequestsTable />;
       default:
         return null;
     }

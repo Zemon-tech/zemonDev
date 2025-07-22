@@ -31,6 +31,7 @@ import { ApiService } from '@/services/api.service';
 import { useTheme } from '@/lib/ThemeContext';
 import { Calendar } from 'lucide-react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface ActivityFeed {
   id: string;
@@ -163,41 +164,40 @@ const NirvanaChannel: React.FC = () => {
     { id: '2', name: 'AMA with AI Experts', date: '2024-07-22T16:00:00Z', description: 'Ask Me Anything with top AI professionals.' },
   ];
 
-  const { channels, loading: channelsLoading } = useArenaChannels(); // Optionally pass refreshKey as a dependency if needed
+  const { channels, loading: channelsLoading } = useArenaChannels();
   const { getToken } = useAuth();
   const { user } = useUser();
-  const [mongoUserId, setMongoUserId] = React.useState<string | null>(null);
-  React.useEffect(() => {
-    const fetchMongoUserId = async () => {
+  const [userChannelStatuses, setUserChannelStatuses] = useState<Record<string, string>>({}); // channelId -> status
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [requesting, setRequesting] = useState(false);
+  const [requestStatus, setRequestStatus] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [joinChannelsOpen, setJoinChannelsOpen] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Fetch user channel statuses
+  useEffect(() => {
+    const fetchStatuses = async () => {
       try {
-        const res = await ApiService.getCurrentUser(getToken);
-        if (res && res.data && res.data._id) {
-          setMongoUserId(res.data._id);
-        }
+        const res = await ApiService.getUserChannelStatuses(getToken);
+        // Assume res.data is an array of { channelId, status }
+        const map: Record<string, string> = {};
+        (res.data || []).forEach((s: any) => {
+          map[s.channelId] = s.status;
+        });
+        setUserChannelStatuses(map);
       } catch (err) {
-        setMongoUserId(null);
+        setUserChannelStatuses({});
       }
     };
-    fetchMongoUserId();
-  }, [getToken]);
-  const [selected, setSelected] = React.useState<Record<string, boolean>>({});
-  const [requesting, setRequesting] = React.useState(false);
-  const [requestStatus, setRequestStatus] = React.useState<string | null>(null);
-  const [search, setSearch] = React.useState('');
-  // const { theme, setTheme } = useTheme(); // Remove unused destructure
-  const [joinChannelsOpen, setJoinChannelsOpen] = React.useState(true);
-  // Example personalized suggestion
-  const suggestion = {
-    channel: 'ml',
-    reason: 'Because you joined #AI',
-    description: 'Machine Learning discussions, projects, and resources.'
-  };
+    fetchStatuses();
+  }, [getToken, refreshKey]);
 
   // Flatten all channels for joinable list
   const allChannels = Object.values(channels).flat();
-  // Only show top-level channels that are not already joined (canRead is false) and are of type 'text'
+  // Only show top-level channels that are not already joined (no approved UserChannelStatus)
   const joinableChannels = allChannels.filter(
-    (c) => (!c.parentChannelId || c.parentChannelId === null) && c.permissions?.canRead === false && c.type === 'text'
+    (c) => (!c.parentChannelId || c.parentChannelId === null) && userChannelStatuses[c._id] !== 'approved'
   );
 
   // Group channels by group/category
@@ -209,6 +209,7 @@ const NirvanaChannel: React.FC = () => {
     });
     return groups;
   }, [joinableChannels]);
+
   // Filter by search
   const filteredGroups = React.useMemo(() => {
     if (!search.trim()) return groupedChannels;
@@ -235,21 +236,20 @@ const NirvanaChannel: React.FC = () => {
     { id: 'profile', label: 'Complete your profile' },
   ];
   // For demo, mark first as done if user has joined any channel (canRead on any channel)
-  const joinedAny = allChannels.some(c => c.permissions.canRead);
-  const [completed, setCompleted] = React.useState<string[]>(joinedAny ? ['join'] : []);
+  const joinedAny = allChannels.some(c => userChannelStatuses[c._id] === 'approved');
+  const [completed, setCompleted] = useState<string[]>(joinedAny ? ['join'] : []);
   const progress = Math.round((completed.length / onboardingSteps.length) * 100);
 
   const handleToggle = (id: string) => {
     setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const [refreshKey, setRefreshKey] = React.useState(0);
   const handleJoinRequest = async () => {
     setRequesting(true);
     setRequestStatus(null);
     try {
       const toRequest = Object.entries(selected).filter(([id, v]) => v).map(([id]) => id);
-      if (!mongoUserId || toRequest.length === 0) {
+      if (!user || toRequest.length === 0) {
         setRequestStatus('Select at least one channel.');
         setRequesting(false);
         return;
@@ -257,14 +257,7 @@ const NirvanaChannel: React.FC = () => {
       // Send join request for each selected channel
       await Promise.all(
         toRequest.map((channelId) =>
-          ApiService["makeRequest"](
-            '/api/dev-admin/user-status',
-            {
-              method: 'POST',
-              body: JSON.stringify({ userId: mongoUserId, channelId, status: 'pending' })
-            },
-            getToken
-          )
+          ApiService.requestJoinChannel(channelId, getToken)
         )
       );
       setRequestStatus('Join request(s) sent! Await moderator approval.');

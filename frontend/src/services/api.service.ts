@@ -7,7 +7,17 @@ export class ApiService {
     getToken: () => Promise<string | null>
   ) {
     const authHeader = await this.getAuthHeader(getToken);
-    
+    // Debug: Log the Authorization header (do not commit to production)
+    if (authHeader && authHeader.Authorization) {
+      // eslint-disable-next-line no-console
+      console.log('[DEBUG] Sending Authorization header:', authHeader.Authorization);
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn('[DEBUG] No Authorization header set for request to', endpoint);
+    }
+    if (Object.keys(authHeader).length === 0) {
+      throw new Error('You must be signed in to access this resource. Please sign in.');
+    }
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       ...options,
       headers: {
@@ -99,5 +109,27 @@ export class ApiService {
   // Fetch current user's MongoDB profile
   static async getCurrentUser(getToken: () => Promise<string | null>) {
     return this.makeRequest('/api/users/me', {}, getToken);
+  }
+
+  // Join channel request
+  static async requestJoinChannel(channelId: string, getToken: () => Promise<string | null>) {
+    return this.makeRequest(
+      `/api/arena/channels/${channelId}/join`,
+      { method: 'POST' },
+      getToken
+    );
+  }
+
+  // Fetch current user's channel membership statuses
+  static async getUserChannelStatuses(getToken: () => Promise<string | null>) {
+    return this.makeRequest('/api/arena/channels/user-channel-status', {}, getToken);
+  }
+
+  // Join Requests Admin API
+  static async fetchJoinRequests(getToken: () => Promise<string | null>) {
+    return this.makeRequest('/api/arena/channels/join-requests', {}, getToken);
+  }
+  static async postJoinRequestAction(endpoint: string, getToken: () => Promise<string | null>) {
+    return this.makeRequest(endpoint, { method: 'POST' }, getToken);
   }
 } 
