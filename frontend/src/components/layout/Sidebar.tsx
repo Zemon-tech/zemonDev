@@ -126,9 +126,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, current
           </li>
           <li>
             <Link
-              to={`/${currentUsername}/profile`}
+              to={`/${currentUsername}`}
               className={`flex items-center py-3 text-base rounded-lg transition-colors ${
-                isExactRouteActive('profile')
+                isExactRouteActive('')
                   ? 'active bg-primary text-primary-content'
                   : 'text-base-content/70 hover:bg-base-100 hover:text-primary'
               } ${isOpen ? 'px-4' : 'justify-center'} `}

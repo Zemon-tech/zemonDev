@@ -93,14 +93,14 @@ function App() {
               </Route>
               
               {/* Protected Routes - Username based */}
-              <Route path="/:username" element={<WorkspaceLayout />}>
+              <Route path=":username" element={<WorkspaceLayout />}>
+                <Route index element={<ProfilePage />} />
                 <Route path="dashboard" element={<DashboardPage />} />
                 <Route path="forge" element={<ForgePage />} />
                 <Route path="forge/:id" element={<ForgeDetailPage />} />
                 <Route path="crucible" element={<CruciblePage />} />
                 <Route path="crucible/problem/:id" element={<CrucibleProblemPage />} />
                 <Route path="crucible/problem/:id/result" element={<ResultPage />} />
-                {/* Add the correct route for the results page */}
                 <Route path="crucible/results/:analysisId" element={<ResultPage />} />
                 <Route path="arena" element={<ArenaPage />} />
                 <Route path="admin" element={
@@ -108,7 +108,6 @@ function App() {
                     <AdminPage />
                   </ProtectedAdminRoute>
                 } />
-                <Route path="profile" element={<ProfilePage />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Route>
               
