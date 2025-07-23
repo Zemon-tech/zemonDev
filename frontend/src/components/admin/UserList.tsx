@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
+import BanModal from './BanModal';
 
 interface User {
   _id: string;
@@ -16,6 +17,8 @@ const UserList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalUser, setModalUser] = useState<any>(null);
 
   useEffect(() => {
     const fetchUsers = async (page: number) => {
@@ -80,10 +83,7 @@ const UserList: React.FC = () => {
               <td>{user.username}</td>
               <td>{user.email}</td>
               <td>
-                <button className="btn btn-sm btn-outline btn-info mr-2">Edit</button>
-                <button className="btn btn-sm btn-outline btn-error mr-2">Delete</button>
-                <button className="btn btn-sm btn-outline btn-warning mr-2">Ban</button>
-                <button className="btn btn-sm btn-outline btn-secondary">Kick</button>
+                <button className="btn btn-sm btn-warning" onClick={() => { setModalUser(user); setModalOpen(true); }}>Ban</button>
               </td>
             </tr>
           ))}
@@ -113,6 +113,7 @@ const UserList: React.FC = () => {
           </button>
         </div>
       </div>
+      <BanModal open={modalOpen} onClose={() => setModalOpen(false)} user={modalUser} />
     </div>
   );
 };

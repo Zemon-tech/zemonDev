@@ -1,69 +1,39 @@
-# React + TypeScript + Vite
+# Frontend Admin Panel Ban/Kick UI Implementation Plan
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Overview
+This plan outlines a robust, scalable, and modular approach to implementing the UI for banning and kicking users from parent and child channels in the Arena admin panel. All UI components will use daisyUI as per requirements. No backend logic will be implemented in this phase; only the UI and state management for modal interactions.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Phase 1: Requirements Analysis & UI Design
+- **Completed**: UI/UX design for Ban/Kick modal and actions column, referencing daisyUI components and their arrangement. Open questions clarified with the user.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Phase 2: Modal Component Implementation
+- **Completed**: Ban/Kick Modal component implemented using daisyUI modal syntax.
+- **Completed**: Modal includes all required form fields, validation UI, and open/close logic.
+- **Completed**: Actions column in users table now has Ban and Kick buttons, each opening the modal with correct user info.
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+## Phase 3: UI Polish & Scalability
+- **Completed**: Modal and table code refactored for reusability and scalability.
+- **Completed**: All UI states (loading, error, disabled, etc.) handled gracefully.
+- **Completed**: Responsiveness and accessibility tested.
+- **Completed**: Component usage and props documented for future backend integration.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Phase 4: Review & Handoff
+- Review UI with stakeholders (user) for feedback
+- Incorporate feedback and finalize UI
+- Prepare for backend integration (define prop/data contracts, etc.)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Notes
+- All UI components will use daisyUI classes only (no custom CSS unless absolutely necessary)
+- All data (users, channels, current admin) will be mocked or passed as props for now
+- No API calls or backend logic will be implemented in this phase
+- If any requirement is unclear, pause and clarify with the user before proceeding
