@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import BanModal from './BanModal';
+import { ApiService } from '../../services/api.service';
 
 interface User {
   _id: string;
   username: string;
   email: string;
   clerkId: string;
+}
+
+interface ParentChannel {
+  id: string;
+  name: string;
 }
 
 const UserList: React.FC = () => {
@@ -19,6 +25,7 @@ const UserList: React.FC = () => {
   const [totalUsers, setTotalUsers] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalUser, setModalUser] = useState<any>(null);
+  const [parentChannels, setParentChannels] = useState<ParentChannel[]>([]);
 
   useEffect(() => {
     const fetchUsers = async (page: number) => {
@@ -55,6 +62,33 @@ const UserList: React.FC = () => {
 
     fetchUsers(currentPage);
   }, [getToken, currentPage]);
+
+  // Fetch joined parent channels for BanModal
+  useEffect(() => {
+    const fetchParentChannels = async () => {
+      try {
+        const token = await getToken();
+        const [statusRes, channelsRes] = await Promise.all([
+          ApiService.getUserChannelStatuses(getToken),
+          ApiService.getChannels(getToken)
+        ]);
+        const statuses = statusRes.data || [];
+        const channelsByGroup = channelsRes.data || {};
+        const allChannels = Object.values(channelsByGroup).flat();
+        // Only parent channels (no parentChannelId) and status approved
+        const approvedParentIds = statuses
+          .filter((s: any) => s.status === 'approved')
+          .map((s: any) => String(s.channelId));
+        const parentChannels: ParentChannel[] = allChannels
+          .filter((ch: any) => (!ch.parentChannelId || ch.parentChannelId === null) && approvedParentIds.includes(String(ch._id)))
+          .map((ch: any) => ({ id: ch._id, name: ch.name }));
+        setParentChannels(parentChannels);
+      } catch (err) {
+        setParentChannels([]);
+      }
+    };
+    fetchParentChannels();
+  }, [getToken]);
 
   if (loading) {
     return <div className="p-6 text-center">Loading users...</div>;
@@ -113,7 +147,7 @@ const UserList: React.FC = () => {
           </button>
         </div>
       </div>
-      <BanModal open={modalOpen} onClose={() => setModalOpen(false)} user={modalUser} />
+      <BanModal open={modalOpen} onClose={() => setModalOpen(false)} user={modalUser} parentChannels={parentChannels} />
     </div>
   );
 };

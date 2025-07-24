@@ -51,6 +51,24 @@ export const getChannelMessages = asyncHandler(
       return next(new AppError('Channel not found', 404));
     }
 
+    // Check user status for this channel
+    const userStatus = await UserChannelStatus.findOne({ userId, channelId });
+    if (userStatus) {
+      if (userStatus.isKicked || userStatus.status === 'kicked') {
+        return res.status(403).json(new ApiResponse(403, 'You are kicked from this channel. Ask moderators to rejoin.', {
+          kickedAt: userStatus.kickedAt,
+          kickedBy: userStatus.kickedBy
+        }));
+      }
+      if (userStatus.isBanned || userStatus.status === 'banned') {
+        return res.status(403).json(new ApiResponse(403, 'You are banned from this channel. Wait for the ban to be removed.', {
+          banReason: userStatus.banReason,
+          banExpiresAt: userStatus.banExpiresAt,
+          bannedBy: userStatus.bannedBy
+        }));
+      }
+    }
+
     // Build query
     const query: any = { channelId };
     
@@ -69,8 +87,7 @@ export const getChannelMessages = asyncHandler(
 
     // Update user's last read timestamp for this channel
     // Only update read status if user is approved for this channel
-    const userStatus = await UserChannelStatus.findOne({ userId, channelId, status: 'approved' });
-    if (userStatus) {
+    if (userStatus && userStatus.status === 'approved') {
       userStatus.lastReadTimestamp = new Date();
       if (messages.length > 0 && mongoose.isValidObjectId(messages[0]._id)) {
         userStatus.lastReadMessageId = new mongoose.Types.ObjectId(String(messages[0]._id));
@@ -489,5 +506,81 @@ export const getUserChannelStatus = asyncHandler(
       type: (s.channelId as any).type
     }));
     res.status(200).json({ data: result });
+  }
+); 
+
+/**
+ * @desc    Ban or kick a user from a parent channel and all its children
+ * @route   POST /api/arena/channels/:parentChannelId/ban
+ * @access  Admin/Mod only
+ */
+export const banOrKickUserFromParentChannel = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { parentChannelId } = req.params;
+    const { userId, duration, reason } = req.body;
+    const adminId = req.user._id;
+    if (!userId || !parentChannelId || !duration) {
+      return next(new AppError('Missing required fields', 400));
+    }
+
+    // Validate parent channel
+    const parentChannel = await ArenaChannel.findById(parentChannelId);
+    if (!parentChannel || parentChannel.parentChannelId) {
+      return next(new AppError('Parent channel not found', 404));
+    }
+
+    // Fetch all child channels
+    const childChannels = await ArenaChannel.find({ parentChannelId: parentChannel._id });
+    const allChannelIds = [parentChannel._id, ...childChannels.map(ch => ch._id)];
+
+    // Start transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      const now = new Date();
+      let banExpiresAt = null;
+      if (duration !== 'kick') {
+        const days = parseInt(duration, 10);
+        if (isNaN(days) || days < 1) {
+          throw new AppError('Invalid ban duration', 400);
+        }
+        banExpiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+      }
+      for (const channelId of allChannelIds) {
+        let statusDoc = await UserChannelStatus.findOne({ userId, channelId }).session(session);
+        if (!statusDoc) {
+          statusDoc = new UserChannelStatus({ userId, channelId });
+        }
+        if (duration === 'kick') {
+          statusDoc.isKicked = true;
+          statusDoc.kickedAt = now;
+          statusDoc.kickedBy = adminId;
+          statusDoc.status = 'kicked';
+          // Clear ban fields
+          statusDoc.isBanned = false;
+          statusDoc.banExpiresAt = undefined;
+          statusDoc.banReason = undefined;
+          statusDoc.bannedBy = undefined;
+        } else {
+          statusDoc.isBanned = true;
+          statusDoc.banExpiresAt = banExpiresAt || undefined;
+          statusDoc.banReason = reason || null;
+          statusDoc.bannedBy = adminId;
+          statusDoc.status = 'banned';
+          // Clear kick fields
+          statusDoc.isKicked = false;
+          statusDoc.kickedAt = undefined;
+          statusDoc.kickedBy = undefined;
+        }
+        await statusDoc.save({ session });
+      }
+      await session.commitTransaction();
+      session.endSession();
+      return res.status(200).json(new ApiResponse(200, `User ${duration === 'kick' ? 'kicked' : 'banned'} from parent and child channels`, { userId, parentChannelId, affectedChannels: allChannelIds }));
+    } catch (err) {
+      await session.abortTransaction();
+      session.endSession();
+      return next(err);
+    }
   }
 ); 

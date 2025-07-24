@@ -121,9 +121,26 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
   }
 
   if (error) {
+    if (error.type === 'banned') {
+      return (
+        <div className="flex flex-col h-full items-center justify-center text-center">
+          <p className="text-error font-semibold">You are banned from this channel.</p>
+          {error.reason && <p className="text-base-content/70 mt-1">Reason: {error.reason}</p>}
+          {error.banExpiresAt && <p className="text-base-content/70 mt-1">Ban expires: {new Date(error.banExpiresAt).toLocaleString()}</p>}
+        </div>
+      );
+    }
+    if (error.type === 'kicked') {
+      return (
+        <div className="flex flex-col h-full items-center justify-center text-center">
+          <p className="text-error font-semibold">You are kicked from this channel.</p>
+          <p className="text-base-content/70 mt-1">Ask moderators to rejoin.</p>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col h-full items-center justify-center">
-        <p className="text-error">Error: {error}</p>
+        <p className="text-error">Error: {error.message}</p>
         <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
           Retry
         </Button>

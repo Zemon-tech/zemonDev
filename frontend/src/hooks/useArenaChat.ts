@@ -14,13 +14,19 @@ export interface Message {
   type: 'text' | 'system';
 }
 
+export type ArenaChatError =
+  | { type: 'banned'; message: string; reason?: string; banExpiresAt?: string }
+  | { type: 'kicked'; message: string }
+  | { type: 'generic'; message: string }
+  | null;
+
 export const useArenaChat = (channelId: string, userChannelStatuses: Record<string, string>) => {
   const { getToken, isSignedIn } = useAuth();
   const { socket } = useArenaSocket();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [typing, setTyping] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ArenaChatError>(null);
 
   // Only allow if user is a member (approved)
   const isMember = userChannelStatuses[channelId] === 'approved';
@@ -50,7 +56,7 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
         socket.emit('leave_channel', channelId);
       };
     } else if (!isMember) {
-      setError('You are not a member of this channel.');
+      setError({ type: 'generic', message: 'You are not a member of this channel.' });
     }
   }, [socket, channelId, isSignedIn, isMember]);
 
@@ -64,8 +70,20 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
         const response = await ApiService.getChannelMessages(channelId, getToken);
         setMessages(response.data.messages); // FIX: use .messages
         setError(null);
-      } catch (err) {
-        setError('Failed to load messages');
+      } catch (err: any) {
+        // Check for 403 ban/kick error
+        if (err?.response?.status === 403 && err?.response?.data) {
+          const data = err.response.data;
+          if (data.message?.toLowerCase().includes('banned')) {
+            setError({ type: 'banned', message: data.message, reason: data.banReason, banExpiresAt: data.banExpiresAt });
+          } else if (data.message?.toLowerCase().includes('kicked')) {
+            setError({ type: 'kicked', message: data.message });
+          } else {
+            setError({ type: 'generic', message: data.message || 'Forbidden' });
+          }
+        } else {
+          setError({ type: 'generic', message: 'Failed to load messages' });
+        }
         console.error('Error loading messages:', err);
       } finally {
         setLoading(false);
@@ -81,7 +99,7 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
       return;
     }
     if (!isMember) {
-      setError('You are not a member of this channel.');
+      setError({ type: 'generic', message: 'You are not a member of this channel.' });
       return;
     }
     if (!content.trim()) {
@@ -96,7 +114,7 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
       if (response?.success) {
         console.log('Message sent successfully:', response);
       } else {
-        setError('Failed to send message.');
+        setError({ type: 'generic', message: 'Failed to send message.' });
         console.error('Failed to send message:', response);
       }
     });

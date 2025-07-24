@@ -27,11 +27,21 @@ export class ApiService {
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`);
+    let responseBody: any = null;
+    try {
+      responseBody = await response.json();
+    } catch (e) {
+      // ignore JSON parse error
     }
 
-    return response.json();
+    if (!response.ok) {
+      const error: any = new Error(responseBody?.message || `API Error: ${response.status}`);
+      error.status = response.status;
+      error.response = { status: response.status, data: responseBody };
+      throw error;
+    }
+
+    return responseBody;
   }
 
   private static async getAuthHeader(getToken: () => Promise<string | null>) {

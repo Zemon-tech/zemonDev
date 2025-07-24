@@ -12,7 +12,7 @@ export interface IUserChannelStatus extends Document {
   isKicked: boolean;
   kickedAt?: Date;
   kickedBy?: mongoose.Types.ObjectId;
-  status: 'pending' | 'approved' | 'denied';
+  status: 'pending' | 'approved' | 'denied' | 'banned' | 'kicked';
 }
 
 const UserChannelStatusSchema: Schema = new Schema(
@@ -62,7 +62,7 @@ const UserChannelStatusSchema: Schema = new Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'approved', 'denied'],
+      enum: ['pending', 'approved', 'denied', 'banned', 'kicked'],
       default: 'pending',
       required: true,
     },

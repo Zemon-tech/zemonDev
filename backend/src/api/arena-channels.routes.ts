@@ -13,7 +13,8 @@ import {
   rejectJoinRequest,
   acceptAllJoinRequests,
   rejectAllJoinRequests,
-  getUserChannelStatus
+  getUserChannelStatus,
+  banOrKickUserFromParentChannel
 } from '../controllers/arenaChannels.controller';
 import { protect, checkRole } from '../middleware/auth.middleware';
 import { standardLimiter } from '../middleware/rateLimiter.middleware';
@@ -51,6 +52,9 @@ router.post('/join-requests/:userId/:channelId/accept', standardLimiter, protect
 router.post('/join-requests/:userId/:channelId/reject', standardLimiter, protect, checkRole(['admin', 'moderator']), rejectJoinRequest);
 router.post('/join-requests/:userId/accept-all', standardLimiter, protect, checkRole(['admin', 'moderator']), acceptAllJoinRequests);
 router.post('/join-requests/:userId/reject-all', standardLimiter, protect, checkRole(['admin', 'moderator']), rejectAllJoinRequests);
+
+// Ban or kick a user from a parent channel (and all its children)
+router.post('/:parentChannelId/ban', standardLimiter, protect, checkRole(['admin', 'moderator']), banOrKickUserFromParentChannel);
 
 // User channel status route
 router.get('/user-channel-status', protect, getUserChannelStatus);
