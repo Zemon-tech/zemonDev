@@ -14,7 +14,9 @@ import {
   acceptAllJoinRequests,
   rejectAllJoinRequests,
   getUserChannelStatus,
-  banOrKickUserFromParentChannel
+  banOrKickUserFromParentChannel,
+  unbanUserFromParentChannel,
+  getUserChannelStatusForAdmin
 } from '../controllers/arenaChannels.controller';
 import { protect, checkRole } from '../middleware/auth.middleware';
 import { standardLimiter } from '../middleware/rateLimiter.middleware';
@@ -56,7 +58,13 @@ router.post('/join-requests/:userId/reject-all', standardLimiter, protect, check
 // Ban or kick a user from a parent channel (and all its children)
 router.post('/:parentChannelId/ban', standardLimiter, protect, checkRole(['admin', 'moderator']), banOrKickUserFromParentChannel);
 
+// Unban a user from a parent channel (and all its children)
+router.post('/:parentChannelId/unban', standardLimiter, protect, checkRole(['admin', 'moderator']), unbanUserFromParentChannel);
+
 // User channel status route
 router.get('/user-channel-status', protect, getUserChannelStatus);
+
+// Admin: Get channel statuses for any user
+router.get('/user-channel-status/:userId', protect, checkRole(['admin', 'moderator']), getUserChannelStatusForAdmin);
 
 export default router; 

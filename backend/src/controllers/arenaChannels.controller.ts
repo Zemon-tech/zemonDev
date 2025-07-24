@@ -500,6 +500,7 @@ export const getUserChannelStatus = asyncHandler(
     const filtered = statuses.filter(s => s.channelId && (s.channelId as any).isActive);
     // Return array of { channelId, status, name, type }
     const result = filtered.map(s => ({
+      userId: s.userId, // include userId for frontend filtering
       channelId: s.channelId._id,
       status: s.status,
       name: (s.channelId as any).name,
@@ -508,6 +509,34 @@ export const getUserChannelStatus = asyncHandler(
     res.status(200).json({ data: result });
   }
 ); 
+
+/**
+ * @desc    Admin: Get all channel membership statuses for any user
+ * @route   GET /api/arena/channels/user-channel-status/:userId
+ * @access  Admin/Mod only
+ */
+export const getUserChannelStatusForAdmin = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { userId } = req.params;
+    if (!userId) {
+      return next(new AppError('Missing userId', 400));
+    }
+    // Find all UserChannelStatus for this user
+    const statuses = await UserChannelStatus.find({ userId })
+      .populate('channelId', 'isActive name type');
+    // Only include channels where isActive: true
+    const filtered = statuses.filter(s => s.channelId && (s.channelId as any).isActive);
+    // Return array of { userId, channelId, status, name, type }
+    const result = filtered.map(s => ({
+      userId: s.userId,
+      channelId: s.channelId._id,
+      status: s.status,
+      name: (s.channelId as any).name,
+      type: (s.channelId as any).type
+    }));
+    res.status(200).json({ data: result });
+  }
+);
 
 /**
  * @desc    Ban or kick a user from a parent channel and all its children
@@ -577,6 +606,58 @@ export const banOrKickUserFromParentChannel = asyncHandler(
       await session.commitTransaction();
       session.endSession();
       return res.status(200).json(new ApiResponse(200, `User ${duration === 'kick' ? 'kicked' : 'banned'} from parent and child channels`, { userId, parentChannelId, affectedChannels: allChannelIds }));
+    } catch (err) {
+      await session.abortTransaction();
+      session.endSession();
+      return next(err);
+    }
+  }
+); 
+
+/**
+ * @desc    Unban a user from a parent channel and all its children
+ * @route   POST /api/arena/channels/:parentChannelId/unban
+ * @access  Admin/Mod only
+ */
+export const unbanUserFromParentChannel = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { parentChannelId } = req.params;
+    const { userId } = req.body;
+    if (!userId || !parentChannelId) {
+      return next(new AppError('Missing required fields', 400));
+    }
+
+    // Validate parent channel
+    const parentChannel = await ArenaChannel.findById(parentChannelId);
+    if (!parentChannel || parentChannel.parentChannelId) {
+      return next(new AppError('Parent channel not found', 404));
+    }
+
+    // Fetch all child channels
+    const childChannels = await ArenaChannel.find({ parentChannelId: parentChannel._id });
+    const allChannelIds = [parentChannel._id, ...childChannels.map(ch => ch._id)];
+
+    // Start transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      for (const channelId of allChannelIds) {
+        let statusDoc = await UserChannelStatus.findOne({ userId, channelId }).session(session);
+        if (statusDoc) {
+          statusDoc.isBanned = false;
+          statusDoc.banExpiresAt = undefined;
+          statusDoc.banReason = undefined;
+          statusDoc.bannedBy = undefined;
+          statusDoc.isKicked = false;
+          statusDoc.kickedAt = undefined;
+          statusDoc.kickedBy = undefined;
+          statusDoc.status = 'approved';
+          await statusDoc.save({ session });
+        }
+      }
+      await session.commitTransaction();
+      session.endSession();
+      return res.status(200).json(new ApiResponse(200, `User unbanned from parent and child channels`, { userId, parentChannelId, affectedChannels: allChannelIds }));
     } catch (err) {
       await session.abortTransaction();
       session.endSession();

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import BanModal from './BanModal';
+import UnbanModal from './UnbanModal';
 import { ApiService } from '../../services/api.service';
 
 interface User {
@@ -26,6 +27,9 @@ const UserList: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalUser, setModalUser] = useState<any>(null);
   const [parentChannels, setParentChannels] = useState<ParentChannel[]>([]);
+  const [unbanModalOpen, setUnbanModalOpen] = useState(false);
+  const [unbanModalUser, setUnbanModalUser] = useState<any>(null);
+  const [unbanParentChannels, setUnbanParentChannels] = useState<ParentChannel[]>([]);
 
   useEffect(() => {
     const fetchUsers = async (page: number) => {
@@ -90,6 +94,36 @@ const UserList: React.FC = () => {
     fetchParentChannels();
   }, [getToken]);
 
+  // Fetch banned/kicked parent channels for UnbanModal
+  const handleOpenUnbanModal = async (user: User) => {
+    try {
+      const token = await getToken();
+      const [statusRes, channelsRes] = await Promise.all([
+        ApiService.getUserChannelStatusesForAdmin(user._id, getToken),
+        ApiService.getChannels(getToken)
+      ]);
+      const statuses = statusRes.data || [];
+      const channelsByGroup = channelsRes.data || {};
+      const allChannels = Object.values(channelsByGroup).flat();
+      // Debug log
+      console.log('UnbanModal statuses:', statuses, 'user._id:', user._id);
+      // Only parent channels (no parentChannelId) and status banned or kicked
+      const bannedParentIds = statuses
+        .filter((s: any) => (s.status === 'banned' || s.status === 'kicked'))
+        .map((s: any) => String(s.channelId));
+      const parentChannels: ParentChannel[] = allChannels
+        .filter((ch: any) => (!ch.parentChannelId || ch.parentChannelId === null) && bannedParentIds.includes(String(ch._id)))
+        .map((ch: any) => ({ id: ch._id, name: ch.name }));
+      setUnbanParentChannels(parentChannels);
+      setUnbanModalUser(user);
+      setUnbanModalOpen(true);
+    } catch (err) {
+      setUnbanParentChannels([]);
+      setUnbanModalUser(user);
+      setUnbanModalOpen(true);
+    }
+  };
+
   if (loading) {
     return <div className="p-6 text-center">Loading users...</div>;
   }
@@ -117,7 +151,8 @@ const UserList: React.FC = () => {
               <td>{user.username}</td>
               <td>{user.email}</td>
               <td>
-                <button className="btn btn-sm btn-warning" onClick={() => { setModalUser(user); setModalOpen(true); }}>Ban</button>
+                <button className="btn btn-sm btn-warning mr-2" onClick={() => { setModalUser(user); setModalOpen(true); }}>Ban</button>
+                <button className="btn btn-sm btn-success" onClick={() => handleOpenUnbanModal(user)}>Unban</button>
               </td>
             </tr>
           ))}
@@ -148,6 +183,7 @@ const UserList: React.FC = () => {
         </div>
       </div>
       <BanModal open={modalOpen} onClose={() => setModalOpen(false)} user={modalUser} parentChannels={parentChannels} />
+      <UnbanModal open={unbanModalOpen} onClose={() => setUnbanModalOpen(false)} user={unbanModalUser} parentChannels={unbanParentChannels} />
     </div>
   );
 };

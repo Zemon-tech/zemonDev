@@ -135,6 +135,11 @@ export class ApiService {
     return this.makeRequest('/api/arena/channels/user-channel-status', {}, getToken);
   }
 
+  // Fetch any user's channel membership statuses (admin only)
+  static async getUserChannelStatusesForAdmin(userId: string, getToken: () => Promise<string | null>) {
+    return this.makeRequest(`/api/arena/channels/user-channel-status/${userId}`, {}, getToken);
+  }
+
   // Join Requests Admin API
   static async fetchJoinRequests(getToken: () => Promise<string | null>) {
     return this.makeRequest('/api/arena/channels/join-requests', {}, getToken);
