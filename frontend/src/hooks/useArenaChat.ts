@@ -28,12 +28,12 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
   const [typing, setTyping] = useState<string[]>([]);
   const [error, setError] = useState<ArenaChatError>(null);
 
-  // Only allow if user is a member (approved)
-  const isMember = userChannelStatuses[channelId] === 'approved';
+  // Only allow if user has any status for the channel
+  const hasStatus = userChannelStatuses[channelId] !== undefined;
 
   // Join channel on socket connection
   useEffect(() => {
-    if (socket && channelId && isSignedIn && isMember) {
+    if (socket && channelId && isSignedIn && userChannelStatuses[channelId] === 'approved') {
       socket.emit('join_channel', channelId);
 
       // Listen for new messages
@@ -55,14 +55,14 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
         socket.off('user_typing');
         socket.emit('leave_channel', channelId);
       };
-    } else if (!isMember) {
+    } else if (!hasStatus) {
       setError({ type: 'generic', message: 'You are not a member of this channel.' });
     }
-  }, [socket, channelId, isSignedIn, isMember]);
+  }, [socket, channelId, isSignedIn, userChannelStatuses]);
 
   // Load initial messages
   useEffect(() => {
-    if (!channelId || !isSignedIn || !isMember) return;
+    if (!channelId || !isSignedIn || !hasStatus) return;
 
     const loadMessages = async () => {
       try {
@@ -74,8 +74,14 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
         // Check for 403 ban/kick error
         if (err?.response?.status === 403 && err?.response?.data) {
           const data = err.response.data;
+          // Extract details from data.data for ban/kick
           if (data.message?.toLowerCase().includes('banned')) {
-            setError({ type: 'banned', message: data.message, reason: data.banReason, banExpiresAt: data.banExpiresAt });
+            setError({
+              type: 'banned',
+              message: data.message,
+              reason: data.data?.banReason,
+              banExpiresAt: data.data?.banExpiresAt
+            });
           } else if (data.message?.toLowerCase().includes('kicked')) {
             setError({ type: 'kicked', message: data.message });
           } else {
@@ -91,14 +97,14 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
     };
 
     loadMessages();
-  }, [channelId, getToken, isSignedIn, isMember]);
+  }, [channelId, getToken, isSignedIn, hasStatus]);
 
   const sendMessage = useCallback((content: string, replyToId?: string) => {
     if (!socket) {
       console.error('Cannot send message: Socket not connected');
       return;
     }
-    if (!isMember) {
+    if (userChannelStatuses[channelId] !== 'approved') {
       setError({ type: 'generic', message: 'You are not a member of this channel.' });
       return;
     }
@@ -118,13 +124,13 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
         console.error('Failed to send message:', response);
       }
     });
-  }, [socket, channelId, isMember]);
+  }, [socket, channelId, userChannelStatuses]);
 
   const sendTyping = useCallback((isTyping: boolean) => {
-    if (socket && isMember) {
+    if (socket && userChannelStatuses[channelId] === 'approved') {
       socket.emit('typing', { channelId, isTyping });
     }
-  }, [socket, channelId, isMember]);
+  }, [socket, channelId, userChannelStatuses]);
 
   return {
     messages,

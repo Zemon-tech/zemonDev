@@ -124,9 +124,13 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
     if (error.type === 'banned') {
       return (
         <div className="flex flex-col h-full items-center justify-center text-center">
-          <p className="text-error font-semibold">You are banned from this channel.</p>
+          <p className="text-error font-semibold">You are banned from this channel. You cannot access this channel.</p>
           {error.reason && <p className="text-base-content/70 mt-1">Reason: {error.reason}</p>}
-          {error.banExpiresAt && <p className="text-base-content/70 mt-1">Ban expires: {new Date(error.banExpiresAt).toLocaleString()}</p>}
+          {error.banExpiresAt && (
+            <p className="text-base-content/70 mt-1">
+              Ban expires: {new Date(error.banExpiresAt).toLocaleString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </p>
+          )}
         </div>
       );
     }
