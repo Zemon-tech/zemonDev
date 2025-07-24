@@ -8,7 +8,6 @@ import arenaChannelsRoutes from './arena-channels.routes';
 import arenaShowcaseRoutes from './arena-showcase.routes';
 import arenaHackathonsRoutes from './arena-hackathons.routes';
 import arenaUsersRoutes from './arena-users.routes';
-import devAdminRoutes from './dev-admin.routes';
 import adminRoutes from './admin.routes';
 
 const router = Router();
@@ -41,11 +40,6 @@ router.use('/arena/users', arenaUsersRoutes);
 // Register webhook routes
 router.use('/webhooks', webhookRoutes);
 
-// Development-only admin routes
-// IMPORTANT: These routes should be disabled in production
-if (process.env.NODE_ENV !== 'production') {
-  console.log('⚠️ Development admin routes enabled - DO NOT USE IN PRODUCTION');
-  router.use('/dev-admin', devAdminRoutes);
-}
+
 
 export default router; 
