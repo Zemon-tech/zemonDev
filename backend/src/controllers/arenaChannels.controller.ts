@@ -140,6 +140,16 @@ export const createMessage = asyncHandler(
       return next(new AppError('Channel not found', 404));
     }
 
+    // Check role-based permissions for announcement channels
+    if (channel.type === 'announcement') {
+      const { hasAnyRole } = await import('../utils/roleUtils');
+      const hasPermission = await hasAnyRole(userId, channelId, ['admin', 'moderator']);
+      
+      if (!hasPermission) {
+        return next(new AppError('Only admins and moderators can send messages in announcement channels', 403));
+      }
+    }
+
     // Check if reply message exists if replyToId is provided
     if (replyToId) {
       const replyMessage = await ArenaMessage.findById(replyToId);

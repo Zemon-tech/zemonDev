@@ -112,6 +112,10 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
       console.warn('Cannot send empty message');
       return;
     }
+    
+    // Note: Role-based permissions are checked in the component before calling sendMessage
+    // Backend validation is the source of truth for security
+    
     socket.emit('send_message', {
       channelId,
       content: content.trim(),
@@ -120,7 +124,12 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
       if (response?.success) {
         console.log('Message sent successfully:', response);
       } else {
-        setError({ type: 'generic', message: 'Failed to send message.' });
+        // Handle role-based errors from backend
+        if (response?.message?.includes('Only admins and moderators')) {
+          setError({ type: 'generic', message: 'Only admins and moderators can send messages in this channel.' });
+        } else {
+          setError({ type: 'generic', message: response?.message || 'Failed to send message.' });
+        }
         console.error('Failed to send message:', response);
       }
     });

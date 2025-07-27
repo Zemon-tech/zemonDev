@@ -1,18 +1,48 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { PlusCircle, Pin, Loader2, AlertCircle } from 'lucide-react';
+import { PlusCircle, Pin, Loader2, AlertCircle, Shield, Users } from 'lucide-react';
 import { useArenaChat, Message } from '@/hooks/useArenaChat';
+import { useUserRole } from '@/context/UserRoleContext';
+import RestrictedMessageView from './RestrictedMessageView';
 
 interface AnnouncementsChannelProps {
-  isAdmin?: boolean;
+  channelId?: string;
+  userChannelStatuses?: Record<string, string>;
 }
 
-const AnnouncementsChannel: React.FC<AnnouncementsChannelProps> = ({ isAdmin = false }) => {
-  const { messages, loading, error, sendMessage } = useArenaChat('announcements', {});
+const AnnouncementsChannelComponent: React.FC<AnnouncementsChannelProps> = ({ 
+  channelId = 'announcements',
+  userChannelStatuses = {}
+}) => {
+  const { messages, loading, error, sendMessage } = useArenaChat(channelId, userChannelStatuses);
+  const { globalRole, channelRoles, isLoading: roleLoading } = useUserRole();
+  
+  // Check if user has admin/moderator access for this channel - MEMOIZED to prevent infinite re-renders
+  const canPost = useMemo(() => {
+    if (roleLoading) return false;
+    
+    // Check global role first
+    if (globalRole === 'admin' || globalRole === 'moderator') {
+      return true;
+    }
+    
+    // Check channel-specific role
+    const channelRole = channelRoles[channelId];
+    const result = channelRole?.role === 'admin' || channelRole?.role === 'moderator';
+    
+    console.log('AnnouncementsChannel role check:', { 
+      channelId, 
+      roleLoading, 
+      globalRole, 
+      channelRole: channelRole?.role,
+      canPost: result 
+    });
+    return result;
+  }, [channelId, roleLoading, globalRole, channelRoles]);
 
   // Animation variants
   const containerVariants = {
@@ -67,6 +97,16 @@ const AnnouncementsChannel: React.FC<AnnouncementsChannelProps> = ({ isAdmin = f
     return message.content.replace('[PINNED]', '').trim();
   };
 
+  // Show loading state while roles are being fetched
+  if (roleLoading) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <p className="mt-2 text-base-content/70">Loading permissions...</p>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col h-full items-center justify-center">
@@ -99,7 +139,7 @@ const AnnouncementsChannel: React.FC<AnnouncementsChannelProps> = ({ isAdmin = f
           <h2 className="text-sm font-medium text-base-content">Announcements</h2>
           <p className="text-[10px] text-base-content/70">Important updates and news</p>
         </div>
-        {isAdmin && (
+        {canPost && (
           <Button variant="outline" size="sm" className="h-6 text-xs px-2 py-0 gap-1">
             <PlusCircle className="w-3 h-3" />
             New
@@ -198,14 +238,14 @@ const AnnouncementsChannel: React.FC<AnnouncementsChannelProps> = ({ isAdmin = f
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-base-content/70">
               <p>No announcements yet.</p>
-              {isAdmin && <p className="mt-2">Use the New button to create one!</p>}
+              {canPost && <p className="mt-2">Use the New button to create one!</p>}
             </div>
           )}
         </motion.div>
       </div>
 
-      {/* Admin Post Form */}
-      {isAdmin && (
+      {/* Message Input Section */}
+      {canPost ? (
         <div className="p-4 border-t border-base-300 bg-base-200">
           <Button className="w-full" onClick={() => {
             const announcement = prompt("Enter your announcement (prefix with [PINNED] to pin):");
@@ -217,9 +257,13 @@ const AnnouncementsChannel: React.FC<AnnouncementsChannelProps> = ({ isAdmin = f
             Post New Announcement
           </Button>
         </div>
+      ) : (
+        <RestrictedMessageView channelName="announcement" />
       )}
     </div>
   );
 };
+
+const AnnouncementsChannel = React.memo(AnnouncementsChannelComponent);
 
 export default AnnouncementsChannel; 
