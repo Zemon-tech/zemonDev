@@ -7,7 +7,7 @@ import { useWorkspace } from '@/lib/WorkspaceContext';
 import { Button } from '@/components/ui/button';
 
 // Icons
-import { Search, Bell, X, MessageCircle, BookOpen, FileText, Layers, StickyNote, ArrowLeft, Send, Loader2, Sparkles } from 'lucide-react';
+import { Search, Bell, X, MessageCircle, BookOpen, FileText, Layers, StickyNote, ArrowLeft, Send, Loader2 } from 'lucide-react';
 import gsap from 'gsap';
 import { useRef } from 'react';
 

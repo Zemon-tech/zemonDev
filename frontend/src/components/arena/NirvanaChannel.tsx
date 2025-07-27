@@ -13,13 +13,9 @@ import {
   Crown,
   Hash,
   Target,
-  Flame,
   TrendingUp,
-  Clock,
   Zap,
   Search,
-  BookOpen,
-  HelpCircle,
   CheckCircle2,
   ListChecks,
   // (import icons individually where used)
@@ -28,7 +24,6 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useArenaChannels } from '@/hooks/useArenaChannels';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { ApiService } from '@/services/api.service';
-import { useTheme } from '@/lib/ThemeContext';
 import { Calendar } from 'lucide-react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -60,13 +55,7 @@ interface TrendingTopic {
   trend: 'up' | 'down' | 'stable';
 }
 
-interface ActiveChallenge {
-  id: string;
-  name: string;
-  participants: number;
-  timeRemaining: string;
-  difficulty: 'easy' | 'medium' | 'hard';
-}
+
 
 const NirvanaChannel: React.FC = () => {
   // Animation variants
@@ -146,12 +135,7 @@ const NirvanaChannel: React.FC = () => {
     { id: '4', name: 'TypeScript', count: 64, trend: 'down' }
   ];
 
-  // Active challenges
-  const activeChallenges: ActiveChallenge[] = [
-    { id: '1', name: 'Binary Tree Traversal', participants: 45, timeRemaining: '2h 30m', difficulty: 'medium' },
-    { id: '2', name: 'API Rate Limiter', participants: 32, timeRemaining: '4h 15m', difficulty: 'hard' },
-    { id: '3', name: 'String Manipulation', participants: 67, timeRemaining: '1h 45m', difficulty: 'easy' }
-  ];
+
 
   // Example leaderboard and events data
   const leaderboard = [
@@ -248,7 +232,7 @@ const NirvanaChannel: React.FC = () => {
     setRequesting(true);
     setRequestStatus(null);
     try {
-      const toRequest = Object.entries(selected).filter(([id, v]) => v).map(([id]) => id);
+      const toRequest = Object.entries(selected).filter(([, v]) => v).map(([id]) => id);
       if (!user || toRequest.length === 0) {
         setRequestStatus('Select at least one channel.');
         setRequesting(false);

@@ -154,7 +154,7 @@ const LinkMain: React.FC<LinkMainProps> = ({
   const handleOpenLink = () => {
     if (!url) return
 
-    const safeUrl = sanitizeUrl(url, window.location.href)
+    const safeUrl = sanitizeUrl(url)
     if (safeUrl !== "#") {
       window.open(safeUrl, "_blank", "noopener,noreferrer")
     }
@@ -243,7 +243,7 @@ export function LinkPopover({
 }: LinkPopoverProps) {
   const editor = useTiptapEditor(providedEditor)
 
-  const linkInSchema = isMarkInSchema("link", editor)
+  const linkInSchema = editor ? isMarkInSchema("link", editor) : false
 
   const [isOpen, setIsOpen] = React.useState(false)
 

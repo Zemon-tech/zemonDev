@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { ThumbsUp, ThumbsDown, MessageSquare, Share2, ExternalLink, Plus, Hash, Loader2, AlertCircle } from 'lucide-react';
-import { useArenaShowcase, Project as ShowcaseProject } from '@/hooks/useArenaShowcase';
+import { ThumbsUp, ThumbsDown, Share2, ExternalLink, Plus, Hash, Loader2, AlertCircle } from 'lucide-react';
+import { useArenaShowcase } from '@/hooks/useArenaShowcase';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { ApiService } from '@/services/api.service';
 

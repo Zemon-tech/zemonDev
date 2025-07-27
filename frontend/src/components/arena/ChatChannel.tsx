@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Plus, Image, Gift, Smile, User, Heart, MessageSquare, Share2, MoreHorizontal, Loader2 } from 'lucide-react';
+import { Plus, Image, Gift, Smile, MoreHorizontal, Loader2 } from 'lucide-react';
 import { useArenaChat } from '@/hooks/useArenaChat';
 import type { Message } from '@/hooks/useArenaChat';
 

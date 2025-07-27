@@ -2,42 +2,24 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { CountUp } from '@/components/blocks/CountUp';
 import { 
   Trophy,
   Clock,
-  User,
-  Code,
   FileCode,
-  ExternalLink,
-  ChevronRight,
   Users,
   CheckCircle2,
-  Star,
-  Rocket,
-  Zap,
-  Target,
-  GitBranch,
-  MessageSquare,
   Loader2,
   AlertCircle
 } from 'lucide-react';
 import { useArenaHackathon } from '@/hooks/useArenaHackathon';
 
-interface Submission {
-  userId: string;
-  username: string;
-  score: number;
-  submissionTime: Date;
-}
-
 interface HackathonChannelProps {
   isAdmin?: boolean;
 }
 
-const HackathonChannel: React.FC<HackathonChannelProps> = ({ isAdmin = false }) => {
+const HackathonChannel: React.FC<HackathonChannelProps> = () => {
   const { currentHackathon, loading, error } = useArenaHackathon();
 
   // Animation variants

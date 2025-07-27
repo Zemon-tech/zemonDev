@@ -184,7 +184,7 @@ export function ColorHighlightPopover({
   const [isOpen, setIsOpen] = React.useState(false)
   const [isDisabled, setIsDisabled] = React.useState(false)
 
-  const markAvailable = isMarkInSchema("highlight", editor)
+  const markAvailable = editor ? isMarkInSchema("highlight", editor) : false
 
   React.useEffect(() => {
     if (!editor) return

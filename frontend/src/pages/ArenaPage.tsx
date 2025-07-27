@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTheme } from '@/lib/ThemeContext';
+
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Search, Hash, Volume2, User, Trophy, Crown, Star, ArrowLeftFromLine, ArrowRightFromLine, ChevronDown, Sparkles, BookOpen, AlertCircle, Loader2, PlusCircle, Settings } from 'lucide-react';
+import { Hash, Volume2, Trophy, ChevronDown, Sparkles, BookOpen, AlertCircle, Loader2, Settings } from 'lucide-react';
 import ArenaErrorBoundary from '@/components/arena/ArenaErrorBoundary';
 import { useArenaChannels, Channel as ArenaChannel } from '@/hooks/useArenaChannels';
-import { useArenaChat } from '@/hooks/useArenaChat';
+
 import { useUser, useAuth } from '@clerk/clerk-react';
 import { useUserRole } from '@/context/UserRoleContext';
 import { ApiService } from '@/services/api.service';
@@ -23,20 +23,8 @@ import StartHereChannel from '@/components/arena/StartHereChannel';
 import NirvanaChannel from '@/components/arena/NirvanaChannel';
 import AdminPage from '@/pages/AdminPage';
 
-// Types
-type ArenaTab = 'Chat' | 'Showcase' | 'Leaderboard';
-type TimeFilter = 'Weekly' | 'Monthly' | 'All Time';
 
-interface LeaderboardUser {
-  rank: number;
-  username: string;
-  avatar: string;
-  badges: string[];
-  points: number;
-  trend: 'up' | 'down' | 'none';
-  isOnline: boolean;
-  role: string;
-}
+
 
 // Helper: Build parent/sub-channel tree for each group
 function buildChannelTree(channelList: ArenaChannel[]) {
@@ -55,28 +43,16 @@ function buildChannelTree(channelList: ArenaChannel[]) {
 }
 
 const ArenaPage: React.FC = () => {
-  const { theme } = useTheme();
   const { channels, loading, error } = useArenaChannels();
-  const [activeTab, setActiveTab] = useState<ArenaTab>('Chat');
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>('Weekly');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
-  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [showNirvana, setShowNirvana] = useState(true); // Show Nirvana by default
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [userChannelStatuses, setUserChannelStatuses] = useState<Record<string, string>>({}); // channelId -> status
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  const { user, isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn } = useUser();
   const { getToken } = useAuth();
   const { hasAdminAccess } = useUserRole();
-
-  const [broadcastText, setBroadcastText] = useState('');
-  const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
-  const [broadcasting, setBroadcasting] = useState(false);
 
   const handleChannelSelect = (channelId: string) => {
     setActiveChannelId(channelId);
@@ -95,26 +71,7 @@ const ArenaPage: React.FC = () => {
   announcementSubs.forEach(sub => {
     if (sub.parentChannelId) parentToAnnouncement[sub.parentChannelId] = sub._id;
   });
-  // Send message to each selected announcement subchannel
-  const handleBroadcast = async () => {
-    if (!broadcastText.trim() || selectedChannels.length === 0) return;
-    setBroadcasting(true);
-    try {
-      await Promise.all(selectedChannels.map(parentId => {
-        const announcementId = parentToAnnouncement[parentId];
-        if (!announcementId) return;
-        // Use [OFFICIAL] prefix for visual distinction
-        const msg = `[OFFICIAL]\n${broadcastText.trim()}`;
-        // Use sendMessage from useArenaChat for each subchannel
-        const { sendMessage } = useArenaChat(announcementId, userChannelStatuses);
-        sendMessage(msg);
-      }));
-      setBroadcastText('');
-      setSelectedChannels([]);
-    } finally {
-      setBroadcasting(false);
-    }
-  };
+
 
   // Fetch user channel statuses
   useEffect(() => {
@@ -135,7 +92,7 @@ const ArenaPage: React.FC = () => {
       }
     };
     if (isLoaded && isSignedIn) fetchStatuses();
-  }, [isLoaded, isSignedIn, refreshKey]);
+  }, [isLoaded, isSignedIn]);
 
   // Set initial channel
   useEffect(() => {
@@ -152,21 +109,15 @@ const ArenaPage: React.FC = () => {
     if (activeChannelId) setShowNirvana(false);
   }, [activeChannelId]);
 
-  // Listen for tab change events from AppLayout
+  // Listen for sidebar toggle events from AppLayout
   useEffect(() => {
-    const handleTabChange = (event: CustomEvent<ArenaTab>) => {
-      setActiveTab(event.detail);
-    };
-
     const handleSidebarToggle = () => {
       setIsLeftSidebarCollapsed(prev => !prev);
     };
 
-    window.addEventListener('arena-switch-tab', handleTabChange as EventListener);
     window.addEventListener('toggle-arena-sidebar', handleSidebarToggle);
     
     return () => {
-      window.removeEventListener('arena-switch-tab', handleTabChange as EventListener);
       window.removeEventListener('toggle-arena-sidebar', handleSidebarToggle);
     };
   }, []);

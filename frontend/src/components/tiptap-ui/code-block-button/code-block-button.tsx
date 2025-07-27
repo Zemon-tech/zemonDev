@@ -87,7 +87,7 @@ export function useCodeBlockState(
   disabled: boolean = false,
   hideWhenUnavailable: boolean = false
 ) {
-  const nodeInSchema = isNodeInSchema("codeBlock", editor)
+  const nodeInSchema = editor ? isNodeInSchema("codeBlock", editor) : false
 
   const canToggle = canToggleCodeBlock(editor)
   const isDisabled = isCodeBlockButtonDisabled(editor, canToggle, disabled)

@@ -8,18 +8,6 @@ import { useEffect, useState } from 'react';
 import { getProblem, getDraft, getNotes, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft } from '@/lib/crucibleApi';
 import { logger } from '@/lib/utils';
 
-// Helper function to check if ID is valid MongoDB ObjectId format
-const isValidObjectId = (id: string): boolean => {
-  return /^[0-9a-fA-F]{24}$/.test(id);
-};
-
-// Sample valid ObjectIds for testing
-const SAMPLE_VALID_IDS = [
-  '507f1f77bcf86cd799439011',
-  '507f1f77bcf86cd799439012',
-  '507f1f77bcf86cd799439013'
-];
-
 function CrucibleProblemPage() {
   const { id: problemId } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -67,7 +55,7 @@ function CrucibleProblemPage() {
         
         setProblem(problemData);
         setDraft(draftData);
-        setNotes(notesData);
+        setNotes(notesData ? [notesData] : null);
 
       } catch (err: any) {
         logger.error('Failed to load crucible page data:', err);

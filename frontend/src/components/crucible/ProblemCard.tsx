@@ -20,7 +20,7 @@ type Props = {
 };
 
 // Icon/Image subcomponent
-function ProblemIcon({ iconUrl, difficulty }: { iconUrl?: string; difficulty: Problem['difficulty'] }) {
+function ProblemIcon({ iconUrl }: { iconUrl?: string; difficulty: Problem['difficulty'] }) {
   return (
     <span className={cn(
       "rounded-lg p-1.5 flex items-center justify-center w-10 h-10 shadow-sm border border-base-200 bg-base-200 dark:bg-base-300/40"

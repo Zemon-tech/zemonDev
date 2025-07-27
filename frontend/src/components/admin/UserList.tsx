@@ -71,7 +71,6 @@ const UserList: React.FC = () => {
   useEffect(() => {
     const fetchParentChannels = async () => {
       try {
-        const token = await getToken();
         const [statusRes, channelsRes] = await Promise.all([
           ApiService.getUserChannelStatuses(getToken),
           ApiService.getChannels(getToken)
@@ -97,7 +96,6 @@ const UserList: React.FC = () => {
   // Fetch banned/kicked parent channels for UnbanModal
   const handleOpenUnbanModal = async (user: User) => {
     try {
-      const token = await getToken();
       const [statusRes, channelsRes] = await Promise.all([
         ApiService.getUserChannelStatusesForAdmin(user._id, getToken),
         ApiService.getChannels(getToken)

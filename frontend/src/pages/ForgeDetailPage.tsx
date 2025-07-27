@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import { registerForgeResourceView } from '../lib/forgeApi';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { HTMLAttributes, DetailedHTMLProps } from 'react';
 
 type Resource = {
   _id: string;

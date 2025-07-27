@@ -1,9 +1,8 @@
 import { useUser } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
-import { Sparkles, TrendingUp, Trophy, Smile, BookOpen, Users, Code, Flame, Star, ChevronUp, Quote, Medal, ChevronDown } from 'lucide-react';
+import { Sparkles, Trophy, BookOpen, Code, Flame, Star, ChevronUp, Quote, ChevronDown } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { CircularProgress } from '@/components/blocks/CircularProgress';
+
 import { useEffect, useState } from 'react';
 
 // --- AnimatedCount Utility ---

@@ -144,15 +144,15 @@ export function toggleHighlight(
   try {
     const chain = editor.chain().focus()
 
-    if (isEmptyNode(node)) {
+    if (node && isEmptyNode(editor, node.type.name)) {
       chain.toggleMark("highlight", { color }).run()
     } else if (nodePos !== undefined && nodePos !== null && nodePos !== -1) {
       chain.setNodeSelection(nodePos).toggleMark("highlight", { color }).run()
     } else if (node) {
-      const foundPos = findNodePosition({ editor, node })
-      if (foundPos) {
+      const foundPos = findNodePosition(editor, node.type.name)
+      if (foundPos !== null) {
         chain
-          .setNodeSelection(foundPos.pos)
+          .setNodeSelection(foundPos)
           .toggleMark("highlight", { color })
           .run()
       } else {

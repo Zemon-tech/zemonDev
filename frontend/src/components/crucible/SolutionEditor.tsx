@@ -518,20 +518,6 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
     }).run();
   }, [editor]);
 
-  const handleMermaidInsert = useCallback(() => {
-    const defaultFlowchart = `flowchart TD
-    Start[Start] --> Init[Initialize Data]
-    Init --> Condition{Check Condition}
-    Condition -->|Yes| Process[Process Data]
-    Condition -->|No| End[End]
-    Process --> End`;
-    
-    editor?.chain().focus().insertContent({
-      type: 'mermaid',
-      attrs: { content: defaultFlowchart }
-    }).run();
-  }, [editor]);
-
   // Add image resize handler
   const handleImageResize = useCallback((event: MouseEvent, imageElement: HTMLImageElement) => {
     const startWidth = imageElement.width;

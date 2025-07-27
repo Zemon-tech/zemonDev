@@ -9,7 +9,7 @@ import remarkGfm from 'remark-gfm';
 import { updateNotes } from '../../lib/crucibleApi';
 import { useToast } from '../ui/toast';
 import { useWorkspace } from '../../lib/WorkspaceContext';
-import ShinyText from "../blocks/TextAnimations/ShinyText/ShinyText";
+
 
 
 
@@ -351,7 +351,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
                     AI Assistant
                   </div>
                   <div className="chat-bubble bg-base-200/50 dark:bg-base-700/50">
-                    <ShinyText text="Thinking..." className="text-sm text-base-content/70" speed={3} />
+                    <span className="text-sm text-base-content/70">Thinking...</span>
                   </div>
                 </div>
               )}

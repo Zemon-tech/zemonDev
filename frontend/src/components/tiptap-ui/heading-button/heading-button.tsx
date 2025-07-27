@@ -125,7 +125,7 @@ export function useHeadingState(
   level: Level,
   disabled: boolean = false
 ) {
-  const headingInSchema = isNodeInSchema("heading", editor)
+  const headingInSchema = editor ? isNodeInSchema("heading", editor) : false
   const isDisabled = isHeadingButtonDisabled(editor, level, disabled)
   const isActive = isHeadingActive(editor, level)
 

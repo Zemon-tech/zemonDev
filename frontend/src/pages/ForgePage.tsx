@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { Search, ExternalLink, BookOpen, FileText, Film, Wrench, FolderGit2, FileBadge2, X, Sparkles } from 'lucide-react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Search, X} from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { getForgeResources, registerForgeResourceView } from '../lib/forgeApi';
 import { ResourceCard } from '@/components/blocks/ResourceCard';
 import type { Resource } from '@/components/blocks/ResourceCard';
@@ -11,24 +11,7 @@ import { useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
-const typeOptions = [
-  { label: 'All', value: '' },
-  { label: 'Article', value: 'article' },
-  { label: 'Case Study', value: 'case_study' },
-  { label: 'Documentation', value: 'documentation' },
-  { label: 'Tool', value: 'tool' },
-  { label: 'Video', value: 'video' },
-];
 
-// Map resource type to icon
-const typeIconMap: Record<string, React.ReactNode> = {
-  article: <FileText className="w-4 h-4 text-primary" />, // Article
-  documentation: <BookOpen className="w-4 h-4 text-primary" />, // Documentation
-  case_study: <FileBadge2 className="w-4 h-4 text-primary" />, // Case Study
-  tool: <Wrench className="w-4 h-4 text-primary" />, // Tool
-  video: <Film className="w-4 h-4 text-primary" />, // Video
-  repository: <FolderGit2 className="w-4 h-4 text-primary" />, // Repository
-};
 
 export default function ForgePage() {
   const { getToken } = useAuth();

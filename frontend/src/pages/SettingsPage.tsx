@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Settings, Folder, Users, HelpCircle, LogOut, Link2, Trash2, CheckCircle, AlertTriangle, Sun, Moon, Bell, Bookmark, Edit, Archive, Trash, ChevronDown, ChevronUp, Shield, MessageCircle, Star, Mail, Phone, Github, Plus, X, Eye, Linkedin, Twitter, BookOpen } from 'lucide-react';
+import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, MessageCircle, Star, Mail, Phone, Github, X, Eye, Linkedin, Twitter, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher';
 import { useUser } from '@clerk/clerk-react';
 import clsx from 'clsx';
 
@@ -169,19 +168,19 @@ function ProfileAccountSection() {
                   <textarea value={about} onChange={e => setAbout(e.target.value)} maxLength={200} className="w-full border border-base-200 rounded px-3 py-2 min-h-[40px] text-base focus:ring-1 focus:ring-primary/30 transition-all" />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1 text-base-content/80 flex items-center gap-1"><Github size={14}/> GitHub</label>
+                  <label className="font-semibold mb-1 text-base-content/80 flex items-center gap-1"><Github size={14}/> GitHub</label>
                   <input value={github} onChange={e => setGithub(e.target.value)} placeholder="https://github.com/username" className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1 text-base-content/80 flex items-center gap-1"><Linkedin size={14}/> LinkedIn</label>
+                  <label className="font-semibold mb-1 text-base-content/80 flex items-center gap-1"><Linkedin size={14}/> LinkedIn</label>
                   <input value={linkedin} onChange={e => setLinkedin(e.target.value)} placeholder="https://linkedin.com/in/username" className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1 text-base-content/80 flex items-center gap-1"><Twitter size={14}/> Twitter</label>
+                  <label className="font-semibold mb-1 text-base-content/80 flex items-center gap-1"><Twitter size={14}/> Twitter</label>
                   <input value={twitter} onChange={e => setTwitter(e.target.value)} placeholder="https://twitter.com/username" className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1 text-base-content/80 flex items-center gap-1"><Link2 size={14}/> Website</label>
+                  <label className="font-semibold mb-1 text-base-content/80 flex items-center gap-1"><Link2 size={14}/> Website</label>
                   <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yourwebsite.com" className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
                 </div>
               </div>

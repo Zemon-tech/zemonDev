@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { PlusCircle, Pin, MessageSquare, Heart, Share2, User, Loader2, AlertCircle } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { PlusCircle, Pin, Loader2, AlertCircle } from 'lucide-react';
 import { useArenaChat, Message } from '@/hooks/useArenaChat';
 
 interface AnnouncementsChannelProps {
@@ -12,7 +12,7 @@ interface AnnouncementsChannelProps {
 }
 
 const AnnouncementsChannel: React.FC<AnnouncementsChannelProps> = ({ isAdmin = false }) => {
-  const { messages, loading, error, sendMessage } = useArenaChat('announcements');
+  const { messages, loading, error, sendMessage } = useArenaChat('announcements', {});
 
   // Animation variants
   const containerVariants = {
@@ -80,7 +80,7 @@ const AnnouncementsChannel: React.FC<AnnouncementsChannelProps> = ({ isAdmin = f
     return (
       <div className="flex flex-col h-full items-center justify-center">
         <AlertCircle className="w-8 h-8 text-error" />
-        <p className="mt-2 text-error">{error}</p>
+        <p className="mt-2 text-error">{error.message}</p>
         <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
           Retry
         </Button>

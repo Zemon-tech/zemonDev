@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
-import { updateDraft, updateNotes, submitSolutionForAnalysis, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft } from '../../lib/crucibleApi';
+import { updateDraft, submitSolutionForAnalysis, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft } from '../../lib/crucibleApi';
 import { logger } from '../../lib/utils';
 import { useWorkspace } from '../../lib/WorkspaceContext';
 import SolutionEditor from './SolutionEditor';
@@ -9,7 +9,7 @@ import NotesCollector from './NotesCollector';
 import ProblemDetailsSidebar from './ProblemDetailsSidebar';
 import AIChatSidebar from './AIChatSidebar';
 import WorkspaceModeSelector from './WorkspaceModeSelector';
-import ProblemSkeleton from './ProblemSkeleton';
+
 
 interface CrucibleWorkspaceViewProps {
   problem: ICrucibleProblem;
@@ -17,7 +17,7 @@ interface CrucibleWorkspaceViewProps {
   initialNotes: ICrucibleNote[] | null;
 }
 
-export default function CrucibleWorkspaceView({ problem, initialDraft, initialNotes }: CrucibleWorkspaceViewProps) {
+export default function CrucibleWorkspaceView({ problem, initialDraft }: CrucibleWorkspaceViewProps) {
   const { getToken } = useAuth();
   const navigate = useNavigate();
 
@@ -34,8 +34,6 @@ export default function CrucibleWorkspaceView({ problem, initialDraft, initialNo
   } = useWorkspace();
   
   const [solutionContent, setSolutionContent] = useState(initialDraft?.currentContent || '');
-  const [notesContent, setNotesContent] = useState(initialNotes?.[0]?.content || '');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Load workspace state when problem changes
   useEffect(() => {
@@ -65,7 +63,7 @@ export default function CrucibleWorkspaceView({ problem, initialDraft, initialNo
     setWordCount(content.trim().split(/\s+/).filter(Boolean).length);
   }, [setWordCount]);
   
-  const handleNotesChange = useCallback((content: string) => setNotesContent(content), []);
+
 
   // Handle submit button click
   const handleSubmitSolution = useCallback(async () => {
@@ -75,7 +73,6 @@ export default function CrucibleWorkspaceView({ problem, initialDraft, initialNo
     }
 
     try {
-      setIsSubmitting(true);
       const token = await getToken();
       if (!token) {
         alert("You need to be signed in to submit a solution.");
@@ -126,12 +123,11 @@ export default function CrucibleWorkspaceView({ problem, initialDraft, initialNo
           navigate(`/${username}/crucible/problem/${problem._id}`);
         })
         .finally(() => {
-          setIsSubmitting(false);
+          // Submission completed
         });
     } catch (error) {
       logger.error('Failed to submit solution:', error);
       alert("There was an error submitting your solution. Please try again.");
-      setIsSubmitting(false);
     }
   }, [solutionContent, problem._id, getToken, navigate]);
 
@@ -176,7 +172,7 @@ export default function CrucibleWorkspaceView({ problem, initialDraft, initialNo
           ) : (
             <NotesCollector 
               problemId={problem._id} 
-              onChange={handleNotesChange} 
+              onChange={() => {}} 
             />
           )}
         </div>

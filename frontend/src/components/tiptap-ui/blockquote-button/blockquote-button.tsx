@@ -87,7 +87,7 @@ export function useBlockquoteState(
   disabled: boolean = false,
   hideWhenUnavailable: boolean = false
 ) {
-  const nodeInSchema = isNodeInSchema("blockquote", editor)
+  const nodeInSchema = editor ? isNodeInSchema("blockquote", editor) : false
 
   const canToggle = canToggleBlockquote(editor)
   const isDisabled = isBlockquoteButtonDisabled(editor, canToggle, disabled)

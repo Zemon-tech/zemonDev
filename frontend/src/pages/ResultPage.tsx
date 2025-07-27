@@ -1,12 +1,10 @@
 import { motion } from 'framer-motion';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   Brain, 
   CheckCircle2, 
-  AlertCircle, 
-  ArrowUpRight, 
+  AlertCircle,
   Sparkles, 
   BookOpen,
   MessageSquare,
@@ -17,8 +15,7 @@ import {
   Lightbulb,
   Scale,
   Network,
-  Zap,
-  History
+  Zap
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
@@ -27,14 +24,11 @@ import { useAuth } from '@clerk/clerk-react';
 import { Aurora } from '@/components/blocks/Aurora';
 import { DotGrid } from '@/components/blocks/DotGrid';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
-import { GlassIcon } from '@/components/blocks/GlassIcons';
 import { AnimatedContent } from '@/components/blocks/AnimatedContent';
-import { GradientText } from '@/components/blocks/GradientText';
 import { CountUp } from '@/components/blocks/CountUp';
 import { TiltCard } from '@/components/blocks/TiltCard';
 import { CircularProgress } from '@/components/blocks/CircularProgress';
 import { FloatingIcon } from '@/components/blocks/FloatingIcon';
-import { Timeline } from '@/components/blocks/Timeline';
 
 // Import API client
 import { getAnalysisResult, ISolutionAnalysisResult, getProblem, ICrucibleProblem } from '@/lib/crucibleApi';

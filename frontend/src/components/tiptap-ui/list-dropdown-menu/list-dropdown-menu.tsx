@@ -101,7 +101,7 @@ export function useListDropdownState(
   const [isOpen, setIsOpen] = React.useState(false)
 
   const listInSchema = availableTypes.some((type) =>
-    isNodeInSchema(type, editor)
+    editor ? isNodeInSchema(type, editor) : false
   )
 
   const filteredLists = React.useMemo(

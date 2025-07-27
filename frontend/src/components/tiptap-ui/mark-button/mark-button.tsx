@@ -133,7 +133,7 @@ export function useMarkState(
   type: Mark,
   disabled: boolean = false
 ) {
-  const markInSchema = isMarkInSchema(type, editor)
+  const markInSchema = editor ? isMarkInSchema(type, editor) : false
   const isDisabled = isMarkButtonDisabled(editor, type, disabled)
   const isActive = isMarkActive(editor, type)
 

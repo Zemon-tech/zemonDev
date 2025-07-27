@@ -90,35 +90,7 @@ function ProblemCardSkeleton() {
   );
 }
 
-// Crucible Browse View component
-function CrucibleBrowseView({ problems, loading, onSelect }: { problems: Problem[]; loading: boolean; onSelect: (p: Problem) => void }) {
-  if (loading) {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {Array(6).fill(0).map((_, i) => (
-          <ProblemCardSkeleton key={i} />
-        ))}
-      </div>
-    );
-  }
-  
-  if (problems.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <AlertCircle className="w-12 h-12 text-muted-foreground mb-4" />
-        <p className="text-lg font-medium text-muted-foreground">No problems found</p>
-      </div>
-    );
-  }
-  
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {problems.map((problem) => (
-        <ProblemCard key={problem.id} problem={problem} onSelect={onSelect} />
-      ))}
-    </div>
-  );
-}
+
 
 // Get all unique tags from problems
 const getAllTags = (problems: Problem[]): string[] => {

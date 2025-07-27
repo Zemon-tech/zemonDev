@@ -47,7 +47,7 @@ export function HeadingDropdownMenu({
   const [isOpen, setIsOpen] = React.useState(false)
   const editor = useTiptapEditor(providedEditor)
 
-  const headingInSchema = isNodeInSchema("heading", editor)
+  const headingInSchema = editor ? isNodeInSchema("heading", editor) : false
 
   const handleOnOpenChange = React.useCallback(
     (open: boolean) => {

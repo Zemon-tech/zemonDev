@@ -1,13 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
-import { useInView } from 'react-intersection-observer';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { useTheme } from '@/lib/ThemeContext';
 import { 
   Github, 
   Linkedin, 
@@ -32,13 +30,11 @@ import {
   Lightbulb,
   Rocket,
   Trophy,
-  Calendar,
   Clock,
   Users,
   Heart,
   Eye,
   MessageCircle,
-  Share2,
   Bookmark,
   ChevronRight,
   Sparkles,
@@ -157,11 +153,7 @@ const mockUserData = {
 
 export default function ProfilePage() {
   const { user } = useUser();
-  const { theme, isDarkTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('overview');
-  const [activeSection, setActiveSection] = useState<string>('system-design');
-  const [isHovered, setIsHovered] = useState(false);
-  const [isImageUploadOpen, setIsImageUploadOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Refs for GSAP animations
@@ -221,11 +213,7 @@ export default function ProfilePage() {
     });
   }, []);
 
-  // Intersection observer for scroll-based animations
-  const [projectsRef, projectsInView] = useInView({
-    triggerOnce: true,
-    threshold: 0.1
-  });
+
 
   // Tab definitions
   const tabs = [
@@ -349,8 +337,6 @@ export default function ProfilePage() {
             ref={avatarRef} 
             className="relative inline-block group cursor-pointer"
             whileHover={{ scale: 1.02 }}
-            onHoverStart={() => setIsHovered(true)}
-            onHoverEnd={() => setIsHovered(false)}
             onClick={() => fileInputRef.current?.click()}
           >
             {/* Hidden file input for image upload */}

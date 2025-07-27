@@ -147,7 +147,7 @@ export function shouldShowListButton(params: {
 }
 
 export function useListState(editor: Editor | null, type: ListType) {
-  const listInSchema = isNodeInSchema(type, editor)
+  const listInSchema = editor ? isNodeInSchema(type, editor) : false
   const listOption = getListOption(type)
   const isActive = isListActive(editor, type)
   const shortcutKey = listShortcutKeys[type]

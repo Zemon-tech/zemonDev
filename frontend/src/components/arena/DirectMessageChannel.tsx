@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Plus, Image, Gift, Smile, User, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Image, Gift, Smile, Loader2, AlertCircle } from 'lucide-react';
 import { useArenaChat } from '@/hooks/useArenaChat';
 
 interface DirectMessageChannelProps {
@@ -22,7 +22,7 @@ const DirectMessageChannel: React.FC<DirectMessageChannelProps> = ({
   // Use the DM channel ID based on recipient name
   const channelId = `dm-${recipientName.toLowerCase().replace(/\s+/g, '-')}`;
   
-  const { messages, loading, typing, error, sendMessage, sendTyping } = useArenaChat(channelId);
+  const { messages, loading, typing, error, sendMessage, sendTyping } = useArenaChat(channelId, {});
   const [messageInput, setMessageInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -97,7 +97,7 @@ const DirectMessageChannel: React.FC<DirectMessageChannelProps> = ({
     return (
       <div className="flex flex-col h-full items-center justify-center">
         <AlertCircle className="w-8 h-8 text-error" />
-        <p className="mt-2 text-error">{error}</p>
+        <p className="mt-2 text-error">{error.message}</p>
         <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
           Retry
         </Button>

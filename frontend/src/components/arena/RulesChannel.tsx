@@ -91,17 +91,7 @@ const RulesChannel: React.FC = () => {
     }
   };
 
-  // Helper function to get rule styles
-  const getRuleStyles = (type: Rule['type']) => {
-    switch (type) {
-      case 'do':
-        return 'border-green-100 bg-green-50/50 dark:border-green-900/50 dark:bg-green-900/10';
-      case 'dont':
-        return 'border-red-100 bg-red-50/50 dark:border-red-900/50 dark:bg-red-900/10';
-      case 'important':
-        return 'border-primary/20 bg-primary/5';
-    }
-  };
+
 
   return (
     <div className="flex-1 overflow-y-auto">

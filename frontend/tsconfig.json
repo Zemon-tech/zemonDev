@@ -6,8 +6,6 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "baseUrl": ".",
-    "moduleDetection": "force",
-    "composite": true,
     "paths": {
       "@/*": ["src/*"]
     },
