@@ -327,18 +327,13 @@ export const makeModerator = asyncHandler(
 
     // Notify the new moderator via socket
     try {
-      emitToUser(userId.toString(), 'role_updated', {
+      const { emitRoleUpdateNotification } = await import('../utils/roleNotificationUtils');
+      await emitRoleUpdateNotification(
+        userId.toString(),
+        'moderator',
         channelId,
-        role: 'moderator'
-      });
-
-      // Notify channel members
-      emitToChannel(channelId, 'user_moderation', {
-        action: 'promoted',
-        userId,
-        adminId,
-        role: 'moderator'
-      });
+        adminId.toString()
+      );
     } catch (error) {
       // Log error but don't fail the request
       console.error('Failed to emit socket event:', error);

@@ -163,11 +163,15 @@ const ArenaPage: React.FC = () => {
       return <div className="flex-1 flex items-center justify-center"><p>Select a channel</p></div>;
     }
 
+    // Handle channels by type first, then by name
+    if (activeChannel.type === 'announcement') {
+      return <AnnouncementsChannel channelId={activeChannel._id} userChannelStatuses={userChannelStatuses} />;
+    }
+    
     switch (activeChannel.name) {
       case 'nirvana': return <NirvanaChannel />;
       case 'start-here': return <StartHereChannel />;
       case 'rules': return <RulesChannel />;
-      case 'announcements': return <AnnouncementsChannel />;
       case 'showcase': return <ShowcaseChannel />;
       case 'weekly-challenge': return <HackathonChannel />;
       default:

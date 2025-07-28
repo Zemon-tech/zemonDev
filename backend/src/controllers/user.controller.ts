@@ -152,33 +152,53 @@ export const getUserRole = asyncHandler(
       return next(new AppError('User not found', 404));
     }
 
-    // Find the highest role for the user (admin > moderator > user)
+    // Get all roles for the user (both global and channel-specific)
     const userRoles = await UserRole.find({ userId: user._id })
       .sort({ role: 1 }) // This will sort: admin, moderator, user
-      .select('role channelId');
+      .select('role channelId grantedBy grantedAt');
 
-    let highestRole = 'user';
-    
-    if (userRoles.length > 0) {
-      // Check for admin role first
-      const adminRole = userRoles.find(role => role.role === 'admin');
+    // Separate global and channel-specific roles
+    const globalRoles = userRoles.filter(role => !role.channelId);
+    const channelRoles = userRoles.filter(role => role.channelId);
+
+    // Determine highest global role
+    let highestGlobalRole = 'user';
+    if (globalRoles.length > 0) {
+      const adminRole = globalRoles.find(role => role.role === 'admin');
       if (adminRole) {
-        highestRole = 'admin';
+        highestGlobalRole = 'admin';
       } else {
-        // Check for moderator role
-        const moderatorRole = userRoles.find(role => role.role === 'moderator');
+        const moderatorRole = globalRoles.find(role => role.role === 'moderator');
         if (moderatorRole) {
-          highestRole = 'moderator';
+          highestGlobalRole = 'moderator';
         }
       }
     }
+
+    // Create a map of channel-specific roles for easy lookup
+    const channelRoleMap: Record<string, { role: string; grantedBy?: string; grantedAt?: Date }> = {};
+    channelRoles.forEach(role => {
+      if (role.channelId) {
+        channelRoleMap[role.channelId.toString()] = {
+          role: role.role,
+          grantedBy: role.grantedBy?.toString(),
+          grantedAt: role.grantedAt
+        };
+      }
+    });
 
     res.status(200).json(
       new ApiResponse(
         200,
         'User role retrieved successfully',
-        { role: highestRole, roles: userRoles }
+        { 
+          role: highestGlobalRole, // Backward compatibility
+          globalRole: highestGlobalRole,
+          globalRoles: globalRoles,
+          channelRoles: channelRoleMap,
+          allRoles: userRoles // Complete role information
+        }
       )
     );
   }
-); 
+);

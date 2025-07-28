@@ -251,6 +251,29 @@ const handleConnection = (socket: any) => {
           return callback?.({ success: false, message: error });
         }
 
+        // Check role-based permissions for announcement channels
+        if (channel.type === 'announcement') {
+          const { hasAnyRole } = await import('../utils/roleUtils');
+          const hasPermission = await hasAnyRole(userId, channelId, ['admin', 'moderator']);
+          
+          if (!hasPermission) {
+            const error = 'Only admins and moderators can send messages in announcement channels';
+            logger.info('Role check failed for announcement channel:', { 
+              userId, 
+              channelId, 
+              channelType: channel.type 
+            });
+            socket.emit('error', { message: error });
+            return callback?.({ success: false, message: error });
+          }
+          
+          logger.info('Role check passed for announcement channel:', { 
+            userId, 
+            channelId, 
+            channelType: channel.type 
+          });
+        }
+
         // Get user's username (Clerk username) from database
         let username = 'Anonymous';
         try {
@@ -487,6 +510,64 @@ const handleConnection = (socket: any) => {
       socketId: socket.id,
       timestamp: new Date().toISOString()
     });
+  });
+
+  // Handle role change notifications
+  socket.on('role_updated', (data: { userId: string; channelId?: string; role: string }) => {
+    try {
+      logger.info('Role updated notification:', {
+        userId: data.userId,
+        channelId: data.channelId,
+        role: data.role,
+        timestamp: new Date().toISOString()
+      });
+
+      // Notify the user about their role change
+      emitToUser(data.userId, 'role_updated', {
+        channelId: data.channelId,
+        role: data.role,
+        timestamp: new Date().toISOString()
+      });
+
+      // If it's a channel-specific role, also notify channel members
+      if (data.channelId) {
+        emitToChannel(data.channelId, 'user_role_updated', {
+          userId: data.userId,
+          role: data.role,
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      logger.error('Error handling role update notification:', {
+        error: error instanceof Error ? error.message : String(error),
+        data,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Handle channel permissions updates
+  socket.on('channel_permissions_updated', (data: { channelId: string; permissions: any }) => {
+    try {
+      logger.info('Channel permissions updated notification:', {
+        channelId: data.channelId,
+        permissions: data.permissions,
+        timestamp: new Date().toISOString()
+      });
+
+      // Notify all channel members about permission changes
+      emitToChannel(data.channelId, 'channel_permissions_updated', {
+        channelId: data.channelId,
+        permissions: data.permissions,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error handling channel permissions update notification:', {
+        error: error instanceof Error ? error.message : String(error),
+        data,
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 };
 
