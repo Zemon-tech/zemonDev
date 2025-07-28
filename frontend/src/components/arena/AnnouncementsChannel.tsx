@@ -4,10 +4,14 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { PlusCircle, Pin, Loader2, AlertCircle, Shield, Users } from 'lucide-react';
+import { PlusCircle, Pin, Loader2, AlertCircle, Shield, Users, Plus, Image, Gift, Smile } from 'lucide-react';
 import { useArenaChat, Message } from '@/hooks/useArenaChat';
 import { useUserRole } from '@/context/UserRoleContext';
 import RestrictedMessageView from './RestrictedMessageView';
+import Picker from '@emoji-mart/react';
+import data from '@emoji-mart/data';
+import { GiphyFetch } from '@giphy/js-fetch-api';
+import { Grid as GiphyGrid } from '@giphy/react-components';
 
 interface AnnouncementsChannelProps {
   channelId?: string;
@@ -20,6 +24,10 @@ const AnnouncementsChannelComponent: React.FC<AnnouncementsChannelProps> = ({
 }) => {
   const { messages, loading, error, sendMessage } = useArenaChat(channelId, userChannelStatuses);
   const { globalRole, channelRoles, isLoading: roleLoading } = useUserRole();
+  const [announcementInput, setAnnouncementInput] = React.useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = React.useState(false);
+  const [showGifPicker, setShowGifPicker] = React.useState(false);
+  const gf = React.useMemo(() => new GiphyFetch('YOUR_GIPHY_API_KEY'), []);
   
   // Check if user has admin/moderator access for this channel - MEMOIZED to prevent infinite re-renders
   const canPost = useMemo(() => {
@@ -153,109 +161,162 @@ const AnnouncementsChannelComponent: React.FC<AnnouncementsChannelProps> = ({
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="p-6 space-y-6"
+          className="px-0 py-4"
         >
-          {/* Pinned Announcements */}
-          {pinnedMessages.length > 0 && (
-            <div className="space-y-4">
-              {pinnedMessages.map(message => (
-                <motion.div
-                  key={message._id}
-                  variants={itemVariants}
-                  className={cn(
-                    "relative p-6 rounded-xl border",
-                    "bg-primary/5 border-primary/10",
-                    "hover:bg-primary/10 transition-colors duration-200"
+          {/* Date grouping logic */}
+          {(() => {
+            // Group messages by date
+            const merged: Array<{ group: Message[]; showDate: boolean }> = [];
+            let group: Message[] = [];
+            let lastDate: string | null = null;
+            
+            // Combine pinned and regular messages, keeping pinned first
+            const allMessages = [...pinnedMessages, ...regularMessages];
+            
+            // Handle empty state
+            if (allMessages.length === 0) {
+              return (
+                <div className="flex flex-col items-center justify-center py-12 text-base-content/70">
+                  <p>No announcements yet.</p>
+                  {canPost && <p className="mt-2">Use the New button to create one!</p>}
+                </div>
+              );
+            }
+            
+            allMessages.forEach((msg, idx) => {
+              const prev = allMessages[idx - 1];
+              const msgDate = new Date(msg.timestamp).toDateString();
+              const prevDate = prev ? new Date(prev.timestamp).toDateString() : null;
+              
+              if (!prev || prevDate !== msgDate) {
+                if (group.length) merged.push({ group, showDate: lastDate !== msgDate });
+                group = [msg];
+                lastDate = msgDate;
+              } else {
+                group.push(msg);
+              }
+            });
+            if (group.length) merged.push({ group, showDate: false });
+            
+            // Render merged groups
+            return merged.map(({ group, showDate }, i) => {
+              const first = group[0];
+              return (
+                <React.Fragment key={first._id + '-' + i}>
+                  {showDate && (
+                    <div className="flex items-center justify-center my-6">
+                      <span className="px-4 py-1 rounded-full bg-base-300 text-xs text-base-content/60 font-medium shadow-sm">
+                        {new Date(first.timestamp).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                      </span>
+                    </div>
                   )}
-                >
-                  <div className="absolute top-4 right-4">
-                    <Pin className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-4">
-                      <Avatar className="w-10 h-10">
-                        <AvatarFallback>
+                  {group.map(message => (
+                    <motion.div
+                      key={message._id}
+                      variants={itemVariants}
+                      className={cn(
+                        "group flex items-start w-full px-6 py-1.5 hover:bg-base-200/80 transition-colors relative"
+                      )}
+                    >
+                      <Avatar className="w-11 h-11 mt-0.5 mr-3 flex-shrink-0 border-2 border-base-300 shadow-sm bg-base-100">
+                        <AvatarFallback className="font-bold text-lg bg-primary/80 text-primary-foreground">
                           {message.username.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-lg font-semibold text-base-content">{getMessageTitle(message)}</h3>
-                          <Badge variant="secondary" className="bg-primary/20 text-primary border-none">Pinned</Badge>
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-semibold text-base-content text-[15px] leading-tight">{message.username}</span>
+                          {isPinned(message) && (
+                            <>
+                              <Badge variant="secondary" className="bg-primary/20 text-primary border-none px-1 py-0.5 text-xs">Pinned</Badge>
+                              <Pin className="w-3 h-3 text-primary" />
+                            </>
+                          )}
+                          <span className="text-xs text-base-content/50 leading-tight mt-0.5">{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
-                        <div className="flex items-center gap-2 mt-1 text-sm text-base-content/70">
-                          <span className="font-medium">{message.username}</span>
-                          <span>•</span>
-                          <Badge variant="outline" className="text-xs font-normal">
-                            {message.type === 'system' ? 'System' : 'Admin'}
-                          </Badge>
-                          <span>•</span>
-                          <span>{new Date(message.timestamp).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-base-content/80 leading-relaxed whitespace-pre-line">{getMessageContent(message)}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
-
-          {/* Regular Announcements */}
-          {regularMessages.length > 0 ? (
-            <div className="space-y-4">
-              {regularMessages.map(message => (
-                <motion.div
-                  key={message._id}
-                  variants={itemVariants}
-                  className={cn(
-                    "p-6 rounded-xl border",
-                    "bg-card/50 border-border/50",
-                    "hover:bg-card/80 transition-colors duration-200"
-                  )}
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-4">
-                      <Avatar className="w-10 h-10">
-                        <AvatarFallback>
-                          {message.username.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-semibold text-base-content">{getMessageTitle(message)}</h3>
-                        <div className="flex items-center gap-2 mt-1 text-sm text-base-content/70">
-                          <span className="font-medium">{message.username}</span>
-                          <span>•</span>
-                          <span>{new Date(message.timestamp).toLocaleDateString()}</span>
+                        {isPinned(message) && (
+                          <div className="flex items-center gap-2 mt-0.5 text-xs text-base-content/60">
+                            <span>•</span>
+                            <Badge variant="outline" className="text-xs font-normal px-1 py-0.5">
+                              {message.type === 'system' ? 'System' : 'Admin'}
+                            </Badge>
+                          </div>
+                        )}
+                        <div className="relative group/message mt-0.5">
+                          <span className="whitespace-pre-line text-[15px] text-base-content/90 leading-relaxed px-0 py-0.5">{message.content.replace('[PINNED]', '').trim()}</span>
                         </div>
                       </div>
-                    </div>
-                    <p className="text-base-content/80 leading-relaxed whitespace-pre-line">{getMessageContent(message)}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-base-content/70">
-              <p>No announcements yet.</p>
-              {canPost && <p className="mt-2">Use the New button to create one!</p>}
-            </div>
-          )}
+                    </motion.div>
+                  ))}
+                </React.Fragment>
+              );
+            });
+          })()}
         </motion.div>
       </div>
 
       {/* Message Input Section */}
       {canPost ? (
-        <div className="p-4 border-t border-base-300 bg-base-200">
-          <Button className="w-full" onClick={() => {
-            const announcement = prompt("Enter your announcement (prefix with [PINNED] to pin):");
-            if (announcement) {
-              sendMessage(announcement);
-            }
-          }}>
-            <PlusCircle className="w-5 h-5 mr-2" />
-            Post New Announcement
-          </Button>
+        <div className="px-6 py-4 border-t border-base-300 bg-base-200">
+          <div className="flex items-center bg-base-300 rounded-lg px-2 py-2 w-full relative">
+            {/* Left icons */}
+            <button className="p-1.5 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors" onClick={() => setShowEmojiPicker(v => !v)} type="button">
+              <Smile className="w-5 h-5" />
+            </button>
+            <button className="p-1.5 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors" onClick={() => setShowGifPicker(v => !v)} type="button">
+              <Gift className="w-5 h-5" />
+            </button>
+            {/* Input */}
+            <input
+              type="text"
+              value={announcementInput}
+              onChange={(e) => setAnnouncementInput(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (announcementInput.trim()) {
+                    sendMessage(announcementInput);
+                    setAnnouncementInput('');
+                    setShowEmojiPicker(false);
+                    setShowGifPicker(false);
+                  }
+                }
+              }}
+              placeholder="Post a new announcement (prefix with [PINNED] to pin)"
+              className="flex-1 bg-transparent border-none outline-none px-3 text-base-content placeholder:text-base-content/60"
+            />
+            {/* Right icons */}
+            <button className="p-1.5 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors">
+              <Plus className="w-5 h-5" />
+            </button>
+            <button className="p-1.5 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors">
+              <Image className="w-5 h-5" />
+            </button>
+            {/* Emoji Picker Popover */}
+            {showEmojiPicker && (
+              <div className="absolute bottom-16 left-0 z-50">
+                <Picker data={data} onEmojiSelect={(emoji: any) => {
+                  setAnnouncementInput(input => input + (emoji.native || emoji.colons || ''));
+                  setShowEmojiPicker(false);
+                }} />
+              </div>
+            )}
+            {/* GIF Picker Popover */}
+            {showGifPicker && (
+              <div className="absolute bottom-16 left-24 z-50 bg-base-100 rounded shadow-lg">
+                <GiphyGrid
+                  width={300}
+                  columns={3}
+                  fetchGifs={offset => gf.trending({ offset, limit: 9 })}
+                  onGifClick={gif => {
+                    sendMessage(gif.images.original.url);
+                    setShowGifPicker(false);
+                    setShowEmojiPicker(false);
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <RestrictedMessageView channelName="announcement" />

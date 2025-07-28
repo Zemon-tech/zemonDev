@@ -6,6 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Plus, Image, Gift, Smile, MoreHorizontal, Loader2 } from 'lucide-react';
 import { useArenaChat } from '@/hooks/useArenaChat';
 import type { Message } from '@/hooks/useArenaChat';
+import Picker from '@emoji-mart/react';
+import data from '@emoji-mart/data';
+import { GiphyFetch } from '@giphy/js-fetch-api';
+import { Grid as GiphyGrid } from '@giphy/react-components';
 
 interface ChatChannelProps {
   channelId?: string;
@@ -62,6 +66,9 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
   const [replyTo, setReplyTo] = useState<{_id: string, username: string, content: string} | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const gf = React.useMemo(() => new GiphyFetch('YOUR_GIPHY_API_KEY'), []);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -74,6 +81,8 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
       setReplyTo(null);
       setMessageInput('');
       handleStopTyping();
+      setShowEmojiPicker(false);
+      setShowGifPicker(false);
     }
   };
 
@@ -345,35 +354,61 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
               <button className="ml-auto text-xs text-base-content/60 hover:text-error" onClick={() => setReplyTo(null)}>✕</button>
             </div>
           )}
-          <div className="relative">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-              <button className="p-1.5 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors">
-                <Plus className="w-5 h-5" />
-              </button>
-              <button className="p-1.5 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors">
-                <Image className="w-5 h-5" />
-              </button>
-            </div>
+          <div className="flex items-center bg-base-300 rounded-lg px-2 py-2 w-full relative">
+            {/* Left icons */}
+            <button className="p-1.5 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors" onClick={() => setShowEmojiPicker(v => !v)} type="button">
+              <Smile className="w-5 h-5" />
+            </button>
+            <button className="p-1.5 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors" onClick={() => setShowGifPicker(v => !v)} type="button">
+              <Gift className="w-5 h-5" />
+            </button>
+            {/* Input */}
             <input
               type="text"
               value={messageInput}
               onChange={(e) => handleTyping(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                  setShowEmojiPicker(false);
+                  setShowGifPicker(false);
+                }
+              }}
               placeholder={`Message #${channelName}`}
-              className={cn(
-                "w-full bg-base-300 rounded-lg pl-24 pr-24 py-3",
-                "text-base-content placeholder:text-base-content/60",
-                "focus:outline-none focus:ring-2 focus:ring-primary/20"
-              )}
+              className="flex-1 bg-transparent border-none outline-none px-3 text-base-content placeholder:text-base-content/60"
             />
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-              <button className="p-1.5 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors">
-                <Gift className="w-5 h-5" />
-              </button>
-              <button className="p-1.5 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors">
-                <Smile className="w-5 h-5" />
-              </button>
-            </div>
+            {/* Right icons */}
+            <button className="p-1.5 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors">
+              <Plus className="w-5 h-5" />
+            </button>
+            <button className="p-1.5 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors">
+              <Image className="w-5 h-5" />
+            </button>
+            {/* Emoji Picker Popover */}
+            {showEmojiPicker && (
+              <div className="absolute bottom-16 left-0 z-50">
+                <Picker data={data} onEmojiSelect={(emoji: any) => {
+                  setMessageInput(input => input + (emoji.native || emoji.colons || ''));
+                  setShowEmojiPicker(false);
+                }} />
+              </div>
+            )}
+            {/* GIF Picker Popover */}
+            {showGifPicker && (
+              <div className="absolute bottom-16 left-24 z-50 bg-base-100 rounded shadow-lg">
+                <GiphyGrid
+                  width={300}
+                  columns={3}
+                  fetchGifs={offset => gf.trending({ offset, limit: 9 })}
+                  onGifClick={gif => {
+                    sendMessage(gif.images.original.url);
+                    setShowGifPicker(false);
+                    setShowEmojiPicker(false);
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
