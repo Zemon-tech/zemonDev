@@ -264,20 +264,35 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
 
   const handleAddToNotes = useCallback(async (content: string) => {
     try {
-      const token = await getToken();
-      if (!token) return;
+      // Use the new addAIContentToNotes function from NotesCollector
+      if (typeof window !== 'undefined' && (window as any).addAIContentToNotes) {
+        const success = await (window as any).addAIContentToNotes(content);
+        
+        if (success) {
+          toast({
+            title: "Success",
+            description: "AI response added to notes",
+          });
+        } else {
+          throw new Error('Failed to add to notes');
+        }
+      } else {
+        // Fallback to old method if NotesCollector is not available
+        const token = await getToken();
+        if (!token) return;
 
-      await updateNotes(problemId, content, [], () => Promise.resolve(token));
-      
-      // Refresh the NotesCollector
-      if (typeof window !== 'undefined' && (window as any).refreshNotesCollector) {
-        (window as any).refreshNotesCollector();
+        await updateNotes(problemId, content, [], () => Promise.resolve(token));
+        
+        // Refresh the NotesCollector
+        if (typeof window !== 'undefined' && (window as any).refreshNotesCollector) {
+          (window as any).refreshNotesCollector();
+        }
+        
+        toast({
+          title: "Success",
+          description: "Content added to notes",
+        });
       }
-      
-      toast({
-        title: "Success",
-        description: "Content added to notes",
-      });
     } catch (error) {
       console.error('Error adding to notes:', error);
       toast({
