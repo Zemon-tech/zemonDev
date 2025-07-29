@@ -56,9 +56,11 @@ export default function NotesCollector({ problemId, onChange }: NotesCollectorPr
       
       const response = await getNotes(problemId, () => Promise.resolve(token));
       if (response.content) {
-        const savedNotes = response.content.split('\n').filter(Boolean).map((content, index) => ({
+        // Split by the separator we use when saving
+        const noteContents = response.content.split('\n\n---\n\n').filter(Boolean);
+        const savedNotes = noteContents.map((content, index) => ({
           id: `note-${Date.now()}-${index}`,
-          content,
+          content: content.trim(),
           tags: response.tags || [],
           timestamp: Date.now() - (index * 1000),
           type: 'manual' as const,
@@ -91,12 +93,12 @@ export default function NotesCollector({ problemId, onChange }: NotesCollectorPr
       
       await updateNotes(problemId, content, tags, () => Promise.resolve(token));
       
-      // Reload notes after saving to ensure consistency
-      await loadNotes();
+      // Don't reload notes after saving to avoid race conditions
+      // The local state is already updated, so we trust it
     } catch (err) {
       console.error('Failed to save notes:', err);
     }
-  }, [problemId, getToken, loadNotes]);
+  }, [problemId, getToken]);
 
   // Handle note submission
   const handleSubmit = useCallback(() => {
