@@ -1,154 +1,169 @@
 import { useNavigate, useParams } from 'react-router-dom';
-// Remove broken import
-// import CrucibleBrowseView, { type Problem } from '../components/crucible/CrucibleBrowseView';
-import ProblemCard, { type Problem } from '../components/crucible/ProblemCard';
-// Assume these hooks are available
-// import { useCrucibleProblems, useCrucibleSolution } from '@/hooks/crucible';
 import { useState, useEffect } from 'react';
-import { Search, X, AlertCircle } from 'lucide-react';
+import { Search, X, ArrowRight, TrendingUp, Clock, Star, Code, Database, Globe, Zap, Target, Users, BookOpen, Lightbulb, Bug, MessageSquare, Plane, Briefcase } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { cn, logger } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { getProblems } from '@/lib/crucibleApi';
 import { useAuth } from '@clerk/clerk-react';
+import { SpotlightCard } from '@/components/blocks/SpotlightCard';
+import { GradientText } from '@/components/blocks/GradientText';
+import Lottie from 'lottie-react';
 
 // Create a simple toast implementation since we don't have the UI component
 const useToast = () => {
   const toast = ({ title, description }: { title: string; description: string; variant?: string }) => {
-    logger.log(`${title}: ${description}`);
-    // In a real implementation, this would show a toast notification
+    console.log(`${title}: ${description}`);
   };
   
   return { toast };
 };
 
-// Mapping function to convert API response to Problem type
-const mapApiProblemToUiProblem = (apiProblem: any): Problem => {
-  if (!apiProblem || typeof apiProblem !== 'object') {
-    return {
-      id: 'error',
-      title: 'Error loading problem',
-      description: 'There was an error loading this problem',
-      difficulty: 'medium',
-      tags: ['error'],
-    };
-  }
-  
-  // Destructure for better performance
-  const { _id, id, title, description, difficulty, tags = [] } = apiProblem;
-  
-  // Handle MongoDB ObjectId in various formats
-  let problemId = 'unknown-id';
-  
-  if (_id) {
-    if (typeof _id === 'string') {
-      // Simple string ID
-      problemId = _id;
-    } else if (typeof _id === 'object') {
-      if (_id.$oid) {
-        // MongoDB extended JSON format: { $oid: "..." }
-        problemId = _id.$oid;
-      } else if (typeof _id.toString === 'function') {
-        // MongoDB ObjectId object with toString method
-        problemId = _id.toString();
-      }
-    }
-  } else if (id) {
-    // Fallback to id if _id is not available
-    problemId = typeof id === 'string' ? id : String(id);
-  }
-  
-  // Handle tags that might be a single string with comma-separated values
-  let normalizedTags = tags;
-  if (!Array.isArray(tags) && typeof tags === 'string') {
-    normalizedTags = tags.split(',').map(tag => tag.trim());
-  } else if (!Array.isArray(tags)) {
-    normalizedTags = [];
-  }
-  
-  return {
-    id: problemId,
-    title: title || 'Untitled Problem',
-    description: description || 'No description available',
-    difficulty: difficulty || 'medium',
-    tags: normalizedTags,
-  };
-};
-
-// Skeleton loader component for problem cards
-function ProblemCardSkeleton() {
-  return (
-    <div className="border rounded-lg p-4 animate-pulse">
-      <div className="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
-      <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-      <div className="h-4 bg-gray-200 rounded w-5/6 mb-2"></div>
-      <div className="h-4 bg-gray-200 rounded w-4/6 mb-4"></div>
-      <div className="flex gap-2 mt-4">
-        <div className="h-6 bg-gray-200 rounded w-16"></div>
-        <div className="h-6 bg-gray-200 rounded w-16"></div>
-      </div>
-    </div>
-  );
-}
-
-
-
-// Get all unique tags from problems
-const getAllTags = (problems: Problem[]): string[] => {
-  const tagSet = new Set<string>();
-  problems.forEach(problem => {
-    problem.tags.forEach(tag => tagSet.add(tag));
-  });
-  return Array.from(tagSet).sort();
-};
-
-// Create mock data for testing
-const mockProblems: Problem[] = [
+// Problem categories with icons and colors
+const problemCategories = [
   {
-    id: 'mock1',
-    title: 'Mock Problem 1',
-    description: 'This is a mock problem for testing when the API does not return data correctly',
-    difficulty: 'medium',
-    tags: ['mock', 'test'],
+    id: 'algorithms',
+    name: 'Algorithms',
+    description: 'Data structures, sorting, searching, and algorithmic thinking',
+    icon: Code,
+    color: 'from-blue-500 to-cyan-500',
+    bgColor: 'bg-blue-500/10',
+    borderColor: 'border-blue-500/20',
+    count: 0
   },
   {
-    id: 'mock2',
-    title: 'Mock Problem 2',
-    description: 'Another mock problem for testing',
-    difficulty: 'easy',
-    tags: ['mock', 'test', 'easy'],
+    id: 'system-design',
+    name: 'System Design',
+    description: 'Scalable architectures, distributed systems, and design patterns',
+    icon: Database,
+    color: 'from-purple-500 to-pink-500',
+    bgColor: 'bg-purple-500/10',
+    borderColor: 'border-purple-500/20',
+    count: 0
   },
+  {
+    id: 'web-development',
+    name: 'Web Development',
+    description: 'Frontend, backend, APIs, and modern web technologies',
+    icon: Globe,
+    color: 'from-green-500 to-emerald-500',
+    bgColor: 'bg-green-500/10',
+    borderColor: 'border-green-500/20',
+    count: 0
+  },
+  {
+    id: 'mobile-development',
+    name: 'Mobile Development',
+    description: 'iOS, Android, React Native, and mobile app challenges',
+    icon: Zap,
+    color: 'from-yellow-500 to-orange-500',
+    bgColor: 'bg-yellow-500/10',
+    borderColor: 'border-yellow-500/20',
+    count: 0
+  },
+  {
+    id: 'data-science',
+    name: 'Data Science',
+    description: 'Machine learning, data analysis, and statistical modeling',
+    icon: Target,
+    color: 'from-red-500 to-pink-500',
+    bgColor: 'bg-red-500/10',
+    borderColor: 'border-red-500/20',
+    count: 0
+  },
+  {
+    id: 'devops',
+    name: 'DevOps',
+    description: 'CI/CD, cloud infrastructure, and deployment strategies',
+    icon: Users,
+    color: 'from-indigo-500 to-blue-500',
+    bgColor: 'bg-indigo-500/10',
+    borderColor: 'border-indigo-500/20',
+    count: 0
+  },
+  {
+    id: 'frontend',
+    name: 'Frontend',
+    description: 'React, Vue, Angular, and modern UI/UX challenges',
+    icon: BookOpen,
+    color: 'from-teal-500 to-cyan-500',
+    bgColor: 'bg-teal-500/10',
+    borderColor: 'border-teal-500/20',
+    count: 0
+  },
+  {
+    id: 'backend',
+    name: 'Backend',
+    description: 'Node.js, Python, Java, and server-side development',
+    icon: Lightbulb,
+    color: 'from-amber-500 to-yellow-500',
+    bgColor: 'bg-amber-500/10',
+    borderColor: 'border-amber-500/20',
+    count: 0
+  }
 ];
+
+// Hot/Latest problems interface
+interface HotProblem {
+  id: string;
+  title: string;
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+  category: string;
+  solvedCount: number;
+  trending: boolean;
+}
 
 export default function CruciblePage() {
   const navigate = useNavigate();
   const { username } = useParams();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [problems, setProblems] = useState<Problem[]>([]);
-  const [filteredProblems, setFilteredProblems] = useState<Problem[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [problems, setProblems] = useState<any[]>([]);
+  const [hotProblems, setHotProblems] = useState<HotProblem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [catAnimation, setCatAnimation] = useState<any>(null);
+  const [stressAnimation, setStressAnimation] = useState<any>(null);
   const { toast } = useToast();
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
   
-  // Force loading state to end after 10 seconds maximum
-  useEffect(() => {
-    if (!isLoading) return;
-    
-    const forceTimeout = setTimeout(() => {
-      if (isLoading) {
-        logger.log('Force ending loading state after timeout');
-        setIsLoading(false);
-      }
-    }, 10000);
-    
-    return () => clearTimeout(forceTimeout);
-  }, [isLoading]);
+  // Real hot problems data with actual problem IDs
+  const mockHotProblems: HotProblem[] = [
+    {
+      id: '507f1f77bcf86cd799439011', // Design a URL Shortener
+      title: 'Design a URL Shortener',
+      difficulty: 'medium',
+      category: 'system-design',
+      solvedCount: 156,
+      trending: true
+    },
+    {
+      id: '507f1f77bcf86cd799439012', // Implement LRU Cache
+      title: 'Implement LRU Cache',
+      difficulty: 'hard',
+      category: 'algorithms',
+      solvedCount: 89,
+      trending: true
+    },
+    {
+      id: '507f1f77bcf86cd799439013', // Build a Real-time Chat App
+      title: 'Build a Real-time Chat App',
+      difficulty: 'medium',
+      category: 'web-development',
+      solvedCount: 234,
+      trending: false
+    },
+    {
+      id: '507f1f77bcf86cd799439014', // Design a Rate Limiter
+      title: 'Design a Rate Limiter',
+      difficulty: 'hard',
+      category: 'system-design',
+      solvedCount: 67,
+      trending: true
+    }
+  ];
   
   // Fetch problems from API
-  const fetchProblems = async (pageNum = 1) => {
+  const fetchProblems = async () => {
     if (!isSignedIn) {
       setError('Please sign in to view problems');
       setIsLoading(false);
@@ -157,227 +172,251 @@ export default function CruciblePage() {
     
     try {
       setIsLoading(true);
-      
-      const filters = { page: pageNum, limit: 10 };
-      const problemsData = await getProblems(filters);
+      const problemsData = await getProblems({ limit: 100 });
       
       if (problemsData && Array.isArray(problemsData)) {
-        const newProblems = problemsData.map(mapApiProblemToUiProblem);
+        setProblems(problemsData);
         
-        if (pageNum === 1) {
-          setProblems(newProblems);
-          setFilteredProblems(newProblems);
-        } else {
-          setProblems(prev => [...prev, ...newProblems]);
-          setFilteredProblems(prev => [...prev, ...newProblems]);
-        }
+        // Update category counts
+        const categoryCounts = problemsData.reduce((acc: any, problem: any) => {
+          problem.tags.forEach((tag: string) => {
+            const category = problemCategories.find(cat => cat.id === tag);
+            if (category) {
+              acc[category.id] = (acc[category.id] || 0) + 1;
+            }
+          });
+          return acc;
+        }, {});
         
-        // Check if there are more pages
-        setHasMore(newProblems.length === 10);
-        
-        // If no problems were found, use mock data
-        if (newProblems.length === 0 && pageNum === 1) {
-          logger.warn('No problems returned from API, using mock data');
-          setProblems(mockProblems);
-          setFilteredProblems(mockProblems);
-          setHasMore(false);
-        }
-      } else {
-        // Use mock data as fallback if no data is returned
-        if (pageNum === 1) {
-          logger.warn('Invalid response format from API, using mock data');
-          setProblems(mockProblems);
-          setFilteredProblems(mockProblems);
-          setHasMore(false);
-        }
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load problems';
-      logger.error('Error fetching problems:', err);
-      
-      // Check if it's an authentication error
-      if (err instanceof Error && (
-        errorMessage.includes('Unauthenticated') || 
-        errorMessage.includes('Authentication') ||
-        errorMessage.includes('401') ||
-        errorMessage.includes('403')
-      )) {
-        setError('Please sign in to view problems');
-      } else if (err instanceof Error && errorMessage.includes('429')) {
-        // Handle rate limiting
-        setError('Too many requests. Please wait a moment before trying again.');
-        setTimeout(() => {
-          fetchProblems(pageNum);
-        }, 5000); // Retry after 5 seconds
-        
-        // Don't clear loading state yet
-        return;
-      } else {
-        setError(errorMessage);
-        toast({
-          title: 'Error',
-          description: errorMessage,
-          variant: 'destructive',
+        // Update categories with counts
+        problemCategories.forEach(category => {
+          category.count = categoryCounts[category.id] || 0;
         });
       }
-      
-      // Use mock data as fallback on error for first page
-      if (pageNum === 1) {
-        setProblems(mockProblems);
-        setFilteredProblems(mockProblems);
-      }
+    } catch (err) {
+      console.error('Error fetching problems:', err);
+      setError('Failed to load problems');
     } finally {
       setIsLoading(false);
     }
   };
   
-  // Load more function
-  const loadMore = () => {
-    if (!isLoading && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      fetchProblems(nextPage);
-    }
-  };
+  // Load animations
+  useEffect(() => {
+    const loadAnimations = async () => {
+      try {
+        const [catResponse, stressResponse] = await Promise.all([
+          fetch('/Cat Movement.json'),
+          fetch('/Stress Management.json')
+        ]);
+        
+        const catData = await catResponse.json();
+        const stressData = await stressResponse.json();
+        
+        setCatAnimation(catData);
+        setStressAnimation(stressData);
+      } catch (error) {
+        console.error('Error loading animations:', error);
+      }
+    };
+    
+    loadAnimations();
+  }, []);
+
+  // Load hot problems
+  useEffect(() => {
+    setHotProblems(mockHotProblems);
+  }, []);
   
   // Initial load
   useEffect(() => {
     if (authLoaded && isSignedIn) {
-      fetchProblems(1);
+      fetchProblems();
     }
   }, [authLoaded, isSignedIn]);
   
-  // Filter problems based on search query and selected tags
-  useEffect(() => {
-    const filtered = problems.filter(problem => {
-      // Search query filter
-      const matchesQuery = searchQuery === '' || 
-        problem.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        problem.description.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      // Tags filter (AND logic)
-      const matchesTags = selectedTags.length === 0 || 
-        selectedTags.every(tag => problem.tags.includes(tag));
-      
-      return matchesQuery && matchesTags;
-    });
-    
-    setFilteredProblems(filtered);
-  }, [searchQuery, selectedTags, problems]);
-
-  // Get all unique tags
-  const allTags = getAllTags(problems);
-
-  // Toggle tag selection
-  const toggleTag = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) 
-        ? prev.filter(t => t !== tag) 
-        : [...prev, tag]
-    );
+  // Handle category selection
+  const handleCategoryClick = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    navigate(`/${username}/crucible/category/${categoryId}`);
   };
 
-  // Clear all selected tags
-  const clearTags = () => {
-    setSelectedTags([]);
+  // Handle hot problem click
+  const handleHotProblemClick = (problemId: string) => {
+    navigate(`/${username}/crucible/problem/${problemId}`);
+  };
+
+  // Get difficulty color
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'easy': return 'text-green-600 bg-green-100 dark:bg-green-900/20 dark:text-green-400';
+      case 'medium': return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400';
+      case 'hard': return 'text-red-600 bg-red-100 dark:bg-red-900/20 dark:text-red-400';
+      case 'expert': return 'text-purple-600 bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400';
+      default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400';
+    }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-4 min-h-screen">
-      {/* Search Bar */}
-      <div className="relative w-full max-w-md mx-auto mb-4">
-        <input
-          type="text"
-          className="rounded-full pl-10 pr-8 py-2 text-sm bg-base-100 border border-base-300 shadow-sm focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-200 text-base-content placeholder:text-base-content/60 w-full"
-          placeholder="Search challenges..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          aria-label="Search challenges"
-        />
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/60 pointer-events-none">
-          <Search className="w-4 h-4" />
-        </span>
-        {searchQuery && (
-          <button
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-base-content/60 hover:text-error hover:bg-error/10 transition-colors"
-            tabIndex={0}
-            aria-label="Clear search"
-            onClick={() => setSearchQuery('')}
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-      {/* Tags Filter */}
-      <div className="mb-4 border-b border-base-300 pb-3">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {allTags.map(tag => (
-            <Badge 
-              key={tag}
-              variant={selectedTags.includes(tag) ? "default" : "outline"}
-              className={cn(
-                "px-3 py-1 rounded-full cursor-pointer text-xs capitalize transition-all hover:scale-105",
-                selectedTags.includes(tag) ? "bg-primary text-primary-foreground" : "hover:bg-accent bg-base-200 text-base-content border-none"
-              )}
-              onClick={() => toggleTag(tag)}
-            >
-              {tag}
-            </Badge>
-          ))}
-          {selectedTags.length > 0 && (
-            <Badge 
-              variant="secondary"
-              className="px-3 py-1 rounded-full cursor-pointer text-xs flex items-center gap-1 hover:bg-secondary/80 transition-all"
-              onClick={clearTags}
-            >
-              Clear all <X className="w-3 h-3" />
-            </Badge>
-          )}
-        </div>
-      </div>
-      {/* Problem Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-1">
-        {isLoading ? (
-          Array(6).fill(0).map((_, i) => <ProblemCardSkeleton key={i} />)
-        ) : error ? (
-          <div className="col-span-full text-center text-error py-12">
-            <AlertCircle className="w-12 h-12 mx-auto mb-4" />
-            <p className="text-lg font-medium">{error}</p>
+    <div className="min-h-screen bg-gradient-to-br from-base-100 via-base-50 to-base-100">
+            {/* Hero Section */}
+      <div className="relative overflow-hidden">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 py-8">
+          <div className="text-center">
+            <div className="mb-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-base-100/80 backdrop-blur-sm border border-base-300 rounded-full text-xs text-base-content/70 mb-2">
+                <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></span>
+                Join 10,000+ developers mastering their skills
+              </div>
+            </div>
+            
+            <GradientText text="Master Your Skills" className="text-4xl md:text-5xl font-bold mb-3" />
+            <p className="text-lg md:text-xl text-base-content/80 mb-6 max-w-2xl mx-auto leading-relaxed">
+              Solve real-world programming challenges, design scalable systems, and build your portfolio with our curated collection of problems.
+            </p>
+            
+            {/* Search Bar */}
+            <div className="relative max-w-xl mx-auto mb-6">
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-primary to-primary/80 rounded-xl blur opacity-20 group-hover:opacity-30 transition duration-1000 group-hover:duration-200"></div>
+                <input
+                  type="text"
+                  className="relative w-full pl-10 pr-10 py-3 text-base bg-base-100/90 backdrop-blur-md border border-base-300 rounded-xl shadow-lg focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all duration-300 text-base-content placeholder:text-base-content/60"
+                  placeholder="Search for challenges..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-base-content/60" />
+                {searchQuery && (
+                  <button
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-base-content/60 hover:text-error hover:bg-error/10 transition-colors"
+                    onClick={() => setSearchQuery('')}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="flex justify-center gap-6 mb-6">
+              <div className="text-center group">
+                <div className="text-2xl font-bold text-primary mb-1 group-hover:scale-110 transition-transform">500+</div>
+                <div className="text-sm text-base-content/70">Challenges</div>
+              </div>
+              <div className="text-center group">
+                <div className="text-2xl font-bold text-primary mb-1 group-hover:scale-110 transition-transform">10k+</div>
+                <div className="text-sm text-base-content/70">Solutions</div>
+              </div>
+              <div className="text-center group">
+                <div className="text-2xl font-bold text-primary mb-1 group-hover:scale-110 transition-transform">95%</div>
+                <div className="text-sm text-base-content/70">Success Rate</div>
+              </div>
+            </div>
           </div>
-        ) : filteredProblems.length === 0 ? (
-          <div className="col-span-full text-center text-base-content/60 py-12">No problems found</div>
-        ) : (
-          filteredProblems.map((problem) => (
-            <ProblemCard key={problem.id} problem={problem} onSelect={(p) => navigate(`/${username}/crucible/problem/${p.id}`)} />
-          ))
+        </div>
+        
+        {/* Cat Movement Animation at bottom right */}
+        {catAnimation && (
+          <div className="absolute bottom-0 right-8 w-80 h-40 opacity-80">
+            <Lottie 
+              animationData={catAnimation} 
+              loop={true}
+              autoplay={true}
+              style={{ width: '100%', height: '100%' }}
+            />
+          </div>
+        )}
+
+        {/* Stress Management Animation at center left */}
+        {stressAnimation && (
+          <div className="absolute left-5 bottom-0 transform  w-100 h-85 opacity-80">
+            <Lottie 
+              animationData={stressAnimation} 
+              loop={true}
+              autoplay={true}
+              style={{ width: '100%', height: '100%' }}
+            />
+          </div>
         )}
       </div>
-      {/* Load More Button */}
-      {hasMore && !isLoading && filteredProblems.length > 0 && (
-        <div className="flex justify-center mt-6">
-          <button 
-            className="px-5 py-2 rounded-full bg-primary text-primary-foreground font-semibold shadow hover:bg-primary/90 transition-colors"
-            onClick={loadMore}
-          >
-            Load More
+
+      {/* Categories Section */}
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-base-content mb-4">Choose Your Challenge</h2>
+          <p className="text-base-content/60 text-lg">Explore problems by category and find your next challenge</p>
+        </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+           {problemCategories.map((category) => (
+             <div key={category.id} onClick={() => handleCategoryClick(category.id)}>
+               <SpotlightCard className="group cursor-pointer">
+                 <div className={`p-6 rounded-xl border-2 transition-all duration-300 ${category.bgColor} ${category.borderColor} hover:border-opacity-40 group-hover:scale-105`}>
+                   <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                     <category.icon className="w-6 h-6 text-white" />
+                   </div>
+                   <h3 className="text-lg font-semibold text-base-content mb-2">{category.name}</h3>
+                   <p className="text-sm text-base-content/70 mb-4 line-clamp-2">{category.description}</p>
+                   <div className="flex items-center justify-between">
+                     <Badge variant="secondary" className="text-xs">
+                       {category.count} problems
+                     </Badge>
+                     <ArrowRight className="w-4 h-4 text-base-content/40 group-hover:text-primary transition-colors" />
+                   </div>
+                 </div>
+               </SpotlightCard>
+             </div>
+           ))}
+          </div>
+      </div>
+
+      {/* Hot & Latest Problems */}
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-3xl font-bold text-base-content mb-2">Trending Challenges</h2>
+            <p className="text-base-content/60">Most popular and recently solved problems</p>
+          </div>
+          <button className="text-primary hover:text-primary/80 font-medium flex items-center gap-2">
+            View all <ArrowRight className="w-4 h-4" />
           </button>
         </div>
-      )}
-      {/* No results message */}
-      {!isLoading && filteredProblems.length === 0 && problems.length > 0 && (
-        <div className="flex flex-col items-center justify-center py-8">
-          <p className="text-lg font-medium text-base-content/70">No challenges match your filters</p>
-          <button 
-            className="mt-3 text-primary hover:underline"
-            onClick={() => {
-              setSearchQuery('');
-              setSelectedTags([]);
-            }}
-          >
-            Clear all filters
-          </button>
-        </div>
-      )}
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+           {hotProblems.map((problem) => (
+             <div key={problem.id} onClick={() => handleHotProblemClick(problem.id)}>
+               <SpotlightCard className="cursor-pointer">
+                 <div className="p-6 rounded-xl border border-base-300 hover:border-primary/30 transition-all duration-300 group">
+                   <div className="flex items-start justify-between mb-3">
+                     <Badge className={cn("text-xs", getDifficultyColor(problem.difficulty))}>
+                       {problem.difficulty}
+                     </Badge>
+                     {problem.trending && (
+                       <TrendingUp className="w-4 h-4 text-orange-500" />
+                     )}
+                   </div>
+                   <h3 className="font-semibold text-base-content mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                     {problem.title}
+                   </h3>
+                   <div className="flex items-center justify-between text-sm text-base-content/60">
+                     <div className="flex items-center gap-1">
+                       <Users className="w-4 h-4" />
+                       {problem.solvedCount} solved
+                     </div>
+                     <div className="flex items-center gap-1">
+                       <Clock className="w-4 h-4" />
+                       Latest
+                     </div>
+                   </div>
+                 </div>
+               </SpotlightCard>
+             </div>
+           ))}
+         </div>
+      </div>
+
+
     </div>
   );
 } 
