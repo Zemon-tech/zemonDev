@@ -23,6 +23,7 @@ import DashboardPage from './pages/DashboardPage';
 import ForgePage from './pages/ForgePage';
 import ForgeDetailPage from './pages/ForgeDetailPage';
 import CruciblePage from './pages/CruciblePage';
+import CrucibleCategoryPage from './pages/CrucibleCategoryPage';
 import CrucibleProblemPage from './pages/CrucibleProblemPage';
 import ResultPage from './pages/ResultPage';
 import ArenaPage from './pages/ArenaPage';
@@ -99,6 +100,7 @@ function App() {
                 <Route path="forge" element={<ForgePage />} />
                 <Route path="forge/:id" element={<ForgeDetailPage />} />
                 <Route path="crucible" element={<CruciblePage />} />
+                <Route path="crucible/category/:categoryId" element={<CrucibleCategoryPage />} />
                 <Route path="crucible/problem/:id" element={<CrucibleProblemPage />} />
                 <Route path="crucible/problem/:id/result" element={<ResultPage />} />
                 <Route path="crucible/results/:analysisId" element={<ResultPage />} />

@@ -433,7 +433,7 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
         },
         codeBlock: {
           HTMLAttributes: { 
-            class: 'bg-base-300 text-base-content p-4 rounded my-2 font-mono overflow-x-auto',
+            class: 'bg-base-300 text-base-content p-4 rounded my-2 font-mono overflow-x-auto text-sm',
           },
         },
       }),
