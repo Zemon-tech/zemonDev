@@ -13,6 +13,10 @@ export interface IUser extends Document {
   profile?: {
     headline?: string;
     bio?: string;
+    aboutMe?: string;
+    location?: string;
+    skills?: string[];
+    toolsAndTech?: string[];
   };
   interests: string[];
   stats: {
@@ -34,6 +38,20 @@ export interface IUser extends Document {
       showProblemSidebar: boolean;
       showChatSidebar: boolean;
     };
+  };
+  college?: {
+    collegeName?: string;
+    course?: string;
+    branch?: string;
+    year?: number;
+    city?: string;
+    state?: string;
+  };
+  socialLinks?: {
+    portfolio?: string;
+    github?: string;
+    linkedin?: string;
+    twitter?: string;
   };
   createdAt: Date;
   updatedAt: Date;
@@ -87,6 +105,24 @@ const UserSchema: Schema = new Schema(
       bio: {
         type: String,
         trim: true,
+      },
+      aboutMe: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      location: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      skills: {
+        type: [String],
+        default: [],
+      },
+      toolsAndTech: {
+        type: [String],
+        default: [],
       },
     },
     interests: {
@@ -155,6 +191,60 @@ const UserSchema: Schema = new Schema(
           type: Boolean,
           default: true,
         },
+      },
+    },
+    college: {
+      collegeName: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      course: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      branch: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      year: {
+        type: Number,
+        min: 1,
+        max: 5,
+      },
+      city: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      state: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+    },
+    socialLinks: {
+      portfolio: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      github: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      linkedin: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      twitter: {
+        type: String,
+        trim: true,
+        default: '',
       },
     },
   },

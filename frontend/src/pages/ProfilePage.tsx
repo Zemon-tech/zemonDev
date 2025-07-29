@@ -6,6 +6,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { useUserProfile, formatEducation, formatCollegeLocation, getDisplayName, getDisplayBio, getDisplayLocation, getSkills, getToolsAndTech, getSocialLinks } from '@/hooks/useUserProfile';
 import { 
   Github, 
   Linkedin, 
@@ -46,7 +47,7 @@ import {
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
 
-// Mock data - replace with real data from your backend
+// Mock data - keep for other tabs that aren't implemented yet
 const mockUserData = {
   name: "Aarav Sharma",
   title: "2nd-Year CSE @ MAIT | System Design·AI/ML·Web Dev",
@@ -153,6 +154,7 @@ const mockUserData = {
 
 export default function ProfilePage() {
   const { user } = useUser();
+  const { userProfile, loading, error, refetch } = useUserProfile();
   const [activeTab, setActiveTab] = useState('overview');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -224,6 +226,34 @@ export default function ProfilePage() {
     { id: 'achievements', label: 'Achievements & Skills' },
     { id: 'innovation', label: 'Innovation & Workspace' },
   ];
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-base-100">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-base-content/70">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-base-100">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="text-error text-6xl">⚠️</div>
+          <h2 className="text-xl font-semibold text-base-content">Failed to load profile</h2>
+          <p className="text-base-content/70 max-w-md">{error}</p>
+          <Button onClick={refetch} className="mt-4">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -394,7 +424,7 @@ export default function ProfilePage() {
               transition={{ duration: 0.6, delay: 0.5 }}
               style={{ textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}
             >
-              {mockUserData.name}
+              {getDisplayName(userProfile)}
               <span className="inline-block ml-2 text-2xl">
                 👋
               </span>
@@ -407,21 +437,19 @@ export default function ProfilePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.7 }}
             >
-              {mockUserData.title.split('·').map((segment, i) => (
-                <motion.span 
-                  key={i} 
-                  className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-primary/10 text-primary-content border border-primary/20 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, delay: 0.8 + i * 0.1 }}
-                  style={{ textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}
-                >
-                  {segment.trim()}
-                  {i === 0 && <Sparkles className="ml-1 w-3 h-3" />}
-                </motion.span>
-              ))}
+              {/* Show bio instead of badges as requested */}
+              <motion.span 
+                className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-primary/10 text-primary-content border border-primary/20 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.8 }}
+                style={{ textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}
+              >
+                {getDisplayBio(userProfile)}
+                <Sparkles className="ml-1 w-3 h-3" />
+              </motion.span>
             </motion.div>
 
             {/* Quick Stats Bar */}
@@ -434,7 +462,7 @@ export default function ProfilePage() {
             >
               <div className="flex items-center gap-1">
                 <Flame className="w-4 h-4 text-accent" />
-                <span className="font-semibold">{mockUserData.stats.zemonStreak} day streak</span>
+                <span className="font-semibold">12 day streak</span>
               </div>
               <div className="flex items-center gap-1">
                 <Star className="w-4 h-4 text-warning" />
@@ -515,7 +543,7 @@ export default function ProfilePage() {
                         </div>
                         <h2 className="text-xl font-semibold text-base-content">About Me</h2>
                       </div>
-                      <p className="mb-8 text-lg leading-relaxed font-medium text-base-content/80">{mockUserData.bio}</p>
+                      <p className="mb-8 text-lg leading-relaxed font-medium text-base-content/80">{userProfile?.profile?.aboutMe || getDisplayBio(userProfile)}</p>
                       
                       {/* Enhanced Skills */}
                       <div className="space-y-4">
@@ -524,7 +552,7 @@ export default function ProfilePage() {
                           Skills & Technologies
                         </h3>
                         <div className="flex flex-wrap gap-3">
-                          {mockUserData.skills.map((skill, index) => (
+                          {getSkills(userProfile).map((skill, index) => (
                             <motion.span
                               key={index}
                               className="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer bg-primary/10 text-primary-content border border-primary/20 hover:bg-primary/20"
@@ -533,6 +561,17 @@ export default function ProfilePage() {
                               transition={{ duration: 0.3, delay: 0.3 + index * 0.05 }}
                             >
                               {skill}
+                            </motion.span>
+                          ))}
+                          {getToolsAndTech(userProfile).map((tech, index) => (
+                            <motion.span
+                              key={`tech-${index}`}
+                              className="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer bg-secondary/10 text-secondary-content border border-secondary/20 hover:bg-secondary/20"
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ duration: 0.3, delay: 0.3 + (getSkills(userProfile).length + index) * 0.05 }}
+                            >
+                              {tech}
                             </motion.span>
                           ))}
                         </div>
@@ -549,10 +588,10 @@ export default function ProfilePage() {
                   transition={{ duration: 0.6, delay: 0.2 }}
                 >
                   {[
-                    { icon: Flame, value: mockUserData.stats.zemonStreak, label: "Zemon Streak", color: "bg-indigo-600" },
-                    { icon: Code, value: mockUserData.stats.githubStreak, label: "GitHub Streak", color: "bg-blue-600" },
-                    { icon: BookOpen, value: mockUserData.stats.crucibleSolutions, label: "Crucible Solutions", color: "bg-indigo-600" },
-                    { icon: Hammer, value: mockUserData.stats.forgeContributions, label: "Forge Contributions", color: "bg-blue-600" }
+                    { icon: Flame, value: 12, label: "Zemon Streak", color: "bg-indigo-600" },
+                    { icon: Code, value: 15, label: "GitHub Streak", color: "bg-blue-600" },
+                    { icon: BookOpen, value: 8, label: "Crucible Solutions", color: "bg-indigo-600" },
+                    { icon: Hammer, value: 5, label: "Forge Contributions", color: "bg-blue-600" }
                   ].map((stat, index) => (
                     <motion.div
                       key={index}
@@ -658,8 +697,8 @@ export default function ProfilePage() {
                             <School className="w-4 h-4 text-primary-content" />
                           </div>
                           <div>
-                            <p className="font-semibold text-base-content">B.Tech in Computer Science</p>
-                            <p className="text-sm text-base-content/70">MAIT, Delhi</p>
+                            <p className="font-semibold text-base-content">{formatEducation(userProfile?.college)}</p>
+                            <p className="text-sm text-base-content/70">{formatCollegeLocation(userProfile?.college)}</p>
                           </div>
                         </div>
                         
@@ -667,32 +706,36 @@ export default function ProfilePage() {
                           <div className="w-9 h-9 bg-secondary rounded-md flex items-center justify-center">
                             <MapPin className="w-4 h-4 text-secondary-content" />
                           </div>
-                          <span className="font-medium text-base-content">{mockUserData.location}</span>
+                          <span className="font-medium text-base-content">{getDisplayLocation(userProfile)}</span>
                         </div>
                         
                         <div className="flex items-center gap-4 p-3 rounded-lg transition-all duration-200 cursor-pointer bg-base-200 hover:bg-base-300">
                           <div className="w-9 h-9 bg-accent rounded-md flex items-center justify-center">
                             <Mail className="w-4 h-4 text-accent-content" />
                           </div>
-                          <span className="font-medium text-base-content">{mockUserData.email}</span>
+                          <span className="font-medium text-base-content">{userProfile?.email || 'Email not available'}</span>
                         </div>
                       </div>
                       
                       {/* Enhanced Social Links */}
                       <div className="flex gap-3 mt-6">
                         {[
-                          { icon: Github, href: "#", color: "bg-primary" },
-                          { icon: Linkedin, href: "#", color: "bg-secondary" },
-                          { icon: Twitter, href: "#", color: "bg-accent" },
-                          { icon: Globe, href: "#", color: "bg-info" }
+                          { icon: Github, href: getSocialLinks(userProfile).github, color: "bg-primary" },
+                          { icon: Linkedin, href: getSocialLinks(userProfile).linkedin, color: "bg-secondary" },
+                          { icon: Twitter, href: getSocialLinks(userProfile).twitter, color: "bg-accent" },
+                          { icon: Globe, href: getSocialLinks(userProfile).portfolio, color: "bg-info" }
                         ].map((social, index) => (
-                          <a
-                            key={index}
-                            href={social.href}
-                            className={`p-2 rounded-md text-white transition-colors duration-200 ${social.color} hover:opacity-90`}
-                          >
-                            <social.icon className="w-4 h-4" />
-                          </a>
+                          social.href && (
+                            <a
+                              key={index}
+                              href={social.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`p-2 rounded-md text-white transition-colors duration-200 ${social.color} hover:opacity-90`}
+                            >
+                              <social.icon className="w-4 h-4" />
+                            </a>
+                          )
                         ))}
                       </div>
                     </CardContent>
