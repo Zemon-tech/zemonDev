@@ -9,15 +9,14 @@ import remarkGfm from 'remark-gfm';
 import { updateNotes } from '../../lib/crucibleApi';
 import { useToast } from '../ui/toast';
 import { useWorkspace } from '../../lib/WorkspaceContext';
-
-
-
+import ShinyText from '../blocks/TextAnimations/ShinyText/ShinyText';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  isStreaming?: boolean;
 }
 
 interface AIChatSidebarProps {
@@ -58,8 +57,10 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   // Initialize chat session
   useEffect(() => {
@@ -90,6 +91,15 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
       initializeChat();
     }
   }, [problemId, getToken, currentChatId]);
+
+  // Cleanup EventSource on unmount
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+    };
+  }, []);
 
   const startResizing = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -181,13 +191,31 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
     setInputMessage('');
     setIsLoading(true);
 
+    const startTime = Date.now();
+
     try {
       const token = await getToken();
       if (!token) {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`/api/crucible/${problemId}/chats/${currentChatId}/messages`, {
+      // Create streaming message placeholder
+      const streamingMessageId = Math.random().toString(36).substr(2, 9);
+      const streamingMessage: Message = {
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        id: streamingMessageId,
+        isStreaming: true
+      };
+      
+      setMessages(prev => [...prev, streamingMessage]);
+      setStreamingMessageId(streamingMessageId);
+
+      console.log('Starting streaming request...');
+      
+      // Use streaming endpoint
+      const response = await fetch(`/api/crucible/${problemId}/chats/${currentChatId}/messages/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -195,23 +223,112 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
         },
         body: JSON.stringify({ 
           content: contentToSend,
-          solutionDraftContent: solutionContent // Include solution draft content
+          solutionDraftContent: solutionContent
         })
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
-        const aiResponse: Message = {
-          role: 'assistant',
-          content: data.data.messages[data.data.messages.length - 1].content,
-          timestamp: new Date(),
-          id: Math.random().toString(36).substr(2, 9)
-        };
-        setMessages(prev => [...prev, aiResponse]);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      console.log(`Streaming response started in ${Date.now() - startTime}ms`);
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let lastUpdateTime = Date.now();
+      let totalChunks = 0;
+      let totalCharacters = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          console.log(`Stream completed. Total: ${totalChunks} chunks, ${totalCharacters} characters in ${Date.now() - startTime}ms`);
+          break;
+        }
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const jsonData = line.slice(6);
+              if (!jsonData.trim()) continue; // Skip empty lines
+              
+              const data = JSON.parse(jsonData);
+              
+              if (data.type === 'chunk' && data.content) {
+                const now = Date.now();
+                totalChunks++;
+                totalCharacters += data.content.length;
+                const wordCount = data.wordCount || data.content.trim().split(/\s+/).length;
+                console.log(`Received chunk #${totalChunks} in ${now - lastUpdateTime}ms: ${wordCount} words`);
+                lastUpdateTime = now;
+                
+                // Update message immediately for real-time feel
+                setMessages(prev => prev.map(msg => 
+                  msg.id === streamingMessageId 
+                    ? { ...msg, content: msg.content + data.content }
+                    : msg
+                ));
+                
+                // Immediate scroll for real-time feel
+                messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+              } else if (data.type === 'complete') {
+                const totalTime = Date.now() - startTime;
+                const throughput = totalCharacters / (totalTime / 1000);
+                console.log(`Stream completed successfully in ${totalTime}ms`);
+                console.log(`Performance: ${totalChunks} chunks, ${totalCharacters} chars, ${throughput.toFixed(2)} chars/sec`);
+                
+                if (data.metrics) {
+                  console.log('Server metrics:', data.metrics);
+                }
+                
+                setMessages(prev => prev.map(msg => 
+                  msg.id === streamingMessageId 
+                    ? { ...msg, isStreaming: false }
+                    : msg
+                ));
+                setStreamingMessageId(null);
+                break;
+              } else if (data.type === 'error') {
+                console.error('Stream error:', data.message);
+                setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
+                toast({
+                  title: "Error",
+                  description: data.message || "An error occurred during streaming",
+                  variant: "destructive",
+                });
+                break;
+              }
+            } catch (error) {
+              console.error('Error parsing SSE data:', error, 'Line:', line);
+              // Continue processing other lines instead of breaking
+            }
+          }
+        }
+      }
+
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // Remove streaming message on error
+      if (streamingMessageId) {
+        setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
+        setStreamingMessageId(null);
+      }
+      
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -245,7 +362,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
       >
         <Copy className="w-3 h-3" />
       </button>
-      {message.role === 'assistant' && (
+      {message.role === 'assistant' && !message.isStreaming && (
         <>
           <button
             onClick={() => handleAddToNotes(message.content)}
@@ -301,19 +418,23 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
 
       {/* Chat messages */}
       <ScrollArea.Root className="flex-1 relative">
-        <>
-          <ScrollArea.Viewport className="absolute inset-0 overflow-y-auto">
-            <div className="p-4 space-y-4">
-              {messagesState.map((message) => (
-                <div
-                  key={message.id}
-                  className={`chat ${message.role === 'user' ? 'chat-end' : 'chat-start'} group`}
-                >
-                  <div className="chat-header opacity-50 text-xs mb-1">
-                    {message.role === 'user' ? 'You' : 'AI Assistant'}
-                  </div>
-                  <div className={`chat-bubble ${message.role === 'assistant' ? 'chat-bubble-primary' : ''}`}>
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
+        <ScrollArea.Viewport className="absolute inset-0 overflow-y-auto">
+          <div className="p-4 space-y-4">
+            {messagesState.map((message) => (
+              <div
+                key={message.id}
+                className={`chat ${message.role === 'user' ? 'chat-end' : 'chat-start'} group`}
+              >
+                <div className="chat-header opacity-50 text-xs mb-1">
+                  {message.role === 'user' ? 'You' : 'AI Assistant'}
+                </div>
+                <div className={`chat-bubble ${message.role === 'assistant' ? 'chat-bubble-primary' : ''}`}>
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    {message.isStreaming ? (
+                      <div className="text-left">
+                        <DynamicTypingIndicator />
+                      </div>
+                    ) : (
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
@@ -338,70 +459,107 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
                       >
                         {message.content}
                       </ReactMarkdown>
-                    </div>
-                  </div>
-                  <div className="chat-footer opacity-50 text-xs mt-1">
-                    <MessageActions message={message} />
+                    )}
                   </div>
                 </div>
-              ))}
-              {isLoading && (
-                <div className="chat chat-start">
-                  <div className="chat-header opacity-50 text-xs mb-1">
-                    AI Assistant
-                  </div>
-                  <div className="chat-bubble bg-base-200/50 dark:bg-base-700/50">
-                    <span className="text-sm text-base-content/70">Thinking...</span>
-                  </div>
+                <div className="chat-footer opacity-50 text-xs mt-1">
+                  <MessageActions message={message} />
                 </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea.Viewport>
-          <ScrollArea.Scrollbar 
-            className="flex select-none touch-none p-0.5 bg-base-200/50 transition-colors duration-150 ease-out hover:bg-base-300/50 data-[orientation=vertical]:w-2 data-[orientation=horizontal]:flex-col data-[orientation=horizontal]:h-2" 
-            orientation="vertical"
-          >
-            <ScrollArea.Thumb className="flex-1 bg-base-300 rounded-[10px] relative before:content-[''] before:absolute before:top-1/2 before:left-1/2 before:-translate-x-1/2 before:-translate-y-1/2 before:w-full before:h-full before:min-w-[44px] before:min-h-[44px]" />
-          </ScrollArea.Scrollbar>
-        </>
+              </div>
+            ))}
+            {isLoading && !streamingMessageId && (
+              <div className="chat chat-start">
+                <div className="chat-header opacity-50 text-xs mb-1">
+                  AI Assistant
+                </div>
+                <div className="chat-bubble bg-base-200/50 dark:bg-base-700/50">
+                  <DynamicTypingIndicator />
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea.Viewport>
+        <ScrollArea.Scrollbar className="flex select-none touch-none p-0.5 bg-base-100 dark:bg-base-800 transition-colors duration-150 ease-out hover:bg-base-200 dark:hover:bg-base-700 data-[orientation=vertical]:w-2.5 data-[orientation=horizontal]:flex-col data-[orientation=horizontal]:h-2.5">
+          <ScrollArea.Thumb className="flex-1 bg-base-300 dark:bg-base-600 rounded-[10px] relative before:content-[''] before:absolute before:top-1/2 before:left-1/2 before:-translate-x-1/2 before:-translate-y-1/2 before:w-full before:h-full before:min-w-[44px] before:min-h-[44px]" />
+        </ScrollArea.Scrollbar>
       </ScrollArea.Root>
-      
+
       {/* Input area */}
-      <div className="h-12 min-h-[3rem] p-2 border-t border-base-200 dark:border-base-700 bg-base-100 shrink-0">
-        <div className="flex items-center gap-2 h-full">
-          <input
-            type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ask anything..."
-            className="input input-bordered input-sm flex-1"
-            disabled={!currentChatId}
-          />
-          <button
-            onClick={handleFileClick}
-            className="btn btn-ghost btn-square btn-sm"
-            disabled={!currentChatId}
-          >
-            <Paperclip className="w-4 h-4" />
-          </button>
-          <button
-            onClick={handleSendClick}
-            disabled={!inputMessage.trim() || isLoading || !currentChatId}
-            className="btn btn-primary btn-square btn-sm"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-          />
+      <div className="p-4 border-t border-base-200 dark:border-base-700 shrink-0">
+        <div className="flex items-end gap-2">
+          <div className="flex-1 relative">
+            <textarea
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Ask the AI assistant..."
+              className="textarea textarea-bordered w-full resize-none min-h-[60px] max-h-32"
+              disabled={isLoading}
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleFileChange}
+              accept=".txt,.md,.js,.ts,.jsx,.tsx,.py,.java,.cpp,.c,.html,.css"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <button
+              onClick={handleFileClick}
+              className="btn btn-ghost btn-sm p-2"
+              disabled={isLoading}
+            >
+              <Paperclip className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleSendClick}
+              className="btn btn-primary btn-sm p-2"
+              disabled={isLoading || !inputMessage.trim()}
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     </aside>
+  );
+};
+
+// Dynamic Typing Indicator Component
+const DynamicTypingIndicator: React.FC = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  const phrases = [
+    "AI is thinking...",
+    "Fetching the output...",
+    "Taking a moment...",
+    "Crunching the data...",
+    "Generating insights..."
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % phrases.length);
+    }, 2000); // Change phrase every 2 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-2 text-base-content/80 justify-start w-full">
+      <div className="flex space-x-1">
+        <div className="w-1 h-1 bg-primary rounded-full animate-bounce"></div>
+        <div className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+        <div className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+      </div>
+      <ShinyText 
+        text={phrases[currentIndex]} 
+        speed={3}
+        className="text-sm"
+      />
+    </div>
   );
 };
 

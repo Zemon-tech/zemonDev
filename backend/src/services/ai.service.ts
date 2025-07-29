@@ -21,6 +21,12 @@ export interface IChatResponse {
   error?: string;
 }
 
+export interface IStreamingChatResponse {
+  content: string;
+  isComplete: boolean;
+  error?: string;
+}
+
 // --- INITIALIZATION ---
 
 const geminiApiKey = process.env.GEMINI_API_KEY;
@@ -108,26 +114,65 @@ export const generateChatResponse = async (
 
   try {
     // Build the prompt with context and history
-    let prompt = "You are an AI tutor helping engineering students solve programming challenges. ";
-    prompt += "Your responses should be clear, educational, and guide students towards understanding rather than giving direct solutions.\n\n";
+    let prompt = `You are a focused coding assistant designed to help engineering students organize their thoughts and approach programming challenges strategically. Your core principles:
+
+## RESPONSE PHILOSOPHY ##
+- **BE CONCISE**: Keep responses short, clear, and actionable
+- **STIMULATE THINKING**: Ask guiding questions instead of providing direct answers
+- **ORGANIZE IDEAS**: Help structure thoughts, break down problems, and suggest research directions
+- **NO SOLUTIONS**: Never provide complete code solutions or step-by-step implementations
+- **CONTEXTUAL AWARENESS**: Respond appropriately to the conversation context (casual greetings get casual responses, technical questions get technical guidance)
+
+## RESPONSE GUIDELINES ##
+- Use markdown formatting for clarity
+- Provide 2-3 key points maximum per response
+- Include relevant questions to guide user's thinking
+- Suggest research keywords, concepts, or resources when appropriate
+- Help identify problem patterns and approaches
+- Keep responses under 150 words unless specifically asked for more detail
+
+## WHAT YOU DO ##
+✅ Help brainstorm approaches and strategies
+✅ Suggest relevant algorithms, data structures, or concepts to research
+✅ Ask clarifying questions about requirements
+✅ Help break down complex problems into smaller parts
+✅ Point out potential edge cases or considerations
+✅ Provide debugging direction (not fixes)
+
+## WHAT YOU DON'T DO ##
+❌ Write complete solutions or implementations
+❌ Debug code line by line
+❌ Provide detailed explanations when a simple nudge suffices
+❌ Overwhelm with unnecessary context when user asks simple questions
+❌ Act as a traditional tutor giving lectures
+
+## RESPONSE ADAPTATION ##
+- **Casual messages** (greetings, thanks): Respond briefly and naturally
+- **Technical questions**: Focus on guidance and strategic thinking
+- **Stuck situations**: Help identify what specific aspect they're struggling with
+- **Code review requests**: Point out approach issues, not syntax fixes
+
+`;
 
     // Add problem context if available
     if (problemContext) {
-      prompt += `Current Problem:\nTitle: ${problemContext.title}\n`;
-      prompt += `Description: ${problemContext.description}\n`;
-      prompt += `Difficulty: ${problemContext.difficulty}\n\n`;
+      prompt += `\n## CURRENT CHALLENGE CONTEXT ##\n`;
+      prompt += `**Problem**: ${problemContext.title}\n`;
+      prompt += `**Difficulty**: ${problemContext.difficulty}\n`;
+      prompt += `**Description**: ${problemContext.description}\n\n`;
     }
 
     // Add solution draft content if available
     if (solutionDraftContent) {
-      prompt += "## USER'S CURRENT SOLUTION DRAFT ##\n";
-      prompt += "The user is currently working on the following draft. Please consider this when providing assistance:\n";
-      prompt += "```\n" + solutionDraftContent + "\n```\n\n";
+      prompt += `## USER'S CURRENT WORK ##\n`;
+      prompt += `The user has the following draft in progress. Use this to understand their current approach and provide relevant guidance:\n\n`;
+      prompt += `\`\`\`\n${solutionDraftContent}\n\`\`\`\n\n`;
     }
 
     // Add chat history
-    prompt += "Previous conversation:\n";
+    prompt += `## CONVERSATION HISTORY ##\n`;
     prompt += formatChatHistory(messages);
+    prompt += `\n---\n\nRespond to the user's latest message following the guidelines above. Be contextually appropriate - if it's a simple greeting, respond simply. If it's a technical question, provide focused guidance that encourages their own problem-solving.`;
 
     // Get the last user message
     const lastMessage = messages[messages.length - 1];
@@ -150,6 +195,169 @@ export const generateChatResponse = async (
     console.error("AI Service: Error in generateChatResponse", error);
     return {
       message: "An error occurred while generating the response. Please try again.",
+      error: error instanceof Error ? error.message : "UNKNOWN_ERROR"
+    };
+  }
+};
+
+/**
+ * Generates a streaming chat response using Gemini AI.
+ * @param messages Array of chat messages
+ * @param problemContext Optional problem context to help guide responses
+ * @param solutionDraftContent Optional solution draft content to provide context
+ * @returns An async generator that yields streaming response chunks
+ */
+export const generateStreamingChatResponse = async function* (
+  messages: IChatMessage[],
+  problemContext?: ICrucibleProblem,
+  solutionDraftContent?: string
+): AsyncGenerator<IStreamingChatResponse> {
+  if (!geminiApiKey) {
+    yield {
+      content: "AI chat is disabled. No API key was provided.",
+      isComplete: true,
+      error: "MISSING_API_KEY"
+    };
+    return;
+  }
+
+  try {
+    // Build the prompt with context and history (same as non-streaming)
+    let prompt = `You are a focused coding assistant designed to help engineering students organize their thoughts and approach programming challenges strategically. Your core principles:
+
+## RESPONSE PHILOSOPHY ##
+- **BE CONCISE**: Keep responses short, clear, and actionable
+- **STIMULATE THINKING**: Ask guiding questions instead of providing direct answers
+- **ORGANIZE IDEAS**: Help structure thoughts, break down problems, and suggest research directions
+- **NO SOLUTIONS**: Never provide complete code solutions or step-by-step implementations
+- **CONTEXTUAL AWARENESS**: Respond appropriately to the conversation context (casual greetings get casual responses, technical questions get technical guidance)
+
+## RESPONSE GUIDELINES ##
+- Use markdown formatting for clarity
+- Provide 2-3 key points maximum per response
+- Include relevant questions to guide user's thinking
+- Suggest research keywords, concepts, or resources when appropriate
+- Help identify problem patterns and approaches
+- Keep responses under 150 words unless specifically asked for more detail
+
+## WHAT YOU DO ##
+✅ Help brainstorm approaches and strategies
+✅ Suggest relevant algorithms, data structures, or concepts to research
+✅ Ask clarifying questions about requirements
+✅ Help break down complex problems into smaller parts
+✅ Point out potential edge cases or considerations
+✅ Provide debugging direction (not fixes)
+
+## WHAT YOU DON'T DO ##
+❌ Write complete solutions or implementations
+❌ Debug code line by line
+❌ Provide detailed explanations when a simple nudge suffices
+❌ Overwhelm with unnecessary context when user asks simple questions
+❌ Act as a traditional tutor giving lectures
+
+## RESPONSE ADAPTATION ##
+- **Casual messages** (greetings, thanks): Respond briefly and naturally
+- **Technical questions**: Focus on guidance and strategic thinking
+- **Stuck situations**: Help identify what specific aspect they're struggling with
+- **Code review requests**: Point out approach issues, not syntax fixes
+
+`;
+
+    // Add problem context if available
+    if (problemContext) {
+      prompt += `\n## CURRENT CHALLENGE CONTEXT ##\n`;
+      prompt += `**Problem**: ${problemContext.title}\n`;
+      prompt += `**Difficulty**: ${problemContext.difficulty}\n`;
+      prompt += `**Description**: ${problemContext.description}\n\n`;
+    }
+
+    // Add solution draft content if available
+    if (solutionDraftContent) {
+      prompt += `## USER'S CURRENT WORK ##\n`;
+      prompt += `The user has the following draft in progress. Use this to understand their current approach and provide relevant guidance:\n\n`;
+      prompt += `\`\`\`\n${solutionDraftContent}\n\`\`\`\n\n`;
+    }
+
+    // Add chat history
+    prompt += `## CONVERSATION HISTORY ##\n`;
+    prompt += formatChatHistory(messages);
+    prompt += `\n---\n\nRespond to the user's latest message following the guidelines above. Be contextually appropriate - if it's a simple greeting, respond simply. If it's a technical question, provide focused guidance that encourages their own problem-solving.`;
+
+    // Get the last user message
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.role !== 'user') {
+      throw new Error("Invalid message history");
+    }
+
+    // Generate streaming response with optimized chunking
+    const result = await model.generateContentStream(prompt);
+    let fullResponse = '';
+    let buffer = '';
+    let lastChunkTime = Date.now();
+    
+    // Real-time chunking: send words or small phrases (3 words max)
+    // This provides the immediate, real-time feel like ChatGPT
+    const MAX_WORDS_PER_CHUNK = 3;
+    const MAX_WAIT_TIME = 50; // 50ms maximum wait for immediate feel
+    
+    for await (const chunk of result.stream) {
+      const chunkText = chunk.text();
+      if (chunkText) {
+        fullResponse += chunkText;
+        buffer += chunkText;
+        
+        const timeSinceLastChunk = Date.now() - lastChunkTime;
+        
+        // Split buffer into words to check word count
+        const words = buffer.trim().split(/\s+/);
+        
+        // Send chunk if:
+        // 1. We have 3 or more words
+        // 2. Or if we've waited 50ms (for immediate feel)
+        // 3. Or if we hit a natural break (period, comma, etc.)
+        const hasNaturalBreak = /[.!?,;:]/.test(chunkText);
+        const hasEnoughWords = words.length >= MAX_WORDS_PER_CHUNK;
+        const hasWaitedTooLong = timeSinceLastChunk >= MAX_WAIT_TIME;
+        
+        if (hasEnoughWords || hasNaturalBreak || hasWaitedTooLong) {
+          if (buffer.length > 0) {
+            yield {
+              content: buffer,
+              isComplete: false
+            };
+            
+            // Log timing for debugging (without content)
+            const now = Date.now();
+            console.log(`Chunk sent in ${now - lastChunkTime}ms: ${words.length} words`);
+            lastChunkTime = now;
+            
+            // Reset buffer
+            buffer = '';
+          }
+        }
+      }
+    }
+    
+    // Send any remaining buffer content
+    if (buffer.length > 0) {
+      yield {
+        content: buffer,
+        isComplete: false
+      };
+      console.log(`Final chunk: ${buffer.trim().split(/\s+/).length} words`);
+    }
+    
+    // Signal completion
+    yield {
+      content: '',
+      isComplete: true
+    };
+    
+  } catch (error) {
+    console.error("AI Service: Error in generateStreamingChatResponse", error);
+    yield {
+      content: "An error occurred while generating the response. Please try again.",
+      isComplete: true,
       error: error instanceof Error ? error.message : "UNKNOWN_ERROR"
     };
   }

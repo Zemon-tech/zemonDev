@@ -23,6 +23,7 @@ import {
   createChatSession,
   getChatSession,
   addChatMessage,
+  addChatMessageStream,
   updateChatSession,
   deleteChatSession
 } from '../controllers/aiChat.controller';
@@ -85,6 +86,7 @@ router.get('/:problemId/chats', protect, getChatSessions);
 router.post('/:problemId/chats', protect, createChatSession);
 router.get('/:problemId/chats/:chatId', protect, getChatSession);
 router.post('/:problemId/chats/:chatId/messages', protect, addChatMessage);
+router.post('/:problemId/chats/:chatId/messages/stream', protect, addChatMessageStream);
 router.put('/:problemId/chats/:chatId', protect, updateChatSession);
 router.delete('/:problemId/chats/:chatId', protect, deleteChatSession);
 
