@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Paperclip, X, Copy, BookmarkPlus, RotateCcw } from 'lucide-react';
+import { Send, Paperclip, X, Copy, BookmarkPlus, RotateCcw, Sparkles } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
 import ReactMarkdown from 'react-markdown';
@@ -35,6 +35,123 @@ interface CodeBlockProps {
   className?: string;
   children?: React.ReactNode;
 }
+
+// Enhanced Markdown Components
+const MarkdownComponents = {
+  h1: ({ children, ...props }: any) => (
+    <h1 className="text-2xl font-bold text-base-content mb-4 mt-6 first:mt-0" {...props}>
+      {children}
+    </h1>
+  ),
+  h2: ({ children, ...props }: any) => (
+    <h2 className="text-xl font-semibold text-base-content mb-3 mt-5" {...props}>
+      {children}
+    </h2>
+  ),
+  h3: ({ children, ...props }: any) => (
+    <h3 className="text-lg font-medium text-base-content mb-2 mt-4" {...props}>
+      {children}
+    </h3>
+  ),
+  p: ({ children, ...props }: any) => (
+    <p className="text-base-content/90 leading-relaxed mb-3 last:mb-0" {...props}>
+      {children}
+    </p>
+  ),
+  ul: ({ children, ...props }: any) => (
+    <ul className="list-disc list-inside space-y-1 mb-4 text-base-content/90" {...props}>
+      {children}
+    </ul>
+  ),
+  ol: ({ children, ...props }: any) => (
+    <ol className="list-decimal list-inside space-y-1 mb-4 text-base-content/90" {...props}>
+      {children}
+    </ol>
+  ),
+  li: ({ children, ...props }: any) => (
+    <li className="text-base-content/90 leading-relaxed" {...props}>
+      {children}
+    </li>
+  ),
+  blockquote: ({ children, ...props }: any) => (
+    <blockquote className="border-l-4 border-primary/30 pl-4 italic text-base-content/80 bg-base-200/30 py-2 rounded-r-lg mb-4" {...props}>
+      {children}
+    </blockquote>
+  ),
+  table: ({ children, ...props }: any) => (
+    <div className="my-6 overflow-x-auto">
+      <table className="w-full border-collapse bg-base-100 dark:bg-base-700 rounded-lg overflow-hidden shadow-lg border border-base-300 dark:border-base-600" {...props}>
+        {children}
+      </table>
+    </div>
+  ),
+  thead: ({ children, ...props }: any) => (
+    <thead className="bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10" {...props}>
+      {children}
+    </thead>
+  ),
+  tbody: ({ children, ...props }: any) => (
+    <tbody className="divide-y divide-base-200 dark:divide-base-600" {...props}>
+      {children}
+    </tbody>
+  ),
+  tr: ({ children, ...props }: any) => (
+    <tr className="hover:bg-base-50 dark:hover:bg-base-600/50 transition-colors duration-150" {...props}>
+      {children}
+    </tr>
+  ),
+  th: ({ children, ...props }: any) => (
+    <th className="px-4 py-3 text-left text-sm font-semibold text-base-content/90 border-b border-base-200 dark:border-base-600" {...props}>
+      {children}
+    </th>
+  ),
+  td: ({ children, ...props }: any) => (
+    <td className="px-4 py-3 text-sm text-base-content/80" {...props}>
+      {children}
+    </td>
+  ),
+  code: ({ inline, className, children, ...props }: any) => {
+    const match = /language-(\w+)/.exec(className || '');
+    return !inline && match ? (
+      <div className="my-4">
+        <SyntaxHighlighter
+          style={oneDark}
+          language={match[1]}
+          PreTag="div"
+          className="rounded-lg border border-base-300"
+          {...props}
+        >
+          {String(children || '').replace(/\n$/, '')}
+        </SyntaxHighlighter>
+      </div>
+    ) : (
+      <code className="bg-base-200 text-base-content px-2 py-1 rounded text-sm font-mono border border-base-300" {...props}>
+        {children}
+      </code>
+    );
+  },
+  strong: ({ children, ...props }: any) => (
+    <strong className="font-semibold text-base-content" {...props}>
+      {children}
+    </strong>
+  ),
+  em: ({ children, ...props }: any) => (
+    <em className="italic text-base-content/90" {...props}>
+      {children}
+    </em>
+  ),
+  a: ({ children, href, ...props }: any) => (
+    <a 
+      href={href} 
+      className="text-primary hover:text-primary-focus underline decoration-primary/30 underline-offset-2 transition-colors" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      {...props}
+    >
+      {children}
+    </a>
+  ),
+};
 
 const AIChatSidebar: React.FC<AIChatSidebarProps> = ({ 
   onClose,
@@ -354,10 +471,10 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
   };
 
   const MessageActions = ({ message }: { message: Message }) => (
-    <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="flex items-center gap-1">
       <button
         onClick={() => handleCopyMessage(message.content)}
-        className="btn btn-ghost btn-xs tooltip tooltip-top"
+        className="btn btn-ghost btn-xs p-1.5 rounded-lg hover:bg-base-200/50 transition-colors tooltip tooltip-top"
         data-tip="Copy message"
       >
         <Copy className="w-3 h-3" />
@@ -366,14 +483,14 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
         <>
           <button
             onClick={() => handleAddToNotes(message.content)}
-            className="btn btn-ghost btn-xs tooltip tooltip-top"
+            className="btn btn-ghost btn-xs p-1.5 rounded-lg hover:bg-base-200/50 transition-colors tooltip tooltip-top"
             data-tip="Add to notes"
           >
             <BookmarkPlus className="w-3 h-3" />
           </button>
           <button
             onClick={() => handleRetryPrompt(message.content)}
-            className="btn btn-ghost btn-xs tooltip tooltip-top"
+            className="btn btn-ghost btn-xs p-1.5 rounded-lg hover:bg-base-200/50 transition-colors tooltip tooltip-top"
             data-tip="Retry prompt"
           >
             <RotateCcw className="w-3 h-3" />
@@ -389,7 +506,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
 
   return (
     <aside 
-      className="h-full bg-base-100 dark:bg-base-800 border-l border-base-200 dark:border-base-700 shadow-lg flex flex-col overflow-hidden relative"
+      className="h-full bg-gradient-to-br from-base-100 to-base-50 dark:from-base-800 dark:to-base-900 border-l border-base-200 dark:border-base-700 shadow-xl flex flex-col overflow-hidden relative backdrop-blur-sm chat-sidebar"
       style={{ 
         width: `${chatSidebarWidth}px`,
         minWidth: '280px',
@@ -399,81 +516,92 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
     >
       {/* Resize handle */}
       <div 
-        className="absolute left-0 top-0 h-full w-1 cursor-ew-resize hover:bg-primary/20 z-10"
+        className="absolute left-0 top-0 h-full w-1 cursor-ew-resize hover:bg-primary/20 z-10 transition-colors"
         onMouseDown={startResizing}
       />
 
-      {/* Top bar */}
-      <div className="h-12 min-h-[3rem] px-4 border-b border-base-200 dark:border-base-700 flex items-center justify-between shrink-0">
-        <h3 className="font-medium text-sm">AI Assistant</h3>
+      {/* Compact Top bar */}
+      <div className="h-10 min-h-[2.5rem] px-4 border-b border-base-200 dark:border-base-700 flex items-center justify-between shrink-0 bg-gradient-to-r from-primary/5 to-transparent">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 bg-primary rounded-lg flex items-center justify-center shadow-sm">
+            <Sparkles className="h-3 w-3 text-primary-content" />
+          </div>
+          <div>
+            <h3 className="font-medium text-sm text-base-content">AI Assistant</h3>
+          </div>
+        </div>
         {onClose && (
           <button 
             onClick={onClose}
-            className="btn btn-ghost btn-sm p-0 h-8 w-8"
+            className="btn btn-ghost btn-sm p-1.5 h-6 w-6 rounded-lg hover:bg-base-200/50 transition-colors"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3 w-3" />
           </button>
         )}
       </div>
 
-      {/* Chat messages */}
+      {/* Enhanced Chat messages */}
       <ScrollArea.Root className="flex-1 relative">
-        <ScrollArea.Viewport className="absolute inset-0 overflow-y-auto">
-          <div className="p-4 space-y-4">
+        <ScrollArea.Viewport className="absolute inset-0 overflow-y-auto chat-scrollbar">
+          <div className="p-6 space-y-3">
             {messagesState.map((message) => (
               <div
                 key={message.id}
-                className={`chat ${message.role === 'user' ? 'chat-end' : 'chat-start'} group`}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} group`}
               >
-                <div className="chat-header opacity-50 text-xs mb-1">
-                  {message.role === 'user' ? 'You' : 'AI Assistant'}
-                </div>
-                <div className={`chat-bubble ${message.role === 'assistant' ? 'chat-bubble-primary' : ''}`}>
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    {message.isStreaming ? (
-                      <div className="text-left">
-                        <DynamicTypingIndicator />
-                      </div>
-                    ) : (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          code: ({ inline, className, children, ...props }: CodeBlockProps) => {
-                            const match = /language-(\w+)/.exec(className || '');
-                            return !inline && match ? (
-                              <SyntaxHighlighter
-                                style={oneDark}
-                                language={match[1]}
-                                PreTag="div"
-                                {...props}
-                              >
-                                {String(children || '').replace(/\n$/, '')}
-                              </SyntaxHighlighter>
-                            ) : (
-                              <code className={className} {...props}>
-                                {children}
-                              </code>
-                            );
-                          }
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
-                    )}
+                <div className={`max-w-[85%] ${message.role === 'user' ? 'order-2' : 'order-1'}`}>
+                  {/* Message Header */}
+                  <div className={`text-xs text-base-content/50 mb-1 ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
+                    {message.role === 'user' ? 'You' : 'AI Assistant'}
                   </div>
-                </div>
-                <div className="chat-footer opacity-50 text-xs mt-1">
-                  <MessageActions message={message} />
+                  
+                  {/* Message Content */}
+                  {message.role === 'user' ? (
+                    <div className="chat chat-start">
+                      <div className="chat-bubble bg-primary text-primary-content shadow-lg ai-chat-message-user">
+                        {message.content}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="prose prose-sm dark:prose-invert max-w-none markdown-content ai-chat-message pl-0">
+                      {message.isStreaming ? (
+                        <div>
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={MarkdownComponents}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                          <DynamicTypingIndicator />
+                        </div>
+                      ) : (
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={MarkdownComponents}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Message Actions */}
+                  <div className={`flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity ${
+                    message.role === 'user' ? 'justify-end' : 'justify-start'
+                  }`}>
+                    <MessageActions message={message} />
+                  </div>
                 </div>
               </div>
             ))}
+            
             {isLoading && !streamingMessageId && (
-              <div className="chat chat-start">
-                <div className="chat-header opacity-50 text-xs mb-1">
-                  AI Assistant
-                </div>
-                <div className="chat-bubble bg-base-200/50 dark:bg-base-700/50">
-                  <DynamicTypingIndicator />
+              <div className="flex justify-start">
+                <div className="max-w-[85%]">
+                  <div className="text-xs text-base-content/50 mb-2">AI Assistant</div>
+                  <div className="prose prose-sm dark:prose-invert max-w-none markdown-content">
+                    <DynamicTypingIndicator />
+                  </div>
                 </div>
               </div>
             )}
@@ -485,42 +613,47 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
         </ScrollArea.Scrollbar>
       </ScrollArea.Root>
 
-      {/* Input area */}
-      <div className="p-4 border-t border-base-200 dark:border-base-700 shrink-0">
-        <div className="flex items-end gap-2">
-          <div className="flex-1 relative">
-            <textarea
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Ask the AI assistant..."
-              className="textarea textarea-bordered w-full resize-none min-h-[60px] max-h-32"
-              disabled={isLoading}
-            />
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              onChange={handleFileChange}
-              accept=".txt,.md,.js,.ts,.jsx,.tsx,.py,.java,.cpp,.c,.html,.css"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
+            {/* Beautiful Compact Input area */}
+      <div className="p-3 border-t border-base-200 dark:border-base-700 shrink-0 bg-gradient-to-t from-base-100 to-transparent">
+        <div className="relative">
+          <textarea
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Ask the AI assistant anything..."
+            className="textarea textarea-bordered w-full resize-none min-h-[45px] max-h-20 rounded-xl border border-base-300 focus:border-primary focus:outline-none transition-all duration-200 bg-base-50 dark:bg-base-800 text-base-content placeholder:text-base-content/40 pr-14 chat-input"
+            disabled={isLoading}
+            style={{ 
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+              backdropFilter: 'blur(8px)'
+            }}
+          />
+          
+          {/* Beautiful action buttons */}
+          <div className="absolute right-1 bottom-1 flex items-center gap-1">
             <button
               onClick={handleFileClick}
-              className="btn btn-ghost btn-sm p-2"
+              className="btn btn-ghost btn-xs p-1 rounded-lg hover:bg-base-200/60 transition-all duration-200 hover:scale-105"
               disabled={isLoading}
             >
-              <Paperclip className="w-4 h-4" />
+              <Paperclip className="w-3 h-3" />
             </button>
             <button
               onClick={handleSendClick}
-              className="btn btn-primary btn-sm p-2"
+              className="btn btn-primary btn-xs p-1 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 hover:scale-105"
               disabled={isLoading || !inputMessage.trim()}
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-3 h-3" />
             </button>
           </div>
+          
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleFileChange}
+            accept=".txt,.md,.js,.ts,.jsx,.tsx,.py,.java,.cpp,.c,.html,.css"
+          />
         </div>
       </div>
     </aside>
@@ -548,7 +681,7 @@ const DynamicTypingIndicator: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex items-center gap-2 text-base-content/80 justify-start w-full">
+    <div className="flex items-center gap-2 text-base-content/80 justify-start w-full typing-indicator">
       <div className="flex space-x-1">
         <div className="w-1 h-1 bg-primary rounded-full animate-bounce"></div>
         <div className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>

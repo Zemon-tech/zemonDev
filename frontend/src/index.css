@@ -402,3 +402,218 @@ aside a.active {
     font-size: 1.5rem;
   }
 }
+
+/* Custom AI Chat Sidebar Styles */
+.ai-chat-message {
+  animation: slideInUp 0.3s ease-out;
+}
+
+.ai-chat-message-user {
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Enhanced scrollbar for chat */
+.chat-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--bc) / 0.2);
+  border-radius: 3px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--bc) / 0.3);
+}
+
+/* Message bubble animations */
+.message-bubble {
+  transition: all 0.2s ease-out;
+}
+
+.message-bubble:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px -8px rgba(0, 0, 0, 0.15);
+}
+
+/* Input area enhancements */
+.chat-input {
+  transition: all 0.2s ease-out;
+}
+
+.chat-input:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px -8px rgba(0, 0, 0, 0.15);
+}
+
+/* Typing indicator enhancements */
+.typing-indicator {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Markdown content enhancements */
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+  scroll-margin-top: 2rem;
+}
+
+.markdown-content code {
+  font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+}
+
+.markdown-content pre {
+  position: relative;
+  overflow-x: auto;
+}
+
+.markdown-content pre::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, hsl(var(--p)), hsl(var(--pf)));
+  border-radius: 4px 4px 0 0;
+}
+
+/* Enhanced focus states */
+.chat-sidebar button:focus-visible {
+  outline: 2px solid hsl(var(--p));
+  outline-offset: 2px;
+}
+
+/* Smooth transitions for all interactive elements */
+.chat-sidebar * {
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Enhanced Table Styling for AI Chat */
+.markdown-content table {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(10px);
+  border: 1px solid hsl(var(--bc) / 0.1);
+}
+
+.markdown-content table thead {
+  background: linear-gradient(135deg, hsl(var(--p) / 0.1) 0%, hsl(var(--p) / 0.05) 100%);
+  border-bottom: 2px solid hsl(var(--p) / 0.2);
+}
+
+.markdown-content table tbody tr {
+  transition: all 0.2s ease-in-out;
+}
+
+.markdown-content table tbody tr:hover {
+  background: linear-gradient(135deg, hsl(var(--p) / 0.05) 0%, hsl(var(--p) / 0.02) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.1);
+}
+
+.markdown-content table th {
+  font-weight: 600;
+  color: hsl(var(--bc) / 0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.875rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 2px solid hsl(var(--bc) / 0.1);
+}
+
+.markdown-content table td {
+  padding: 1rem 1.25rem;
+  color: hsl(var(--bc) / 0.8);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  border-bottom: 1px solid hsl(var(--bc) / 0.05);
+}
+
+.markdown-content table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Dark mode table enhancements */
+.dark .markdown-content table {
+  border-color: hsl(var(--bc) / 0.2);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+.dark .markdown-content table thead {
+  background: linear-gradient(135deg, hsl(var(--p) / 0.2) 0%, hsl(var(--p) / 0.1) 100%);
+  border-bottom-color: hsl(var(--p) / 0.3);
+}
+
+.dark .markdown-content table tbody tr:hover {
+  background: linear-gradient(135deg, hsl(var(--p) / 0.1) 0%, hsl(var(--p) / 0.05) 100%);
+}
+
+.dark .markdown-content table th {
+  color: hsl(var(--bc) / 0.9);
+  border-bottom-color: hsl(var(--bc) / 0.2);
+}
+
+.dark .markdown-content table td {
+  color: hsl(var(--bc) / 0.8);
+  border-bottom-color: hsl(var(--bc) / 0.1);
+}
+
+/* Table scrollbar styling */
+.markdown-content .overflow-x-auto::-webkit-scrollbar {
+  height: 6px;
+}
+
+.markdown-content .overflow-x-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.markdown-content .overflow-x-auto::-webkit-scrollbar-thumb {
+  background: hsl(var(--bc) / 0.2);
+  border-radius: 3px;
+}
+
+.markdown-content .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--bc) / 0.3);
+}
+
+/* Table animation on load */
+.markdown-content table {
+  animation: tableSlideIn 0.3s ease-out;
+}
+
+@keyframes tableSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
