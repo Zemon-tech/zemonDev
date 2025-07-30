@@ -231,13 +231,14 @@ export default function CrucibleCategoryPage() {
                 const techIconMap: { [key: string]: string } = {
                   'React': '/svg.icons/react-svgrepo-com.svg',
                   'Node.js': '/svg.icons/nodejs-icon-svgrepo-com.svg',
-                  'Express.js': '/svg.icons/nodejs-icon-svgrepo-com.svg',
+                  'Express.js': '/svg.icons/icons8-express-js.svg',
                   'Vue.js': '/svg.icons/vue-dot-js-svgrepo-com.svg',
                   'Angular': '/svg.icons/angular-svgrepo-com.svg',
                   'TypeScript': '/svg.icons/typescript-svgrepo-com.svg',
                   'Tailwind CSS': '/svg.icons/tailwind-svgrepo-com.svg',
                   'Python': '/svg.icons/python-svgrepo-com.svg',
                   'Java': '/svg.icons/java-svgrepo-com.svg',
+                  'JavaScript': '/svg.icons/js-svgrepo-com.svg',
                   'AWS': '/svg.icons/aws-svgrepo-com.svg',
                   'Docker': '/svg.icons/docker-svgrepo-com.svg',
                   'Kubernetes': '/svg.icons/kubernetes-svgrepo-com.svg',
@@ -246,9 +247,15 @@ export default function CrucibleCategoryPage() {
                   'PostgreSQL': '/svg.icons/pgsql-svgrepo-com.svg',
                   'Jenkins': '/svg.icons/jenkins-svgrepo-com.svg',
                   'Git': '/svg.icons/github-svgrepo-com.svg',
+                  'GitHub': '/svg.icons/github-svgrepo-com.svg',
                   'Flutter': '/svg.icons/flutter-svgrepo-com.svg',
+                  'React Native': '/svg.icons/reacttemplate-svgrepo-com.svg',
+                  'iOS': '/svg.icons/ios-svgrepo-com.svg',
+                  'Android': '/svg.icons/android-color-svgrepo-com.svg',
                   'TensorFlow': '/svg.icons/tensorflow-enterprise-svgrepo-com.svg',
-                  'PyTorch': '/svg.icons/pytorch-svgrepo-com.svg'
+                  'PyTorch': '/svg.icons/pytorch-svgrepo-com.svg',
+                  'Pandas': '/svg.icons/panda-bear-panda-svgrepo-com.svg',
+                  'NumPy': '/svg.icons/numpy-svgrepo-com.svg'
                 };
                 
                 const iconPath = techIconMap[tech];
