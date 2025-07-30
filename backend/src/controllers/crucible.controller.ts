@@ -6,7 +6,7 @@ import { CrucibleProblem, CrucibleSolution, User, SolutionDraft, CrucibleNote, A
 import mongoose from 'mongoose';
 import logger from '../utils/logger';
 import { redisClient } from '../config/redis';
-import { generateComprehensiveAnalysis } from '../services/solutionAnalysis.service';
+import { generateComprehensiveAnalysis, GeminiModelOverloadError, GeminiParsingError, GeminiServiceError } from '../services/solutionAnalysis.service';
 import { retrieveRelevantDocuments } from '../services/rag.service';
 
 // Cache TTL in seconds
@@ -640,7 +640,73 @@ export const analyzeUserSolution = asyncHandler(
         console.log('Analysis generated successfully');
       } catch (analysisError) {
         console.error('Error generating analysis:', analysisError);
-        return next(new AppError('Failed to analyze solution', 500));
+        
+        // Handle specific Gemini errors with appropriate HTTP status codes
+        if (analysisError instanceof GeminiModelOverloadError) {
+          return res.status(503).json(
+            new ApiResponse(
+              503,
+              'AI Model Overloaded',
+              {
+                error: 'model_overloaded',
+                message: analysisError.message,
+                retryAfter: 60 // Suggest retry after 60 seconds
+              }
+            )
+          );
+        }
+        
+        if (analysisError instanceof GeminiParsingError) {
+          return res.status(422).json(
+            new ApiResponse(
+              422,
+              'Analysis Processing Error',
+              {
+                error: 'parsing_error',
+                message: analysisError.message
+              }
+            )
+          );
+        }
+        
+        if (analysisError instanceof GeminiServiceError) {
+          return res.status(500).json(
+            new ApiResponse(
+              500,
+              'AI Service Error',
+              {
+                error: 'service_error',
+                message: analysisError.message
+              }
+            )
+          );
+        }
+        
+        // For any other unexpected errors
+        return res.status(500).json(
+          new ApiResponse(
+            500,
+            'Analysis Failed',
+            {
+              error: 'unknown_error',
+              message: 'An unexpected error occurred during analysis.'
+            }
+          )
+        );
+      }
+
+      // Only save to database if we have a valid analysis result
+      if (!analysisResult || !analysisResult.overallScore) {
+        return res.status(500).json(
+          new ApiResponse(
+            500,
+            'Invalid Analysis Result',
+            {
+              error: 'invalid_result',
+              message: 'The analysis result is invalid or incomplete.'
+            }
+          )
+        );
       }
 
       // Create a new SolutionAnalysis document

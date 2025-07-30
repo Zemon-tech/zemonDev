@@ -16,6 +16,28 @@ export interface ISolutionAnalysisResponse {
   };
 }
 
+// Add specific error types for different failure scenarios
+export class GeminiModelOverloadError extends Error {
+  constructor(message: string = 'Gemini model is currently overloaded. Please try again later.') {
+    super(message);
+    this.name = 'GeminiModelOverloadError';
+  }
+}
+
+export class GeminiParsingError extends Error {
+  constructor(message: string = 'Failed to parse Gemini response.') {
+    super(message);
+    this.name = 'GeminiParsingError';
+  }
+}
+
+export class GeminiServiceError extends Error {
+  constructor(message: string = 'Gemini service error occurred.') {
+    super(message);
+    this.name = 'GeminiServiceError';
+  }
+}
+
 // Initialize Gemini 2.5 Pro
 const genAI = new GoogleGenerativeAI(env.GEMINI_PRO_API_KEY);
 
@@ -142,49 +164,39 @@ Do not include any explanations, notes, or text outside the JSON object. Ensure 
       const analysisResult = JSON.parse(responseText) as ISolutionAnalysisResponse;
       console.log('Successfully parsed AI response');
       return analysisResult;
-    } catch (error) {
-      console.error('Failed to parse AI response as JSON:', error);
+    } catch (parseError) {
+      console.error('Failed to parse AI response as JSON:', parseError);
       console.error('Raw response (first 200 chars):', responseText.substring(0, 200));
       
-      // Provide a fallback response when parsing fails
-      return {
-        overallScore: 50,
-        aiConfidence: 30,
-        summary: "The analysis could not be completed properly due to a technical issue. This is a fallback response.",
-        evaluatedParameters: [
-          {
-            name: "Technical Analysis",
-            score: 50,
-            justification: "Unable to perform detailed analysis due to a technical issue with the AI response format."
-          }
-        ],
-        feedback: {
-          strengths: ["Your solution was received and processed."],
-          areasForImprovement: ["Please try submitting again if you'd like a more detailed analysis."],
-          suggestions: ["Consider checking the solution format and resubmitting."]
-        }
-      };
+      // Throw specific error instead of returning fallback
+      const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
+      throw new GeminiParsingError(`Failed to parse AI response: ${errorMessage}`);
     }
   } catch (error) {
     console.error('Error generating solution analysis:', error);
     
-    // Provide a fallback response when the AI call fails
-    return {
-      overallScore: 50,
-      aiConfidence: 30,
-      summary: "The analysis could not be completed due to a technical issue. This is a fallback response.",
-      evaluatedParameters: [
-        {
-          name: "Technical Analysis",
-          score: 50,
-          justification: "Unable to perform analysis due to a technical issue with the AI service."
-        }
-      ],
-      feedback: {
-        strengths: ["Your solution was received."],
-        areasForImprovement: ["Please try submitting again later."],
-        suggestions: ["Wait a few minutes and try again."]
-      }
+    // Type guard to safely access error properties
+    const isErrorWithStatus = (err: unknown): err is { status?: number; statusText?: string; message?: string } => {
+      return typeof err === 'object' && err !== null && ('status' in err || 'message' in err);
     };
+    
+    // Check for specific Gemini errors and throw appropriate custom errors
+    if (isErrorWithStatus(error)) {
+      if (error.status === 503 || error.message?.includes('overloaded')) {
+        throw new GeminiModelOverloadError('The AI model is currently overloaded. Please try again later.');
+      }
+      
+      if (error.status === 429 || error.message?.includes('rate limit')) {
+        throw new GeminiModelOverloadError('Rate limit exceeded. Please try again later.');
+      }
+      
+      if (error.status && error.status >= 500) {
+        throw new GeminiServiceError(`Gemini service error (${error.status}): ${error.statusText || 'Unknown error'}`);
+      }
+    }
+    
+    // For other errors, throw a generic service error
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    throw new GeminiServiceError(`Unexpected error: ${errorMessage}`);
   }
 } 

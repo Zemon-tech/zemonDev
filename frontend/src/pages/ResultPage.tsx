@@ -292,6 +292,40 @@ export default function ResultPage() {
     );
   }
 
+  // Check if analysis data is valid and complete
+  const isAnalysisValid = analysis && 
+    analysis.overallScore > 0 && 
+    analysis.summary && 
+    analysis.summary !== "The analysis could not be completed due to a technical issue. This is a fallback response." &&
+    analysis.feedback &&
+    analysis.feedback.strengths &&
+    analysis.feedback.strengths.length > 0;
+
+  // Show analysis error state if analysis is invalid or incomplete
+  if (!isAnalysisValid) {
+    return (
+      <div className="relative min-h-screen bg-base-100 flex items-center justify-center">
+        <Aurora className="fixed inset-0 opacity-30 pointer-events-none" />
+        <DotGrid className="fixed inset-0 opacity-10 pointer-events-none" />
+        <div className="text-center max-w-md mx-auto p-6 bg-base-200/50 backdrop-blur-sm rounded-xl border border-base-300">
+          <AlertCircle className="w-12 h-12 mx-auto mb-4 text-warning" />
+          <h2 className="text-xl font-bold">Analysis Incomplete</h2>
+          <p className="text-base-content/70 mt-2 mb-6">
+            The AI model was unable to complete the analysis. This could be due to high demand or a temporary service issue.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button onClick={() => navigate(`/crucible/${problem?._id || ''}`)} variant="outline">
+              Back to Problem
+            </Button>
+            <Button onClick={() => window.location.reload()}>
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // If we have no data but no loading or error state, something's wrong
   if (!analysis || !problem) {
     return (
@@ -546,7 +580,6 @@ export default function ResultPage() {
             Back to Problem
           </Button>
           <Button 
-            variant="primary"
             className="px-6 py-2"
             onClick={handleReattempt}
             disabled={isReattempting}
