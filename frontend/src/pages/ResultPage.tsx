@@ -575,8 +575,21 @@ export default function ResultPage() {
             </ul>
           )}
         </div>
+        {/* Progress Tracking Visualization */}
+        <div className="mt-12">
+          <h2 className="text-xl font-bold mb-4">Progress Tracking</h2>
+          <progress className="progress progress-primary w-full" value={70} max={100}></progress>
+          <div className="text-base-content/60 mt-2">(This is a placeholder. Real progress tracking will be shown here.)</div>
+        </div>
+        {/* Research Collection Interface */}
+        <div className="mt-12">
+          <h2 className="text-xl font-bold mb-4">Research Collection</h2>
+          <button className="btn btn-outline btn-accent">Add/View Research Items</button>
+          <div className="text-base-content/60 mt-2">(This is a placeholder. Research items UI will be implemented in a later phase.)</div>
+        </div>
       </div>
     </div>
   );
 } 
 // TODO: Refine UX for reattempt and news/history section in a later phase. 
+// TODO: Wire up real progress tracking and research collection in a later phase. 

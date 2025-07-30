@@ -291,3 +291,15 @@ export async function reattemptDraft(
     getToken
   );
 } 
+
+// Fetch all versions of a draft (auth required)
+export async function getDraftVersions(
+  problemId: string,
+  getToken: () => Promise<string | null>
+): Promise<Array<{ content: string; timestamp: Date; description: string }>> {
+  return apiRequest<Array<{ content: string; timestamp: Date; description: string }>>(
+    `/crucible/${problemId}/draft/versions`,
+    {},
+    getToken
+  );
+} 

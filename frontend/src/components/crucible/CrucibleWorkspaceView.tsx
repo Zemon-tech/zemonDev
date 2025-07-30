@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
-import { updateDraft, submitSolutionForAnalysis, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft, getLatestAnalysis, reattemptDraft } from '../../lib/crucibleApi';
+import { updateDraft, submitSolutionForAnalysis, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft, getLatestAnalysis, reattemptDraft, getDraftVersions } from '../../lib/crucibleApi';
 import { logger } from '../../lib/utils';
 import { useWorkspace } from '../../lib/WorkspaceContext';
 import SolutionEditor from './SolutionEditor';
@@ -36,6 +36,8 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
   const [solutionContent, setSolutionContent] = useState(initialDraft?.currentContent || '');
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [isReattempting, setIsReattempting] = useState<boolean>(false);
+  const [draftVersions, setDraftVersions] = useState([]);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
 
   // Load workspace state when problem changes
   useEffect(() => {
@@ -81,6 +83,34 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
     checkSubmission();
     return () => { isMounted = false; };
   }, [problem._id, getToken, navigate]);
+
+  // Fetch draft versions
+  useEffect(() => {
+    async function fetchVersions() {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const versions = await getDraftVersions(problem._id, () => Promise.resolve(token));
+        setDraftVersions(versions || []);
+      } catch (err) {
+        setDraftVersions([]);
+      }
+    }
+    if (showVersionHistory) fetchVersions();
+  }, [showVersionHistory, problem._id, getToken]);
+
+  // Handler to restore a version
+  const handleRestoreVersion = async (version) => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      await updateDraft(problem._id, version.content, () => Promise.resolve(token));
+      setSolutionContent(version.content);
+      setShowVersionHistory(false);
+    } catch (err) {
+      alert('Failed to restore version.');
+    }
+  };
 
   // Handler for reattempt
   const handleReattempt = useCallback(async () => {
@@ -206,6 +236,32 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
       <div className="flex-1 overflow-hidden flex flex-col border-x border-base-200 dark:border-base-700 shadow-lg">
         {isWorkspaceModeVisible && <WorkspaceModeSelector />}
         <div className="flex-1 overflow-auto p-4 bg-base-50 dark:bg-base-900">
+          {/* Version History Button */}
+          <div className="flex justify-end mb-2">
+            <button className="btn btn-sm btn-outline" onClick={() => setShowVersionHistory((v) => !v)}>
+              {showVersionHistory ? 'Hide Version History' : 'Show Version History'}
+            </button>
+          </div>
+          {/* Version History UI */}
+          {showVersionHistory && (
+            <div className="mb-4">
+              <ul className="menu bg-base-200 rounded-box p-4">
+                {draftVersions.length === 0 ? (
+                  <li>No versions found.</li>
+                ) : (
+                  draftVersions.map((version, idx) => (
+                    <li key={idx} className="flex flex-col md:flex-row md:items-center gap-2 mb-2">
+                      <span className="font-mono text-xs text-base-content/70">{new Date(version.timestamp).toLocaleString()}</span>
+                      <span className="ml-2 text-base-content/80 flex-1 truncate">{version.description || 'No description'}</span>
+                      <button className="btn btn-xs btn-primary ml-auto" onClick={() => handleRestoreVersion(version)}>
+                        Restore
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </div>
+          )}
           {/* Only show SolutionEditor if not submitted or in reattempt mode */}
           {activeContent === 'solution' && (!hasSubmitted || isReattempting) ? (
             <SolutionEditor value={solutionContent} onChange={handleEditorChange} />
@@ -236,4 +292,5 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
     </div>
   );
 }
+// TODO: Add advanced restore/compare UI for version history in a later phase.
 // TODO: Refine UX for reattempt and result page redirection in a later phase.
