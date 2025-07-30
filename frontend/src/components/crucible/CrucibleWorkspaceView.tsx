@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
-import { updateDraft, submitSolutionForAnalysis, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft } from '../../lib/crucibleApi';
+import { updateDraft, submitSolutionForAnalysis, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft, getLatestAnalysis, reattemptDraft } from '../../lib/crucibleApi';
 import { logger } from '../../lib/utils';
 import { useWorkspace } from '../../lib/WorkspaceContext';
 import SolutionEditor from './SolutionEditor';
@@ -34,6 +34,8 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
   } = useWorkspace();
   
   const [solutionContent, setSolutionContent] = useState(initialDraft?.currentContent || '');
+  const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
+  const [isReattempting, setIsReattempting] = useState<boolean>(false);
 
   // Load workspace state when problem changes
   useEffect(() => {
@@ -57,6 +59,43 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
 
     return () => clearTimeout(handler);
   }, [solutionContent, problem._id, getToken, initialDraft]);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function checkSubmission() {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const latest = await getLatestAnalysis(problem._id, () => Promise.resolve(token));
+        if (latest && isMounted) {
+          setHasSubmitted(true);
+          // Optionally, redirect to result page:
+          const username = window.location.pathname.split('/')[1];
+          navigate(`/${username}/crucible/problem/${problem._id}/result`);
+        }
+      } catch (err) {
+        // No analysis found is not an error, just means user can edit
+        setHasSubmitted(false);
+      }
+    }
+    checkSubmission();
+    return () => { isMounted = false; };
+  }, [problem._id, getToken, navigate]);
+
+  // Handler for reattempt
+  const handleReattempt = useCallback(async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const newDraft = await reattemptDraft(problem._id, () => Promise.resolve(token));
+      setSolutionContent(newDraft.currentContent || '');
+      setIsReattempting(true);
+      setHasSubmitted(false);
+    } catch (err) {
+      logger.error('Failed to reattempt draft:', err);
+      alert('Could not start a new attempt. Please try again.');
+    }
+  }, [problem._id, getToken]);
 
   const handleEditorChange = useCallback((content: string) => {
     setSolutionContent(content);
@@ -167,9 +206,18 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
       <div className="flex-1 overflow-hidden flex flex-col border-x border-base-200 dark:border-base-700 shadow-lg">
         {isWorkspaceModeVisible && <WorkspaceModeSelector />}
         <div className="flex-1 overflow-auto p-4 bg-base-50 dark:bg-base-900">
-          {activeContent === 'solution' ? (
+          {/* Only show SolutionEditor if not submitted or in reattempt mode */}
+          {activeContent === 'solution' && (!hasSubmitted || isReattempting) ? (
             <SolutionEditor value={solutionContent} onChange={handleEditorChange} />
           ) : (
+            <div className="text-center text-base-content/70 p-8">
+              <p>You have already submitted a solution for this problem.</p>
+              <button className="btn btn-primary mt-4" onClick={handleReattempt}>
+                Reattempt Problem
+              </button>
+            </div>
+          )}
+          {activeContent === 'notes' && (
             <NotesCollector 
               problemId={problem._id} 
               onChange={() => {}} 
@@ -188,3 +236,4 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
     </div>
   );
 }
+// TODO: Refine UX for reattempt and result page redirection in a later phase.

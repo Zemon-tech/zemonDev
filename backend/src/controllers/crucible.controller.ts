@@ -715,3 +715,40 @@ export const getAnalysisResult = asyncHandler(
     );
   }
 ); 
+
+/**
+ * @desc    Get the latest analysis for the current user/problem
+ * @route   GET /api/crucible/:problemId/solutions/latest
+ * @access  Private
+ */
+export const getLatestAnalysisForUserProblem = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { problemId } = req.params;
+    const userId = req.user._id;
+    const latest = await SolutionAnalysis.findOne({ userId, problemId })
+      .sort({ createdAt: -1 });
+    if (!latest) {
+      return next(new AppError('No analysis found for this problem', 404));
+    }
+    res.status(200).json(
+      new ApiResponse(200, 'Latest analysis retrieved successfully', latest)
+    );
+  }
+);
+
+/**
+ * @desc    Get all past analyses for the current user/problem
+ * @route   GET /api/crucible/:problemId/solutions/history
+ * @access  Private
+ */
+export const getAnalysisHistoryForUserProblem = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { problemId } = req.params;
+    const userId = req.user._id;
+    const history = await SolutionAnalysis.find({ userId, problemId })
+      .sort({ createdAt: -1 });
+    res.status(200).json(
+      new ApiResponse(200, 'Analysis history retrieved successfully', history)
+    );
+  }
+); 

@@ -74,6 +74,44 @@ We've updated our MongoDB database with the following collections:
 - `PUT /api/crucible/:problemId/research/:itemId`: Update a research item
 - `DELETE /api/crucible/:problemId/research/:itemId`: Delete a research item
 
+## Crucible Result Page & Submission Workflow Updates
+
+### Solution Editor Access Control
+- After a user submits a solution for a problem, the solution editor should no longer be visible or accessible for that problem instance.
+- This restriction applies to all users.
+- If the user revisits the problem page, they should always see the analysis/result page for their latest submission, not the solution editor.
+- The UI must check the submission state (e.g., if a final solution exists for the user/problem) and conditionally render the editor or result page.
+
+### Fetching Latest Analysis
+- The backend should provide a way to fetch the latest analysis/result for a given user/problem combination.
+- Update or clarify the API:
+  - Add: `GET /api/crucible/:problemId/solutions/latest` (returns the latest solution/analysis for the current user)
+  - Or update `GET /api/crucible/:challengeId/solutions` to support a `?user=current` and `?latest=true` query param.
+- When a user visits a problem after submitting, they should always see the latest analysis/result page.
+
+### Archiving Drafts on Submission
+- When a user submits a solution, the current draft should be archived (already in plan).
+- Ensure the draft is not editable after submission unless reattempted.
+
+### Reattempt Workflow
+- Add a 'Reattempt' button to the result page.
+- When clicked:
+  - A new draft is created for the user/problem.
+  - The solution editor becomes visible and editable again.
+  - User can submit a new solution for analysis (repeatable process).
+- Previous submissions are always preserved as history; reattempts do not overwrite past submissions.
+
+### News/History Section for Past Analyses
+- Add a section to the result page listing all past analyses/submissions for the user/problem ("news" or "history").
+- This section appears at the end of the result page.
+- Each entry should be clickable; clicking navigates to the result/analysis page for that specific submission.
+- There is no admin-specific history or admin functionality at this time.
+
+### API Endpoints (Additions/Clarifications)
+- `GET /api/crucible/:problemId/solutions/latest` — Get latest solution/analysis for current user/problem
+- `GET /api/crucible/:problemId/solutions/history` — Get all past solutions/analyses for current user/problem
+- `POST /api/crucible/:problemId/draft/reattempt` — Create a new draft for reattempting a problem
+
 ## Frontend Integration
 
 ### Workspace Context
@@ -205,12 +243,15 @@ const crucibleApi = {
 
 ### Phase 2: API Expansion
 
-- Implement remaining API endpoints for notes, chats, etc.
+- Implement endpoints for fetching latest and historical analyses per user/problem
+- Implement endpoint for reattempt (new draft creation)
 - Add controllers for each new model
 - Create comprehensive tests
 
 ### Phase 3: Frontend Integration
 
+- Update UI to enforce editor/result page access control
+- Add reattempt and news/history features
 - Update WorkspaceContext
 - Implement API service functions
 - Enhance components to use new APIs

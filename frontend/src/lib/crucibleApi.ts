@@ -255,3 +255,39 @@ export async function getAnalysisResult(
     getToken
   );
 } 
+
+// Fetch latest analysis for current user/problem (auth required)
+export async function getLatestAnalysis(
+  problemId: string,
+  getToken: () => Promise<string | null>
+): Promise<ISolutionAnalysisResult> {
+  return apiRequest<ISolutionAnalysisResult>(
+    `/crucible/${problemId}/solutions/latest`,
+    {},
+    getToken
+  );
+}
+
+// Fetch all analyses for current user/problem (auth required)
+export async function getAnalysisHistory(
+  problemId: string,
+  getToken: () => Promise<string | null>
+): Promise<ISolutionAnalysisResult[]> {
+  return apiRequest<ISolutionAnalysisResult[]>(
+    `/crucible/${problemId}/solutions/history`,
+    {},
+    getToken
+  );
+}
+
+// Create a new draft for reattempting a problem (auth required)
+export async function reattemptDraft(
+  problemId: string,
+  getToken: () => Promise<string | null>
+): Promise<ISolutionDraft> {
+  return apiRequest<ISolutionDraft>(
+    `/crucible/${problemId}/draft/reattempt`,
+    { method: 'POST' },
+    getToken
+  );
+} 

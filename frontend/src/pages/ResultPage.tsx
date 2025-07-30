@@ -31,7 +31,7 @@ import { CircularProgress } from '@/components/blocks/CircularProgress';
 import { FloatingIcon } from '@/components/blocks/FloatingIcon';
 
 // Import API client
-import { getAnalysisResult, ISolutionAnalysisResult, getProblem, ICrucibleProblem } from '@/lib/crucibleApi';
+import { getAnalysisResult, ISolutionAnalysisResult, getProblem, ICrucibleProblem, getAnalysisHistory, reattemptDraft } from '@/lib/crucibleApi';
 
 // Define loading state interface
 interface LoadingState {
@@ -114,6 +114,8 @@ export default function ResultPage() {
     problem: true,
     error: null
   });
+  const [history, setHistory] = useState<ISolutionAnalysisResult[]>([]);
+  const [isReattempting, setIsReattempting] = useState(false);
   
   // Extract problemId from URL if we're on the /problem/:id/result route
   const isProblemResultRoute = location.pathname.includes('/problem/') && location.pathname.endsWith('/result');
@@ -179,6 +181,39 @@ export default function ResultPage() {
 
     fetchData();
   }, [analysisId, getToken, problemId]);
+
+  // Fetch analysis history for news section
+  useEffect(() => {
+    async function fetchHistory() {
+      if (!problem || !getToken) return;
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const hist = await getAnalysisHistory(problem._id, () => Promise.resolve(token));
+        setHistory(hist);
+      } catch (err) {
+        setHistory([]);
+      }
+    }
+    fetchHistory();
+  }, [problem, getToken]);
+
+  // Handler for reattempt
+  const handleReattempt = async () => {
+    if (!problem || !getToken) return;
+    setIsReattempting(true);
+    try {
+      const token = await getToken();
+      if (!token) return;
+      await reattemptDraft(problem._id, () => Promise.resolve(token));
+      // Redirect to workspace/editor
+      const username = window.location.pathname.split('/')[1];
+      navigate(`/${username}/crucible/problem/${problem._id}`);
+    } catch (err) {
+      setIsReattempting(false);
+      alert('Could not start a new attempt. Please try again.');
+    }
+  };
 
   // Helper function to handle fetch errors
   const handleFetchError = (error: any) => {
@@ -510,8 +545,38 @@ export default function ResultPage() {
           >
             Back to Problem
           </Button>
+          <Button 
+            variant="primary"
+            className="px-6 py-2"
+            onClick={handleReattempt}
+            disabled={isReattempting}
+          >
+            {isReattempting ? 'Starting...' : 'Reattempt Problem'}
+          </Button>
+        </div>
+        {/* Past Analyses Section */}
+        <div className="mt-12">
+          <h2 className="text-xl font-bold mb-4">Past Analyses</h2>
+          {history.length === 0 ? (
+            <div className="text-base-content/60">No past analyses found.</div>
+          ) : (
+            <ul className="menu bg-base-200 rounded-box p-4">
+              {history.map((item) => (
+                <li key={item._id}>
+                  <button
+                    className={`menu-item text-left w-full ${item._id === analysis?._id ? 'menu-active' : ''}`}
+                    onClick={() => navigate(`/crucible/results/${item._id}`)}
+                  >
+                    <span className="font-semibold">{new Date(item.createdAt).toLocaleString()}</span>
+                    <span className="ml-2 text-base-content/70">Score: {item.overallScore}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>
   );
 } 
+// TODO: Refine UX for reattempt and news/history section in a later phase. 

@@ -5,13 +5,16 @@ import {
   submitSolution, 
   getSolutions,
   analyzeUserSolution,
-  getAnalysisResult
+  getAnalysisResult,
+  getLatestAnalysisForUserProblem,
+  getAnalysisHistoryForUserProblem
 } from '../controllers/crucible.controller';
 import { 
   getDraft, 
   updateDraft, 
   archiveDraft, 
-  getDraftVersions 
+  getDraftVersions,
+  reattemptDraft
 } from '../controllers/solutionDraft.controller';
 import {
   getNotes,
@@ -69,12 +72,15 @@ router.post('/:challengeId/solutions', protect, submitSolution);
 // Solution analysis routes
 router.post('/:problemId/analyze', protect, analyzeUserSolution);
 router.get('/results/:analysisId', protect, getAnalysisResult);
+router.get('/:problemId/solutions/latest', protect, getLatestAnalysisForUserProblem);
+router.get('/:problemId/solutions/history', protect, getAnalysisHistoryForUserProblem);
 
 // Solution draft routes
 router.get('/:problemId/draft', protect, getDraft);
 router.put('/:problemId/draft', protect, updateDraft);
 router.put('/:problemId/draft/archive', protect, archiveDraft);
 router.get('/:problemId/draft/versions', protect, getDraftVersions);
+router.post('/:problemId/draft/reattempt', protect, reattemptDraft);
 
 // Notes routes
 router.get('/:problemId/notes', protect, getNotes);

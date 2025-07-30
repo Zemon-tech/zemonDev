@@ -161,6 +161,45 @@ export const archiveDraft = asyncHandler(
 );
 
 /**
+ * @desc    Create a new draft for reattempting a problem
+ * @route   POST /api/crucible/:problemId/draft/reattempt
+ * @access  Private
+ */
+export const reattemptDraft = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { problemId } = req.params;
+    const userId = req.user._id;
+    // Archive any active draft for this problem/user
+    const activeDraft = await SolutionDraft.findOne({ userId, problemId, status: 'active' });
+    if (activeDraft) {
+      activeDraft.status = 'archived';
+      await activeDraft.save();
+      await User.findByIdAndUpdate(userId, {
+        $pull: { activeDrafts: activeDraft._id },
+        $addToSet: { archivedDrafts: activeDraft._id }
+      });
+    }
+    // Create new draft
+    const newDraft = await SolutionDraft.create({
+      userId,
+      problemId,
+      currentContent: ' ',
+      versions: [{ content: ' ', timestamp: new Date(), description: 'Reattempt draft' }],
+      lastEdited: new Date(),
+      status: 'active',
+      autoSaveEnabled: true
+    });
+    // Update user's activeDrafts
+    await User.findByIdAndUpdate(userId, {
+      $addToSet: { activeDrafts: newDraft._id }
+    });
+    res.status(201).json(
+      new ApiResponse(201, 'New draft created for reattempt', newDraft)
+    );
+  }
+);
+
+/**
  * @desc    Get all versions of a draft
  * @route   GET /api/crucible/:problemId/draft/versions
  * @access  Private
