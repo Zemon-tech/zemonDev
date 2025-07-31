@@ -123,12 +123,9 @@ function CrucibleProblemPage() {
           }
         }
         
-        // Now that we have draft status, we can safely check for analysis
-        // Only check for analysis if the draft is NOT active (meaning it's been submitted)
-        if (draftData && draftData.status !== 'active') {
-          // Check if user has already submitted a solution with analysis using shared context
-          checkAnalysis(problemId);
-        }
+        // Always check for analysis regardless of draft status
+        // This ensures we catch cases where user has analysis but draft is still active
+        checkAnalysis(problemId);
 
       } catch (err: any) {
         logger.error('Failed to load crucible page data:', err);
@@ -174,6 +171,7 @@ function CrucibleProblemPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analysis, analysisLoading, redirectInitiated, isReattempting]);
 
+  // Show loading skeleton while fetching data or checking analysis
   if (loading || analysisLoading) {
     return <ProblemSkeleton />;
   }

@@ -351,3 +351,18 @@ export async function getDraftVersions(
     getToken
   );
 } 
+
+// Check if user has analysis for a problem and return analysis ID if exists
+export async function checkUserAnalysisForProblem(
+  problemId: string,
+  getToken: () => Promise<string | null>
+): Promise<string | null> {
+  try {
+    const analysis = await getLatestAnalysis(problemId, getToken);
+    return analysis ? analysis._id : null;
+  } catch (error: any) {
+    // If there's an error (like network issues), return null to allow normal navigation
+    console.warn('Error checking analysis for problem:', error);
+    return null;
+  }
+} 

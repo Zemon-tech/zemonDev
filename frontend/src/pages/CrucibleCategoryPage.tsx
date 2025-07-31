@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Search, X, ArrowLeft, Filter, Clock, Users, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { getProblems } from '@/lib/crucibleApi';
+import { getProblems, checkUserAnalysisForProblem } from '@/lib/crucibleApi';
 import { useAuth } from '@clerk/clerk-react';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
 import { GradientText } from '@/components/blocks/GradientText';
@@ -93,7 +93,8 @@ export default function CrucibleCategoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'latest' | 'popular' | 'difficulty'>('latest');
-  const { isLoaded: authLoaded, isSignedIn } = useAuth();
+  const [checkingAnalysis, setCheckingAnalysis] = useState<string | null>(null);
+  const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
 
   const category = categoryInfo[categoryId as keyof typeof categoryInfo];
 
@@ -159,9 +160,30 @@ export default function CrucibleCategoryPage() {
     setFilteredProblems(filtered);
   }, [searchQuery, sortBy, problems]);
 
-  // Handle problem click
-  const handleProblemClick = (problemId: string) => {
-    navigate(`/${username}/crucible/problem/${problemId}`);
+  // Handle problem click with analysis check
+  const handleProblemClick = async (problemId: string) => {
+    // Set loading state for this problem
+    setCheckingAnalysis(problemId);
+    
+    try {
+      // Check if user has analysis for this problem
+      const analysisId = await checkUserAnalysisForProblem(problemId, getToken);
+      
+      if (analysisId) {
+        // If analysis exists, redirect directly to result page
+        navigate(`/${username}/crucible/results/${analysisId}`);
+      } else {
+        // If no analysis, navigate to problem page as usual
+        navigate(`/${username}/crucible/problem/${problemId}`);
+      }
+    } catch (error) {
+      // If there's an error checking analysis, fall back to normal navigation
+      console.warn('Error checking analysis, falling back to problem page:', error);
+      navigate(`/${username}/crucible/problem/${problemId}`);
+    } finally {
+      // Clear loading state
+      setCheckingAnalysis(null);
+    }
   };
 
   // Get difficulty color
@@ -343,7 +365,18 @@ export default function CrucibleCategoryPage() {
             filteredProblems.map((problem) => (
               <div key={problem._id || problem.id} onClick={() => handleProblemClick(problem._id || problem.id)}>
                 <SpotlightCard className="cursor-pointer">
-                  <div className="p-6 rounded-xl border border-base-300 hover:border-primary/30 transition-all duration-300 group">
+                  <div className={cn(
+                    "p-6 rounded-xl border border-base-300 hover:border-primary/30 transition-all duration-300 group relative",
+                    checkingAnalysis === (problem._id || problem.id) && "opacity-75"
+                  )}>
+                    {checkingAnalysis === (problem._id || problem.id) && (
+                      <div className="absolute inset-0 bg-base-100/80 backdrop-blur-sm rounded-xl flex items-center justify-center z-10">
+                        <div className="flex items-center gap-2 text-primary">
+                          <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                          <span className="text-sm">Checking...</span>
+                        </div>
+                      </div>
+                    )}
                     <div className="flex items-start justify-between mb-3">
                       <Badge className={cn("text-xs", getDifficultyColor(problem.difficulty))}>
                         {problem.difficulty}
