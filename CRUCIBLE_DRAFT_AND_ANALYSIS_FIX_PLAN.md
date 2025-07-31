@@ -445,6 +445,13 @@ This plan requires approval before implementation to ensure:
    - Added prevention of redundant redirects
    - **Impact**: Users now correctly see the result page when visiting a problem they've already submitted
 
+7. **Fixed Loading Screen for New Problems**:
+   - Reordered `checkSubmission` function to prioritize showing editor for new problems
+   - Improved loading state logic to only show for relevant scenarios
+   - Added fallback draft creation for error cases
+   - Added detailed logging for better debugging
+   - **Impact**: New users now immediately see the editor without getting stuck on loading screen
+
 #### Files Modified:
 - `frontend/src/components/crucible/CrucibleWorkspaceView.tsx`
 - `frontend/src/pages/CrucibleProblemPage.tsx`

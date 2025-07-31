@@ -31,7 +31,8 @@ import { CircularProgress } from '@/components/blocks/CircularProgress';
 import { FloatingIcon } from '@/components/blocks/FloatingIcon';
 
 // Import API client
-import { getAnalysisResult, ISolutionAnalysisResult, getProblem, ICrucibleProblem, getAnalysisHistory, reattemptDraft, getLatestAnalysis } from '@/lib/crucibleApi';
+import { getAnalysisResult, ISolutionAnalysisResult, getProblem, ICrucibleProblem, getAnalysisHistory, reattemptDraft } from '@/lib/crucibleApi';
+import { useAnalysis } from '@/context/AnalysisContext';
 
 // Define loading state interface
 interface LoadingState {
@@ -107,7 +108,9 @@ export default function ResultPage() {
   const { getToken } = useAuth();
   const location = useLocation();
   
-  const [analysis, setAnalysis] = useState<ISolutionAnalysisResult | null>(null);
+  // Use the centralized analysis context
+  const { analysis: contextAnalysis, loading: analysisLoading, error: analysisError, checkAnalysis } = useAnalysis();
+  
   const [problem, setProblem] = useState<ICrucibleProblem | null>(null);
   const [loading, setLoading] = useState<LoadingState>({
     analysis: true,
@@ -121,16 +124,31 @@ export default function ResultPage() {
   const isProblemResultRoute = location.pathname.includes('/problem/') && location.pathname.endsWith('/result');
   const problemId = isProblemResultRoute ? location.pathname.split('/problem/')[1].split('/result')[0] : null;
 
+  // Track if we've already initiated an analysis check for this render cycle
+  const [analysisCheckInitiated, setAnalysisCheckInitiated] = useState<boolean>(false);
+  
   useEffect(() => {
+    // Reset the flag when problemId or analysisId changes
+    setAnalysisCheckInitiated(false);
+  }, [problemId, analysisId]);
+  
+  useEffect(() => {
+    // Track if the component is still mounted
+    let isMounted = true;
+    
     const fetchData = async () => {
-      // If we have an analysisId, fetch the analysis directly
+      // If we have an analysisId, fetch the analysis directly (unchanged)
       if (analysisId) {
         console.log(`Fetching analysis with ID: ${analysisId}`);
         try {
           // Fetch analysis result
           const analysisData = await getAnalysisResult(analysisId, getToken);
+          
+          // Check if component is still mounted before updating state
+          if (!isMounted) return;
+          
           console.log('Analysis data received:', analysisData);
-          setAnalysis(analysisData);
+          // Note: We don't set analysis here since we're using context
           setLoading(prev => ({ ...prev, analysis: false }));
 
           if (!analysisData.problemId) {
@@ -146,11 +164,15 @@ export default function ResultPage() {
           // Fetch problem details
           console.log(`Fetching problem with ID: ${analysisData.problemId}`);
           const problemData = await getProblem(analysisData.problemId);
+          
+          // Check if component is still mounted before updating state
+          if (!isMounted) return;
+          
           console.log('Problem data received:', problemData);
           setProblem(problemData);
           setLoading(prev => ({ ...prev, problem: false }));
         } catch (error) {
-          handleFetchError(error);
+          if (isMounted) handleFetchError(error);
         }
       } 
       // If we're on the problem result route but don't have an analysisId yet
@@ -159,51 +181,26 @@ export default function ResultPage() {
         try {
           // Fetch problem details first
           const problemData = await getProblem(problemId);
+          
+          // Check if component is still mounted before updating state
+          if (!isMounted) return;
+          
           console.log('Problem data received:', problemData);
           setProblem(problemData);
           setLoading(prev => ({ ...prev, problem: false }));
           
-          // Try to fetch the latest analysis for this problem with retry
-          const fetchAnalysisWithRetry = async (retryCount = 0) => {
-            try {
-              const token = await getToken();
-              if (token) {
-                const latestAnalysis = await getLatestAnalysis(problemId, () => Promise.resolve(token));
-                if (latestAnalysis) {
-                  console.log('Latest analysis found:', latestAnalysis);
-                  setAnalysis(latestAnalysis);
-                  setLoading(prev => ({ ...prev, analysis: false }));
-                  return;
-                }
-              }
-            } catch (analysisError) {
-              console.log('Analysis fetch attempt failed:', analysisError);
-            }
-            
-            // If no analysis found and we haven't retried too many times, retry after delay
-            if (retryCount < 5) {
-              const delayMs = 3000 * (retryCount + 1); // Increasing delay: 3s, 6s, 9s, 12s, 15s
-              console.log(`Retrying analysis fetch in ${delayMs/1000} seconds (attempt ${retryCount + 1}/5)`);
-              // Keep the loading state active during retries
-              setLoading(prev => ({ 
-                ...prev, 
-                analysis: true,
-                error: null
-              }));
-              setTimeout(() => fetchAnalysisWithRetry(retryCount + 1), delayMs);
-            } else {
-              // After 5 retries, show the "no analysis" message
-              setLoading(prev => ({ 
-                ...prev, 
-                analysis: false, 
-                error: "No analysis found for this problem. You may need to submit a solution first."
-              }));
-            }
-          };
-          
-          fetchAnalysisWithRetry();
+          // Only check for analysis once per render cycle to prevent loops
+          if (!analysisCheckInitiated && !contextAnalysis) {
+            console.log('Initiating analysis check for problem:', problemId);
+            setAnalysisCheckInitiated(true);
+            checkAnalysis(problemId);
+          } else if (contextAnalysis) {
+            // If we already have analysis in context, just update loading state
+            console.log('Using existing analysis from context');
+            setLoading(prev => ({ ...prev, analysis: false }));
+          }
         } catch (error) {
-          handleFetchError(error);
+          if (isMounted) handleFetchError(error);
         }
       } else {
         // Neither analysisId nor problemId available
@@ -217,7 +214,10 @@ export default function ResultPage() {
     };
 
     fetchData();
-  }, [analysisId, getToken, problemId]);
+    
+    // Cleanup function to prevent state updates after unmount
+    return () => { isMounted = false; };
+  }, [analysisId, getToken, problemId, checkAnalysis, contextAnalysis, analysisCheckInitiated]);
 
   // Fetch analysis history for news section
   useEffect(() => {
@@ -279,8 +279,15 @@ export default function ResultPage() {
     }));
   };
 
+  // Update local loading state based on context
+  useEffect(() => {
+    if (contextAnalysis) {
+      setLoading(prev => ({ ...prev, analysis: false }));
+    }
+  }, [contextAnalysis]);
+
   // Show loading state
-  if (loading.analysis || loading.problem) {
+  if ((loading.analysis || loading.problem) && (analysisLoading || !contextAnalysis)) {
     return (
       <div className="relative min-h-screen bg-base-100 flex items-center justify-center">
         <Aurora className="fixed inset-0 opacity-30 pointer-events-none" />
@@ -296,7 +303,8 @@ export default function ResultPage() {
             {problemId && <p>Problem ID: {problemId}</p>}
             <p>Loading state: {JSON.stringify({
               analysis: loading.analysis,
-              problem: loading.problem
+              problem: loading.problem,
+              contextLoading: analysisLoading
             })}</p>
             <div className="mt-2">
               <Button 
@@ -314,7 +322,7 @@ export default function ResultPage() {
   }
 
   // Show error state
-  if (loading.error) {
+  if (loading.error || analysisError) {
     return (
       <div className="relative min-h-screen bg-base-100 flex items-center justify-center">
         <Aurora className="fixed inset-0 opacity-30 pointer-events-none" />
@@ -322,7 +330,7 @@ export default function ResultPage() {
         <div className="text-center max-w-md mx-auto p-6 bg-base-200/50 backdrop-blur-sm rounded-xl border border-base-300">
           <AlertOctagon className="w-12 h-12 mx-auto mb-4 text-error" />
           <h2 className="text-xl font-bold">Something went wrong</h2>
-          <p className="text-base-content/70 mt-2 mb-6">{loading.error}</p>
+          <p className="text-base-content/70 mt-2 mb-6">{loading.error || analysisError}</p>
           <Button onClick={() => navigate(-1)}>Go Back</Button>
         </div>
       </div>
@@ -330,13 +338,13 @@ export default function ResultPage() {
   }
 
   // Check if analysis data is valid and complete
-  const isAnalysisValid = analysis && 
-    analysis.overallScore > 0 && 
-    analysis.summary && 
-    analysis.summary !== "The analysis could not be completed due to a technical issue. This is a fallback response." &&
-    analysis.feedback &&
-    analysis.feedback.strengths &&
-    analysis.feedback.strengths.length > 0;
+  const isAnalysisValid = contextAnalysis && 
+    contextAnalysis.overallScore > 0 && 
+    contextAnalysis.summary && 
+    contextAnalysis.summary !== "The analysis could not be completed due to a technical issue. This is a fallback response." &&
+    contextAnalysis.feedback &&
+    contextAnalysis.feedback.strengths &&
+    contextAnalysis.feedback.strengths.length > 0;
 
   // Show analysis error state if analysis is invalid or incomplete
   if (!isAnalysisValid) {
@@ -364,7 +372,7 @@ export default function ResultPage() {
   }
 
   // If we have no data but no loading or error state, something's wrong
-  if (!analysis || !problem) {
+  if (!contextAnalysis || !problem) {
     return (
       <div className="relative min-h-screen bg-base-100 flex items-center justify-center">
         <Aurora className="fixed inset-0 opacity-30 pointer-events-none" />
@@ -397,14 +405,14 @@ export default function ResultPage() {
                 <h1 className="text-3xl font-bold font-heading mb-3 text-base-content">
                   {problem.title}
                 </h1>
-                <p className="text-lg text-base-content/80 mb-4">{analysis.summary}</p>
+                <p className="text-lg text-base-content/80 mb-4">{contextAnalysis.summary}</p>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
                     <FloatingIcon icon={Brain} className="w-5 h-5 text-primary" />
                     <span className="font-semibold text-base-content">AI Confidence:</span>
                     <CountUp 
                       from={0} 
-                      to={analysis.aiConfidence} 
+                      to={contextAnalysis.aiConfidence} 
                       duration={1.5}
                       className="text-lg font-bold text-primary"
                       suffix="%"
@@ -413,13 +421,13 @@ export default function ResultPage() {
                 </div>
               </div>
               <div className="shrink-0">
-                <CircularProgress value={analysis.overallScore} size={160} className="bg-base-100/50 backdrop-blur-sm rounded-full p-4">
+                <CircularProgress value={contextAnalysis.overallScore} size={160} className="bg-base-100/50 backdrop-blur-sm rounded-full p-4">
                   <div className="flex flex-col items-center">
                     <Trophy className="w-8 h-8 text-primary mb-1" />
                     <span className="text-sm font-medium text-base-content/70">Score</span>
                     <CountUp 
                       from={0} 
-                      to={analysis.overallScore} 
+                      to={contextAnalysis.overallScore} 
                       duration={2}
                       className="text-3xl font-bold text-primary"
                     />
@@ -432,8 +440,8 @@ export default function ResultPage() {
 
         {/* Mind Characteristics Grid */}
         <AnimatedContent className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {analysis.evaluatedParameters && analysis.evaluatedParameters.length > 0 ? (
-            analysis.evaluatedParameters.map((param, index) => (
+          {contextAnalysis.evaluatedParameters && contextAnalysis.evaluatedParameters.length > 0 ? (
+            contextAnalysis.evaluatedParameters.map((param: any, index: number) => (
               <CharacteristicBadge
                 key={index}
                 icon={parameterIcons[param.name] || defaultIcon}
@@ -530,8 +538,8 @@ export default function ResultPage() {
                 Strengths
               </h2>
               <ul className="space-y-3">
-                {analysis.feedback && analysis.feedback.strengths && analysis.feedback.strengths.length > 0 ? (
-                  analysis.feedback.strengths.map((strength, index) => (
+                {contextAnalysis.feedback && contextAnalysis.feedback.strengths && contextAnalysis.feedback.strengths.length > 0 ? (
+                  contextAnalysis.feedback.strengths.map((strength: any, index: number) => (
                     <motion.li
                       key={index}
                       initial={{ opacity: 0, y: 10 }}
@@ -558,8 +566,8 @@ export default function ResultPage() {
                 Areas for Improvement
               </h2>
               <ul className="space-y-3">
-                {analysis.feedback && analysis.feedback.areasForImprovement && analysis.feedback.areasForImprovement.length > 0 ? (
-                  analysis.feedback.areasForImprovement.map((area, index) => (
+                {contextAnalysis.feedback && contextAnalysis.feedback.areasForImprovement && contextAnalysis.feedback.areasForImprovement.length > 0 ? (
+                  contextAnalysis.feedback.areasForImprovement.map((area: any, index: number) => (
                     <motion.li
                       key={index}
                       initial={{ opacity: 0, y: 10 }}
@@ -586,8 +594,8 @@ export default function ResultPage() {
                 Suggestions
               </h2>
               <ul className="space-y-3">
-                {analysis.feedback && analysis.feedback.suggestions && analysis.feedback.suggestions.length > 0 ? (
-                  analysis.feedback.suggestions.map((suggestion, index) => (
+                {contextAnalysis.feedback && contextAnalysis.feedback.suggestions && contextAnalysis.feedback.suggestions.length > 0 ? (
+                  contextAnalysis.feedback.suggestions.map((suggestion: any, index: number) => (
                     <motion.li
                       key={index}
                       initial={{ opacity: 0, y: 10 }}
@@ -634,7 +642,7 @@ export default function ResultPage() {
               {history.map((item) => (
                 <li key={item._id}>
                   <button
-                    className={`menu-item text-left w-full ${item._id === analysis?._id ? 'menu-active' : ''}`}
+                    className={`menu-item text-left w-full ${item._id === contextAnalysis?._id ? 'menu-active' : ''}`}
                     onClick={() => navigate(`/crucible/results/${item._id}`)}
                   >
                     <span className="font-semibold">{new Date(item.createdAt).toLocaleString()}</span>

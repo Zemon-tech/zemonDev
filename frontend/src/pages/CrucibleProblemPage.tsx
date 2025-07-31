@@ -5,13 +5,17 @@ import ProblemSkeleton from '../components/crucible/ProblemSkeleton';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { WorkspaceProvider } from '@/lib/WorkspaceContext';
 import { useEffect, useState } from 'react';
-import { getProblem, getDraft, getNotes, updateDraft, getLatestAnalysis, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft } from '@/lib/crucibleApi';
+import { getProblem, getDraft, getNotes, updateDraft, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft } from '@/lib/crucibleApi';
 import { logger } from '@/lib/utils';
+import { useAnalysis } from '@/context/AnalysisContext';
 
 function CrucibleProblemPage() {
   const { id: problemId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isLoaded, isSignedIn, getToken } = useAuth();
+  
+  // Use the centralized analysis context
+  const { analysis, loading: analysisLoading, checkAnalysis } = useAnalysis();
 
   const [problem, setProblem] = useState<ICrucibleProblem | null>(null);
   const [draft, setDraft] = useState<ISolutionDraft | null>(null);
@@ -51,22 +55,8 @@ function CrucibleProblemPage() {
         const problemData = await getProblem(problemId);
         setProblem(problemData);
 
-        // Check if user has already submitted a solution with analysis
-        try {
-          const latestAnalysis = await getLatestAnalysis(problemId, tokenProvider);
-          
-          // If analysis exists, redirect to result page immediately
-          if (latestAnalysis) {
-            logger.info('Found existing analysis, redirecting to result page');
-            // Extract username from path
-            const username = window.location.pathname.split('/')[1];
-            navigate(`/${username}/crucible/problem/${problemId}/result`);
-            return; // Exit early - no need to fetch draft or create one
-          }
-        } catch (analysisError) {
-          // If no analysis exists (404), continue with normal flow
-          logger.info('No existing analysis found, continuing with normal flow');
-        }
+        // Check if user has already submitted a solution with analysis using shared context
+        checkAnalysis(problemId);
 
         // Try to fetch draft and notes, but don't fail if draft doesn't exist
         let draftData: ISolutionDraft | null = null;
@@ -98,11 +88,33 @@ function CrucibleProblemPage() {
         if (!draftData) {
           try {
             // Create a new draft with empty content
+            logger.info('Creating new draft for first-time user');
             const newDraft = await updateDraft(problemId, '', tokenProvider);
-            setDraft(newDraft);
+            
+            // Ensure we got a valid draft back
+            if (newDraft && newDraft._id) {
+              logger.info('Successfully created new draft:', newDraft._id);
+              setDraft(newDraft);
+            } else {
+              logger.warn('Draft creation returned invalid data:', newDraft);
+              // Still set the draft to prevent infinite loading
+              setDraft({ 
+                _id: 'temp-draft',
+                problemId,
+                currentContent: '',
+                status: 'active'
+              } as ISolutionDraft);
+            }
           } catch (createError: any) {
-            // If draft creation fails, that's okay - user can still use the editor
-            logger.warn('Failed to create initial draft, but continuing:', createError);
+            // If draft creation fails, create a temporary draft object
+            // This ensures the editor still shows up instead of loading state
+            logger.warn('Failed to create initial draft, using fallback:', createError);
+            setDraft({ 
+              _id: 'temp-draft',
+              problemId,
+              currentContent: '',
+              status: 'active'
+            } as ISolutionDraft);
           }
         }
 
@@ -115,9 +127,34 @@ function CrucibleProblemPage() {
     };
 
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [problemId, isLoaded, isSignedIn, getToken, navigate]);
 
-  if (loading) {
+  // Track if a redirect has been initiated
+  const [redirectInitiated, setRedirectInitiated] = useState<boolean>(false);
+
+  // Handle analysis state changes and redirect when analysis is found
+  useEffect(() => {
+    // Only redirect if:
+    // 1. We have an analysis
+    // 2. We're not currently loading
+    // 3. We haven't already initiated a redirect
+    // 4. We're not already on the result page
+    const isOnResultPage = window.location.pathname.includes('/result');
+    
+    if (analysis && !analysisLoading && problemId && !redirectInitiated && !isOnResultPage) {
+      logger.info('Found existing analysis in context, redirecting to result page');
+      // Mark that we've initiated a redirect to prevent loops
+      setRedirectInitiated(true);
+      // Extract username from path
+      const username = window.location.pathname.split('/')[1];
+      navigate(`/${username}/crucible/problem/${problemId}/result`);
+    }
+  // We only want to run this effect when analysis or analysisLoading changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysis, analysisLoading, redirectInitiated]);
+
+  if (loading || analysisLoading) {
     return <ProblemSkeleton />;
   }
 

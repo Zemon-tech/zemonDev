@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
-import { updateDraft, submitSolutionForAnalysis, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft, getLatestAnalysis, reattemptDraft, getDraftVersions, getDraft } from '../../lib/crucibleApi';
+import { updateDraft, submitSolutionForAnalysis, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft, reattemptDraft, getDraftVersions, getDraft } from '../../lib/crucibleApi';
 import { logger } from '../../lib/utils';
 import { useWorkspace } from '../../lib/WorkspaceContext';
+import { useAnalysis } from '@/context/AnalysisContext';
 import SolutionEditor from './SolutionEditor';
 import NotesCollector from './NotesCollector';
 import ProblemDetailsSidebar from './ProblemDetailsSidebar';
@@ -20,6 +21,9 @@ interface CrucibleWorkspaceViewProps {
 export default function CrucibleWorkspaceView({ problem, initialDraft }: CrucibleWorkspaceViewProps) {
   const { getToken } = useAuth();
   const navigate = useNavigate();
+  
+  // Use the centralized analysis context
+  const { analysis, loading: analysisLoading, checkAnalysis } = useAnalysis();
 
   const {
     setWordCount,
@@ -135,45 +139,71 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
         const token = await getToken();
         if (!token) return;
         
-        // First, check if there's an existing analysis regardless of draft status
-        // This ensures we always prioritize showing results over the editor
-        try {
-          const latest = await getLatestAnalysis(problem._id, () => Promise.resolve(token));
-          if (latest && isMounted) {
-            logger.info('Found existing analysis in checkSubmission');
-            setHasSubmitted(true);
-            
-            // Only redirect if we're not already on the result page
-            if (!window.location.pathname.includes('/result')) {
-              const username = window.location.pathname.split('/')[1];
-              navigate(`/${username}/crucible/problem/${problem._id}/result`);
-              return; // Exit early after redirect
-            }
-            return;
+        // For new problems, prioritize showing the editor immediately
+        if (!initialDraft) {
+          logger.info('No draft exists yet, showing editor for new problem');
+          if (isMounted) {
+            setHasSubmitted(false);
           }
-        } catch (analysisError) {
-          // No analysis found, continue with draft checking
-          logger.info('No analysis found in checkSubmission, checking draft status');
+          return;
         }
         
         // If user has an active draft, they can edit
         if (initialDraft && initialDraft.status === 'active') {
+          logger.info('Active draft exists, showing editor');
           if (isMounted) {
             setHasSubmitted(false);
           }
           return;
         }
         
-        // If no initial draft exists (new user), they can edit
-        if (!initialDraft) {
-          if (isMounted) {
-            setHasSubmitted(false);
-          }
-          return;
-        }
-        
-        // If draft is archived but no analysis was found above, ensure there's an active draft
+        // Only check for analysis if we have an archived draft
+        // This ensures we don't waste API calls for new problems
         if (initialDraft && initialDraft.status !== 'active') {
+          // Use the shared context instead of direct API call
+          checkAnalysis(problem._id);
+          
+          // If analysis exists in context, set state and redirect
+          if (analysis && isMounted) {
+            logger.info('Found existing analysis in context');
+            setHasSubmitted(true);
+            
+            // Only redirect if we're not already on the result page
+            const isOnResultPage = window.location.pathname.includes('/result');
+            if (!isOnResultPage) {
+              // Store redirect state in sessionStorage to prevent loops
+              const redirectKey = `redirect_${problem._id}`;
+              const hasRedirected = sessionStorage.getItem(redirectKey);
+              
+              if (!hasRedirected) {
+                logger.info('Redirecting to result page from workspace view');
+                // Mark that we've initiated a redirect for this problem
+                sessionStorage.setItem(redirectKey, 'true');
+                const username = window.location.pathname.split('/')[1];
+                navigate(`/${username}/crucible/problem/${problem._id}/result`);
+                
+                // Clear the redirect flag after navigation (helps with browser back button)
+                setTimeout(() => {
+                  if (window.location.pathname.includes('/result')) {
+                    sessionStorage.removeItem(redirectKey);
+                  }
+                }, 1000);
+                
+                return; // Exit early after redirect
+              } else {
+                logger.info('Redirect already initiated, skipping');
+              }
+            }
+            return;
+          }
+          
+          // If no analysis but we're still loading, wait for it
+          if (analysisLoading) {
+            return;
+          }
+          
+          // No analysis found, ensure there's an active draft
+          logger.info('No analysis found for archived draft, creating new active draft');
           if (isMounted) {
             setHasSubmitted(false);
             // Ensure there's an active draft
@@ -196,6 +226,7 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
     }
     checkSubmission();
     return () => { isMounted = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [problem._id, getToken, navigate, initialDraft, isReattempting, ensureActiveDraft]);
 
   // Fetch draft versions with optimized logic
@@ -407,8 +438,9 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
             </div>
           )}
           {/* Show appropriate content based on submission status */}
-          {activeContent === 'solution' && isCheckingSubmission ? (
-            // Show loading state while checking submission status
+          {activeContent === 'solution' && (isCheckingSubmission || analysisLoading) && initialDraft && initialDraft.status !== 'active' ? (
+            // Only show loading state for existing problems with archived drafts
+            // For new problems or active drafts, we show the editor immediately
             <div className="text-center text-base-content/70 p-8">
               <div className="flex items-center justify-center gap-2">
                 <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
