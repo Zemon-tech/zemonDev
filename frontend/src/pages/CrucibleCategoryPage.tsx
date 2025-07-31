@@ -96,10 +96,6 @@ export default function CrucibleCategoryPage() {
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
 
   const category = categoryInfo[categoryId as keyof typeof categoryInfo];
-  
-  // Debug logging
-  console.log('Category ID:', categoryId);
-  console.log('Category:', category);
 
   // Fetch problems from API
   const fetchProblems = async () => {

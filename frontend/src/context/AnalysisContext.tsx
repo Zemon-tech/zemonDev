@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { getLatestAnalysis, ISolutionAnalysisResult } from '@/lib/crucibleApi';
 import { useAuth } from '@clerk/clerk-react';
+import { logger } from '@/lib/utils';
 
 interface AnalysisContextType {
   analysis: ISolutionAnalysisResult | null;
@@ -8,8 +9,8 @@ interface AnalysisContextType {
   error: string | null;
   checkAnalysis: (problemId: string) => Promise<void>;
   clearAnalysis: () => void;
-  retryCount: number;
   markReattempting: (problemId: string) => void;
+  markSubmitting: (problemId: string) => void;
 }
 
 const AnalysisContext = createContext<AnalysisContextType | undefined>(undefined);
@@ -20,10 +21,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState<number>(0);
   const [currentProblemId, setCurrentProblemId] = useState<string | null>(null);
-  const [retryTimeout, setRetryTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [lastCheckedAt, setLastCheckedAt] = useState<number>(0);
-  
-  // Use a ref to track in-flight requests
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const inFlightRequest = useRef<boolean>(false);
   
   const { getToken } = useAuth();
@@ -31,11 +29,11 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Clean up any pending timeouts when unmounting
   useEffect(() => {
     return () => {
-      if (retryTimeout) {
-        clearTimeout(retryTimeout);
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
       }
     };
-  }, [retryTimeout]);
+  }, []);
   
   const clearAnalysis = () => {
     setAnalysis(null);
@@ -43,107 +41,103 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setError(null);
     setRetryCount(0);
     setCurrentProblemId(null);
-    setLastCheckedAt(0);
     inFlightRequest.current = false;
-    if (retryTimeout) {
-      clearTimeout(retryTimeout);
-      setRetryTimeout(null);
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
     }
   };
   
   const checkAnalysis = async (problemId: string) => {
-    // Implement debouncing - prevent rapid repeated calls
-    const now = Date.now();
-    const debounceTime = 1000; // 1 second debounce
+    // Check if we're currently submitting a solution for this problem
+    const isSubmitting = sessionStorage.getItem(`submitting_${problemId}`);
+    if (isSubmitting) {
+      logger.info(`Skipping analysis check for problem ${problemId} (submission in progress)`);
+      return;
+    }
     
-    // Skip if we're already checking this problem or have checked it very recently
-    if ((loading && currentProblemId === problemId) || 
-        (inFlightRequest.current && currentProblemId === problemId) ||
-        (currentProblemId === problemId && now - lastCheckedAt < debounceTime)) {
-      console.log('Skipping redundant analysis check for problem:', problemId);
+    // Skip if we're already checking this problem or have a request in flight
+    if (inFlightRequest.current || (loading && currentProblemId === problemId)) {
+      logger.info('Skipping redundant analysis check (already in progress).');
       return;
     }
     
     // Clear previous state if checking a different problem
     if (currentProblemId !== problemId) {
       clearAnalysis();
-      setCurrentProblemId(problemId);
     }
     
-    // Update last checked timestamp
-    setLastCheckedAt(now);
+    setCurrentProblemId(problemId);
     setLoading(true);
     setError(null);
-    
-    // Mark that we have a request in flight
     inFlightRequest.current = true;
     
     try {
-      console.log('Checking analysis for problem:', problemId);
-      const token = await getToken();
-      if (!token) {
-        setError("Authentication failed");
-        setLoading(false);
-        inFlightRequest.current = false;
-        return;
-      }
-      
-      const result = await getLatestAnalysis(problemId, () => Promise.resolve(token));
+      logger.info(`Checking analysis for problem: ${problemId}`);
+      const result = await getLatestAnalysis(problemId, getToken);
       if (result) {
-        console.log('Analysis found for problem:', problemId);
+        logger.info('Analysis found for problem:', problemId);
         setAnalysis(result);
-        setLoading(false);
         setRetryCount(0);
-        inFlightRequest.current = false;
-        return;
-      }
-      
-      // If no analysis found and not already retrying, start smart retry
-      if (retryCount < 3) {
-        // Exponential backoff: 15s, 30s, 45s
-        const delayMs = 15000 * (retryCount + 1);
-        
-        console.log(`Analysis not found. Retrying in ${delayMs/1000}s (attempt ${retryCount + 1}/3)`);
-        
-        const timeout = setTimeout(() => {
-          setRetryCount(prev => prev + 1);
-          inFlightRequest.current = false; // Reset before retry
-          checkAnalysis(problemId);
-        }, delayMs);
-        
-        setRetryTimeout(timeout);
+        if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
       } else {
-        // After 3 retries, show error
-        console.log('Max retries reached for problem:', problemId);
-        setError("No analysis found for this problem. You may need to submit a solution first.");
-        setLoading(false);
-        inFlightRequest.current = false;
+        // If no analysis is found, initiate retry logic
+        handleRetry(problemId);
       }
-    } catch (error) {
-      console.error("Error fetching analysis:", error);
-      setError(error instanceof Error ? error.message : "Failed to fetch analysis");
+    } catch (err) {
+      logger.error("Error fetching analysis:", err);
+      setError(err instanceof Error ? err.message : "Failed to fetch analysis");
+    } finally {
       setLoading(false);
       inFlightRequest.current = false;
     }
   };
+
+  const handleRetry = (problemId: string) => {
+    // Check if we're currently submitting a solution for this problem
+    const isSubmitting = sessionStorage.getItem(`submitting_${problemId}`);
+    if (isSubmitting) {
+      logger.info(`Skipping retry for problem ${problemId} (submission in progress)`);
+      return;
+    }
+    
+    if (retryCount < 3) {
+      const delayMs = 15000 * (retryCount + 1);
+      logger.info(`Analysis not found. Retrying in ${delayMs/1000}s (attempt ${retryCount + 1}/3)`);
+      
+      retryTimeoutRef.current = setTimeout(() => {
+        setRetryCount(prev => prev + 1);
+        checkAnalysis(problemId);
+      }, delayMs);
+    } else {
+      logger.info('Max retries reached for problem:', problemId);
+      setError("No analysis found for this problem after multiple attempts.");
+    }
+  };
   
-  // Function to mark a problem as being reattempted
-  // This will clear the analysis and set a flag in sessionStorage
   const markReattempting = (problemId: string) => {
-    console.log('Marking problem as being reattempted:', problemId);
-    
-    // Clear the analysis from context
+    logger.info('Marking problem as being reattempted:', problemId);
     clearAnalysis();
-    
-    // Set a flag in sessionStorage to prevent immediate redirect back to result page
     sessionStorage.setItem(`reattempting_${problemId}`, 'true');
+    sessionStorage.setItem(`reattempt_time_${problemId}`, Date.now().toString());
+  };
+  
+  const markSubmitting = (problemId: string) => {
+    logger.info('Marking problem as being submitted:', problemId);
+    clearAnalysis();
+    sessionStorage.removeItem(`reattempting_${problemId}`);
+    sessionStorage.removeItem(`reattempt_time_${problemId}`);
+    sessionStorage.setItem(`submitting_${problemId}`, 'true');
     
-    // Set a timeout to clear the flag after navigation completes
+    // Clear any existing retry timeouts to prevent them from firing during submission
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+    
     setTimeout(() => {
-      if (!window.location.pathname.includes('/result')) {
-        sessionStorage.removeItem(`reattempting_${problemId}`);
-      }
-    }, 2000);
+      sessionStorage.removeItem(`submitting_${problemId}`);
+    }, 10 * 60 * 1000);
   };
 
   return (
@@ -154,8 +148,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         error,
         checkAnalysis,
         clearAnalysis,
-        retryCount,
-        markReattempting
+        markReattempting,
+        markSubmitting
       }}
     >
       {children}
@@ -169,4 +163,4 @@ export const useAnalysis = () => {
     throw new Error('useAnalysis must be used within an AnalysisProvider');
   }
   return context;
-}; 
+};

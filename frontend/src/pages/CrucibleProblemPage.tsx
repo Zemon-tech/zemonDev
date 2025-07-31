@@ -55,8 +55,8 @@ function CrucibleProblemPage() {
         const problemData = await getProblem(problemId);
         setProblem(problemData);
 
-        // Check if user has already submitted a solution with analysis using shared context
-        checkAnalysis(problemId);
+        // Only check for analysis AFTER we have confirmed draft status
+        // We'll handle this after draft fetching/creation
 
         // Try to fetch draft and notes, but don't fail if draft doesn't exist
         let draftData: ISolutionDraft | null = null;
@@ -95,27 +95,39 @@ function CrucibleProblemPage() {
             if (newDraft && newDraft._id) {
               logger.info('Successfully created new draft:', newDraft._id);
               setDraft(newDraft);
+              draftData = newDraft;
             } else {
               logger.warn('Draft creation returned invalid data:', newDraft);
               // Still set the draft to prevent infinite loading
-              setDraft({ 
+              const tempDraft = { 
                 _id: 'temp-draft',
                 problemId,
                 currentContent: '',
                 status: 'active'
-              } as ISolutionDraft);
+              } as ISolutionDraft;
+              setDraft(tempDraft);
+              draftData = tempDraft;
             }
           } catch (createError: any) {
             // If draft creation fails, create a temporary draft object
             // This ensures the editor still shows up instead of loading state
             logger.warn('Failed to create initial draft, using fallback:', createError);
-            setDraft({ 
+            const tempDraft = { 
               _id: 'temp-draft',
               problemId,
               currentContent: '',
               status: 'active'
-            } as ISolutionDraft);
+            } as ISolutionDraft;
+            setDraft(tempDraft);
+            draftData = tempDraft;
           }
+        }
+        
+        // Now that we have draft status, we can safely check for analysis
+        // Only check for analysis if the draft is NOT active (meaning it's been submitted)
+        if (draftData && draftData.status !== 'active') {
+          // Check if user has already submitted a solution with analysis using shared context
+          checkAnalysis(problemId);
         }
 
       } catch (err: any) {
@@ -132,19 +144,25 @@ function CrucibleProblemPage() {
 
   // Track if a redirect has been initiated
   const [redirectInitiated, setRedirectInitiated] = useState<boolean>(false);
+  
+  // Check if this problem is being reattempted (from sessionStorage)
+  const isReattempting = problemId ? sessionStorage.getItem(`reattempting_${problemId}`) : null;
 
   // Handle analysis state changes and redirect when analysis is found
   useEffect(() => {
+    // If we're reattempting, don't do any redirects
+    if (isReattempting) {
+      return;
+    }
+    
     // Only redirect if:
     // 1. We have an analysis
     // 2. We're not currently loading
     // 3. We haven't already initiated a redirect
     // 4. We're not already on the result page
-    // 5. We're not in the process of reattempting this problem
     const isOnResultPage = window.location.pathname.includes('/result');
-    const isReattempting = sessionStorage.getItem(`reattempting_${problemId}`);
     
-    if (analysis && !analysisLoading && problemId && !redirectInitiated && !isOnResultPage && !isReattempting) {
+    if (analysis && !analysisLoading && problemId && !redirectInitiated && !isOnResultPage) {
       logger.info('Found existing analysis in context, redirecting to result page');
       // Mark that we've initiated a redirect to prevent loops
       setRedirectInitiated(true);
@@ -152,9 +170,9 @@ function CrucibleProblemPage() {
       const username = window.location.pathname.split('/')[1];
       navigate(`/${username}/crucible/problem/${problemId}/result`);
     }
-  // We only want to run this effect when analysis or analysisLoading changes
+  // We only want to run this effect when analysis, analysisLoading, or isReattempting changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysis, analysisLoading, redirectInitiated]);
+  }, [analysis, analysisLoading, redirectInitiated, isReattempting]);
 
   if (loading || analysisLoading) {
     return <ProblemSkeleton />;

@@ -23,7 +23,7 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
   const navigate = useNavigate();
   
   // Use the centralized analysis context
-  const { analysis, loading: analysisLoading, checkAnalysis } = useAnalysis();
+  const { analysis, loading: analysisLoading, checkAnalysis, markSubmitting } = useAnalysis();
 
   const {
     setWordCount,
@@ -311,6 +311,10 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
 
       // Reset reattempting state since user is submitting
       setIsReattempting(false);
+      
+      // Mark the problem as being submitted in the context
+      // This will clear any existing analysis and set submission flags
+      markSubmitting(problem._id);
 
       // Navigate to the results page immediately, before waiting for the analysis
       // This will show the loading state while the analysis is being processed
@@ -366,7 +370,7 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
       logger.error('Failed to submit solution:', error);
       alert("There was an error submitting your solution. Please try again.");
     }
-  }, [solutionContent, problem._id, getToken, navigate]);
+  }, [solutionContent, problem._id, getToken, navigate, markSubmitting]);
 
   useEffect(() => {
     const toggleProblem = () => setShowProblemSidebar(!showProblemSidebar);
