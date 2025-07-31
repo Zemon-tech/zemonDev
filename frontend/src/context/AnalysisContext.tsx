@@ -9,6 +9,7 @@ interface AnalysisContextType {
   checkAnalysis: (problemId: string) => Promise<void>;
   clearAnalysis: () => void;
   retryCount: number;
+  markReattempting: (problemId: string) => void;
 }
 
 const AnalysisContext = createContext<AnalysisContextType | undefined>(undefined);
@@ -126,6 +127,25 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
   
+  // Function to mark a problem as being reattempted
+  // This will clear the analysis and set a flag in sessionStorage
+  const markReattempting = (problemId: string) => {
+    console.log('Marking problem as being reattempted:', problemId);
+    
+    // Clear the analysis from context
+    clearAnalysis();
+    
+    // Set a flag in sessionStorage to prevent immediate redirect back to result page
+    sessionStorage.setItem(`reattempting_${problemId}`, 'true');
+    
+    // Set a timeout to clear the flag after navigation completes
+    setTimeout(() => {
+      if (!window.location.pathname.includes('/result')) {
+        sessionStorage.removeItem(`reattempting_${problemId}`);
+      }
+    }, 2000);
+  };
+
   return (
     <AnalysisContext.Provider
       value={{
@@ -134,7 +154,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         error,
         checkAnalysis,
         clearAnalysis,
-        retryCount
+        retryCount,
+        markReattempting
       }}
     >
       {children}

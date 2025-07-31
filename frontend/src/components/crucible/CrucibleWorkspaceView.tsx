@@ -174,8 +174,9 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
               // Store redirect state in sessionStorage to prevent loops
               const redirectKey = `redirect_${problem._id}`;
               const hasRedirected = sessionStorage.getItem(redirectKey);
+              const isReattempting = sessionStorage.getItem(`reattempting_${problem._id}`);
               
-              if (!hasRedirected) {
+              if (!hasRedirected && !isReattempting) {
                 logger.info('Redirecting to result page from workspace view');
                 // Mark that we've initiated a redirect for this problem
                 sessionStorage.setItem(redirectKey, 'true');

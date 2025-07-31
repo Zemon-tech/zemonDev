@@ -140,9 +140,11 @@ function CrucibleProblemPage() {
     // 2. We're not currently loading
     // 3. We haven't already initiated a redirect
     // 4. We're not already on the result page
+    // 5. We're not in the process of reattempting this problem
     const isOnResultPage = window.location.pathname.includes('/result');
+    const isReattempting = sessionStorage.getItem(`reattempting_${problemId}`);
     
-    if (analysis && !analysisLoading && problemId && !redirectInitiated && !isOnResultPage) {
+    if (analysis && !analysisLoading && problemId && !redirectInitiated && !isOnResultPage && !isReattempting) {
       logger.info('Found existing analysis in context, redirecting to result page');
       // Mark that we've initiated a redirect to prevent loops
       setRedirectInitiated(true);

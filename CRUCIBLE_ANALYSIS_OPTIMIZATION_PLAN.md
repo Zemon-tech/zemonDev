@@ -562,3 +562,38 @@ This ensures backward compatibility while we roll out the optimized solution.
 - Improved browser console clarity
 - Enhanced performance with optimized navigation
 - Better user experience with proper page display
+
+### Fix: Reattempt Navigation Issue (COMPLETED)
+
+**Problem Identified:**
+- When clicking the "Reattempt Problem" button, backend created new draft but frontend didn't navigate to editor
+- User remained stuck on result page despite successful reattempt API call
+- Redirect prevention logic was blocking navigation to the problem page
+- Analysis was still in context, causing immediate redirect back to result page
+
+**Changes Made:**
+1. **Enhanced `AnalysisContext.tsx`**
+   - Added `markReattempting` function to clear analysis and set navigation flag
+   - Implemented sessionStorage-based tracking for reattempt state
+   - Added timeout to clean up reattempt flags after navigation completes
+
+2. **Updated `ResultPage.tsx`**
+   - Modified `handleReattempt` to call `markReattempting` before navigation
+   - Added better error logging for reattempt failures
+   - Ensured analysis context is cleared before navigation
+
+3. **Improved `CrucibleProblemPage.tsx` and `CrucibleWorkspaceView.tsx`**
+   - Added checks for reattempt flags in redirect prevention logic
+   - Ensured reattempt navigation takes precedence over analysis-based redirects
+
+**Key Features:**
+- **Reattempt State Tracking**: Uses sessionStorage to track reattempt state across page loads
+- **Context Clearing**: Properly clears analysis from context during reattempt
+- **Navigation Priority**: Ensures reattempt navigation takes precedence over redirects
+- **Cleanup Logic**: Automatically removes flags after navigation completes
+
+**Benefits Achieved:**
+- Fixed reattempt navigation flow
+- Ensured users can properly start new attempts at problems
+- Maintained all existing redirect prevention benefits
+- Improved user experience with expected navigation behavior

@@ -109,7 +109,7 @@ export default function ResultPage() {
   const location = useLocation();
   
   // Use the centralized analysis context
-  const { analysis: contextAnalysis, loading: analysisLoading, error: analysisError, checkAnalysis } = useAnalysis();
+  const { analysis: contextAnalysis, loading: analysisLoading, error: analysisError, checkAnalysis, markReattempting } = useAnalysis();
   
   const [problem, setProblem] = useState<ICrucibleProblem | null>(null);
   const [loading, setLoading] = useState<LoadingState>({
@@ -242,11 +242,21 @@ export default function ResultPage() {
     try {
       const token = await getToken();
       if (!token) return;
+      
+      // Call the backend to create a new draft
       await reattemptDraft(problem._id, () => Promise.resolve(token));
+      
+      // Mark the problem as being reattempted in the context
+      // This will clear the analysis and set a flag to prevent redirect loops
+      markReattempting(problem._id);
+      
+      console.log('Navigating to problem page for reattempt');
+      
       // Redirect to workspace/editor
       const username = window.location.pathname.split('/')[1];
       navigate(`/${username}/crucible/problem/${problem._id}`);
     } catch (err) {
+      console.error('Error during reattempt:', err);
       setIsReattempting(false);
       alert('Could not start a new attempt. Please try again.');
     }
