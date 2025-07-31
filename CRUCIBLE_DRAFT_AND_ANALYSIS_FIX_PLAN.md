@@ -426,8 +426,28 @@ This plan requires approval before implementation to ensure:
    - Automatically create a new draft when redirected back after analysis failure
    - **Impact**: Prevents errors when analysis fails and user is redirected back to editor
 
+4. **Fixed Render Logic for Submitted Problems**:
+   - Added `!hasSubmitted` condition to render logic to prioritize submission status
+   - Added loading state while checking submission status to prevent UI flicker
+   - Improved `checkSubmission` function with early return after redirect
+   - **Impact**: Users now see result page instead of editor when visiting submitted problems
+
+5. **Fixed Infinite Loading State Issue**:
+   - Removed `isCheckingSubmission` from dependency array to prevent infinite loop
+   - Added 10-second safety timeout to prevent stuck loading states
+   - Improved loading state rendering to only show when needed
+   - **Impact**: Prevents users from getting stuck on loading screens
+
+6. **Fixed Navigation to Result Page**:
+   - Added early analysis check in `CrucibleProblemPage` to redirect immediately on page load
+   - Improved `checkSubmission` function to always check for analysis first
+   - Optimized render logic to prioritize submission status
+   - Added prevention of redundant redirects
+   - **Impact**: Users now correctly see the result page when visiting a problem they've already submitted
+
 #### Files Modified:
 - `frontend/src/components/crucible/CrucibleWorkspaceView.tsx`
+- `frontend/src/pages/CrucibleProblemPage.tsx`
 - `frontend/src/pages/ResultPage.tsx`
 - `backend/src/migrations/fix-solution-draft-indexes.ts` (new file)
 

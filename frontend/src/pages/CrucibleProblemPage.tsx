@@ -5,7 +5,7 @@ import ProblemSkeleton from '../components/crucible/ProblemSkeleton';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { WorkspaceProvider } from '@/lib/WorkspaceContext';
 import { useEffect, useState } from 'react';
-import { getProblem, getDraft, getNotes, updateDraft, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft } from '@/lib/crucibleApi';
+import { getProblem, getDraft, getNotes, updateDraft, getLatestAnalysis, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft } from '@/lib/crucibleApi';
 import { logger } from '@/lib/utils';
 
 function CrucibleProblemPage() {
@@ -51,6 +51,23 @@ function CrucibleProblemPage() {
         const problemData = await getProblem(problemId);
         setProblem(problemData);
 
+        // Check if user has already submitted a solution with analysis
+        try {
+          const latestAnalysis = await getLatestAnalysis(problemId, tokenProvider);
+          
+          // If analysis exists, redirect to result page immediately
+          if (latestAnalysis) {
+            logger.info('Found existing analysis, redirecting to result page');
+            // Extract username from path
+            const username = window.location.pathname.split('/')[1];
+            navigate(`/${username}/crucible/problem/${problemId}/result`);
+            return; // Exit early - no need to fetch draft or create one
+          }
+        } catch (analysisError) {
+          // If no analysis exists (404), continue with normal flow
+          logger.info('No existing analysis found, continuing with normal flow');
+        }
+
         // Try to fetch draft and notes, but don't fail if draft doesn't exist
         let draftData: ISolutionDraft | null = null;
         try {
@@ -64,7 +81,6 @@ function CrucibleProblemPage() {
           setNotes(notesData ? [notesData] : null);
         } catch (draftError: any) {
           // If draft doesn't exist (404), that's okay - user might be visiting for first time
-          // or might have submitted solution before
           if (draftError.message?.includes('404') || draftError.message?.includes('No active draft')) {
             draftData = null;
             setDraft(null);

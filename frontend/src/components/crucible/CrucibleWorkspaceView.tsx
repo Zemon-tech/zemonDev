@@ -122,10 +122,39 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
         return;
       }
       
+      // Safety timeout to prevent infinite loading state
+      const safetyTimeout = setTimeout(() => {
+        if (isMounted) {
+          setIsCheckingSubmission(false);
+          logger.warn('Submission check timed out after 10 seconds');
+        }
+      }, 10000);
+      
       try {
         setIsCheckingSubmission(true);
         const token = await getToken();
         if (!token) return;
+        
+        // First, check if there's an existing analysis regardless of draft status
+        // This ensures we always prioritize showing results over the editor
+        try {
+          const latest = await getLatestAnalysis(problem._id, () => Promise.resolve(token));
+          if (latest && isMounted) {
+            logger.info('Found existing analysis in checkSubmission');
+            setHasSubmitted(true);
+            
+            // Only redirect if we're not already on the result page
+            if (!window.location.pathname.includes('/result')) {
+              const username = window.location.pathname.split('/')[1];
+              navigate(`/${username}/crucible/problem/${problem._id}/result`);
+              return; // Exit early after redirect
+            }
+            return;
+          }
+        } catch (analysisError) {
+          // No analysis found, continue with draft checking
+          logger.info('No analysis found in checkSubmission, checking draft status');
+        }
         
         // If user has an active draft, they can edit
         if (initialDraft && initialDraft.status === 'active') {
@@ -143,24 +172,12 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
           return;
         }
         
-        // Only check for analysis if user has no active draft but might have submitted before
-        // This happens when initialDraft exists but is not active (archived)
+        // If draft is archived but no analysis was found above, ensure there's an active draft
         if (initialDraft && initialDraft.status !== 'active') {
-          try {
-            const latest = await getLatestAnalysis(problem._id, () => Promise.resolve(token));
-            if (latest && isMounted) {
-              setHasSubmitted(true);
-              // Redirect to result page since there's no active draft but there's analysis
-              const username = window.location.pathname.split('/')[1];
-              navigate(`/${username}/crucible/problem/${problem._id}/result`);
-            }
-          } catch (analysisError) {
-            // No analysis found, ensure there's an active draft and let user edit
-            if (isMounted) {
-              setHasSubmitted(false);
-              // Ensure there's an active draft
-              ensureActiveDraft();
-            }
+          if (isMounted) {
+            setHasSubmitted(false);
+            // Ensure there's an active draft
+            await ensureActiveDraft();
           }
         }
       } catch (err) {
@@ -169,6 +186,9 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
           setHasSubmitted(false);
         }
       } finally {
+        // Clear safety timeout
+        clearTimeout(safetyTimeout);
+        
         if (isMounted) {
           setIsCheckingSubmission(false);
         }
@@ -176,7 +196,7 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
     }
     checkSubmission();
     return () => { isMounted = false; };
-  }, [problem._id, getToken, navigate, initialDraft, isReattempting, isCheckingSubmission, ensureActiveDraft]);
+  }, [problem._id, getToken, navigate, initialDraft, isReattempting, ensureActiveDraft]);
 
   // Fetch draft versions with optimized logic
   useEffect(() => {
@@ -386,17 +406,29 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
               </ul>
             </div>
           )}
-          {/* Show SolutionEditor if user has active draft, is reattempting, or is a new user */}
-          {activeContent === 'solution' && (initialDraft?.status === 'active' || isReattempting || !initialDraft) ? (
-            <SolutionEditor value={solutionContent} onChange={handleEditorChange} />
+          {/* Show appropriate content based on submission status */}
+          {activeContent === 'solution' && isCheckingSubmission ? (
+            // Show loading state while checking submission status
+            <div className="text-center text-base-content/70 p-8">
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <span>Checking submission status...</span>
+              </div>
+            </div>
           ) : activeContent === 'solution' && hasSubmitted ? (
+            // Show reattempt button if user has submitted a solution
             <div className="text-center text-base-content/70 p-8">
               <p>You have already submitted a solution for this problem.</p>
+              <p className="mt-2 text-sm opacity-75">View your analysis on the result page.</p>
               <button className="btn btn-primary mt-4" onClick={handleReattempt}>
                 Reattempt Problem
               </button>
             </div>
+          ) : activeContent === 'solution' && (initialDraft?.status === 'active' || isReattempting || !initialDraft) ? (
+            // Show editor if user has active draft, is reattempting, or is a new user
+            <SolutionEditor value={solutionContent} onChange={handleEditorChange} />
           ) : activeContent === 'solution' ? (
+            // Fallback loading state
             <div className="text-center text-base-content/70 p-8">
               <p>Loading problem workspace...</p>
             </div>
