@@ -11,7 +11,6 @@ import {
   Github, 
   Linkedin, 
   Twitter, 
-  Download, 
   ExternalLink,
   Flame,
   Code,
@@ -258,114 +257,50 @@ export default function ProfilePage() {
   return (
     <div 
       ref={containerRef} 
-      className="min-h-screen relative overflow-hidden bg-base-100 text-base-content"
+      className="min-h-screen relative overflow-hidden bg-base-100 text-base-content z-0"
     >
       {/* Subtle Background Elements - Theme aware using DaisyUI variables */}
-      <div className="fixed inset-0 pointer-events-none">
+      <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-20 left-10 w-72 h-72 rounded-full blur-3xl bg-primary/10" />
         <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full blur-3xl bg-secondary/10" />
       </div>
-
-      {/* Hero Section with Parallax */}
-      <motion.section 
-        ref={heroRef}
-        style={{ y: heroY, opacity: heroOpacity }}
-        className="relative w-full h-[180px] overflow-hidden"
+      {/* Hero Section with LinkedIn Style */}
+      <section 
+        className="relative w-full h-[200px] overflow-hidden"
+        style={{ background: 'linear-gradient(to right, #0073b1, #f4a261)' }}
       >
-        {/* DaisyUI theme-aware background */}
-        <div className="absolute inset-0 bg-gradient-to-r from-primary to-secondary opacity-90" />
-        <div className="absolute inset-0 opacity-20" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-        }} />
-        
-        {/* Reduced number of particles for a cleaner look */}
-        {[...Array(10)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1.5 h-1.5 bg-white/20 rounded-full"
-            initial={{ 
-              x: Math.random() * window.innerWidth, 
-              y: Math.random() * 180,
-              scale: Math.random() * 0.4 + 0.3
-            }}
-            animate={{
-              y: [null, -10, 10],
-              x: [null, Math.random() * 30 - 15],
-              opacity: [0.1, 0.4, 0.1],
-            }}
-            transition={{
-              duration: Math.random() * 2 + 3,
-              repeat: Infinity,
-              repeatType: "reverse",
-              delay: Math.random() * 2,
-            }}
-          />
-        ))}
+        {/* Background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-gray-300 to-sky-400" />
+        <div className="absolute inset-0 " />
 
-        <div className="container mx-auto px-4 relative h-full flex items-end justify-end">
-          <motion.div 
-            ref={buttonsRef} 
-            className="flex gap-3 mb-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.6 }}
-          >
-            <motion.div
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button 
-                size="sm"
-                variant="outline"
-                className="bg-white/10 backdrop-blur-xl hover:bg-white/20 transition-all duration-300 text-white border border-white/20 shadow-lg hover:shadow-xl gap-2 font-semibold px-6 py-3 rounded-xl"
-              >
-                <Download size={16} />
-                Download Résumé
-              </Button>
-            </motion.div>
-            <motion.div
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button 
-                size="sm"
-                className="bg-white/20 hover:bg-white/30 backdrop-blur-xl transition-all duration-300 text-white shadow-lg hover:shadow-xl gap-2 font-semibold px-6 py-3 rounded-xl border border-white/20"
-              >
-                <ExternalLink size={16} />
-                View on Zemon
-              </Button>
-            </motion.div>
-          </motion.div>
+        {/* Social Media Icons */}
+        <div className="absolute top-4 right-4 flex items-center gap-3">
+          <button className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/20 rounded-md p-2 transition-all duration-300">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          </button>
+          
+          {/* Social Media Icons */}
+          <div className="flex items-center gap-2">
+            <button className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/20 rounded-md p-2 transition-all duration-300">
+              <Github className="w-4 h-4" />
+            </button>
+            <button className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/20 rounded-md p-2 transition-all duration-300">
+              <Linkedin className="w-4 h-4" />
+            </button>
+            <button className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/20 rounded-md p-2 transition-all duration-300">
+              <Twitter className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-      </motion.section>
-      
-      {/* Background pattern for profile section - adjusted position */}
-      <div className="absolute w-full z-0" style={{
-        top: '20px',  /* Position just below the navbar with a minimal gap */
-        height: '240px', /* Height to end just above tabs with a small gap */
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='currentColor' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E")`,
-        backgroundSize: '100px 100px',
-        backgroundPosition: 'center'
-      }} />
-      
-      {/* Add a subtle gradient overlay - adjusted position */}
-      <div className="absolute w-full z-0" style={{
-        top: '20px',
-        height: '240px',
-        background: 'linear-gradient(to bottom, var(--fallback-b1, oklch(var(--b1))), transparent)'
-      }} />
-      
-      <div className="container mx-auto px-4 relative z-10">
-        <motion.div 
-          className="relative -mt-[100px] ml-6 flex items-end gap-8"
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-        >
-          {/* Enhanced Avatar with Glow Effect */}
+      </section>
+
+      {/* Profile Information Section - All content below banner */}
+      <div className="container mx-auto px-4 relative mt-16">
+        <div className="relative flex items-start gap-8">
+          {/* Avatar - Positioned so banner bottom aligns with circle center */}
           <motion.div 
             ref={avatarRef} 
-            className="relative inline-block group cursor-pointer"
+            className="relative inline-block group cursor-pointer -mt-[130px] ml-3"
             whileHover={{ scale: 1.02 }}
             onClick={() => fileInputRef.current?.click()}
           >
@@ -376,30 +311,25 @@ export default function ProfilePage() {
               className="hidden" 
               accept="image/*"
               onChange={(e) => {
-                // In a real app, you would handle the file upload to your backend/storage
-                // For now, we'll just show how to preview the selected image
                 const file = e.target.files?.[0];
                 if (file) {
                   const reader = new FileReader();
                   reader.onload = (event) => {
-                    // In a real app, you would update the user profile with this image
-                    // For now, we'll just log that an image was selected
                     console.log("Image selected for upload:", event.target?.result);
-                    // You would typically call an API here to update the user's profile image
                   };
                   reader.readAsDataURL(file);
                 }
               }}
             />
             
-            {/* DaisyUI theme-aware border */}
-            <div className="absolute inset-0 rounded-full p-1 bg-primary"></div>
+            {/* LinkedIn-style white border */}
+            <div className="absolute inset-0 rounded-full p-[5px] bg-white"></div>
             
             {/* Avatar Image */}
             <motion.img
               src={user?.imageUrl || 'https://via.placeholder.com/200'}
               alt="Profile"
-              className="w-[130px] h-[130px] rounded-full relative z-10 object-cover border-4 border-base-100"
+              className="w-[160px] h-[160px] rounded-full relative z-10 object-cover"
               transition={{ duration: 0.3 }}
             />
             
@@ -408,14 +338,14 @@ export default function ProfilePage() {
               <span className="text-white text-sm font-medium">Change Photo</span>
             </div>
             
-            {/* Status Indicator - Theme-aware */}
-            <div className="absolute bottom-1 right-1 w-5 h-5 bg-success rounded-full border-2 border-base-100 shadow-md z-20">
-              <div className="w-full h-full bg-success rounded-full animate-ping opacity-50" />
+            {/* Camera icon for photo change - LinkedIn style */}
+            <div className="absolute bottom-1 right-1 w-8 h-8 bg-blue-600 rounded-full border-2 border-white flex items-center justify-center shadow-md z-20 cursor-pointer hover:bg-blue-700 transition-colors duration-200">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
             </div>
           </motion.div>
 
-          {/* Enhanced Name and Title */}
-          <div className="mb-6 flex-1">
+          {/* Enhanced Name and Title - All content below banner */}
+          <div className="flex-1 -mt-8">
             <motion.h1 
               ref={nameRef} 
               className="text-3xl font-bold leading-tight mb-3 text-base-content"
@@ -474,9 +404,9 @@ export default function ProfilePage() {
               </div>
             </motion.div>
           </div>
-        </motion.div>
+        </div>
       </div>
-
+            
       {/* Enhanced Tab Navigation */}
       <div className="container mx-auto px-4 mt-12">
         <motion.div 
