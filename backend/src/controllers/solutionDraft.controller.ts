@@ -14,27 +14,15 @@ export const getDraft = asyncHandler(
     const { problemId } = req.params;
     const userId = req.user._id;
 
-    // Try to find existing draft
-    let draft = await SolutionDraft.findOne({
+    // Find existing active draft only (no upsert - let reattempt handle new draft creation)
+    const draft = await SolutionDraft.findOne({
       userId,
       problemId,
       status: 'active'
     });
 
-    // If no draft exists, create a new one
     if (!draft) {
-      draft = await SolutionDraft.create({
-        userId,
-        problemId,
-        currentContent: ' ',
-        versions: [{ content: ' ', timestamp: new Date(), description: 'Initial draft' }],
-        lastEdited: new Date()
-      });
-
-      // Add to user's active drafts
-      await User.findByIdAndUpdate(userId, {
-        $addToSet: { activeDrafts: draft._id }
-      });
+      return next(new AppError('No active draft found for this problem', 404));
     }
 
     res.status(200).json(
@@ -63,51 +51,47 @@ export const updateDraft = asyncHandler(
       return next(new AppError('Content is required', 400));
     }
 
-    // Find the draft
-    let draft = await SolutionDraft.findOne({
-      userId,
-      problemId,
-      status: 'active'
+    // Use findOneAndUpdate with upsert to handle the unique constraint properly
+    // This will either find an existing active draft or create a new one if none exists
+    let draft = await SolutionDraft.findOneAndUpdate(
+      { userId, problemId, status: 'active' },
+      {
+        $set: {
+          currentContent,
+          lastEdited: new Date()
+        },
+        $setOnInsert: {
+          versions: [{ 
+            content: currentContent || ' ',
+            timestamp: new Date(), 
+            description: 'Initial draft' 
+          }],
+          status: 'active'
+        }
+      },
+      {
+        new: true, // Return the updated document
+        upsert: true, // Create if doesn't exist
+        setDefaultsOnInsert: true // Set default values on insert
+      }
+    );
+
+    // Save as a new version if requested
+    if (saveAsVersion) {
+      draft.versions.push({
+        content: currentContent,
+        timestamp: new Date(),
+        description: versionDescription || `Version ${draft.versions.length + 1}`
+      });
+      await draft.save();
+    }
+
+    // Ensure the draft is in user's activeDrafts
+    await User.findByIdAndUpdate(userId, {
+      $addToSet: { activeDrafts: draft._id }
     });
 
-    if (!draft) {
-      // If no draft exists, create a new one
-      draft = await SolutionDraft.create({
-        userId,
-        problemId,
-        currentContent,
-        versions: [{ 
-          content: currentContent || ' ', // Ensure there's always content, even if empty
-          timestamp: new Date(), 
-          description: 'Initial draft' 
-        }],
-        lastEdited: new Date(),
-        status: 'active'
-      });
-
-      // Add to user's active drafts
-      await User.findByIdAndUpdate(userId, {
-        $addToSet: { activeDrafts: draft._id }
-      });
-
-      console.log(`Created new draft for user ${userId} and problem ${problemId}`);
-    } else {
-      // Update content
-      draft.currentContent = currentContent;
-      draft.lastEdited = new Date();
-
-      // Save as a new version if requested
-      if (saveAsVersion) {
-        draft.versions.push({
-          content: currentContent,
-          timestamp: new Date(),
-          description: versionDescription || `Version ${draft.versions.length + 1}`
-        });
-      }
-
-      await draft.save();
-      console.log(`Updated draft for user ${userId} and problem ${problemId}`);
-    }
+    console.log(`Updated draft for user ${userId} and problem ${problemId}`);
 
     res.status(200).json(
       new ApiResponse(
@@ -169,17 +153,29 @@ export const reattemptDraft = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { problemId } = req.params;
     const userId = req.user._id;
-    // Archive any active draft for this problem/user
-    const activeDraft = await SolutionDraft.findOne({ userId, problemId, status: 'active' });
-    if (activeDraft) {
-      activeDraft.status = 'archived';
-      await activeDraft.save();
+    
+    // First, archive any existing active draft
+    const existingDraft = await SolutionDraft.findOne({
+      userId,
+      problemId,
+      status: 'active'
+    });
+
+    if (existingDraft) {
+      // Archive the existing draft
+      existingDraft.status = 'archived';
+      await existingDraft.save();
+
+      // Update user's draft references
       await User.findByIdAndUpdate(userId, {
-        $pull: { activeDrafts: activeDraft._id },
-        $addToSet: { archivedDrafts: activeDraft._id }
+        $pull: { activeDrafts: existingDraft._id },
+        $addToSet: { archivedDrafts: existingDraft._id }
       });
+
+      console.log(`Archived existing draft ${existingDraft._id} for reattempt`);
     }
-    // Create new draft
+    
+    // Create a new draft with status active
     const newDraft = await SolutionDraft.create({
       userId,
       problemId,
@@ -189,10 +185,14 @@ export const reattemptDraft = asyncHandler(
       status: 'active',
       autoSaveEnabled: true
     });
-    // Update user's activeDrafts
+
+    // Ensure the new draft is in user's activeDrafts
     await User.findByIdAndUpdate(userId, {
       $addToSet: { activeDrafts: newDraft._id }
     });
+
+    console.log(`Created new draft ${newDraft._id} for reattempt`);
+
     res.status(201).json(
       new ApiResponse(201, 'New draft created for reattempt', newDraft)
     );

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
-import { updateDraft, submitSolutionForAnalysis, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft, getLatestAnalysis, reattemptDraft, getDraftVersions } from '../../lib/crucibleApi';
+import { updateDraft, submitSolutionForAnalysis, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft, getLatestAnalysis, reattemptDraft, getDraftVersions, getDraft } from '../../lib/crucibleApi';
 import { logger } from '../../lib/utils';
 import { useWorkspace } from '../../lib/WorkspaceContext';
 import SolutionEditor from './SolutionEditor';
@@ -38,6 +38,40 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
   const [isReattempting, setIsReattempting] = useState<boolean>(false);
   const [draftVersions, setDraftVersions] = useState<Array<{ content: string; timestamp: Date; description: string }>>([]);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [isCheckingSubmission, setIsCheckingSubmission] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [lastSavedContent, setLastSavedContent] = useState(initialDraft?.currentContent || '');
+  
+  // Helper function to ensure there's an active draft
+  const ensureActiveDraft = useCallback(async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      
+      // Try to get existing draft
+      try {
+        const draft = await getDraft(problem._id, () => Promise.resolve(token));
+        if (draft?.status === 'active') {
+          // We already have an active draft
+          return;
+        }
+      } catch (draftError) {
+        // No active draft found, which is expected in this case
+        logger.info('No active draft found, creating new one');
+      }
+      
+      // Create a new draft with current content
+      logger.info('Creating new active draft after analysis failure');
+      const newDraft = await updateDraft(problem._id, solutionContent, () => Promise.resolve(token));
+      
+      // Update state with new draft
+      setLastSavedContent(solutionContent);
+      
+      return newDraft;
+    } catch (error) {
+      logger.error('Failed to ensure active draft:', error);
+    }
+  }, [problem._id, getToken, solutionContent]);
 
   // Load workspace state when problem changes
   useEffect(() => {
@@ -45,59 +79,134 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
     updateWorkspaceState({ currentProblem: problem });
   }, [problem._id, loadWorkspaceState, updateWorkspaceState, problem]);
   
-  // Autosave solution draft
+  // Update lastSavedContent when initialDraft changes
   useEffect(() => {
+    setLastSavedContent(initialDraft?.currentContent || '');
+  }, [initialDraft?.currentContent]);
+  
+  // Autosave solution draft with optimized logic
+  useEffect(() => {
+    // Skip autosave if no content or if already saving
+    if (!solutionContent.trim() || isSavingDraft) return;
+    
+    // Skip if content hasn't changed from last saved content
+    if (solutionContent === lastSavedContent) return;
+    
     const handler = setTimeout(async () => {
-      if (solutionContent === (initialDraft?.currentContent || '')) return;
+      // Double-check we're not already saving
+      if (isSavingDraft) return;
       
       try {
+        setIsSavingDraft(true);
         const token = await getToken();
         if (!token) return;
+        
         await updateDraft(problem._id, solutionContent, () => Promise.resolve(token));
+        setLastSavedContent(solutionContent);
       } catch (err) {
         logger.error('Failed to save draft:', err);
+        // Don't show alert for autosave failures - user can manually save
+      } finally {
+        setIsSavingDraft(false);
       }
     }, 2000);
 
     return () => clearTimeout(handler);
-  }, [solutionContent, problem._id, getToken, initialDraft]);
+  }, [solutionContent, problem._id, getToken, lastSavedContent, isSavingDraft]);
 
   useEffect(() => {
     let isMounted = true;
     async function checkSubmission() {
+      // Don't check submission status if user is reattempting or already checking
+      if (isReattempting || isCheckingSubmission) {
+        return;
+      }
+      
       try {
+        setIsCheckingSubmission(true);
         const token = await getToken();
         if (!token) return;
-        const latest = await getLatestAnalysis(problem._id, () => Promise.resolve(token));
-        if (latest && isMounted) {
-          setHasSubmitted(true);
-          // Optionally, redirect to result page:
-          const username = window.location.pathname.split('/')[1];
-          navigate(`/${username}/crucible/problem/${problem._id}/result`);
+        
+        // If user has an active draft, they can edit
+        if (initialDraft && initialDraft.status === 'active') {
+          if (isMounted) {
+            setHasSubmitted(false);
+          }
+          return;
+        }
+        
+        // If no initial draft exists (new user), they can edit
+        if (!initialDraft) {
+          if (isMounted) {
+            setHasSubmitted(false);
+          }
+          return;
+        }
+        
+        // Only check for analysis if user has no active draft but might have submitted before
+        // This happens when initialDraft exists but is not active (archived)
+        if (initialDraft && initialDraft.status !== 'active') {
+          try {
+            const latest = await getLatestAnalysis(problem._id, () => Promise.resolve(token));
+            if (latest && isMounted) {
+              setHasSubmitted(true);
+              // Redirect to result page since there's no active draft but there's analysis
+              const username = window.location.pathname.split('/')[1];
+              navigate(`/${username}/crucible/problem/${problem._id}/result`);
+            }
+          } catch (analysisError) {
+            // No analysis found, ensure there's an active draft and let user edit
+            if (isMounted) {
+              setHasSubmitted(false);
+              // Ensure there's an active draft
+              ensureActiveDraft();
+            }
+          }
         }
       } catch (err) {
-        // No analysis found is not an error, just means user can edit
-        setHasSubmitted(false);
+        // General error, assume user can edit
+        if (isMounted) {
+          setHasSubmitted(false);
+        }
+      } finally {
+        if (isMounted) {
+          setIsCheckingSubmission(false);
+        }
       }
     }
     checkSubmission();
     return () => { isMounted = false; };
-  }, [problem._id, getToken, navigate]);
+  }, [problem._id, getToken, navigate, initialDraft, isReattempting, isCheckingSubmission, ensureActiveDraft]);
 
-  // Fetch draft versions
+  // Fetch draft versions with optimized logic
   useEffect(() => {
+    let isMounted = true;
     async function fetchVersions() {
+      // Only fetch if version history is shown and we have a draft
+      if (!showVersionHistory || !initialDraft) {
+        setDraftVersions([]);
+        return;
+      }
+      
       try {
         const token = await getToken();
         if (!token) return;
+        
         const versions = await getDraftVersions(problem._id, () => Promise.resolve(token));
-        setDraftVersions(versions || []);
+        if (isMounted) {
+          setDraftVersions(versions || []);
+        }
       } catch (err) {
-        setDraftVersions([]);
+        logger.warn('Failed to fetch draft versions:', err);
+        if (isMounted) {
+          setDraftVersions([]);
+        }
       }
     }
-    if (showVersionHistory) fetchVersions();
-  }, [showVersionHistory, problem._id, getToken]);
+    
+    fetchVersions();
+    return () => { isMounted = false; };
+  }, [showVersionHistory, problem._id, getToken, initialDraft]);
 
   // Handler to restore a version
   const handleRestoreVersion = async (version: { content: string; timestamp: Date; description: string }) => {
@@ -148,55 +257,62 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
         return;
       }
 
-      // Submit the solution for analysis
-      const response = await submitSolutionForAnalysis(problem._id, () => Promise.resolve(token));
-      
-      if (!response || !response.analysisId) {
-        logger.error('Invalid response from submitSolutionForAnalysis:', response);
-        return;
-      }
-      
-      // Log the response and navigation URL for debugging
-      logger.info('Analysis response:', response);
-      logger.info(`Redirecting to: /crucible/results/${response.analysisId}`);
-      
-      // Navigate to the results page with the analysis ID
+      // Reset reattempting state since user is submitting
+      setIsReattempting(false);
+
+      // Navigate to the results page immediately, before waiting for the analysis
+      // This will show the loading state while the analysis is being processed
       const username = window.location.pathname.split('/')[1];
-      navigate(`/${username}/crucible/results/${response.analysisId}`, { replace: true });
-      
-    } catch (apiError: any) {
-      logger.error('API error during solution submission:', apiError);
-      
-      // Handle specific error types from the backend
-      if (apiError.message?.includes('503') || apiError.message?.includes('model_overloaded')) {
-        alert("The AI model is currently overloaded. Please try again in a few minutes.");
-        return;
-      }
-      
-      if (apiError.message?.includes('422') || apiError.message?.includes('parsing_error')) {
-        alert("There was an issue processing your solution. Please try submitting again.");
-        return;
-      }
-      
-      if (apiError.message?.includes('500') || apiError.message?.includes('service_error')) {
-        alert("The AI service is experiencing issues. Please try again later.");
-        return;
-      }
-      
-      // Provide more specific error messages based on the error
-      if (apiError instanceof Error) {
-        if (apiError.message.includes('401') || apiError.message.includes('403')) {
-          alert("Authentication error. Please sign in again.");
-        } else if (apiError.message.includes('404')) {
-          alert("The problem could not be found. It may have been removed.");
-        } else if (apiError.message.includes('429')) {
-          alert("You're submitting too many solutions too quickly. Please wait a moment and try again.");
-        } else {
-          alert(`Error submitting solution: ${apiError.message}`);
-        }
-      } else {
-        alert("There was an error submitting your solution. Please try again.");
-      }
+      navigate(`/${username}/crucible/problem/${problem._id}/result`);
+
+      // Submit the solution for analysis in the background
+      submitSolutionForAnalysis(problem._id, () => Promise.resolve(token))
+        .then(response => {
+          if (!response || !response.analysisId) {
+            logger.error('Invalid response from submitSolutionForAnalysis:', response);
+            return;
+          }
+          
+          // Log the response and navigation URL for debugging
+          logger.info('Analysis response:', response);
+          logger.info(`Redirecting to: /crucible/results/${response.analysisId}`);
+          
+          // Navigate to the results page with the analysis ID
+          navigate(`/${username}/crucible/results/${response.analysisId}`, { replace: true });
+        })
+        .catch(apiError => {
+          logger.error('API error during solution submission:', apiError);
+          
+          // Handle specific error types from the backend
+          if (apiError.message?.includes('503') || apiError.message?.includes('model_overloaded')) {
+            alert("The AI model is currently overloaded. Please try again in a few minutes.");
+          } else if (apiError.message?.includes('422') || apiError.message?.includes('parsing_error')) {
+            alert("There was an issue processing your solution. Please try submitting again.");
+          } else if (apiError.message?.includes('500') || apiError.message?.includes('service_error')) {
+            alert("The AI service is experiencing issues. Please try again later.");
+          } else if (apiError instanceof Error) {
+            if (apiError.message.includes('401') || apiError.message.includes('403')) {
+              alert("Authentication error. Please sign in again.");
+            } else if (apiError.message.includes('404')) {
+              alert("The problem could not be found. It may have been removed.");
+            } else if (apiError.message.includes('429')) {
+              alert("You're submitting too many solutions too quickly. Please wait a moment and try again.");
+            } else {
+              alert(`Error submitting solution: ${apiError.message}`);
+            }
+          } else {
+            alert("There was an error submitting your solution. Please try again.");
+          }
+          
+          // Navigate back to the problem page if there was an error
+          // First ensure there's an active draft before redirecting
+          ensureActiveDraft().then(() => {
+            navigate(`/${username}/crucible/problem/${problem._id}`);
+          });
+        });
+    } catch (error) {
+      logger.error('Failed to submit solution:', error);
+      alert("There was an error submitting your solution. Please try again.");
     }
   }, [solutionContent, problem._id, getToken, navigate]);
 
@@ -236,8 +352,16 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
       <div className="flex-1 overflow-hidden flex flex-col border-x border-base-200 dark:border-base-700 shadow-lg">
         {isWorkspaceModeVisible && <WorkspaceModeSelector />}
         <div className="flex-1 overflow-auto p-4 bg-base-50 dark:bg-base-900">
-          {/* Version History Button */}
-          <div className="flex justify-end mb-2">
+          {/* Version History Button and Status */}
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex items-center gap-2">
+              {isSavingDraft && (
+                <div className="flex items-center gap-1 text-xs text-base-content/60">
+                  <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <span>Saving...</span>
+                </div>
+              )}
+            </div>
             <button className="btn btn-sm btn-outline" onClick={() => setShowVersionHistory((v) => !v)}>
               {showVersionHistory ? 'Hide Version History' : 'Show Version History'}
             </button>
@@ -262,17 +386,21 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
               </ul>
             </div>
           )}
-          {/* Only show SolutionEditor if not submitted or in reattempt mode */}
-          {activeContent === 'solution' && (!hasSubmitted || isReattempting) ? (
+          {/* Show SolutionEditor if user has active draft, is reattempting, or is a new user */}
+          {activeContent === 'solution' && (initialDraft?.status === 'active' || isReattempting || !initialDraft) ? (
             <SolutionEditor value={solutionContent} onChange={handleEditorChange} />
-          ) : (
+          ) : activeContent === 'solution' && hasSubmitted ? (
             <div className="text-center text-base-content/70 p-8">
               <p>You have already submitted a solution for this problem.</p>
               <button className="btn btn-primary mt-4" onClick={handleReattempt}>
                 Reattempt Problem
               </button>
             </div>
-          )}
+          ) : activeContent === 'solution' ? (
+            <div className="text-center text-base-content/70 p-8">
+              <p>Loading problem workspace...</p>
+            </div>
+          ) : null}
           {activeContent === 'notes' && (
             <NotesCollector 
               problemId={problem._id} 

@@ -31,7 +31,7 @@ import { CircularProgress } from '@/components/blocks/CircularProgress';
 import { FloatingIcon } from '@/components/blocks/FloatingIcon';
 
 // Import API client
-import { getAnalysisResult, ISolutionAnalysisResult, getProblem, ICrucibleProblem, getAnalysisHistory, reattemptDraft } from '@/lib/crucibleApi';
+import { getAnalysisResult, ISolutionAnalysisResult, getProblem, ICrucibleProblem, getAnalysisHistory, reattemptDraft, getLatestAnalysis } from '@/lib/crucibleApi';
 
 // Define loading state interface
 interface LoadingState {
@@ -155,7 +155,7 @@ export default function ResultPage() {
       } 
       // If we're on the problem result route but don't have an analysisId yet
       else if (problemId) {
-        console.log(`Waiting for analysis completion for problem ID: ${problemId}`);
+        console.log(`Fetching latest analysis for problem ID: ${problemId}`);
         try {
           // Fetch problem details first
           const problemData = await getProblem(problemId);
@@ -163,8 +163,45 @@ export default function ResultPage() {
           setProblem(problemData);
           setLoading(prev => ({ ...prev, problem: false }));
           
-          // We keep the analysis loading state true since we don't have an analysisId yet
-          // The user will be redirected to the correct URL once the analysis is complete
+          // Try to fetch the latest analysis for this problem with retry
+          const fetchAnalysisWithRetry = async (retryCount = 0) => {
+            try {
+              const token = await getToken();
+              if (token) {
+                const latestAnalysis = await getLatestAnalysis(problemId, () => Promise.resolve(token));
+                if (latestAnalysis) {
+                  console.log('Latest analysis found:', latestAnalysis);
+                  setAnalysis(latestAnalysis);
+                  setLoading(prev => ({ ...prev, analysis: false }));
+                  return;
+                }
+              }
+            } catch (analysisError) {
+              console.log('Analysis fetch attempt failed:', analysisError);
+            }
+            
+            // If no analysis found and we haven't retried too many times, retry after delay
+            if (retryCount < 5) {
+              const delayMs = 3000 * (retryCount + 1); // Increasing delay: 3s, 6s, 9s, 12s, 15s
+              console.log(`Retrying analysis fetch in ${delayMs/1000} seconds (attempt ${retryCount + 1}/5)`);
+              // Keep the loading state active during retries
+              setLoading(prev => ({ 
+                ...prev, 
+                analysis: true,
+                error: null
+              }));
+              setTimeout(() => fetchAnalysisWithRetry(retryCount + 1), delayMs);
+            } else {
+              // After 5 retries, show the "no analysis" message
+              setLoading(prev => ({ 
+                ...prev, 
+                analysis: false, 
+                error: "No analysis found for this problem. You may need to submit a solution first."
+              }));
+            }
+          };
+          
+          fetchAnalysisWithRetry();
         } catch (error) {
           handleFetchError(error);
         }
@@ -251,7 +288,7 @@ export default function ResultPage() {
         <div className="text-center">
           <RefreshCw className="w-12 h-12 mx-auto mb-4 text-primary animate-spin" />
           <h2 className="text-xl font-bold">Analyzing your solution...</h2>
-          <p className="text-base-content/70 mt-2">This may take a moment</p>
+          <p className="text-base-content/70 mt-2">This may take up to 45 seconds to complete</p>
           
           {/* Debug information for developers */}
           <div className="mt-8 text-xs text-base-content/50">

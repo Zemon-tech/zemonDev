@@ -71,7 +71,8 @@ const SolutionDraftSchema: Schema = new Schema(
   { timestamps: true }
 );
 
-// Create a compound index for efficient lookups
-SolutionDraftSchema.index({ userId: 1, problemId: 1 }, { unique: true });
+// Create compound indexes for efficient lookups (non-unique to allow multiple drafts)
+SolutionDraftSchema.index({ userId: 1, problemId: 1, status: 1 });
+SolutionDraftSchema.index({ userId: 1, problemId: 1 });
 
 export default mongoose.model<ISolutionDraft>('SolutionDraft', SolutionDraftSchema); 

@@ -5,7 +5,7 @@ import ProblemSkeleton from '../components/crucible/ProblemSkeleton';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { WorkspaceProvider } from '@/lib/WorkspaceContext';
 import { useEffect, useState } from 'react';
-import { getProblem, getDraft, getNotes, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft } from '@/lib/crucibleApi';
+import { getProblem, getDraft, getNotes, updateDraft, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft } from '@/lib/crucibleApi';
 import { logger } from '@/lib/utils';
 
 function CrucibleProblemPage() {
@@ -47,15 +47,48 @@ function CrucibleProblemPage() {
 
         const tokenProvider = () => Promise.resolve(token);
 
-        const [problemData, draftData, notesData] = await Promise.all([
-          getProblem(problemId),
-          getDraft(problemId, tokenProvider),
-          getNotes(problemId, tokenProvider)
-        ]);
-        
+        // Fetch problem data first (required)
+        const problemData = await getProblem(problemId);
         setProblem(problemData);
-        setDraft(draftData);
-        setNotes(notesData ? [notesData] : null);
+
+        // Try to fetch draft and notes, but don't fail if draft doesn't exist
+        let draftData: ISolutionDraft | null = null;
+        try {
+          const [fetchedDraftData, notesData] = await Promise.all([
+            getDraft(problemId, tokenProvider),
+            getNotes(problemId, tokenProvider)
+          ]);
+          
+          draftData = fetchedDraftData;
+          setDraft(draftData);
+          setNotes(notesData ? [notesData] : null);
+        } catch (draftError: any) {
+          // If draft doesn't exist (404), that's okay - user might be visiting for first time
+          // or might have submitted solution before
+          if (draftError.message?.includes('404') || draftError.message?.includes('No active draft')) {
+            draftData = null;
+            setDraft(null);
+            setNotes(null);
+          } else {
+            // For other errors, log but don't fail the page load
+            logger.warn('Failed to load draft or notes, but continuing:', draftError);
+            draftData = null;
+            setDraft(null);
+            setNotes(null);
+          }
+        }
+
+        // If no draft exists, create one for new users
+        if (!draftData) {
+          try {
+            // Create a new draft with empty content
+            const newDraft = await updateDraft(problemId, '', tokenProvider);
+            setDraft(newDraft);
+          } catch (createError: any) {
+            // If draft creation fails, that's okay - user can still use the editor
+            logger.warn('Failed to create initial draft, but continuing:', createError);
+          }
+        }
 
       } catch (err: any) {
         logger.error('Failed to load crucible page data:', err);

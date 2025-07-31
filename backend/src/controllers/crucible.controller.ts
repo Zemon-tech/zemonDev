@@ -609,6 +609,24 @@ export const analyzeUserSolution = asyncHandler(
     // Extract the user's solution content
     const userSolution = solutionDraft.currentContent;
 
+    // Archive the current active draft before analysis
+    try {
+      // Update status to archived
+      solutionDraft.status = 'archived';
+      await solutionDraft.save();
+
+      // Update user's draft references (move from activeDrafts to archivedDrafts)
+      await User.findByIdAndUpdate(userId, {
+        $pull: { activeDrafts: solutionDraft._id },
+        $addToSet: { archivedDrafts: solutionDraft._id }
+      });
+
+      console.log(`Archived draft ${solutionDraft._id} for user ${userId} and problem ${problemId}`);
+    } catch (archiveError) {
+      console.error('Error archiving draft:', archiveError);
+      // Continue with analysis even if archiving fails
+    }
+
     // Get technical parameters for this problem (or use empty array if not defined)
     const technicalParameters = problem.technicalParameters || [];
 

@@ -109,6 +109,17 @@ async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const errorBody = await response.text();
     logger.error('API Error:', response.status, errorBody);
+    
+    // Try to parse error response for better error messages
+    try {
+      const errorData = JSON.parse(errorBody);
+      if (errorData.message) {
+        throw new Error(errorData.message);
+      }
+    } catch (parseError) {
+      // If parsing fails, use the raw error body
+    }
+    
     throw new Error(`API error: ${response.status} ${response.statusText}`);
   }
   try {
@@ -166,14 +177,25 @@ export async function getProblem(id: string): Promise<ICrucibleProblem> {
 }
 
 // Fetch solution draft for a problem (auth required)
+// Returns null if no active draft exists (404 from backend)
 export async function getDraft(
     problemId: string,
     getToken: () => Promise<string | null>
-): Promise<ISolutionDraft> {
-  return apiRequest<ISolutionDraft>(`/crucible/${problemId}/draft`, {}, getToken);
+): Promise<ISolutionDraft | null> {
+  try {
+    return await apiRequest<ISolutionDraft>(`/crucible/${problemId}/draft`, {}, getToken);
+  } catch (error: any) {
+    // If it's a 404 error, it means no active draft exists
+    if (error.message?.includes('404') || error.message?.includes('No active draft')) {
+      return null;
+    }
+    // Re-throw other errors
+    throw error;
+  }
 }
 
 // Update solution draft (auth required)
+// Creates a new draft if none exists
 export async function updateDraft(
   problemId: string,
   content: string,
@@ -231,17 +253,33 @@ export async function submitSolution(
 }
 
 // Submit solution for analysis (auth required)
+// Enhanced error handling for analysis failures
 export async function submitSolutionForAnalysis(
   problemId: string,
   getToken: () => Promise<string | null>
 ): Promise<{ analysisId: string }> {
-  return apiRequest<{ analysisId: string }>(
-    `/crucible/${problemId}/analyze`,
-    {
-      method: 'POST',
-    },
-    getToken
-  );
+  try {
+    return await apiRequest<{ analysisId: string }>(
+      `/crucible/${problemId}/analyze`,
+      {
+        method: 'POST',
+      },
+      getToken
+    );
+  } catch (error: any) {
+    // Handle specific analysis errors
+    if (error.message?.includes('503')) {
+      throw new Error('AI service is temporarily unavailable. Please try again later.');
+    }
+    if (error.message?.includes('422')) {
+      throw new Error('Unable to analyze solution. Please check your solution content and try again.');
+    }
+    if (error.message?.includes('500')) {
+      throw new Error('Analysis failed due to a server error. Please try again.');
+    }
+    // Re-throw other errors
+    throw error;
+  }
 }
 
 // Get analysis result (auth required)
@@ -257,15 +295,25 @@ export async function getAnalysisResult(
 } 
 
 // Fetch latest analysis for current user/problem (auth required)
+// Returns null if no analysis exists
 export async function getLatestAnalysis(
   problemId: string,
   getToken: () => Promise<string | null>
-): Promise<ISolutionAnalysisResult> {
-  return apiRequest<ISolutionAnalysisResult>(
-    `/crucible/${problemId}/solutions/latest`,
-    {},
-    getToken
-  );
+): Promise<ISolutionAnalysisResult | null> {
+  try {
+    return await apiRequest<ISolutionAnalysisResult>(
+      `/crucible/${problemId}/solutions/latest`,
+      {},
+      getToken
+    );
+  } catch (error: any) {
+    // If it's a 404 error, it means no analysis exists
+    if (error.message?.includes('404') || error.message?.includes('No analysis found')) {
+      return null;
+    }
+    // Re-throw other errors
+    throw error;
+  }
 }
 
 // Fetch all analyses for current user/problem (auth required)
