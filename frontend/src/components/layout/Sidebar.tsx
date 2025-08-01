@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Settings, User, Hammer, Beaker, Swords, X, Code, PanelLeftClose } from 'lucide-react';
 import React from 'react';
+import SubjectIcon from '@/components/ui/SubjectIcon';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -36,7 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, current
           {isOpen ? (
             'ZEMON'
           ) : (
-            <img src="/Subject.svg" alt="Zemon" className="w-full h-full" />
+            <SubjectIcon className="w-full h-full" />
           )}
         </Link>
         {/* Close button for mobile only */}

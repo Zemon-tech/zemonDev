@@ -48,12 +48,33 @@
   --color-warning-content: var(--color-warning-content);
   --color-error: var(--color-error);
   --color-error-content: var(--color-error-content);
+  
+  /* Subject SVG colors */
+  --subject-color: #000000;
+  --subject-color-light: #000000;
+  --subject-color-dark: #ffffff;
 }
 
 /* Base styles */
 body {
   font-family: "Source Sans 3", system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   min-height: 100vh;
+}
+
+/* Subject SVG theme support */
+[data-theme="dark"] {
+  --subject-color: var(--subject-color-dark, #ffffff);
+}
+
+[data-theme="light"] {
+  --subject-color: var(--subject-color-light, #000000);
+}
+
+/* Fallback for systems without data-theme attribute */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --subject-color: var(--subject-color-dark, #ffffff);
+  }
 }
 
 /* Typography */

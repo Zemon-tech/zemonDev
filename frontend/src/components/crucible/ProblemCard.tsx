@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
+import SubjectIcon from '@/components/ui/SubjectIcon';
 import { Badge } from '@/components/ui/badge';
 
 export type Problem = {
@@ -25,7 +26,11 @@ function ProblemIcon({ iconUrl }: { iconUrl?: string; difficulty: Problem['diffi
     <span className={cn(
       "rounded-lg p-1.5 flex items-center justify-center w-10 h-10 shadow-sm border border-base-200 bg-base-200 dark:bg-base-300/40"
     )}>
-      <img src={iconUrl || "/Zemon.svg"} alt="Problem Icon" className="w-6 h-6 object-contain" />
+      {iconUrl ? (
+        <img src={iconUrl} alt="Problem Icon" className="w-6 h-6 object-contain" />
+      ) : (
+        <SubjectIcon className="w-6 h-6" />
+      )}
     </span>
   );
 }

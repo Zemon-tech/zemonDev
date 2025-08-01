@@ -3,6 +3,7 @@ import { SignInButton, SignUpButton, useAuth } from '@clerk/clerk-react';
 import { useUserRole } from '@/context/UserRoleContext';
 import { Settings } from 'lucide-react';
 import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher';
+import SubjectIcon from '@/components/ui/SubjectIcon';
 
 export default function Navbar() {
   const { isSignedIn } = useAuth();
@@ -17,7 +18,8 @@ export default function Navbar() {
     <nav className="navbar bg-background border-b border-border">
       <div className="container mx-auto flex justify-between items-center">
         <div className="flex items-center">
-          <Link to="/" className="text-2xl font-bold text-primary font-heading">
+          <Link to="/" className="flex items-center gap-2 text-2xl font-bold text-primary font-heading">
+            <SubjectIcon className="w-8 h-8" />
             ZEMON
           </Link>
         </div>
