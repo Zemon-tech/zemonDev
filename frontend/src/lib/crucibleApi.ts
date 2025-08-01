@@ -78,6 +78,7 @@ export interface ISolutionAnalysisResult {
   _id: string;
   userId: string;
   problemId: string;
+  solutionContent?: string; // Optional for backward compatibility
   overallScore: number;
   aiConfidence: number;
   summary: string;
@@ -326,6 +327,28 @@ export async function getAnalysisHistory(
 ): Promise<ISolutionAnalysisResult[]> {
   return apiRequest<ISolutionAnalysisResult[]>(
     `/crucible/${problemId}/solutions/history`,
+    {},
+    getToken
+  );
+}
+
+// Fetch the last submitted solution for reattempting (auth required)
+export async function getLastSubmittedSolution(
+  problemId: string,
+  getToken: () => Promise<string | null>
+): Promise<{
+  solutionContent: string;
+  analysisId: string;
+  score: number;
+  submittedAt: Date;
+}> {
+  return apiRequest<{
+    solutionContent: string;
+    analysisId: string;
+    score: number;
+    submittedAt: Date;
+  }>(
+    `/crucible/${problemId}/solutions/last-submitted`,
     {},
     getToken
   );

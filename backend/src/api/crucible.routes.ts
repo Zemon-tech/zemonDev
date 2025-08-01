@@ -7,7 +7,8 @@ import {
   analyzeUserSolution,
   getAnalysisResult,
   getLatestAnalysisForUserProblem,
-  getAnalysisHistoryForUserProblem
+  getAnalysisHistoryForUserProblem,
+  getLastSubmittedSolution
 } from '../controllers/crucible.controller';
 import { 
   getDraft, 
@@ -74,6 +75,7 @@ router.post('/:problemId/analyze', protect, analyzeUserSolution);
 router.get('/results/:analysisId', protect, getAnalysisResult);
 router.get('/:problemId/solutions/latest', protect, getLatestAnalysisForUserProblem);
 router.get('/:problemId/solutions/history', protect, getAnalysisHistoryForUserProblem);
+router.get('/:problemId/solutions/last-submitted', protect, getLastSubmittedSolution);
 
 // Solution draft routes
 router.get('/:problemId/draft', protect, getDraft);

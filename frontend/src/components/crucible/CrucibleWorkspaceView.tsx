@@ -298,6 +298,12 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
         // We can't directly clear the analysis here, but the markReattempting function should handle this
         logger.info('Reattempting - analysis should be cleared by markReattempting');
       }
+      
+      // Show a notification that the previous solution has been loaded
+      if (newDraft.currentContent && newDraft.currentContent.trim() !== ' ') {
+        logger.info('Previous solution loaded for reattempt');
+        // You could add a toast notification here if you have a toast system
+      }
     } catch (err) {
       logger.error('Failed to reattempt draft:', err);
       alert('Could not start a new attempt. Please try again.');
@@ -431,6 +437,12 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
                 <div className="flex items-center gap-1 text-xs text-base-content/60">
                   <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                   <span>Saving...</span>
+                </div>
+              )}
+              {isReattempting && solutionContent && solutionContent.trim() !== '' && (
+                <div className="flex items-center gap-1 text-xs text-success">
+                  <div className="w-3 h-3 bg-success rounded-full"></div>
+                  <span>Previous solution loaded - improve it to get a better score!</span>
                 </div>
               )}
             </div>

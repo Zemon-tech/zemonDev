@@ -9,6 +9,7 @@ export interface IAnalysisParameter {
 export interface ISolutionAnalysisResult extends Document {
   userId: mongoose.Types.ObjectId;
   problemId: mongoose.Types.ObjectId;
+  solutionContent: string; // Store the solution content that was analyzed
   overallScore: number;
   aiConfidence: number; // A score from 0-100 on how confident the AI is
   summary: string;
@@ -52,6 +53,11 @@ const SolutionAnalysisSchema = new Schema(
       ref: 'CrucibleProblem',
       required: true,
       index: true,
+    },
+    solutionContent: {
+      type: String,
+      required: false, // Make it optional initially to handle existing data
+      default: '', // Default to empty string for existing analyses
     },
     overallScore: {
       type: Number,

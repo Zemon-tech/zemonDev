@@ -175,12 +175,30 @@ export const reattemptDraft = asyncHandler(
       console.log(`Archived existing draft ${existingDraft._id} for reattempt`);
     }
     
-    // Create a new draft with status active
+    // Get the last submitted solution to pre-populate the new draft
+    const { SolutionAnalysis } = require('../models/index');
+    const lastAnalysis = await SolutionAnalysis.findOne({ userId, problemId })
+      .sort({ createdAt: -1 });
+    
+    let initialContent = ' ';
+    let versionDescription = 'Reattempt draft';
+    
+    if (lastAnalysis && lastAnalysis.solutionContent && lastAnalysis.solutionContent.trim() !== '') {
+      initialContent = lastAnalysis.solutionContent;
+      versionDescription = `Reattempt draft based on previous solution (Score: ${lastAnalysis.overallScore})`;
+      console.log(`Using last submitted solution for reattempt (Score: ${lastAnalysis.overallScore})`);
+    }
+    
+    // Create a new draft with the last submitted solution content
     const newDraft = await SolutionDraft.create({
       userId,
       problemId,
-      currentContent: ' ',
-      versions: [{ content: ' ', timestamp: new Date(), description: 'Reattempt draft' }],
+      currentContent: initialContent,
+      versions: [{ 
+        content: initialContent, 
+        timestamp: new Date(), 
+        description: versionDescription 
+      }],
       lastEdited: new Date(),
       status: 'active',
       autoSaveEnabled: true
@@ -191,10 +209,10 @@ export const reattemptDraft = asyncHandler(
       $addToSet: { activeDrafts: newDraft._id }
     });
 
-    console.log(`Created new draft ${newDraft._id} for reattempt`);
+    console.log(`Created new draft ${newDraft._id} for reattempt with previous solution content`);
 
     res.status(201).json(
-      new ApiResponse(201, 'New draft created for reattempt', newDraft)
+      new ApiResponse(201, 'New draft created for reattempt with previous solution', newDraft)
     );
   }
 );

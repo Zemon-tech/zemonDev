@@ -326,6 +326,11 @@ export default function ResultPage() {
                     <span className="font-semibold text-base-content">AI Confidence:</span>
                     <CountUp from={0} to={analysisToDisplay.aiConfidence} duration={1.5} className="text-lg font-bold text-primary" suffix="%" />
                   </div>
+                  <div className="flex items-center gap-2">
+                    <FloatingIcon icon={Target} className="w-5 h-5 text-accent" />
+                    <span className="font-semibold text-base-content">Overall Score:</span>
+                    <CountUp from={0} to={analysisToDisplay.overallScore} duration={1.5} className="text-lg font-bold text-accent" suffix="/100" />
+                  </div>
                 </div>
               </div>
               <div className="shrink-0">
@@ -454,6 +459,14 @@ export default function ResultPage() {
             {isReattempting ? 'Starting...' : 'Reattempt Problem'}
           </Button>
         </div>
+        {analysisToDisplay.overallScore < 100 && (
+          <div className="text-center mt-4 p-3 bg-base-200/50 rounded-lg">
+            <p className="text-sm text-base-content/70">
+              💡 <strong>Tip:</strong> Your current score is {analysisToDisplay.overallScore}/100. 
+              When you reattempt, you'll see your previous solution and can improve it for a better score!
+            </p>
+          </div>
+        )}
 
         <div className="mt-12">
           <h2 className="text-xl font-bold mb-4">Past Analyses</h2>

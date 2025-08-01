@@ -747,6 +747,7 @@ export const analyzeUserSolution = asyncHandler(
         const solutionAnalysis = await SolutionAnalysis.create({
           userId: new mongoose.Types.ObjectId(userId),
           problemId: new mongoose.Types.ObjectId(problemId),
+          solutionContent: userSolution, // Save the solution content that was analyzed
           overallScore: analysisResult.overallScore,
           aiConfidence: analysisResult.aiConfidence,
           summary: analysisResult.summary,
@@ -848,6 +849,38 @@ export const getAnalysisHistoryForUserProblem = asyncHandler(
       .sort({ createdAt: -1 });
     res.status(200).json(
       new ApiResponse(200, 'Analysis history retrieved successfully', history)
+    );
+  }
+);
+
+/**
+ * @desc    Get the last submitted solution for reattempting
+ * @route   GET /api/crucible/:problemId/solutions/last-submitted
+ * @access  Private
+ */
+export const getLastSubmittedSolution = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { problemId } = req.params;
+    const userId = req.user._id;
+    
+    // Get the most recent analysis which contains the last submitted solution
+    const lastAnalysis = await SolutionAnalysis.findOne({ userId, problemId })
+      .sort({ createdAt: -1 });
+    
+    if (!lastAnalysis) {
+      return next(new AppError('No previous solution found for this problem', 404));
+    }
+    
+    // Handle cases where solutionContent might not exist (for older analyses)
+    const solutionContent = lastAnalysis.solutionContent || '';
+    
+    res.status(200).json(
+      new ApiResponse(200, 'Last submitted solution retrieved successfully', {
+        solutionContent: solutionContent,
+        analysisId: lastAnalysis._id,
+        score: lastAnalysis.overallScore,
+        submittedAt: lastAnalysis.createdAt
+      })
     );
   }
 ); 
