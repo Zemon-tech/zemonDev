@@ -57,6 +57,11 @@ export interface UserProfile {
     linkedin?: string;
     twitter?: string;
   };
+  profileBackground?: {
+    type: 'gradient' | 'image';
+    value: string;
+    name: string;
+  };
   createdAt: string;
   updatedAt: string;
 }

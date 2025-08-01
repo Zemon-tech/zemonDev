@@ -38,13 +38,14 @@ export const getCurrentUser = asyncHandler(
  */
 export const updateCurrentUser = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { collegeDetails, profile, interests } = req.body;
+    const { collegeDetails, profile, interests, profileBackground } = req.body;
 
     // Filter out unwanted fields
     const updateData: any = {};
     if (collegeDetails) updateData.collegeDetails = collegeDetails;
     if (profile) updateData.profile = profile;
     if (interests) updateData.interests = interests;
+    if (profileBackground) updateData.profileBackground = profileBackground;
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user._id,
@@ -61,6 +62,53 @@ export const updateCurrentUser = asyncHandler(
         200,
         'User profile updated successfully',
         updatedUser
+      )
+    );
+  }
+);
+
+/**
+ * @desc    Update user profile background
+ * @route   PATCH /api/users/me/background
+ * @access  Private
+ */
+export const updateProfileBackground = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { type, value, name } = req.body;
+
+    // Validate required fields
+    if (!type || !value || !name) {
+      return next(new AppError('Type, value, and name are required', 400));
+    }
+
+    // Validate type
+    if (!['gradient', 'image'].includes(type)) {
+      return next(new AppError('Type must be either "gradient" or "image"', 400));
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $set: {
+          profileBackground: {
+            type,
+            value,
+            name
+          }
+        }
+      },
+      { new: true, runValidators: true }
+    ).select('-__v');
+
+    if (!updatedUser) {
+      return next(new AppError('User not found', 404));
+    }
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        'Profile background updated successfully',
+        updatedUser.profileBackground
       )
     );
   }

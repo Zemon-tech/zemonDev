@@ -53,6 +53,11 @@ export interface IUser extends Document {
     linkedin?: string;
     twitter?: string;
   };
+  profileBackground?: {
+    type: 'gradient' | 'image';
+    value: string;
+    name: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -245,6 +250,23 @@ const UserSchema: Schema = new Schema(
         type: String,
         trim: true,
         default: '',
+      },
+    },
+    profileBackground: {
+      type: {
+        type: String,
+        enum: ['gradient', 'image'],
+        default: 'gradient',
+      },
+      value: {
+        type: String,
+        trim: true,
+        default: 'linear-gradient(to right, #0073b1, #f4a261)',
+      },
+      name: {
+        type: String,
+        trim: true,
+        default: 'LinkedIn Blue',
       },
     },
   },

@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useState, useRef, useEffect } from 'react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import BackgroundSelector, { BackgroundOption, gradientOptions } from '@/components/ui/background-selector';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
@@ -40,7 +41,8 @@ import {
   Sparkles,
   Globe,
   ArrowUpRight,
-  User
+  User,
+  Palette
 } from 'lucide-react';
 
 // Register GSAP plugins
@@ -153,9 +155,59 @@ const mockUserData = {
 
 export default function ProfilePage() {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const { userProfile, loading, error, refetch } = useUserProfile();
   const [activeTab, setActiveTab] = useState('overview');
+  const [currentBackground, setCurrentBackground] = useState<BackgroundOption>(gradientOptions[0]);
+  const [isBackgroundSelectorOpen, setIsBackgroundSelectorOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize background from user profile
+  useEffect(() => {
+    if (userProfile?.profileBackground) {
+      const savedBackground: BackgroundOption = {
+        id: userProfile.profileBackground.name.toLowerCase().replace(/\s+/g, '-'),
+        name: userProfile.profileBackground.name,
+        type: userProfile.profileBackground.type,
+        value: userProfile.profileBackground.value
+      };
+      setCurrentBackground(savedBackground);
+    }
+  }, [userProfile]);
+
+  // Function to save background to backend
+  const saveBackgroundToBackend = async (background: BackgroundOption) => {
+    try {
+      const response = await fetch('/api/users/me/background', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getToken()}`
+        },
+        body: JSON.stringify({
+          type: background.type,
+          value: background.value,
+          name: background.name
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save background');
+      }
+
+      // Refetch user profile to get updated data
+      refetch();
+    } catch (error) {
+      console.error('Error saving background:', error);
+      // You could add a toast notification here
+    }
+  };
+
+  // Handle background change
+  const handleBackgroundChange = (background: BackgroundOption) => {
+    setCurrentBackground(background);
+    saveBackgroundToBackend(background);
+  };
   
   // Refs for GSAP animations
   const heroRef = useRef<HTMLElement>(null);
@@ -264,43 +316,39 @@ export default function ProfilePage() {
         <div className="absolute top-20 left-10 w-72 h-72 rounded-full blur-3xl bg-primary/10" />
         <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full blur-3xl bg-secondary/10" />
       </div>
-      {/* Hero Section with LinkedIn Style */}
+      {/* Hero Section with Dynamic Background */}
       <section 
         className="relative w-full h-[200px] overflow-hidden"
-        style={{ background: 'linear-gradient(to right, #0073b1, #f4a261)' }}
+        style={{ 
+          background: currentBackground.type === 'gradient' 
+            ? currentBackground.value 
+            : `url(${currentBackground.value}) center/cover`
+        }}
       >
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-gray-300 to-sky-400" />
-        <div className="absolute inset-0 " />
-
-        {/* Social Media Icons */}
-        <div className="absolute top-4 right-4 flex items-center gap-3">
-          <button className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/20 rounded-md p-2 transition-all duration-300">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-          </button>
-          
-          {/* Social Media Icons */}
-          <div className="flex items-center gap-2">
-            <button className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/20 rounded-md p-2 transition-all duration-300">
-              <Github className="w-4 h-4" />
-            </button>
-            <button className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/20 rounded-md p-2 transition-all duration-300">
-              <Linkedin className="w-4 h-4" />
-            </button>
-            <button className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/20 rounded-md p-2 transition-all duration-300">
-              <Twitter className="w-4 h-4" />
-            </button>
-          </div>
+        {/* Background overlay for better text readability */}
+        <div className="absolute inset-0 bg-black/10" />
+        
+        {/* Background Customization Button */}
+        <div className="absolute top-4 right-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsBackgroundSelectorOpen(true)}
+            className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border border-white/30 transition-all duration-300"
+          >
+            <Palette className="w-4 h-4 mr-2" />
+            Customize
+          </Button>
         </div>
       </section>
 
       {/* Profile Information Section - All content below banner */}
-      <div className="container mx-auto px-4 relative mt-16">
-        <div className="relative flex items-start gap-8">
+      <div className="container mx-auto px-4 relative mt-12">
+        <div className="relative flex items-start gap-6 md:gap-8">
           {/* Avatar - Positioned so banner bottom aligns with circle center */}
           <motion.div 
             ref={avatarRef} 
-            className="relative inline-block group cursor-pointer -mt-[130px] ml-3"
+            className="relative inline-block group cursor-pointer -mt-[125px] ml-3"
             whileHover={{ scale: 1.02 }}
             onClick={() => fileInputRef.current?.click()}
           >
@@ -345,10 +393,10 @@ export default function ProfilePage() {
           </motion.div>
 
           {/* Enhanced Name and Title - All content below banner */}
-          <div className="flex-1 -mt-8">
+          <div className="flex-1 -mt-12">
             <motion.h1 
               ref={nameRef} 
-              className="text-3xl font-bold leading-tight mb-3 text-base-content"
+              className="text-3xl font-bold leading-tight mb-2 text-base-content"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.5 }}
@@ -362,7 +410,7 @@ export default function ProfilePage() {
             
             <motion.div 
               ref={taglineRef} 
-              className="flex flex-wrap gap-2 mb-4"
+              className="flex flex-wrap gap-2 mb-3"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.7 }}
@@ -384,7 +432,7 @@ export default function ProfilePage() {
 
             {/* Quick Stats Bar */}
             <motion.div 
-              className="flex items-center gap-6 text-sm text-base-content/70"
+              className="flex items-center gap-4 md:gap-6 text-sm text-base-content/70"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.9 }}
@@ -408,7 +456,7 @@ export default function ProfilePage() {
       </div>
             
       {/* Enhanced Tab Navigation */}
-      <div className="container mx-auto px-4 mt-12">
+      <div className="container mx-auto px-4 mt-8">
         <motion.div 
           className="relative p-1 rounded-xl shadow-md bg-base-200 border border-base-300"
           initial={{ opacity: 0, y: 20 }}
@@ -446,7 +494,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Enhanced Tab Content */}
-      <div className="container mx-auto px-4 mt-8 max-w-full">
+      <div className="container mx-auto px-4 mt-6 max-w-full">
         <AnimatePresence mode="wait">
           {activeTab === 'overview' && (
             <motion.div 
@@ -1384,6 +1432,14 @@ export default function ProfilePage() {
           </motion.div>
         )}
       </div>
+
+      {/* Background Selector Modal */}
+      <BackgroundSelector
+        currentBackground={currentBackground}
+        onBackgroundChange={handleBackgroundChange}
+        isOpen={isBackgroundSelectorOpen}
+        onClose={() => setIsBackgroundSelectorOpen(false)}
+      />
     </div>
   );
 }

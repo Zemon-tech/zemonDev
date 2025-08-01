@@ -10,7 +10,8 @@
     "lint": "eslint . --ext .ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "migrate:user-profile": "ts-node src/migrations/add-user-profile-fields.ts",
-    "migrate:fix-user-profile": "ts-node src/migrations/fix-user-profile-fields.ts"
+    "migrate:fix-user-profile": "ts-node src/migrations/fix-user-profile-fields.ts",
+    "migrate:profile-background": "ts-node src/migrations/add-profile-background-field.ts"
   },
   "keywords": [
     "education",
