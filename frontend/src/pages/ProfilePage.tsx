@@ -913,11 +913,8 @@ export default function ProfilePage() {
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: index * 0.1 }}
-                  whileHover={{ y: -5 }}
                 >
-                  <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl border border-base-300 bg-base-100 group cursor-pointer h-full relative">
-                    {/* Enhanced gradient overlay */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${section.bg} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                  <Card className="overflow-hidden shadow-lg transition-all duration-300 rounded-xl border border-base-300 bg-base-100 group cursor-pointer h-full relative">
                     
                     <CardContent className="p-6 h-full flex flex-col relative z-10">
                       <div className="flex items-center gap-3 mb-4">
@@ -925,16 +922,16 @@ export default function ProfilePage() {
                           index % 4 === 0 ? 'bg-primary' : 
                           index % 4 === 1 ? 'bg-secondary' : 
                           index % 4 === 2 ? 'bg-accent' : 'bg-info'
-                        } rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
+                        } rounded-xl flex items-center justify-center transition-transform duration-300 shadow-lg`}>
                           <section.icon className="w-6 h-6 text-primary-content" />
                         </div>
                         <div className="flex-1">
-                          <h2 className="text-xl font-bold text-base-content group-hover:text-primary transition-colors duration-300">{section.title}</h2>
+                          <h2 className="text-xl font-bold text-base-content transition-colors duration-300">{section.title}</h2>
                           <p className="text-sm text-base-content/70">{section.subtitle}</p>
                         </div>
                         {section.onClick && (
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <ChevronRight className="w-5 h-5 text-base-content/50 group-hover:text-primary transition-colors duration-300" />
+                            <ChevronRight className="w-5 h-5 text-base-content/50 transition-colors duration-300" />
                           </div>
                         )}
                       </div>
@@ -992,14 +989,9 @@ export default function ProfilePage() {
                         {!section.loading && !section.error && section.items.map((item, itemIndex) => (
                           <motion.div
                             key={itemIndex}
-                            className={`flex items-center gap-3 p-4 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 group/item ${
-                              section.onClick ? 'cursor-pointer hover:shadow-md' : ''
+                            className={`flex items-center gap-3 p-4 rounded-lg bg-base-200 transition-all duration-300 group/item ${
+                              section.onClick ? 'cursor-pointer' : ''
                             }`}
-                            whileHover={{ 
-                              scale: 1.02, 
-                              x: 5,
-                              backgroundColor: section.onClick ? 'var(--base-300)' : undefined
-                            }}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.4, delay: 0.2 + itemIndex * 0.1 }}
@@ -1011,12 +1003,12 @@ export default function ProfilePage() {
                             }}
                           >
                             <div className="flex items-center gap-3 flex-1">
-                              <div className={`w-3 h-3 rounded-full group-hover/item:scale-125 transition-transform duration-300 ${
+                              <div className={`w-3 h-3 rounded-full transition-transform duration-300 ${
                                 index % 4 === 0 ? 'bg-primary' : 
                                 index % 4 === 1 ? 'bg-secondary' : 
                                 index % 4 === 2 ? 'bg-accent' : 'bg-info'
                               }`} />
-                              <span className="text-base-content font-medium group-hover/item:text-primary transition-colors duration-300">{item}</span>
+                              <span className="text-base-content font-medium transition-colors duration-300">{item}</span>
                             </div>
                             {section.onClick && (
                               <motion.div
@@ -1024,7 +1016,7 @@ export default function ProfilePage() {
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ duration: 0.2 }}
                               >
-                                <ChevronRight className="w-4 h-4 text-base-content/50 group-hover/item:text-primary group-hover/item:translate-x-1 transition-all duration-300" />
+                                <ChevronRight className="w-4 h-4 text-base-content/50 transition-all duration-300" />
                               </motion.div>
                             )}
                           </motion.div>
