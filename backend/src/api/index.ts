@@ -9,6 +9,7 @@ import arenaShowcaseRoutes from './arena-showcase.routes';
 import arenaHackathonsRoutes from './arena-hackathons.routes';
 import arenaUsersRoutes from './arena-users.routes';
 import adminRoutes from './admin.routes';
+import profileRoutes from './profile.routes';
 
 const router = Router();
 
@@ -27,6 +28,7 @@ router.use('/users', userRoutes);
 router.use('/crucible', crucibleRoutes);
 router.use('/forge', forgeRoutes);
 router.use('/ai', aiRoutes);
+router.use('/profile', profileRoutes);
 
 // Admin routes
 router.use('/admin', adminRoutes);
