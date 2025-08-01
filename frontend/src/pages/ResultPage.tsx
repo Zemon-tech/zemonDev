@@ -94,7 +94,7 @@ const parameterIcons: Record<string, any> = {
 
 export default function ResultPage() {
   // --- 1. HOOKS ---
-  const { analysisId: analysisIdFromParams } = useParams<{ analysisId: string }>();
+  const { analysisId: analysisIdFromParams, username } = useParams<{ analysisId: string; username: string }>();
   const navigate = useNavigate();
   const { getToken } = useAuth();
   const location = useLocation();
@@ -294,7 +294,7 @@ export default function ResultPage() {
             The AI model was unable to complete the analysis, or the data is malformed. This could be due to high demand or a temporary service issue.
           </p>
           <div className="flex gap-3 justify-center">
-            <Button onClick={() => problem?._id && navigate(`/crucible/problem/${problem._id}`)} variant="outline">
+            <Button onClick={() => navigate(`/${username}/crucible`)} variant="outline">
               Back to Problem
             </Button>
             <Button onClick={() => window.location.reload()}>
@@ -452,7 +452,7 @@ export default function ResultPage() {
         </div>
 
         <div className="flex justify-center gap-4 mt-8">
-          <Button variant="outline" className="px-6 py-2" onClick={() => navigate(`/crucible/problem/${problem._id}`)}>
+          <Button variant="outline" className="px-6 py-2" onClick={() => navigate(`/${username}/crucible`)}>
             Back to Problem
           </Button>
           <Button className="px-6 py-2" onClick={handleReattempt} disabled={isReattempting}>
@@ -476,7 +476,7 @@ export default function ResultPage() {
             <ul className="menu bg-base-200 rounded-box p-4">
               {history.map((item) => (
                 <li key={item._id}>
-                  <button className={`menu-item text-left w-full ${item._id === analysisToDisplay?._id ? 'menu-active' : ''}`} onClick={() => navigate(`/crucible/results/${item._id}`)}>
+                  <button className={`menu-item text-left w-full ${item._id === analysisToDisplay?._id ? 'menu-active' : ''}`} onClick={() => navigate(`/${username}/crucible/results/${item._id}`)}>
                     <span className="font-semibold">{new Date(item.createdAt).toLocaleString()}</span>
                     <span className="ml-2 text-base-content/70">Score: {item.overallScore}</span>
                   </button>
