@@ -160,6 +160,16 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
         // Only check for analysis if we have an archived draft
         // This ensures we don't waste API calls for new problems
         if (initialDraft && initialDraft.status !== 'active') {
+          // Check if user is reattempting - if so, don't check for analysis
+          const isReattempting = sessionStorage.getItem(`reattempting_${problem._id}`);
+          if (isReattempting) {
+            logger.info('User is reattempting, skipping analysis check');
+            if (isMounted) {
+              setHasSubmitted(false);
+            }
+            return;
+          }
+          
           // Use the shared context instead of direct API call
           checkAnalysis(problem._id);
           
@@ -174,9 +184,9 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
               // Store redirect state in sessionStorage to prevent loops
               const redirectKey = `redirect_${problem._id}`;
               const hasRedirected = sessionStorage.getItem(redirectKey);
-              const isReattempting = sessionStorage.getItem(`reattempting_${problem._id}`);
+              const isCurrentlyReattempting = sessionStorage.getItem(`reattempting_${problem._id}`);
               
-              if (!hasRedirected && !isReattempting) {
+              if (!hasRedirected && !isCurrentlyReattempting) {
                 logger.info('Redirecting to result page from workspace view');
                 // Mark that we've initiated a redirect for this problem
                 sessionStorage.setItem(redirectKey, 'true');
@@ -192,7 +202,7 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
                 
                 return; // Exit early after redirect
               } else {
-                logger.info('Redirect already initiated, skipping');
+                logger.info('Redirect already initiated or user is reattempting, skipping');
               }
             }
             return;
@@ -282,11 +292,17 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
       setSolutionContent(newDraft.currentContent || '');
       setIsReattempting(true);
       setHasSubmitted(false);
+      
+      // Clear any existing analysis from context to prevent redirect loops
+      if (analysis && analysis.problemId === problem._id) {
+        // We can't directly clear the analysis here, but the markReattempting function should handle this
+        logger.info('Reattempting - analysis should be cleared by markReattempting');
+      }
     } catch (err) {
       logger.error('Failed to reattempt draft:', err);
       alert('Could not start a new attempt. Please try again.');
     }
-  }, [problem._id, getToken]);
+  }, [problem._id, getToken, analysis]);
 
   const handleEditorChange = useCallback((content: string) => {
     setSolutionContent(content);

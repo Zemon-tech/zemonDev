@@ -146,8 +146,14 @@ function CrucibleProblemPage() {
 
   // Handle analysis state changes and redirect when analysis is found
   useEffect(() => {
-    // If we're reattempting, don't do any redirects
+    // If we're reattempting, don't do any redirects and clear any existing analysis
     if (isReattempting) {
+      logger.info('User is reattempting, preventing redirect to result page');
+      // Clear any existing analysis to prevent future redirects
+      if (analysis) {
+        // We can't directly clear the analysis from context here, but we can prevent the redirect
+        logger.info('Analysis exists but user is reattempting - preventing redirect');
+      }
       return;
     }
     
@@ -156,9 +162,11 @@ function CrucibleProblemPage() {
     // 2. We're not currently loading
     // 3. We haven't already initiated a redirect
     // 4. We're not already on the result page
+    // 5. We're not reattempting (double-check)
     const isOnResultPage = window.location.pathname.includes('/result');
+    const isCurrentlyReattempting = problemId ? sessionStorage.getItem(`reattempting_${problemId}`) : null;
     
-    if (analysis && !analysisLoading && problemId && !redirectInitiated && !isOnResultPage) {
+    if (analysis && !analysisLoading && problemId && !redirectInitiated && !isOnResultPage && !isCurrentlyReattempting) {
       logger.info('Found existing analysis in context, redirecting to result page');
       // Mark that we've initiated a redirect to prevent loops
       setRedirectInitiated(true);

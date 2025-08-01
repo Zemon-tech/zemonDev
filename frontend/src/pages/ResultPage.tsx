@@ -106,6 +106,7 @@ export default function ResultPage() {
   let checkAnalysis: (problemId: string) => Promise<void> = async () => {};
   let markReattempting: (problemId: string) => void = () => {};
   let clearAnalysis: () => void = () => {};
+  let clearReattemptingState: (problemId: string) => void = () => {};
 
   try {
     const analysisContext = useAnalysis();
@@ -115,6 +116,7 @@ export default function ResultPage() {
     checkAnalysis = analysisContext.checkAnalysis;
     markReattempting = analysisContext.markReattempting;
     clearAnalysis = analysisContext.clearAnalysis;
+    clearReattemptingState = analysisContext.clearReattemptingState;
   } catch (error) {
     console.warn('AnalysisContext not available, using fallback values:', error);
     // Use fallback values - this allows the page to render even without context
@@ -177,6 +179,11 @@ export default function ResultPage() {
           currentAnalysis = fetchedAnalysis;
           currentProblemId = fetchedAnalysis.problemId;
           setLocalAnalysis(fetchedAnalysis);
+          
+          // Clear reattempting state since we have a valid analysis
+          if (currentProblemId) {
+            clearReattemptingState(currentProblemId);
+          }
         } else if (problemId) {
           logger.info(`Checking context for analysis for problem ID: ${problemId}`);
           if (contextAnalysis && contextAnalysis.problemId === problemId) {

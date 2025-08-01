@@ -11,6 +11,7 @@ interface AnalysisContextType {
   clearAnalysis: () => void;
   markReattempting: (problemId: string) => void;
   markSubmitting: (problemId: string) => void;
+  clearReattemptingState: (problemId: string) => void;
 }
 
 const AnalysisContext = createContext<AnalysisContextType | undefined>(undefined);
@@ -90,6 +91,18 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     clearAnalysis();
     sessionStorage.setItem(`reattempting_${problemId}`, 'true');
     sessionStorage.setItem(`reattempt_time_${problemId}`, Date.now().toString());
+    
+    // Clear any existing analysis for this problem to prevent redirect loops
+    // This ensures that when user reattempts, they stay on the editor page
+    if (analysis && analysis.problemId === problemId) {
+      setAnalysis(null);
+    }
+    
+    // Auto-clear reattempting state after 30 minutes to prevent stuck states
+    setTimeout(() => {
+      sessionStorage.removeItem(`reattempting_${problemId}`);
+      sessionStorage.removeItem(`reattempt_time_${problemId}`);
+    }, 30 * 60 * 1000); // 30 minutes
   };
   
   const markSubmitting = (problemId: string) => {
@@ -99,9 +112,22 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     sessionStorage.removeItem(`reattempt_time_${problemId}`);
     sessionStorage.setItem(`submitting_${problemId}`, 'true');
     
+    // Clear any existing analysis for this problem when submitting
+    // This ensures a clean state for the new submission
+    if (analysis && analysis.problemId === problemId) {
+      setAnalysis(null);
+    }
+    
     setTimeout(() => {
       sessionStorage.removeItem(`submitting_${problemId}`);
     }, 10 * 60 * 1000);
+  };
+  
+  // Function to clear reattempting state when analysis is complete
+  const clearReattemptingState = (problemId: string) => {
+    logger.info('Clearing reattempting state for problem:', problemId);
+    sessionStorage.removeItem(`reattempting_${problemId}`);
+    sessionStorage.removeItem(`reattempt_time_${problemId}`);
   };
 
   return (
@@ -113,7 +139,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         checkAnalysis,
         clearAnalysis,
         markReattempting,
-        markSubmitting
+        markSubmitting,
+        clearReattemptingState
       }}
     >
       {children}
