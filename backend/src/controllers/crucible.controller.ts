@@ -609,6 +609,20 @@ export const analyzeUserSolution = asyncHandler(
     // Extract the user's solution content
     const userSolution = solutionDraft.currentContent;
 
+    // Validate that the solution is not empty
+    if (!userSolution || userSolution.trim().length < 10) {
+      return res.status(400).json(
+        new ApiResponse(
+          400,
+          'Solution too short',
+          {
+            error: 'solution_too_short',
+            message: 'Please provide a more detailed solution before submitting for analysis. Your solution should be at least 10 characters long.'
+          }
+        )
+      );
+    }
+
     // Archive the current active draft before analysis
     try {
       // Update status to archived
@@ -714,7 +728,8 @@ export const analyzeUserSolution = asyncHandler(
       }
 
       // Only save to database if we have a valid analysis result
-      if (!analysisResult || !analysisResult.overallScore) {
+      if (!analysisResult || typeof analysisResult.overallScore !== 'number') {
+        console.error('Invalid analysis result - missing or invalid overallScore:', analysisResult);
         return res.status(500).json(
           new ApiResponse(
             500,
@@ -730,8 +745,8 @@ export const analyzeUserSolution = asyncHandler(
       // Create a new SolutionAnalysis document
       try {
         const solutionAnalysis = await SolutionAnalysis.create({
-          userId,
-          problemId,
+          userId: new mongoose.Types.ObjectId(userId),
+          problemId: new mongoose.Types.ObjectId(problemId),
           overallScore: analysisResult.overallScore,
           aiConfidence: analysisResult.aiConfidence,
           summary: analysisResult.summary,

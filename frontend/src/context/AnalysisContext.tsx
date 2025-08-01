@@ -19,33 +19,19 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [analysis, setAnalysis] = useState<ISolutionAnalysisResult | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState<number>(0);
   const [currentProblemId, setCurrentProblemId] = useState<string | null>(null);
-  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const inFlightRequest = useRef<boolean>(false);
   
   const { getToken } = useAuth();
   
-  // Clean up any pending timeouts when unmounting
-  useEffect(() => {
-    return () => {
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-      }
-    };
-  }, []);
+  // No cleanup needed since we removed retry logic
   
   const clearAnalysis = () => {
     setAnalysis(null);
     setLoading(false);
     setError(null);
-    setRetryCount(0);
     setCurrentProblemId(null);
     inFlightRequest.current = false;
-    if (retryTimeoutRef.current) {
-      clearTimeout(retryTimeoutRef.current);
-      retryTimeoutRef.current = null;
-    }
   };
   
   const checkAnalysis = async (problemId: string) => {
@@ -78,11 +64,11 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (result) {
         logger.info('Analysis found for problem:', problemId);
         setAnalysis(result);
-        setRetryCount(0);
-        if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
       } else {
-        // If no analysis is found, initiate retry logic
-        handleRetry(problemId);
+        // No analysis exists yet - this is normal for new problems
+        logger.info('No analysis found for problem (this is normal for new problems):', problemId);
+        setAnalysis(null);
+        // Don't initiate retry logic - analysis will be created when user submits solution
       }
     } catch (err) {
       logger.error("Error fetching analysis:", err);
@@ -94,25 +80,9 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const handleRetry = (problemId: string) => {
-    // Check if we're currently submitting a solution for this problem
-    const isSubmitting = sessionStorage.getItem(`submitting_${problemId}`);
-    if (isSubmitting) {
-      logger.info(`Skipping retry for problem ${problemId} (submission in progress)`);
-      return;
-    }
-    
-    if (retryCount < 3) {
-      const delayMs = 15000 * (retryCount + 1);
-      logger.info(`Analysis not found. Retrying in ${delayMs/1000}s (attempt ${retryCount + 1}/3)`);
-      
-      retryTimeoutRef.current = setTimeout(() => {
-        setRetryCount(prev => prev + 1);
-        checkAnalysis(problemId);
-      }, delayMs);
-    } else {
-      logger.info('Max retries reached for problem:', problemId);
-      setError("No analysis found for this problem after multiple attempts.");
-    }
+    // This function is no longer needed since we don't retry for missing analysis
+    // Analysis should only be checked after user submits a solution
+    logger.info('Retry logic disabled - analysis should be created when user submits solution');
   };
   
   const markReattempting = (problemId: string) => {
@@ -128,12 +98,6 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     sessionStorage.removeItem(`reattempting_${problemId}`);
     sessionStorage.removeItem(`reattempt_time_${problemId}`);
     sessionStorage.setItem(`submitting_${problemId}`, 'true');
-    
-    // Clear any existing retry timeouts to prevent them from firing during submission
-    if (retryTimeoutRef.current) {
-      clearTimeout(retryTimeoutRef.current);
-      retryTimeoutRef.current = null;
-    }
     
     setTimeout(() => {
       sessionStorage.removeItem(`submitting_${problemId}`);

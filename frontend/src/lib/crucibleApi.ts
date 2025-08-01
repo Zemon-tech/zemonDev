@@ -268,6 +268,9 @@ export async function submitSolutionForAnalysis(
     );
   } catch (error: any) {
     // Handle specific analysis errors
+    if (error.message?.includes('400') && error.message?.includes('solution_too_short')) {
+      throw new Error('Please provide a more detailed solution before submitting for analysis. Your solution should be at least 10 characters long.');
+    }
     if (error.message?.includes('503')) {
       throw new Error('AI service is temporarily unavailable. Please try again later.');
     }

@@ -99,14 +99,26 @@ export default function ResultPage() {
   const { getToken } = useAuth();
   const location = useLocation();
 
-  const { 
-    analysis: contextAnalysis, 
-    loading: contextLoading, 
-    error: contextError, 
-    checkAnalysis, 
-    markReattempting,
-    clearAnalysis
-  } = useAnalysis();
+  // Wrap useAnalysis in try-catch to handle context errors gracefully
+  let contextAnalysis: ISolutionAnalysisResult | null = null;
+  let contextLoading = false;
+  let contextError: string | null = null;
+  let checkAnalysis: (problemId: string) => Promise<void> = async () => {};
+  let markReattempting: (problemId: string) => void = () => {};
+  let clearAnalysis: () => void = () => {};
+
+  try {
+    const analysisContext = useAnalysis();
+    contextAnalysis = analysisContext.analysis;
+    contextLoading = analysisContext.loading;
+    contextError = analysisContext.error;
+    checkAnalysis = analysisContext.checkAnalysis;
+    markReattempting = analysisContext.markReattempting;
+    clearAnalysis = analysisContext.clearAnalysis;
+  } catch (error) {
+    console.warn('AnalysisContext not available, using fallback values:', error);
+    // Use fallback values - this allows the page to render even without context
+  }
   
   const [localAnalysis, setLocalAnalysis] = useState<ISolutionAnalysisResult | null>(null);
   const [problem, setProblem] = useState<ICrucibleProblem | null>(null);

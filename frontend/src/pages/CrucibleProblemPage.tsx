@@ -123,9 +123,8 @@ function CrucibleProblemPage() {
           }
         }
         
-        // Always check for analysis regardless of draft status
-        // This ensures we catch cases where user has analysis but draft is still active
-        checkAnalysis(problemId);
+        // Don't check for analysis on page load - analysis will be checked after user submits solution
+        // This prevents unnecessary 404 errors for new users
 
       } catch (err: any) {
         logger.error('Failed to load crucible page data:', err);
