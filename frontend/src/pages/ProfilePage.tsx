@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import BackgroundSelector, { BackgroundOption, gradientOptions } from '@/components/ui/background-selector';
@@ -8,6 +9,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useUserProfile, formatEducation, formatCollegeLocation, getDisplayName, getDisplayBio, getDisplayLocation, getSkills, getToolsAndTech, getSocialLinks } from '@/hooks/useUserProfile';
+import { getUserAnalysisHistory, getUserActiveDrafts, IUserAnalysisHistory, IUserActiveDraft } from '@/lib/profileApi';
 import { 
   Github, 
   Linkedin, 
@@ -156,11 +158,19 @@ const mockUserData = {
 export default function ProfilePage() {
   const { user } = useUser();
   const { getToken } = useAuth();
+  const navigate = useNavigate();
+  const { username } = useParams<{ username: string }>();
   const { userProfile, loading, error, refetch } = useUserProfile();
   const [activeTab, setActiveTab] = useState('overview');
   const [currentBackground, setCurrentBackground] = useState<BackgroundOption>(gradientOptions[0]);
   const [isBackgroundSelectorOpen, setIsBackgroundSelectorOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // State for Crucible data
+  const [analysisHistory, setAnalysisHistory] = useState<IUserAnalysisHistory[]>([]);
+  const [activeDrafts, setActiveDrafts] = useState<IUserActiveDraft[]>([]);
+  const [crucibleLoading, setCrucibleLoading] = useState(false);
+  const [crucibleError, setCrucibleError] = useState<string | null>(null);
 
   // Initialize background from user profile
   useEffect(() => {
@@ -174,6 +184,35 @@ export default function ProfilePage() {
       setCurrentBackground(savedBackground);
     }
   }, [userProfile]);
+
+  // Fetch Crucible data when tab is active
+  useEffect(() => {
+    const fetchCrucibleData = async () => {
+      if (activeTab === 'crucible' && getToken && !crucibleLoading) {
+        setCrucibleLoading(true);
+        setCrucibleError(null);
+        
+        try {
+          const [analyses, drafts] = await Promise.all([
+            getUserAnalysisHistory(getToken),
+            getUserActiveDrafts(getToken)
+          ]);
+          
+          setAnalysisHistory(analyses);
+          setActiveDrafts(drafts);
+        } catch (error) {
+          console.error('Error fetching Crucible data:', error);
+          setCrucibleError('Failed to load Crucible data');
+          setAnalysisHistory([]);
+          setActiveDrafts([]);
+        } finally {
+          setCrucibleLoading(false);
+        }
+      }
+    };
+
+    fetchCrucibleData();
+  }, [activeTab, getToken]);
 
   // Function to save background to backend
   const saveBackgroundToBackend = async (background: BackgroundOption) => {
@@ -207,6 +246,19 @@ export default function ProfilePage() {
   const handleBackgroundChange = (background: BackgroundOption) => {
     setCurrentBackground(background);
     saveBackgroundToBackend(background);
+  };
+
+  // Navigation functions for Crucible items
+  const handleAnalysisClick = (analysis: IUserAnalysisHistory) => {
+    if (username) {
+      navigate(`/${username}/crucible/results/${analysis._id}`);
+    }
+  };
+
+  const handleDraftClick = (draft: IUserActiveDraft) => {
+    if (username) {
+      navigate(`/${username}/crucible/problem/${draft.problemId._id}`);
+    }
   };
   
   // Refs for GSAP animations
@@ -777,35 +829,83 @@ export default function ProfilePage() {
             transition={{ duration: 0.5 }}
             className="w-full"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {/* Enhanced Header Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="mb-6"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-base-content mb-2">Crucible Workspace</h2>
+                  <p className="text-base-content/70">Your coding challenges and solution journeys</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {crucibleLoading && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                      <span className="text-sm font-medium">Loading...</span>
+                    </div>
+                  )}
+                  {crucibleError && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-error/10 text-error rounded-lg">
+                      <span className="text-sm font-medium">Error loading data</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
               {[
                 { 
                   title: "Solution Journeys", 
-                  items: mockUserData.crucible?.solutionJourneys || [], 
+                  subtitle: "Completed analyses",
+                  items: analysisHistory.map(analysis => analysis.problemId.title),
+                  data: analysisHistory,
                   icon: Target, 
                   color: "from-blue-500 to-indigo-600",
-                  bg: "from-blue-50 to-indigo-50"
+                  bg: "from-blue-50 to-indigo-50",
+                  onClick: handleAnalysisClick,
+                  loading: crucibleLoading,
+                  error: crucibleError,
+                  emptyMessage: "No solution journeys yet",
+                  emptySubtitle: "Complete your first analysis to see it here"
                 },
                 { 
                   title: "Active Drafts", 
-                  items: mockUserData.crucible?.drafts || [], 
+                  subtitle: "Work in progress",
+                  items: activeDrafts.map(draft => draft.problemId.title),
+                  data: activeDrafts,
                   icon: BookOpen, 
                   color: "from-emerald-500 to-teal-600",
-                  bg: "from-emerald-50 to-teal-50"
+                  bg: "from-emerald-50 to-teal-50",
+                  onClick: handleDraftClick,
+                  loading: crucibleLoading,
+                  error: crucibleError,
+                  emptyMessage: "No active drafts",
+                  emptySubtitle: "Start a new problem to create your first draft"
                 },
                 { 
                   title: "Research Notes", 
+                  subtitle: "Learning resources",
                   items: mockUserData.crucible?.notes || [], 
                   icon: Brain, 
                   color: "from-purple-500 to-pink-600",
-                  bg: "from-purple-50 to-pink-50"
+                  bg: "from-purple-50 to-pink-50",
+                  emptyMessage: "No research notes yet",
+                  emptySubtitle: "Add notes to track your learning"
                 },
                 { 
                   title: "System Diagrams", 
+                  subtitle: "Visual designs",
                   items: mockUserData.crucible?.diagrams || [], 
                   icon: Lightbulb, 
                   color: "from-amber-500 to-orange-600",
-                  bg: "from-amber-50 to-orange-50"
+                  bg: "from-amber-50 to-orange-50",
+                  emptyMessage: "No system diagrams yet",
+                  emptySubtitle: "Create diagrams to visualize your solutions"
                 }
               ].map((section, index) => (
                 <motion.div
@@ -813,38 +913,120 @@ export default function ProfilePage() {
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: index * 0.1 }}
+                  whileHover={{ y: -5 }}
                 >
-                  <Card className="overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 rounded-xl border border-base-300 bg-base-100 group cursor-pointer h-full">
-                    <CardContent className="p-6 h-full flex flex-col">
+                  <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl border border-base-300 bg-base-100 group cursor-pointer h-full relative">
+                    {/* Enhanced gradient overlay */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${section.bg} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                    
+                    <CardContent className="p-6 h-full flex flex-col relative z-10">
                       <div className="flex items-center gap-3 mb-4">
-                        <div className={`w-10 h-10 ${
+                        <div className={`w-12 h-12 ${
                           index % 4 === 0 ? 'bg-primary' : 
                           index % 4 === 1 ? 'bg-secondary' : 
                           index % 4 === 2 ? 'bg-accent' : 'bg-info'
-                        } rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
-                          <section.icon className="w-5 h-5 text-primary-content" />
+                        } rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
+                          <section.icon className="w-6 h-6 text-primary-content" />
                         </div>
-                        <div>
-                          <h2 className="text-xl font-semibold text-base-content">{section.title}</h2>
-                          <p className="text-sm text-base-content/70">Coding challenges and solutions</p>
+                        <div className="flex-1">
+                          <h2 className="text-xl font-bold text-base-content group-hover:text-primary transition-colors duration-300">{section.title}</h2>
+                          <p className="text-sm text-base-content/70">{section.subtitle}</p>
                         </div>
+                        {section.onClick && (
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <ChevronRight className="w-5 h-5 text-base-content/50 group-hover:text-primary transition-colors duration-300" />
+                          </div>
+                        )}
                       </div>
                       
                       <div className="space-y-3 flex-1">
-                        {section.items.map((item, itemIndex) => (
+                        {/* Enhanced Loading State */}
+                        {section.loading && (
+                          <motion.div 
+                            className="flex flex-col items-center justify-center py-8"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <div className="relative">
+                              <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+                              <div className="absolute inset-0 rounded-full border-2 border-primary/20"></div>
+                            </div>
+                            <span className="mt-3 text-sm text-base-content/70 font-medium">Loading {section.title.toLowerCase()}...</span>
+                          </motion.div>
+                        )}
+                        
+                        {/* Enhanced Error State */}
+                        {section.error && !section.loading && (
+                          <motion.div 
+                            className="flex flex-col items-center justify-center py-8 text-center"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <div className="w-12 h-12 bg-error/10 rounded-full flex items-center justify-center mb-3">
+                              <span className="text-error text-xl">⚠️</span>
+                            </div>
+                            <span className="text-sm font-medium text-error mb-1">Failed to load</span>
+                            <span className="text-xs text-base-content/50">{section.error}</span>
+                          </motion.div>
+                        )}
+                        
+                        {/* Enhanced Empty State */}
+                        {!section.loading && !section.error && section.items.length === 0 && (
+                          <motion.div 
+                            className="flex flex-col items-center justify-center py-8 text-center"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <div className="w-12 h-12 bg-base-300 rounded-full flex items-center justify-center mb-3">
+                              <section.icon className="w-6 h-6 text-base-content/50" />
+                            </div>
+                            <span className="text-sm font-medium text-base-content/70 mb-1">{section.emptyMessage}</span>
+                            <span className="text-xs text-base-content/50">{section.emptySubtitle}</span>
+                          </motion.div>
+                        )}
+                        
+                        {/* Enhanced Items */}
+                        {!section.loading && !section.error && section.items.map((item, itemIndex) => (
                           <motion.div
                             key={itemIndex}
-                            className="flex items-center gap-3 p-4 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 group/item"
-                            whileHover={{ scale: 1.02, x: 5 }}
+                            className={`flex items-center gap-3 p-4 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 group/item ${
+                              section.onClick ? 'cursor-pointer hover:shadow-md' : ''
+                            }`}
+                            whileHover={{ 
+                              scale: 1.02, 
+                              x: 5,
+                              backgroundColor: section.onClick ? 'var(--base-300)' : undefined
+                            }}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.4, delay: 0.2 + itemIndex * 0.1 }}
+                            onClick={() => {
+                              if (section.onClick && section.data && section.data[itemIndex]) {
+                                // Type assertion to handle different data types
+                                section.onClick(section.data[itemIndex] as any);
+                              }
+                            }}
                           >
                             <div className="flex items-center gap-3 flex-1">
-                              <div className="w-3 h-3 bg-primary rounded-full group-hover/item:scale-125 transition-transform duration-300" />
-                              <span className="text-base-content font-medium">{item}</span>
+                              <div className={`w-3 h-3 rounded-full group-hover/item:scale-125 transition-transform duration-300 ${
+                                index % 4 === 0 ? 'bg-primary' : 
+                                index % 4 === 1 ? 'bg-secondary' : 
+                                index % 4 === 2 ? 'bg-accent' : 'bg-info'
+                              }`} />
+                              <span className="text-base-content font-medium group-hover/item:text-primary transition-colors duration-300">{item}</span>
                             </div>
-                            <ChevronRight className="w-4 h-4 text-base-content/50 group-hover/item:text-base-content group-hover/item:translate-x-1 transition-all duration-300" />
+                            {section.onClick && (
+                              <motion.div
+                                initial={{ opacity: 0, x: -5 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.2 }}
+                              >
+                                <ChevronRight className="w-4 h-4 text-base-content/50 group-hover/item:text-primary group-hover/item:translate-x-1 transition-all duration-300" />
+                              </motion.div>
+                            )}
                           </motion.div>
                         ))}
                       </div>
