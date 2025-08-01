@@ -162,7 +162,12 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
         if (initialDraft && initialDraft.status !== 'active') {
           // Check if user is reattempting - if so, don't check for analysis
           const isReattempting = sessionStorage.getItem(`reattempting_${problem._id}`);
-          if (isReattempting) {
+          const reattemptTime = sessionStorage.getItem(`reattempt_time_${problem._id}`);
+          
+          // Check if user is actively reattempting (within 30 minutes of reattempt time)
+          const isActivelyReattempting = reattemptTime && (Date.now() - parseInt(reattemptTime)) < 30 * 60 * 1000;
+          
+          if (isReattempting || isActivelyReattempting) {
             logger.info('User is reattempting, skipping analysis check');
             if (isMounted) {
               setHasSubmitted(false);
@@ -185,8 +190,10 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
               const redirectKey = `redirect_${problem._id}`;
               const hasRedirected = sessionStorage.getItem(redirectKey);
               const isCurrentlyReattempting = sessionStorage.getItem(`reattempting_${problem._id}`);
+              const reattemptTime = sessionStorage.getItem(`reattempt_time_${problem._id}`);
+              const isActivelyReattempting = reattemptTime && (Date.now() - parseInt(reattemptTime)) < 30 * 60 * 1000;
               
-              if (!hasRedirected && !isCurrentlyReattempting) {
+              if (!hasRedirected && !isCurrentlyReattempting && !isActivelyReattempting) {
                 logger.info('Redirecting to result page from workspace view');
                 // Mark that we've initiated a redirect for this problem
                 sessionStorage.setItem(redirectKey, 'true');
@@ -202,7 +209,7 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
                 
                 return; // Exit early after redirect
               } else {
-                logger.info('Redirect already initiated or user is reattempting, skipping');
+                logger.info('Redirect already initiated, user is reattempting, or actively reattempting, skipping');
               }
             }
             return;

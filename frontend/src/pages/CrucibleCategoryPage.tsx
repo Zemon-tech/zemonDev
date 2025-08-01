@@ -166,6 +166,17 @@ export default function CrucibleCategoryPage() {
     setCheckingAnalysis(problemId);
     
     try {
+      // Check if user is reattempting this problem
+      const isReattempting = sessionStorage.getItem(`reattempting_${problemId}`);
+      const reattemptTime = sessionStorage.getItem(`reattempt_time_${problemId}`);
+      const isActivelyReattempting = reattemptTime && (Date.now() - parseInt(reattemptTime)) < 30 * 60 * 1000;
+      
+      if (isReattempting || isActivelyReattempting) {
+        // If user is reattempting, go directly to problem page instead of result page
+        navigate(`/${username}/crucible/problem/${problemId}`);
+        return;
+      }
+      
       // Check if user has analysis for this problem
       const analysisId = await checkUserAnalysisForProblem(problemId, getToken);
       

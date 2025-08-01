@@ -163,10 +163,15 @@ function CrucibleProblemPage() {
     // 3. We haven't already initiated a redirect
     // 4. We're not already on the result page
     // 5. We're not reattempting (double-check)
+    // 6. The user is not in reattempt mode (check sessionStorage)
     const isOnResultPage = window.location.pathname.includes('/result');
     const isCurrentlyReattempting = problemId ? sessionStorage.getItem(`reattempting_${problemId}`) : null;
+    const reattemptTime = problemId ? sessionStorage.getItem(`reattempt_time_${problemId}`) : null;
     
-    if (analysis && !analysisLoading && problemId && !redirectInitiated && !isOnResultPage && !isCurrentlyReattempting) {
+    // Check if user is actively reattempting (within 30 minutes of reattempt time)
+    const isActivelyReattempting = reattemptTime && (Date.now() - parseInt(reattemptTime)) < 30 * 60 * 1000;
+    
+    if (analysis && !analysisLoading && problemId && !redirectInitiated && !isOnResultPage && !isCurrentlyReattempting && !isActivelyReattempting) {
       logger.info('Found existing analysis in context, redirecting to result page');
       // Mark that we've initiated a redirect to prevent loops
       setRedirectInitiated(true);

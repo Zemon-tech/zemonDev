@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useRef } from 'react';
 import { getLatestAnalysis, ISolutionAnalysisResult } from '@/lib/crucibleApi';
 import { useAuth } from '@clerk/clerk-react';
 import { logger } from '@/lib/utils';
@@ -40,6 +40,16 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const isSubmitting = sessionStorage.getItem(`submitting_${problemId}`);
     if (isSubmitting) {
       logger.info(`Skipping analysis check for problem ${problemId} (submission in progress)`);
+      return;
+    }
+    
+    // Check if user is reattempting this problem
+    const isReattempting = sessionStorage.getItem(`reattempting_${problemId}`);
+    const reattemptTime = sessionStorage.getItem(`reattempt_time_${problemId}`);
+    const isActivelyReattempting = reattemptTime && (Date.now() - parseInt(reattemptTime)) < 30 * 60 * 1000;
+    
+    if (isReattempting || isActivelyReattempting) {
+      logger.info(`Skipping analysis check for problem ${problemId} (user is reattempting)`);
       return;
     }
     
