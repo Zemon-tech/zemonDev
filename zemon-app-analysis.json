@@ -1,0 +1,558 @@
+{
+  "appName": "Zemon",
+  "tagline": "Built for the Builder Within You",
+  "description": "The ultimate platform for college students to learn, build, and showcase their programming skills through real-world projects, coding competitions, and a vibrant community.",
+  "targetAudience": "College students and aspiring developers",
+  "mission": "Empower the next generation of builders through real-world projects, coding competitions, and a vibrant community",
+  "vision": "Every student should have access to world-class resources, mentorship, and opportunities to build real projects. Zemon bridges the gap between learning and doing, helping students become confident, job-ready developers.",
+  "coreEcosystem": {
+    "forge": {
+      "name": "The Forge",
+      "description": "Access curated learning resources to build your programming skills from the ground up",
+      "purpose": "Learning and skill development",
+      "features": [
+        "Curated learning resources",
+        "Multiple resource types (articles, videos, books, courses, tools, repositories, documentation)",
+        "Difficulty levels (beginner, intermediate, advanced)",
+        "Resource bookmarking and organization",
+        "Search and filtering capabilities",
+        "Resource ratings and reviews",
+        "External and internal resource support",
+        "Resource view tracking",
+        "Tag-based categorization"
+      ],
+      "userBenefits": [
+        "Structured learning paths",
+        "Access to high-quality educational content",
+        "Personalized resource recommendations",
+        "Track learning progress",
+        "Build a knowledge base",
+        "Stay updated with latest technologies"
+      ]
+    },
+    "crucible": {
+      "name": "The Crucible",
+      "description": "Test your skills with challenging problems designed to push your limits",
+      "purpose": "Skill testing and problem-solving",
+      "features": [
+        "500+ programming challenges",
+        "Multiple difficulty levels (easy, medium, hard, expert)",
+        "Problem categories (algorithms, system design, web development, mobile development, data science, DevOps, frontend, backend)",
+        "AI-powered assistance and hints",
+        "Solution analysis and feedback",
+        "Progress tracking",
+        "Community tips and solutions",
+        "Real-time problem solving environment",
+        "Solution drafts and version control",
+        "Research notes and system diagrams",
+        "Technical parameter specifications",
+        "Learning objectives for each problem",
+        "Prerequisites and related resources",
+        "Edge cases and data assumptions"
+      ],
+      "userBenefits": [
+        "Improve problem-solving skills",
+        "Build a portfolio of solutions",
+        "Get AI-powered guidance when stuck",
+        "Learn from community solutions",
+        "Track progress across different skill areas",
+        "Prepare for technical interviews",
+        "Develop systematic thinking"
+      ]
+    },
+    "arena": {
+      "name": "The Arena",
+      "description": "Compete with peers in coding competitions and climb the leaderboard",
+      "purpose": "Competition and community engagement",
+      "features": [
+        "Real-time chat channels",
+        "Weekly coding challenges",
+        "Project showcase competitions",
+        "Community announcements",
+        "Leaderboards and rankings",
+        "Hackathon events",
+        "Channel-based communication",
+        "Moderation and admin tools",
+        "User role management",
+        "Channel permissions and access control",
+        "Message history and search",
+        "Community guidelines and rules",
+        "Nirvana channel for general discussion",
+        "Start-here onboarding channel"
+      ],
+      "userBenefits": [
+        "Connect with like-minded developers",
+        "Participate in coding competitions",
+        "Showcase projects to the community",
+        "Learn from peers and mentors",
+        "Build professional network",
+        "Get feedback on projects",
+        "Stay motivated through competition",
+        "Access mentorship opportunities"
+      ]
+    }
+  },
+  "corePages": {
+    "landingPage": {
+      "name": "Landing Page",
+      "purpose": "Main entry point and app overview",
+      "features": [
+        "Hero section with app tagline",
+        "Ecosystem overview (Forge, Crucible, Arena)",
+        "Feature highlights",
+        "Call-to-action buttons",
+        "Animated UI elements",
+        "Responsive design"
+      ],
+      "userJourney": "Introduces users to the platform and guides them to sign up or explore features"
+    },
+    "dashboard": {
+      "name": "Dashboard",
+      "purpose": "Personal overview and progress tracking",
+      "features": [
+        "Personalized greeting and user stats",
+        "Zemon streak tracking",
+        "Progress statistics (problems solved, learning path progress)",
+        "Community ranking",
+        "Recent activity timeline",
+        "Leaderboard integration",
+        "Project showcase highlights",
+        "Achievement system",
+        "Animated progress indicators",
+        "Floating particles background"
+      ],
+      "userBenefits": [
+        "Track daily progress and streaks",
+        "Monitor learning achievements",
+        "Stay motivated with community rankings",
+        "Quick access to recent activities",
+        "Celebrate milestones and achievements"
+      ]
+    },
+    "profile": {
+      "name": "Profile Page",
+      "purpose": "User profile and portfolio showcase",
+      "features": [
+        "Personal information display",
+        "Bio and about me sections",
+        "Skills and technologies showcase",
+        "College details",
+        "Social media links",
+        "Profile background customization",
+        "Stats and achievements",
+        "Tabbed interface (Overview, Contact, Crucible, Forge)",
+        "Responsive design"
+      ],
+      "userBenefits": [
+        "Showcase skills and experience",
+        "Build professional online presence",
+        "Connect with other developers",
+        "Display academic background",
+        "Customize profile appearance"
+      ]
+    },
+    "settings": {
+      "name": "Settings Page",
+      "purpose": "Account and preference management",
+      "features": [
+        "Profile information editing",
+        "Account settings management",
+        "College details configuration",
+        "Skills management",
+        "Password and security settings",
+        "Workspace preferences",
+        "Editor settings customization",
+        "Layout preferences",
+        "Real-time validation",
+        "Auto-save functionality"
+      ],
+      "userBenefits": [
+        "Customize account settings",
+        "Manage personal information",
+        "Configure learning preferences",
+        "Control privacy settings",
+        "Personalize workspace experience"
+      ]
+    },
+    "about": {
+      "name": "About Page",
+      "purpose": "Company and team information",
+      "features": [
+        "Company mission and vision",
+        "Team member profiles",
+        "What makes us different section",
+        "Company values and approach",
+        "Team member bios and roles"
+      ],
+      "userBenefits": [
+        "Learn about the platform's mission",
+        "Understand the team behind Zemon",
+        "See company values and approach",
+        "Build trust in the platform"
+      ]
+    },
+    "pricing": {
+      "name": "Pricing Page",
+      "purpose": "Subscription plans and pricing information",
+      "features": [
+        "Three-tier pricing structure",
+        "Feature comparison",
+        "Plan highlights",
+        "Contact sales option",
+        "Clear feature lists"
+      ],
+      "plans": {
+        "starter": {
+          "price": "Free",
+          "features": [
+            "Access to The Forge",
+            "Solve public Crucible problems",
+            "Join public Arena events",
+            "Community support"
+          ]
+        },
+        "pro": {
+          "price": "$9/mo",
+          "features": [
+            "All Starter features",
+            "Unlimited problem attempts",
+            "Private Arena competitions",
+            "AI-powered hints",
+            "Priority support"
+          ],
+          "highlight": true
+        },
+        "campus": {
+          "price": "Contact Us",
+          "features": [
+            "All Pro features",
+            "Custom integrations",
+            "Admin dashboard",
+            "Onboarding & training"
+          ]
+        }
+      }
+    },
+    "developers": {
+      "name": "Developers Page",
+      "purpose": "Developer resources and API information",
+      "features": [
+        "API access information",
+        "Open source SDKs",
+        "Webhook documentation",
+        "Developer community links",
+        "GitHub and Discord integration"
+      ],
+      "userBenefits": [
+        "Access to developer tools",
+        "Integration capabilities",
+        "Community support for developers",
+        "API documentation and resources"
+      ]
+    },
+    "blogs": {
+      "name": "Blogs Page",
+      "purpose": "Educational content and platform updates",
+      "features": [
+        "Educational blog posts",
+        "Tips and tricks articles",
+        "Platform updates",
+        "Community stories",
+        "Learning resources"
+      ],
+      "userBenefits": [
+        "Access to educational content",
+        "Stay updated with platform features",
+        "Learn from community experiences",
+        "Get tips for maximizing platform usage"
+      ]
+    }
+  },
+  "authentication": {
+    "provider": "Clerk",
+    "features": [
+      "Email-based authentication",
+      "Social media login options",
+      "Secure session management",
+      "User profile management",
+      "Password reset functionality",
+      "Account deletion options"
+    ]
+  },
+  "userFeatures": {
+    "zemonStreak": {
+      "description": "Daily visit tracking system to encourage consistent learning",
+      "features": [
+        "Daily visit tracking",
+        "Streak counter",
+        "Longest streak record",
+        "Streak milestone celebrations",
+        "Motivational notifications"
+      ],
+      "benefits": [
+        "Encourages daily learning habits",
+        "Provides motivation through streaks",
+        "Tracks learning consistency",
+        "Celebrates achievements"
+      ]
+    },
+    "progressTracking": {
+      "description": "Comprehensive progress monitoring across all platform features",
+      "features": [
+        "Problems solved counter",
+        "Learning path progress",
+        "Resource completion tracking",
+        "Skill development metrics",
+        "Community ranking",
+        "Achievement badges"
+      ]
+    },
+    "aiAssistance": {
+      "description": "AI-powered learning assistance and problem-solving help",
+      "features": [
+        "Intelligent hints for problems",
+        "Code analysis and feedback",
+        "Personalized learning recommendations",
+        "Solution optimization suggestions",
+        "Learning path recommendations"
+      ]
+    },
+    "communityFeatures": {
+      "description": "Social learning and collaboration features",
+      "features": [
+        "Real-time chat channels",
+        "Project showcase",
+        "Community challenges",
+        "Peer feedback system",
+        "Mentorship opportunities",
+        "Collaborative problem solving"
+      ]
+    }
+  },
+  "technicalFeatures": {
+    "realTimeCommunication": {
+      "description": "WebSocket-based real-time messaging and notifications",
+      "features": [
+        "Live chat functionality",
+        "Real-time notifications",
+        "Typing indicators",
+        "Message delivery status",
+        "Channel-based communication"
+      ]
+    },
+    "richTextEditor": {
+      "description": "Advanced text editor for problem solutions and notes",
+      "features": [
+        "TipTap-based rich text editing",
+        "Code block support",
+        "Image upload capabilities",
+        "Markdown support",
+        "Collaborative editing",
+        "Version history"
+      ]
+    },
+    "responsiveDesign": {
+      "description": "Mobile-first responsive design approach",
+      "features": [
+        "Mobile-optimized interface",
+        "Tablet and desktop support",
+        "Touch-friendly interactions",
+        "Adaptive layouts",
+        "Cross-browser compatibility"
+      ]
+    },
+    "animations": {
+      "description": "Smooth animations and micro-interactions",
+      "features": [
+        "Framer Motion animations",
+        "Loading states",
+        "Transition effects",
+        "Hover animations",
+        "Progress animations",
+        "Confetti celebrations"
+      ]
+    }
+  },
+  "databaseModels": {
+    "user": {
+      "description": "Core user profile and preferences",
+      "fields": [
+        "Personal information (name, email, username)",
+        "College details",
+        "Profile information (bio, skills, location)",
+        "Social links",
+        "Stats and achievements",
+        "Workspace preferences",
+        "Zemon streak tracking",
+        "Bookmarked resources",
+        "Completed solutions"
+      ]
+    },
+    "crucibleProblem": {
+      "description": "Programming challenges and problems",
+      "fields": [
+        "Problem details (title, description, difficulty)",
+        "Requirements and constraints",
+        "Hints and solutions",
+        "Learning objectives",
+        "Prerequisites",
+        "Community tips",
+        "Metrics and statistics",
+        "Tags and categories"
+      ]
+    },
+    "forgeResource": {
+      "description": "Learning resources and educational content",
+      "fields": [
+        "Resource information (title, type, URL)",
+        "Content and description",
+        "Difficulty level",
+        "Tags and categories",
+        "Reviews and ratings",
+        "Usage metrics",
+        "Creator information"
+      ]
+    },
+    "arenaChannel": {
+      "description": "Community communication channels",
+      "fields": [
+        "Channel information (name, type, group)",
+        "Permissions and access control",
+        "Moderator assignments",
+        "Parent-child channel relationships",
+        "Activity status"
+      ]
+    }
+  },
+  "apiEndpoints": {
+    "user": [
+      "Profile management",
+      "Streak tracking",
+      "Settings management",
+      "College details"
+    ],
+    "crucible": [
+      "Problem retrieval",
+      "Solution submission",
+      "Progress tracking",
+      "Analysis results"
+    ],
+    "forge": [
+      "Resource management",
+      "Bookmarking",
+      "Search and filtering",
+      "Usage tracking"
+    ],
+    "arena": [
+      "Channel management",
+      "Message handling",
+      "User status",
+      "Showcase submissions"
+    ],
+    "ai": [
+      "Chat assistance",
+      "Problem hints",
+      "Code analysis",
+      "Learning recommendations"
+    ]
+  },
+  "userJourney": {
+    "onboarding": [
+      "Landing page introduction",
+      "Account creation",
+      "Profile setup",
+      "College details",
+      "Skills assessment",
+      "First problem attempt"
+    ],
+    "dailyUsage": [
+      "Dashboard overview",
+      "Streak tracking",
+      "Problem solving",
+      "Resource learning",
+      "Community engagement"
+    ],
+    "skillDevelopment": [
+      "Resource consumption",
+      "Problem practice",
+      "Community feedback",
+      "Project building",
+      "Portfolio development"
+    ],
+    "communityEngagement": [
+      "Channel participation",
+      "Project showcase",
+      "Competition entry",
+      "Peer mentoring",
+      "Network building"
+    ]
+  },
+  "benefits": {
+    "forStudents": [
+      "Structured learning paths aligned with college curriculum",
+      "Real-world project experience",
+      "Portfolio building opportunities",
+      "Community support and mentorship",
+      "Career preparation and networking",
+      "Skill validation through competitions"
+    ],
+    "forColleges": [
+      "Enhanced student engagement",
+      "Improved learning outcomes",
+      "Industry-aligned curriculum support",
+      "Student performance tracking",
+      "Career placement assistance"
+    ],
+    "forEmployers": [
+      "Access to pre-screened talent",
+      "Portfolio-based candidate evaluation",
+      "Skill-verified applicants",
+      "Industry-ready graduates",
+      "Diverse talent pool"
+    ]
+  },
+  "uniqueValuePropositions": [
+    "Project-based learning with real-world applications",
+    "AI-powered personalized assistance",
+    "Active, supportive community and mentorship",
+    "Competition and collaboration opportunities",
+    "College curriculum integration",
+    "Comprehensive skill development tracking",
+    "Portfolio building and showcase features"
+  ],
+  "technologyStack": {
+    "frontend": [
+      "React with TypeScript",
+      "Vite build tool",
+      "Tailwind CSS with DaisyUI",
+      "Framer Motion animations",
+      "TipTap rich text editor"
+    ],
+    "backend": [
+      "Node.js with Express",
+      "TypeScript",
+      "MongoDB with Mongoose",
+      "WebSocket support",
+      "AI integration"
+    ],
+    "authentication": [
+      "Clerk authentication",
+      "JWT tokens",
+      "Role-based access control"
+    ],
+    "deployment": [
+      "Environment-based configuration",
+      "API health monitoring",
+      "Error handling and logging"
+    ]
+  },
+  "futureFeatures": [
+    "Advanced AI tutoring",
+    "Industry partnerships",
+    "Job placement services",
+    "Mobile applications",
+    "Advanced analytics",
+    "Enterprise features",
+    "International expansion"
+  ]
+} 
