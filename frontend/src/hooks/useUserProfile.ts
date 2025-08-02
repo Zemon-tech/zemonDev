@@ -62,6 +62,10 @@ export interface UserProfile {
     value: string;
     name: string;
   };
+  // Zemon streak fields
+  zemonStreak?: number;
+  longestZemonStreak?: number;
+  lastZemonVisit?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -209,5 +213,22 @@ export const getToolsAndTech = (userProfile: UserProfile | null): string[] => {
 };
 
 export const getSocialLinks = (userProfile: UserProfile | null) => {
-  return userProfile?.socialLinks || {};
+  const socialLinks = userProfile?.socialLinks || {};
+  
+  // Helper function to ensure URLs have proper protocol
+  const ensureProtocol = (url: string | undefined): string | undefined => {
+    if (!url) return undefined;
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    // Add https:// if no protocol is present
+    return `https://${url}`;
+  };
+
+  return {
+    portfolio: ensureProtocol(socialLinks.portfolio),
+    github: ensureProtocol(socialLinks.github),
+    linkedin: ensureProtocol(socialLinks.linkedin),
+    twitter: ensureProtocol(socialLinks.twitter),
+  };
 }; 

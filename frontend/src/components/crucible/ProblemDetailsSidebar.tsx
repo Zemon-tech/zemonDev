@@ -296,7 +296,7 @@ export default function ProblemDetailsSidebar({
                 </ul>
                   </div>
                   
-                  <div className="space-y-1.5">
+                  {/* <div className="space-y-1.5">
                     <h4 className="text-xs font-medium text-base-content/70">Related Articles</h4>
                     <ul className="space-y-1">
                   {mockData.relatedResources.map((resource, i) => (
@@ -315,7 +315,7 @@ export default function ProblemDetailsSidebar({
                     </li>
                   ))}
                 </ul>
-                    </div>
+                    </div> */}
                 </div>
               </AccordionContent>
             </AccordionItem>

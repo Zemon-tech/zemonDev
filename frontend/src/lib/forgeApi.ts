@@ -56,4 +56,58 @@ export async function registerForgeResourceView(id: string, getToken: () => Prom
     console.error('Failed to register view, but fetching resource anyway:', error);
     return getForgeResource(id);
   }
+}
+
+/**
+ * Bookmark or unbookmark a resource
+ * @param id - Resource ID
+ * @param getToken - Function to get auth token
+ * @returns Promise with bookmark status
+ */
+export async function toggleBookmark(id: string, getToken: () => Promise<string | null>): Promise<{ isBookmarked: boolean }> {
+  try {
+    const token = await getToken();
+    if (!token) {
+      throw new Error('User not authenticated');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/forge/${id}/bookmark`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    return handleResponse<{ isBookmarked: boolean }>(response);
+  } catch (error) {
+    console.error('Failed to toggle bookmark:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get user's bookmarked resources
+ * @param getToken - Function to get auth token
+ * @returns Promise with bookmarked resources
+ */
+export async function getBookmarkedResources(getToken: () => Promise<string | null>): Promise<any[]> {
+  try {
+    const token = await getToken();
+    if (!token) {
+      throw new Error('User not authenticated');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/users/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const userData = await handleResponse<any>(response);
+    return userData.bookmarkedResources || [];
+  } catch (error) {
+    console.error('Failed to get bookmarked resources:', error);
+    return [];
+  }
 } 

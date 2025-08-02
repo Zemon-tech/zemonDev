@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { Search, X} from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getForgeResources, registerForgeResourceView } from '../lib/forgeApi';
+import { getForgeResources, registerForgeResourceView, toggleBookmark, getBookmarkedResources } from '../lib/forgeApi';
 import { ResourceCard } from '@/components/blocks/ResourceCard';
 import type { Resource } from '@/components/blocks/ResourceCard';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,7 @@ export default function ForgePage() {
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [bookmarkedResources, setBookmarkedResources] = useState<string[]>([]);
   const navigate = useNavigate();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -32,6 +33,20 @@ export default function ForgePage() {
       .finally(() => setLoading(false));
   }, [selectedType]);
 
+  // Load bookmarked resources
+  useEffect(() => {
+    const loadBookmarkedResources = async () => {
+      try {
+        const bookmarked = await getBookmarkedResources(getToken);
+        setBookmarkedResources(bookmarked.map((r: any) => r._id));
+      } catch (error) {
+        console.error('Failed to load bookmarked resources:', error);
+      }
+    };
+
+    loadBookmarkedResources();
+  }, [getToken]);
+
   const filtered = resources.filter(r =>
     (selectedType === '' || r.type === selectedType) &&
     (r.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -41,6 +56,29 @@ export default function ForgePage() {
 
   // Collect all unique types from resources for scalable categories
   const allTypes = Array.from(new Set(resources.map(r => r.type))).sort();
+
+  // Handle bookmark toggle
+  const handleBookmark = async (resource: Resource) => {
+    try {
+      const result = await toggleBookmark(resource._id, getToken);
+      
+      // Update local state
+      if (result.isBookmarked) {
+        setBookmarkedResources(prev => [...prev, resource._id]);
+      } else {
+        setBookmarkedResources(prev => prev.filter(id => id !== resource._id));
+      }
+      
+      // Update resource in the list
+      setResources(prev => prev.map(r => 
+        r._id === resource._id 
+          ? { ...r, isBookmarked: result.isBookmarked }
+          : r
+      ));
+    } catch (error) {
+      console.error('Failed to toggle bookmark:', error);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4">
@@ -114,7 +152,10 @@ export default function ForgePage() {
           .map(resource => (
             <ResourceCard
                 key={resource._id}
-              resource={resource}
+              resource={{
+                ...resource,
+                isBookmarked: bookmarkedResources.includes(resource._id)
+              }}
               onView={resource.url
                 ? async (res: Resource) => {
                     await registerForgeResourceView(res._id, getToken);
@@ -129,6 +170,7 @@ export default function ForgePage() {
                   }
                 : () => navigate(`/${username}/forge/${resource._id}`)
               }
+              onBookmark={handleBookmark}
             />
           ))}
         {filtered.filter(r => selectedType === '' || r.type === selectedType).length === 0 && (

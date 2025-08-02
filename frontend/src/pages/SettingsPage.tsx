@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, MessageCircle, Star, Mail, Phone, Github, X, Eye, Linkedin, Twitter, BookOpen } from 'lucide-react';
+import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, MessageCircle, Star, Mail, Phone, Github, X, Eye, Linkedin, Twitter, BookOpen, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import clsx from 'clsx';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { updateProfile, changePassword, updateSkills, deleteAccount, exportUserData } from '@/lib/settingsApi';
 
 const SECTIONS = [
   { key: 'profile', label: 'Profile & Account', icon: User },
@@ -46,36 +48,73 @@ function SectionSidebar({ active, setActive }: { active: string, setActive: (k: 
 function ProfileAccountSection() {
   const [tab, setTab] = useState<'profile' | 'account'>('profile');
   const { user } = useUser();
-  // Editable fields
-  const [fullName, setFullName] = useState(user?.fullName || '');
-  const [username, setUsername] = useState(user?.username || '');
-  const [bio, setBio] = useState('Aspiring developer. Love to build cool things!');
-  const [bioCount, setBioCount] = useState(bio.length);
+  const { getToken } = useAuth();
+  const { userProfile, loading: profileLoading, refetch: refetchProfile } = useUserProfile();
+  
+  // Editable fields - initialize with user profile data
+  const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
+  const [bio, setBio] = useState('');
+  const [bioCount, setBioCount] = useState(0);
   const [location, setLocation] = useState('');
   const [about, setAbout] = useState('');
   const [github, setGithub] = useState('');
   const [linkedin, setLinkedin] = useState('');
   const [twitter, setTwitter] = useState('');
   const [website, setWebsite] = useState('');
+  const [skills, setSkills] = useState<string[]>([]);
+  const [newSkill, setNewSkill] = useState('');
+  
+  // College details
+  const [collegeName, setCollegeName] = useState('');
+  const [course, setCourse] = useState('');
+  const [branch, setBranch] = useState('');
+  const [year, setYear] = useState<number | ''>('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  
   const [saving, setSaving] = useState(false);
   const [showToast, setShowToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [profileUpdated, setProfileUpdated] = useState<Date | null>(null);
+  
   // Account tab state
   const [email, setEmail] = useState(user?.emailAddresses?.[0]?.emailAddress || '');
-  const [phone, setPhone] = useState('+1-234-567-8901');
-  const [password, setPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
-  const [sessions] = useState([
-    { device: 'MacBook Pro', location: 'Delhi, India', lastActive: '2 min ago', current: true },
-    { device: 'iPhone 14', location: 'Delhi, India', lastActive: '1 day ago', current: false },
-  ]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  // Profile completion (placeholder logic)
-  const profileFields = [fullName, username, bio, location, github, linkedin, twitter, website, about];
+  
+  // Load user profile data when available
+  useEffect(() => {
+    if (userProfile) {
+      setFullName(userProfile.fullName || '');
+      setUsername(userProfile.username || '');
+      setBio(userProfile.profile?.bio || '');
+      setBioCount(userProfile.profile?.bio?.length || 0);
+      setLocation(userProfile.profile?.location || '');
+      setAbout(userProfile.profile?.aboutMe || '');
+      setGithub(userProfile.socialLinks?.github || '');
+      setLinkedin(userProfile.socialLinks?.linkedin || '');
+      setTwitter(userProfile.socialLinks?.twitter || '');
+      setWebsite(userProfile.socialLinks?.portfolio || '');
+      setSkills(userProfile.profile?.skills || []);
+      
+      // College details
+      setCollegeName(userProfile.college?.collegeName || '');
+      setCourse(userProfile.college?.course || '');
+      setBranch(userProfile.college?.branch || '');
+      setYear(userProfile.college?.year || '');
+      setCity(userProfile.college?.city || '');
+      setState(userProfile.college?.state || '');
+    }
+  }, [userProfile]);
+  
+  // Profile completion calculation
+  const profileFields = [fullName, username, bio, location, github, linkedin, twitter, website, about, collegeName, course, branch];
   const completion = Math.round((profileFields.filter(Boolean).length / profileFields.length) * 100);
 
-  // Password strength (simple placeholder)
+  // Password strength calculation
   function calcStrength(pw: string) {
     let s = 0;
     if (pw.length > 7) s++;
@@ -85,27 +124,140 @@ function ProfileAccountSection() {
     return s;
   }
 
-  // Save profile (placeholder)
-  const handleSave = () => {
-    setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
-      setShowToast({ type: 'success', message: 'Profile updated!' });
-      setProfileUpdated(new Date());
-    }, 1200);
+  // Add skill
+  const handleAddSkill = () => {
+    if (newSkill.trim() && !skills.includes(newSkill.trim())) {
+      setSkills([...skills, newSkill.trim()]);
+      setNewSkill('');
+    }
   };
 
-  // Cancel changes (placeholder)
+  // Remove skill
+  const handleRemoveSkill = (skillToRemove: string) => {
+    setSkills(skills.filter(skill => skill !== skillToRemove));
+  };
+
+  // Save profile to database
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const profileData = {
+        fullName,
+        username,
+        profile: {
+          bio,
+          aboutMe: about,
+          location,
+          skills,
+        },
+        socialLinks: {
+          github,
+          linkedin,
+          twitter,
+          portfolio: website,
+        },
+        college: {
+          collegeName,
+          course,
+          branch,
+          year: year ? Number(year) : undefined,
+          city,
+          state,
+        },
+      };
+
+      await updateProfile(profileData, getToken);
+      await refetchProfile(); // Refresh profile data
+      setShowToast({ type: 'success', message: 'Profile updated successfully!' });
+      setProfileUpdated(new Date());
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setShowToast({ type: 'error', message: error instanceof Error ? error.message : 'Failed to update profile' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Cancel changes - reset to original values
   const handleCancel = () => {
-    setFullName(user?.fullName || '');
-    setUsername(user?.username || '');
-    setBio('Aspiring developer. Love to build cool things!');
-    setLocation('');
-    setAbout('');
-    setGithub('');
-    setLinkedin('');
-    setTwitter('');
-    setWebsite('');
+    if (userProfile) {
+      setFullName(userProfile.fullName || '');
+      setUsername(userProfile.username || '');
+      setBio(userProfile.profile?.bio || '');
+      setBioCount(userProfile.profile?.bio?.length || 0);
+      setLocation(userProfile.profile?.location || '');
+      setAbout(userProfile.profile?.aboutMe || '');
+      setGithub(userProfile.socialLinks?.github || '');
+      setLinkedin(userProfile.socialLinks?.linkedin || '');
+      setTwitter(userProfile.socialLinks?.twitter || '');
+      setWebsite(userProfile.socialLinks?.portfolio || '');
+      setSkills(userProfile.profile?.skills || []);
+      
+      // College details
+      setCollegeName(userProfile.college?.collegeName || '');
+      setCourse(userProfile.college?.course || '');
+      setBranch(userProfile.college?.branch || '');
+      setYear(userProfile.college?.year || '');
+      setCity(userProfile.college?.city || '');
+      setState(userProfile.college?.state || '');
+    }
+  };
+
+  // Change password
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword) {
+      setShowToast({ type: 'error', message: 'Please fill in both password fields' });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setShowToast({ type: 'error', message: 'New password must be at least 8 characters long' });
+      return;
+    }
+
+    try {
+      await changePassword({ currentPassword, newPassword }, getToken);
+      setShowToast({ type: 'success', message: 'Password changed successfully!' });
+      setCurrentPassword('');
+      setNewPassword('');
+      setPasswordStrength(0);
+    } catch (error) {
+      console.error('Error changing password:', error);
+      setShowToast({ type: 'error', message: error instanceof Error ? error.message : 'Failed to change password' });
+    }
+  };
+
+  // Export user data
+  const handleExportData = async () => {
+    try {
+      const data = await exportUserData(getToken);
+      const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'user-data.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setShowToast({ type: 'success', message: 'Data exported successfully!' });
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      setShowToast({ type: 'error', message: error instanceof Error ? error.message : 'Failed to export data' });
+    }
+  };
+
+  // Delete account
+  const handleDeleteAccount = async () => {
+    try {
+      await deleteAccount(getToken);
+      setShowToast({ type: 'success', message: 'Account deleted successfully!' });
+      // Note: In a real app, you'd redirect to logout or home page
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      setShowToast({ type: 'error', message: error instanceof Error ? error.message : 'Failed to delete account' });
+    }
+    setShowDeleteModal(false);
   };
 
   // Toast auto-hide
@@ -128,8 +280,17 @@ function ProfileAccountSection() {
       <AnimatePresence mode="wait">
         {tab === 'profile' && (
           <motion.div key="profile" variants={tabVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col gap-6 w-full h-full overflow-y-auto pb-4">
-            {/* Profile Completion Meter */}
-            <div className="flex items-center gap-3 text-xs text-base-content/70">
+            {profileLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-base-content/70">Loading profile...</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Profile Completion Meter */}
+                <div className="flex items-center gap-3 text-xs text-base-content/70">
               <div className="w-40 h-2 bg-base-200 rounded-full overflow-hidden">
                 <div className="h-2 bg-primary rounded-full transition-all" style={{ width: `${completion}%` }} />
               </div>
@@ -185,51 +346,156 @@ function ProfileAccountSection() {
                 </div>
               </div>
             </div>
+            
+            {/* Skills Management */}
+            <div className="bg-base-100 border border-base-200 rounded-lg p-4">
+              <h3 className="font-semibold mb-3 text-base-content/90 flex items-center gap-2">
+                <BookOpen size={16} className="text-primary" />
+                Skills & Technologies
+              </h3>
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    value={newSkill}
+                    onChange={e => setNewSkill(e.target.value)}
+                    onKeyPress={e => e.key === 'Enter' && handleAddSkill()}
+                    placeholder="Add a skill (e.g., React, Python, UI/UX)"
+                    className="flex-1 border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                  />
+                  <Button onClick={handleAddSkill} disabled={!newSkill.trim()} size="sm" className="bg-primary text-primary-content hover:bg-primary/90">
+                    <Plus size={16} />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {skills.map((skill, index) => (
+                    <div key={index} className="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm">
+                      <span>{skill}</span>
+                      <button
+                        onClick={() => handleRemoveSkill(skill)}
+                        className="hover:bg-primary/20 rounded-full p-0.5 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  {skills.length === 0 && (
+                    <span className="text-base-content/50 text-sm">No skills added yet</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* College Details */}
+            <div className="bg-base-100 border border-base-200 rounded-lg p-4">
+              <h3 className="font-semibold mb-3 text-base-content/90 flex items-center gap-2">
+                <User size={16} className="text-primary" />
+                College Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-semibold mb-1 text-base-content/80">College Name</label>
+                  <input value={collegeName} onChange={e => setCollegeName(e.target.value)} className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1 text-base-content/80">Course</label>
+                  <input value={course} onChange={e => setCourse(e.target.value)} className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1 text-base-content/80">Branch</label>
+                  <input value={branch} onChange={e => setBranch(e.target.value)} className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1 text-base-content/80">Year</label>
+                  <input type="number" min="1" max="5" value={year} onChange={e => setYear(e.target.value ? Number(e.target.value) : '')} className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1 text-base-content/80">City</label>
+                  <input value={city} onChange={e => setCity(e.target.value)} className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1 text-base-content/80">State</label>
+                  <input value={state} onChange={e => setState(e.target.value)} className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                </div>
+              </div>
+            </div>
             <div className="flex gap-2 mt-2">
               <Button onClick={handleSave} disabled={saving} className="bg-primary text-primary-content hover:bg-primary/90">{saving ? 'Saving...' : 'Save Changes'}</Button>
               <Button onClick={handleCancel} variant="outline" disabled={saving}>Cancel</Button>
               {profileUpdated && <span className="text-xs text-base-content/60 ml-2">Last updated: {profileUpdated.toLocaleTimeString()}</span>}
             </div>
+              </>
+            )}
           </motion.div>
         )}
         {tab === 'account' && (
           <motion.div key="account" variants={tabVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col gap-6 w-full h-full overflow-y-auto pb-4">
-            {/* Email & Phone */}
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 flex items-center gap-2">
+            {/* Email */}
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-2">
                 <Mail size={18} className="text-primary" />
                 <input value={email} onChange={e => setEmail(e.target.value)} className="border border-base-200 rounded px-3 py-2 text-base w-full max-w-xs focus:ring-1 focus:ring-primary/30 transition-all" />
-                <CheckCircle size={16} className="text-green-500 ml-2" />
-                <Button size="sm" variant="outline" className="ml-2">Verify</Button>
-              </div>
-              <div className="flex-1 flex items-center gap-2">
-                <Phone size={18} className="text-primary" />
-                <input value={phone} onChange={e => setPhone(e.target.value)} className="border border-base-200 rounded px-3 py-2 text-base w-full max-w-xs focus:ring-1 focus:ring-primary/30 transition-all" />
-                <AlertTriangle size={16} className="text-yellow-500 ml-2" />
-                <Button size="sm" variant="outline" className="ml-2">Verify</Button>
+                {user?.emailAddresses?.[0]?.verification?.status === 'verified' ? (
+                  <CheckCircle size={16} className="text-green-500 ml-2" />
+                ) : (
+                  <AlertTriangle size={16} className="text-yellow-500 ml-2" />
+                )}
+                <Button size="sm" variant="outline" className="ml-2" disabled={user?.emailAddresses?.[0]?.verification?.status === 'verified'}>
+                  {user?.emailAddresses?.[0]?.verification?.status === 'verified' ? 'Verified' : 'Verify'}
+                </Button>
               </div>
             </div>
             {/* Password Management */}
-            <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="flex flex-col md:flex-row gap-4 items-start">
               <div className="flex-1">
                 <label className="block font-semibold mb-1 text-base-content/80">Change Password</label>
-                <div className="relative flex items-center">
-                  <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => { setPassword(e.target.value); setPasswordStrength(calcStrength(e.target.value)); }} className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" placeholder="New password" />
-                  <Button size="icon" variant="ghost" className="absolute right-2" onClick={() => setShowPassword(s => !s)}><Eye size={16} /></Button>
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="w-32 h-2 bg-base-200 rounded-full overflow-hidden">
-                    <div className={clsx('h-2 rounded-full transition-all', passwordStrength === 0 ? 'bg-base-200' : passwordStrength < 3 ? 'bg-yellow-400' : 'bg-green-500')} style={{ width: `${passwordStrength * 25}%` }} />
+                <div className="space-y-3">
+                  <input 
+                    type="password" 
+                    value={currentPassword} 
+                    onChange={e => setCurrentPassword(e.target.value)} 
+                    className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" 
+                    placeholder="Current password" 
+                  />
+                  <div className="relative flex items-center">
+                    <input 
+                      type={showPassword ? 'text' : 'password'} 
+                      value={newPassword} 
+                      onChange={e => { setNewPassword(e.target.value); setPasswordStrength(calcStrength(e.target.value)); }} 
+                      className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" 
+                      placeholder="New password" 
+                    />
+                    <Button size="icon" variant="ghost" className="absolute right-2" onClick={() => setShowPassword(s => !s)}><Eye size={16} /></Button>
                   </div>
-                  <span className="text-xs text-base-content/60">{passwordStrength === 0 ? 'Weak' : passwordStrength < 3 ? 'Medium' : 'Strong'}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 h-2 bg-base-200 rounded-full overflow-hidden">
+                      <div className={clsx('h-2 rounded-full transition-all', passwordStrength === 0 ? 'bg-base-200' : passwordStrength < 3 ? 'bg-yellow-400' : 'bg-green-500')} style={{ width: `${passwordStrength * 25}%` }} />
+                    </div>
+                    <span className="text-xs text-base-content/60">{passwordStrength === 0 ? 'Weak' : passwordStrength < 3 ? 'Medium' : 'Strong'}</span>
+                  </div>
+                  <Button onClick={handleChangePassword} disabled={!currentPassword || !newPassword} className="bg-primary text-primary-content hover:bg-primary/90">
+                    Change Password
+                  </Button>
                 </div>
               </div>
               <div className="flex-1 flex flex-col gap-2">
                 <label className="block font-semibold mb-1 text-base-content/80">Active Sessions</label>
                 <div className="flex flex-col gap-1">
-                  {sessions.map((s, i) => (
-                    <div key={i} className={clsx('flex items-center gap-2 px-2 py-1 rounded', s.current ? 'bg-primary/10' : 'bg-base-100 border border-base-200')}>{s.device} <span className="text-xs text-base-content/60">({s.location}, {s.lastActive})</span> {s.current && <span className="text-xs text-primary ml-1">Current</span>} {!s.current && <Button size="sm" variant="outline">Logout</Button>}</div>
-                  ))}
+                  {user?.sessions ? (
+                    user.sessions.map((session, i) => (
+                      <div key={i} className={clsx('flex items-center gap-2 px-2 py-1 rounded', session.id === user.lastSignInSessionId ? 'bg-primary/10' : 'bg-base-100 border border-base-200')}>
+                        <span>{session.device?.type || 'Unknown Device'}</span>
+                        <span className="text-xs text-base-content/60">
+                          ({session.device?.location || 'Unknown Location'}, {new Date(session.lastActiveAt).toLocaleDateString()})
+                        </span>
+                        {session.id === user.lastSignInSessionId && <span className="text-xs text-primary ml-1">Current</span>}
+                        {session.id !== user.lastSignInSessionId && (
+                          <Button size="sm" variant="outline" className="ml-auto">Logout</Button>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-base-content/60 text-sm">No active sessions found</div>
+                  )}
                 </div>
               </div>
             </div>
@@ -237,8 +503,16 @@ function ProfileAccountSection() {
             <div>
               <div className="font-semibold mb-1">Connected Accounts</div>
               <div className="flex gap-3">
-                <Button variant="outline" className="flex items-center gap-2"><Github size={16} /> {true ? 'Unlink' : 'Link'} GitHub</Button>
-                <Button variant="outline" className="flex items-center gap-2"><Link2 size={16} /> {false ? 'Unlink' : 'Link'} Google</Button>
+                <Button variant="outline" disabled className="flex items-center gap-2 opacity-50 cursor-not-allowed">
+                  <Github size={16} /> 
+                  <span>GitHub</span>
+                  <span className="text-xs bg-base-300 px-2 py-1 rounded ml-2">Coming Soon</span>
+                </Button>
+                <Button variant="outline" disabled className="flex items-center gap-2 opacity-50 cursor-not-allowed">
+                  <Link2 size={16} /> 
+                  <span>Google</span>
+                  <span className="text-xs bg-base-300 px-2 py-1 rounded ml-2">Coming Soon</span>
+                </Button>
               </div>
             </div>
             {/* Security Tips */}
@@ -247,7 +521,7 @@ function ProfileAccountSection() {
             </div>
             {/* Account Actions */}
             <div className="flex gap-2 mt-2">
-              <Button variant="outline">Export Data</Button>
+              <Button variant="outline" onClick={handleExportData}>Export Data</Button>
               <Button variant="destructive" onClick={() => setShowDeleteModal(true)}>Deactivate / Delete Account</Button>
             </div>
             {/* Delete Modal */}
@@ -258,7 +532,7 @@ function ProfileAccountSection() {
                   <p className="text-base-content/70 mb-4">Are you sure you want to delete your account? This action cannot be undone.</p>
                   <div className="flex gap-2 justify-end">
                     <Button variant="outline" onClick={() => setShowDeleteModal(false)}>Cancel</Button>
-                    <Button variant="destructive" onClick={() => { setShowDeleteModal(false); setShowToast({type:'success',message:'Account deleted (placeholder)!'}); }}>Delete</Button>
+                    <Button variant="destructive" onClick={handleDeleteAccount}>Delete</Button>
                   </div>
                 </div>
               </div>

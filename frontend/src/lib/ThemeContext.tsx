@@ -15,7 +15,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 // Helper function to apply theme to document
 const applyTheme = (theme: Theme) => {
   document.documentElement.setAttribute('data-theme', theme);
-  
+
   // Store in localStorage
   localStorage.setItem('theme', theme);
 };
@@ -49,7 +49,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeState(newTheme);
     setIsDark(isDarkTheme(newTheme));
     applyTheme(newTheme);
-    
+
     // Also update the class for non-DaisyUI components that rely on dark mode
     if (isDarkTheme(newTheme)) {
       document.documentElement.classList.add('dark');
@@ -62,12 +62,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Check localStorage first
     const savedTheme = localStorage.getItem('theme');
-    
+
     if (savedTheme) {
       setThemeState(savedTheme);
       setIsDark(isDarkTheme(savedTheme));
       applyTheme(savedTheme);
-      
+
       // Also update the class for non-DaisyUI components that rely on dark mode
       if (isDarkTheme(savedTheme)) {
         document.documentElement.classList.add('dark');
@@ -96,7 +96,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         setThemeState(newTheme);
         setIsDark(e.matches);
         applyTheme(newTheme);
-        
+
         // Also update the class for non-DaisyUI components that rely on dark mode
         if (e.matches) {
           document.documentElement.classList.add('dark');
@@ -105,7 +105,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         }
       }
     };
-    
+
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);

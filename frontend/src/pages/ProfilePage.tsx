@@ -10,6 +10,8 @@ import { useGSAP } from '@gsap/react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useUserProfile, formatEducation, formatCollegeLocation, getDisplayName, getDisplayBio, getDisplayLocation, getSkills, getToolsAndTech, getSocialLinks } from '@/hooks/useUserProfile';
 import { getUserAnalysisHistory, getUserActiveDrafts, IUserAnalysisHistory, IUserActiveDraft } from '@/lib/profileApi';
+import { getBookmarkedResources } from '@/lib/forgeApi';
+import { useZemonStreak } from '@/hooks/useZemonStreak';
 import { 
   Github, 
   Linkedin, 
@@ -166,11 +168,19 @@ export default function ProfilePage() {
   const [isBackgroundSelectorOpen, setIsBackgroundSelectorOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Zemon streak functionality
+  const { streakInfo, loading: streakLoading } = useZemonStreak();
+
   // State for Crucible data
   const [analysisHistory, setAnalysisHistory] = useState<IUserAnalysisHistory[]>([]);
   const [activeDrafts, setActiveDrafts] = useState<IUserActiveDraft[]>([]);
   const [crucibleLoading, setCrucibleLoading] = useState(false);
   const [crucibleError, setCrucibleError] = useState<string | null>(null);
+
+  // State for Forge data
+  const [bookmarkedResources, setBookmarkedResources] = useState<any[]>([]);
+  const [forgeLoading, setForgeLoading] = useState(false);
+  const [forgeError, setForgeError] = useState<string | null>(null);
 
   // Initialize background from user profile
   useEffect(() => {
@@ -212,6 +222,29 @@ export default function ProfilePage() {
     };
 
     fetchCrucibleData();
+  }, [activeTab, getToken]);
+
+  // Fetch Forge data when tab is active
+  useEffect(() => {
+    const fetchForgeData = async () => {
+      if (activeTab === 'forge' && getToken && !forgeLoading) {
+        setForgeLoading(true);
+        setForgeError(null);
+        
+        try {
+          const bookmarked = await getBookmarkedResources(getToken);
+          setBookmarkedResources(bookmarked);
+        } catch (error) {
+          console.error('Error fetching Forge data:', error);
+          setForgeError('Failed to load Forge data');
+          setBookmarkedResources([]);
+        } finally {
+          setForgeLoading(false);
+        }
+      }
+    };
+
+    fetchForgeData();
   }, [activeTab, getToken]);
 
   // Function to save background to backend
@@ -324,10 +357,10 @@ export default function ProfilePage() {
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'crucible', label: 'Crucible' },
-    { id: 'arena', label: 'Arena' },
+    // { id: 'arena', label: 'Arena' }, // HIDDEN
     { id: 'forge', label: 'Forge' },
     { id: 'achievements', label: 'Achievements & Skills' },
-    { id: 'innovation', label: 'Innovation & Workspace' },
+    // { id: 'innovation', label: 'Innovation & Workspace' }, // HIDDEN
   ];
 
   // Loading state
@@ -492,7 +525,9 @@ export default function ProfilePage() {
             >
               <div className="flex items-center gap-1">
                 <Flame className="w-4 h-4 text-accent" />
-                <span className="font-semibold">12 day streak</span>
+                <span className="font-semibold">
+                  {streakLoading ? '...' : `${streakInfo?.currentStreak || 0} day streak`}
+                </span>
               </div>
               <div className="flex items-center gap-1">
                 <Star className="w-4 h-4 text-warning" />
@@ -618,7 +653,7 @@ export default function ProfilePage() {
                   transition={{ duration: 0.6, delay: 0.2 }}
                 >
                   {[
-                    { icon: Flame, value: 12, label: "Zemon Streak", color: "bg-indigo-600" },
+                    { icon: Flame, value: streakLoading ? '...' : (streakInfo?.currentStreak || 0), label: "Zemon Streak", color: "bg-indigo-600" },
                     { icon: Code, value: 15, label: "GitHub Streak", color: "bg-blue-600" },
                     { icon: BookOpen, value: 8, label: "Crucible Solutions", color: "bg-indigo-600" },
                     { icon: Hammer, value: 5, label: "Forge Contributions", color: "bg-blue-600" }
@@ -649,8 +684,8 @@ export default function ProfilePage() {
                   ))}
                 </motion.div>
 
-                {/* Featured Projects Section */}
-                <motion.div
+                {/* Featured Projects Section - HIDDEN */}
+                {/* <motion.div
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.4 }}
@@ -701,7 +736,7 @@ export default function ProfilePage() {
                       </div>
                     </CardContent>
                   </Card>
-                </motion.div>
+                </motion.div> */}
               </div>
               
               {/* Enhanced Sidebar - 1/3 width on desktop */}
@@ -750,10 +785,10 @@ export default function ProfilePage() {
                       {/* Enhanced Social Links */}
                       <div className="flex gap-3 mt-6">
                         {[
-                          { icon: Github, href: getSocialLinks(userProfile).github, color: "bg-primary" },
-                          { icon: Linkedin, href: getSocialLinks(userProfile).linkedin, color: "bg-secondary" },
-                          { icon: Twitter, href: getSocialLinks(userProfile).twitter, color: "bg-accent" },
-                          { icon: Globe, href: getSocialLinks(userProfile).portfolio, color: "bg-info" }
+                          { icon: Github, href: getSocialLinks(userProfile).github, color: "btn-primary", label: "GitHub" },
+                          { icon: Linkedin, href: getSocialLinks(userProfile).linkedin, color: "btn-secondary", label: "LinkedIn" },
+                          { icon: Twitter, href: getSocialLinks(userProfile).twitter, color: "btn-accent", label: "Twitter" },
+                          { icon: Globe, href: getSocialLinks(userProfile).portfolio, color: "btn-info", label: "Portfolio" }
                         ].map((social, index) => (
                           social.href && (
                             <a
@@ -761,7 +796,15 @@ export default function ProfilePage() {
                               href={social.href}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className={`p-2 rounded-md text-white transition-colors duration-200 ${social.color} hover:opacity-90`}
+                              className={`btn btn-sm ${social.color} transition-all duration-200 hover:scale-105`}
+                              title={`Visit ${social.label}`}
+                              onClick={(e) => {
+                                // Additional safety check
+                                if (!social.href.startsWith('http://') && !social.href.startsWith('https://')) {
+                                  e.preventDefault();
+                                  window.open(`https://${social.href}`, '_blank', 'noopener,noreferrer');
+                                }
+                              }}
                             >
                               <social.icon className="w-4 h-4" />
                             </a>
@@ -772,8 +815,8 @@ export default function ProfilePage() {
                   </Card>
                 </motion.div>
 
-                {/* Activity Feed Card */}
-                <motion.div
+                {/* Activity Feed Card - HIDDEN */}
+                {/* <motion.div
                   initial={{ opacity: 0, x: 30 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.6, delay: 0.4 }}
@@ -815,7 +858,7 @@ export default function ProfilePage() {
                       </div>
                     </CardContent>
                   </Card>
-                </motion.div>
+                </motion.div> */}
               </div>
             </motion.div>
           )}
@@ -827,7 +870,7 @@ export default function ProfilePage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.5 }}
-            className="w-full"
+            className="w-full mb-10"
           >
             {/* Enhanced Header Section */}
             <motion.div
@@ -887,26 +930,26 @@ export default function ProfilePage() {
                   emptyMessage: "No active drafts",
                   emptySubtitle: "Start a new problem to create your first draft"
                 },
-                { 
-                  title: "Research Notes", 
-                  subtitle: "Learning resources",
-                  items: mockUserData.crucible?.notes || [], 
-                  icon: Brain, 
-                  color: "from-purple-500 to-pink-600",
-                  bg: "from-purple-50 to-pink-50",
-                  emptyMessage: "No research notes yet",
-                  emptySubtitle: "Add notes to track your learning"
-                },
-                { 
-                  title: "System Diagrams", 
-                  subtitle: "Visual designs",
-                  items: mockUserData.crucible?.diagrams || [], 
-                  icon: Lightbulb, 
-                  color: "from-amber-500 to-orange-600",
-                  bg: "from-amber-50 to-orange-50",
-                  emptyMessage: "No system diagrams yet",
-                  emptySubtitle: "Create diagrams to visualize your solutions"
-                }
+                // { 
+                //   title: "Research Notes", 
+                //   subtitle: "Learning resources",
+                //   items: mockUserData.crucible?.notes || [], 
+                //   icon: Brain, 
+                //   color: "from-purple-500 to-pink-600",
+                //   bg: "from-purple-50 to-pink-50",
+                //   emptyMessage: "No research notes yet",
+                //   emptySubtitle: "Add notes to track your learning"
+                // },
+                // { 
+                //   title: "System Diagrams", 
+                //   subtitle: "Visual designs",
+                //   items: mockUserData.crucible?.diagrams || [], 
+                //   icon: Lightbulb, 
+                //   color: "from-amber-500 to-orange-600",
+                //   bg: "from-amber-50 to-orange-50",
+                //   emptyMessage: "No system diagrams yet",
+                //   emptySubtitle: "Create diagrams to visualize your solutions"
+                // }
               ].map((section, index) => (
                 <motion.div
                   key={section.title}
@@ -1134,30 +1177,32 @@ export default function ProfilePage() {
           >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
-                { 
-                  title: "Created Resources", 
-                  items: mockUserData.forge?.createdResources || [], 
-                  icon: Hammer, 
-                  color: "from-orange-500 to-red-600",
-                  bg: "from-orange-50 to-red-50",
-                  description: "Resources you've contributed"
-                },
+                // { 
+                //   title: "Created Resources", 
+                //   items: mockUserData.forge?.createdResources || [], 
+                //   icon: Hammer, 
+                //   color: "from-orange-500 to-red-600",
+                //   bg: "from-orange-50 to-red-50",
+                //   description: "Resources you've contributed"
+                // },
                 { 
                   title: "Bookmarked Resources", 
-                  items: mockUserData.forge?.bookmarkedResources || [], 
+                  items: bookmarkedResources.map((resource: any) => resource.title || resource.name || 'Untitled Resource'), 
                   icon: Bookmark, 
                   color: "from-blue-500 to-indigo-600",
                   bg: "from-blue-50 to-indigo-50",
-                  description: "Saved for later reference"
+                  description: "Saved for later reference",
+                  loading: forgeLoading,
+                  error: forgeError
                 },
-                { 
-                  title: "Community Reviews", 
-                  items: mockUserData.forge?.reviews || [], 
-                  icon: Star, 
-                  color: "from-emerald-500 to-teal-600",
-                  bg: "from-emerald-50 to-teal-50",
-                  description: "Reviews you've provided"
-                }
+                // { 
+                //   title: "Community Reviews", 
+                //   items: mockUserData.forge?.reviews || [], 
+                //   icon: Star, 
+                //   color: "from-emerald-500 to-teal-600",
+                //   bg: "from-emerald-50 to-teal-50",
+                //   description: "Reviews you've provided"
+                // }
               ].map((section, index) => (
                 <motion.div
                   key={section.title}
@@ -1181,7 +1226,56 @@ export default function ProfilePage() {
                       </div>
                       
                       <div className="space-y-3 flex-1">
-                        {section.items.map((item, itemIndex) => (
+                        {/* Loading State */}
+                        {section.loading && (
+                          <motion.div 
+                            className="flex flex-col items-center justify-center py-8"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <div className="relative">
+                              <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+                              <div className="absolute inset-0 rounded-full border-2 border-primary/20"></div>
+                            </div>
+                            <span className="mt-3 text-sm text-base-content/70 font-medium">Loading {section.title.toLowerCase()}...</span>
+                          </motion.div>
+                        )}
+                        
+                        {/* Error State */}
+                        {section.error && !section.loading && (
+                          <motion.div 
+                            className="flex flex-col items-center justify-center py-8 text-center"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <div className="w-12 h-12 bg-error/10 rounded-full flex items-center justify-center mb-3">
+                              <span className="text-error text-xl">⚠️</span>
+                            </div>
+                            <span className="text-sm font-medium text-error mb-1">Failed to load</span>
+                            <span className="text-xs text-base-content/50">{section.error}</span>
+                          </motion.div>
+                        )}
+                        
+                        {/* Empty State */}
+                        {!section.loading && !section.error && section.items.length === 0 && (
+                          <motion.div 
+                            className="flex flex-col items-center justify-center py-8 text-center"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <div className="w-12 h-12 bg-base-300 rounded-full flex items-center justify-center mb-3">
+                              <section.icon className="w-6 h-6 text-base-content/50" />
+                            </div>
+                            <span className="text-sm font-medium text-base-content/70 mb-1">No {section.title.toLowerCase()} yet</span>
+                            <span className="text-xs text-base-content/50">Start bookmarking resources to see them here</span>
+                          </motion.div>
+                        )}
+                        
+                        {/* Items */}
+                        {!section.loading && !section.error && section.items.map((item, itemIndex) => (
                           <motion.div
                             key={itemIndex}
                             className="flex items-center gap-3 p-4 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 group/item"
@@ -1215,7 +1309,7 @@ export default function ProfilePage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.5 }}
-            className="w-full space-y-8"
+            className="w-full space-y-8 mb-10"
           >
             {/* Achievements Section */}
             <motion.div
@@ -1400,7 +1494,7 @@ export default function ProfilePage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.5 }}
-            className="w-full space-y-8"
+            className="w-full space-y-8 mb-10"
           >
             {/* Innovation Journal */}
             <motion.div

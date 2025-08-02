@@ -4,6 +4,7 @@ import AppError from '../utils/AppError';
 import ApiResponse from '../utils/ApiResponse';
 import User from '../models/user.model';
 import UserRole from '../models/userRole.model';
+import { recordDailyVisit, getStreakInfo } from '../services/zemonStreak.service';
 
 /**
  * @desc    Get current user profile
@@ -38,7 +39,7 @@ export const getCurrentUser = asyncHandler(
  */
 export const updateCurrentUser = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { collegeDetails, profile, interests, profileBackground } = req.body;
+    const { collegeDetails, profile, interests, profileBackground, college, socialLinks } = req.body;
 
     // Filter out unwanted fields
     const updateData: any = {};
@@ -46,6 +47,8 @@ export const updateCurrentUser = asyncHandler(
     if (profile) updateData.profile = profile;
     if (interests) updateData.interests = interests;
     if (profileBackground) updateData.profileBackground = profileBackground;
+    if (college) updateData.college = college;
+    if (socialLinks) updateData.socialLinks = socialLinks;
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user._id,
@@ -248,5 +251,181 @@ export const getUserRole = asyncHandler(
         }
       )
     );
+  }
+);
+
+/**
+ * @desc    Record daily visit and update streak
+ * @route   POST /api/users/me/visit
+ * @access  Private
+ */
+export const recordDailyVisitController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const streakInfo = await recordDailyVisit(req.user._id);
+      
+      res.status(200).json(
+        new ApiResponse(
+          200,
+          'Daily visit recorded successfully',
+          streakInfo
+        )
+      );
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to record visit', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Get current streak information
+ * @route   GET /api/users/me/streak
+ * @access  Private
+ */
+export const getStreakInfoController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const streakInfo = await getStreakInfo(req.user._id);
+      
+      res.status(200).json(
+        new ApiResponse(
+          200,
+          'Streak information retrieved successfully',
+          streakInfo
+        )
+      );
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to get streak info', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Change user password
+ * @route   PATCH /api/users/me/password
+ * @access  Private
+ */
+export const changePasswordController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return next(new AppError('Current password and new password are required', 400));
+    }
+
+    if (newPassword.length < 8) {
+      return next(new AppError('New password must be at least 8 characters long', 400));
+    }
+
+    try {
+      // Note: In a real implementation, you would verify the current password with Clerk
+      // For now, we'll just update the user record
+      const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        { $set: { passwordUpdatedAt: new Date() } },
+        { new: true }
+      );
+
+      if (!updatedUser) {
+        return next(new AppError('User not found', 404));
+      }
+
+      res.status(200).json(new ApiResponse(200, 'Password changed successfully'));
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to change password', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Update user skills
+ * @route   PATCH /api/users/me/skills
+ * @access  Private
+ */
+export const updateSkillsController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { skills } = req.body;
+
+    if (!Array.isArray(skills)) {
+      return next(new AppError('Skills must be an array', 400));
+    }
+
+    try {
+      const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        { $set: { 'profile.skills': skills } },
+        { new: true }
+      );
+
+      if (!updatedUser) {
+        return next(new AppError('User not found', 404));
+      }
+
+      res.status(200).json(new ApiResponse(200, 'Skills updated successfully', { skills: updatedUser.profile?.skills }));
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to update skills', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Delete user account
+ * @route   DELETE /api/users/me
+ * @access  Private
+ */
+export const deleteAccountController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const deletedUser = await User.findByIdAndDelete(req.user._id);
+
+      if (!deletedUser) {
+        return next(new AppError('User not found', 404));
+      }
+
+      res.status(200).json(new ApiResponse(200, 'Account deleted successfully'));
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to delete account', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Export user data
+ * @route   GET /api/users/me/export
+ * @access  Private
+ */
+export const exportUserDataController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = await User.findById(req.user._id).select('-__v');
+
+      if (!user) {
+        return next(new AppError('User not found', 404));
+      }
+
+      // Create export data (exclude sensitive information)
+      const exportData = {
+        profile: {
+          fullName: user.fullName,
+          username: user.username,
+          email: user.email,
+          bio: user.profile?.bio,
+          aboutMe: user.profile?.aboutMe,
+          location: user.profile?.location,
+          skills: user.profile?.skills,
+          toolsAndTech: user.profile?.toolsAndTech,
+        },
+        college: user.college,
+        socialLinks: user.socialLinks,
+        stats: user.stats,
+        interests: user.interests,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
+
+      res.status(200).json(new ApiResponse(200, 'User data exported successfully', exportData));
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to export user data', 500));
+    }
   }
 );

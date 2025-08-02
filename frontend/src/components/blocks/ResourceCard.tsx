@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, ExternalLink, BookOpen, FileText, Film, Wrench, FolderGit2, FileBadge2 } from 'lucide-react';
+import { Eye, ExternalLink, BookOpen, FileText, Film, Wrench, FolderGit2, FileBadge2, Bookmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const typeIconMap: Record<string, React.ReactNode> = {
@@ -24,19 +24,21 @@ export type Resource = {
   tags: string[];
   difficulty?: string;
   createdBy?: any;
-  metrics?: { views?: number };
+  metrics?: { views?: number; bookmarks?: number };
   createdAt?: string;
   summary?: string;
+  isBookmarked?: boolean;
 };
 
 type ResourceCardProps = {
   resource: Resource;
   onView?: (resource: Resource) => void;
   onClick?: (resource: Resource) => void;
+  onBookmark?: (resource: Resource) => void;
   className?: string;
 };
 
-export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onView, onClick, className }) => {
+export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onView, onClick, onBookmark, className }) => {
   const MAX_TAGS = 5;
   const visibleTags = resource.tags.slice(0, MAX_TAGS);
   const extraTags = resource.tags.length > MAX_TAGS ? resource.tags.slice(MAX_TAGS) : [];
@@ -108,19 +110,40 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onView, on
           <span>{resource.metrics?.views ?? 0}</span>
           <span className="ml-1 font-normal text-xs text-base-content/50">views</span>
         </div>
-        {/* View Details Button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="font-semibold text-primary text-xs px-3 py-1 rounded-full border border-primary/20 hover:bg-primary/10 hover:text-primary-700 transition-colors min-h-0 h-8"
-          onClick={e => {
-            e.stopPropagation();
-            onView?.(resource);
-          }}
-        >
-          View Details
-          {resource.url && <ExternalLink className="w-4 h-4 ml-1" />}
-        </Button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          {/* Bookmark Button */}
+          {onBookmark && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`font-semibold text-xs px-2 py-1 rounded-full transition-colors min-h-0 h-8 ${
+                resource.isBookmarked 
+                  ? 'text-warning hover:bg-warning/10' 
+                  : 'text-base-content/60 hover:bg-base-200'
+              }`}
+              onClick={e => {
+                e.stopPropagation();
+                onBookmark?.(resource);
+              }}
+            >
+              <Bookmark className={`w-4 h-4 ${resource.isBookmarked ? 'fill-current' : ''}`} />
+            </Button>
+          )}
+          {/* View Details Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="font-semibold text-primary text-xs px-3 py-1 rounded-full border border-primary/20 hover:bg-primary/10 hover:text-primary-700 transition-colors min-h-0 h-8"
+            onClick={e => {
+              e.stopPropagation();
+              onView?.(resource);
+            }}
+          >
+            View Details
+            {resource.url && <ExternalLink className="w-4 h-4 ml-1" />}
+          </Button>
+        </div>
       </CardFooter>
       {/* Subtle overlay for hover effect */}
       <div className="absolute inset-0 pointer-events-none rounded-xl transition-all duration-200" />

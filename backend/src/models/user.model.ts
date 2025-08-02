@@ -58,6 +58,10 @@ export interface IUser extends Document {
     value: string;
     name: string;
   };
+  // Zemon streak fields
+  zemonStreak: number;
+  longestZemonStreak: number;
+  lastZemonVisit?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -268,6 +272,21 @@ const UserSchema: Schema = new Schema(
         trim: true,
         default: 'LinkedIn Blue',
       },
+    },
+    // Zemon streak fields
+    zemonStreak: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    longestZemonStreak: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    lastZemonVisit: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true }
