@@ -44,7 +44,7 @@ export const updateDraft = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { problemId } = req.params;
     const userId = req.user._id;
-    const { currentContent, saveAsVersion, versionDescription } = req.body;
+    const { currentContent } = req.body; // REMOVED: saveAsVersion, versionDescription
 
     // Validate required fields
     if (!currentContent && currentContent !== '') {
@@ -61,11 +61,6 @@ export const updateDraft = asyncHandler(
           lastEdited: new Date()
         },
         $setOnInsert: {
-          versions: [{ 
-            content: currentContent || ' ',
-            timestamp: new Date(), 
-            description: 'Initial draft' 
-          }],
           status: 'active'
         }
       },
@@ -76,15 +71,7 @@ export const updateDraft = asyncHandler(
       }
     );
 
-    // Save as a new version if requested
-    if (saveAsVersion) {
-      draft.versions.push({
-        content: currentContent,
-        timestamp: new Date(),
-        description: versionDescription || `Version ${draft.versions.length + 1}`
-      });
-      await draft.save();
-    }
+    // REMOVED: Version saving logic - no longer needed
 
     // Ensure the draft is in user's activeDrafts
     await User.findByIdAndUpdate(userId, {
@@ -181,11 +168,9 @@ export const reattemptDraft = asyncHandler(
       .sort({ createdAt: -1 });
     
     let initialContent = ' ';
-    let versionDescription = 'Reattempt draft';
     
     if (lastAnalysis && lastAnalysis.solutionContent && lastAnalysis.solutionContent.trim() !== '') {
       initialContent = lastAnalysis.solutionContent;
-      versionDescription = `Reattempt draft based on previous solution (Score: ${lastAnalysis.overallScore})`;
       console.log(`Using last submitted solution for reattempt (Score: ${lastAnalysis.overallScore})`);
     }
     
@@ -194,11 +179,6 @@ export const reattemptDraft = asyncHandler(
       userId,
       problemId,
       currentContent: initialContent,
-      versions: [{ 
-        content: initialContent, 
-        timestamp: new Date(), 
-        description: versionDescription 
-      }],
       lastEdited: new Date(),
       status: 'active',
       autoSaveEnabled: true
@@ -217,32 +197,4 @@ export const reattemptDraft = asyncHandler(
   }
 );
 
-/**
- * @desc    Get all versions of a draft
- * @route   GET /api/crucible/:problemId/draft/versions
- * @access  Private
- */
-export const getDraftVersions = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const { problemId } = req.params;
-    const userId = req.user._id;
-
-    // Find the draft
-    const draft = await SolutionDraft.findOne({
-      userId,
-      problemId
-    });
-
-    if (!draft) {
-      return next(new AppError('Draft not found', 404));
-    }
-
-    res.status(200).json(
-      new ApiResponse(
-        200,
-        'Draft versions fetched successfully',
-        draft.versions
-      )
-    );
-  }
-); 
+// REMOVED: getDraftVersions function - no longer needed 

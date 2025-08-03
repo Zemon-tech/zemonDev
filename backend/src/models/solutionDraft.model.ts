@@ -1,16 +1,12 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-interface IVersion {
-  content: string;
-  timestamp: Date;
-  description: string;
-}
+// REMOVED: IVersion interface - no longer needed
 
 export interface ISolutionDraft extends Document {
   userId: mongoose.Types.ObjectId;
   problemId: mongoose.Types.ObjectId;
   currentContent: string;
-  versions: IVersion[];
+  // REMOVED: versions: IVersion[];
   status: 'active' | 'archived';
   lastEdited: Date;
   autoSaveEnabled: boolean;
@@ -36,23 +32,7 @@ const SolutionDraftSchema: Schema = new Schema(
       type: String,
       default: '',
     },
-    versions: [
-      {
-        content: {
-          type: String,
-          required: true,
-          default: '',
-        },
-        timestamp: {
-          type: Date,
-          default: Date.now,
-        },
-        description: {
-          type: String,
-          default: '',
-        },
-      },
-    ],
+    // REMOVED: versions array - no longer needed
     status: {
       type: String,
       enum: ['active', 'archived'],

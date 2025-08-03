@@ -14,7 +14,7 @@ import {
   getDraft, 
   updateDraft, 
   archiveDraft, 
-  getDraftVersions,
+  // REMOVED: getDraftVersions,
   reattemptDraft
 } from '../controllers/solutionDraft.controller';
 import {
@@ -81,7 +81,8 @@ router.get('/:problemId/solutions/last-submitted', protect, getLastSubmittedSolu
 router.get('/:problemId/draft', protect, getDraft);
 router.put('/:problemId/draft', protect, updateDraft);
 router.put('/:problemId/draft/archive', protect, archiveDraft);
-router.get('/:problemId/draft/versions', protect, getDraftVersions);
+// REMOVED: Version history route
+// router.get('/:problemId/draft/versions', protect, getDraftVersions);
 router.post('/:problemId/draft/reattempt', protect, reattemptDraft);
 
 // Notes routes
