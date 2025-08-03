@@ -35,6 +35,59 @@ If you're experiencing issues with editing the profile fields (fields showing as
 npm run migrate:fix-user-profile
 ```
 
+### 3. Remove Version History Migration
+**File:** `remove-version-history.ts`
+
+This migration removes version history data from SolutionDraft documents:
+- Finds all SolutionDraft documents that have a 'versions' field
+- Safely removes the 'versions' field while preserving all other data
+- Provides detailed statistics and verification
+- Can be run multiple times safely (idempotent)
+
+#### Running the Version History Removal Migration
+
+To clean up existing version history data from the database:
+```bash
+npm run migrate:remove-version-history
+```
+
+#### What the Migration Does
+
+- Connects to MongoDB using the environment variables
+- Identifies all SolutionDraft documents with version history
+- Removes the 'versions' field from these documents
+- Provides detailed logging and statistics
+- Verifies the migration was successful
+- Shows sample documents before and after migration
+
+#### Migration Output Example
+
+```
+Connected to MongoDB
+Total SolutionDraft documents in database: 150
+Found 25 documents with version history
+
+Sample documents that will be modified:
+Document 1:
+  - ID: 507f1f77bcf86cd799439011
+  - User ID: 507f1f77bcf86cd799439012
+  - Problem ID: 507f1f77bcf86cd799439013
+  - Versions count: 3
+  - Current content length: 1250 characters
+
+Migration completed successfully!
+Modified 25 documents
+Matched 25 documents
+✅ Verification successful: No documents with version history remain
+
+Final statistics:
+  - Total SolutionDraft documents: 150
+  - Documents with version history: 0
+  - Documents cleaned: 25
+
+Migration completed successfully
+```
+
 #### What the Migration Does
 
 - Connects to MongoDB using the environment variables

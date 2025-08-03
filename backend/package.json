@@ -11,7 +11,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "migrate:user-profile": "ts-node src/migrations/add-user-profile-fields.ts",
     "migrate:fix-user-profile": "ts-node src/migrations/fix-user-profile-fields.ts",
-    "migrate:profile-background": "ts-node src/migrations/add-profile-background-field.ts"
+    "migrate:profile-background": "ts-node src/migrations/add-profile-background-field.ts",
+    "migrate:remove-version-history": "ts-node src/migrations/remove-version-history.ts"
   },
   "keywords": [
     "education",

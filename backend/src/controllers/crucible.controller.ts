@@ -516,8 +516,7 @@ export const getDraft = asyncHandler(async (req: Request, res: Response) => {
   let draft = await SolutionDraft.findOne({ userId, problemId });
   
   const draftData = draft ? draft.toJSON() : {
-    currentContent: '',
-    versions: []
+    currentContent: ''
   };
   
   // Cache the draft
@@ -532,7 +531,7 @@ export const getDraft = asyncHandler(async (req: Request, res: Response) => {
 export const updateDraft = asyncHandler(async (req: Request, res: Response) => {
   const { problemId } = req.params;
   const userId = req.user?.id;
-  const { currentContent, saveAsVersion, versionDescription } = req.body;
+  const { currentContent } = req.body;
   
   if (!userId) {
     throw new AppError('Unauthenticated', 401);
@@ -550,25 +549,13 @@ export const updateDraft = asyncHandler(async (req: Request, res: Response) => {
     draft = new SolutionDraft({
       userId,
       problemId,
-      currentContent,
-      versions: []
+      currentContent
     });
   } else {
     draft.currentContent = currentContent;
   }
   
-  // Save as version if requested
-  if (saveAsVersion && versionDescription) {
-    if (!draft.versions) {
-      draft.versions = [];
-    }
-    
-    draft.versions.push({
-      content: currentContent,
-      timestamp: new Date(),
-      description: versionDescription
-    });
-  }
+  // REMOVED: Version saving logic - no longer needed
   
   await draft.save();
   
