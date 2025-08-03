@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef } from 'react';
+import React, { createContext, useContext, useState, useRef, useCallback } from 'react';
 import { getLatestAnalysis, ISolutionAnalysisResult } from '@/lib/crucibleApi';
 import { useAuth } from '@clerk/clerk-react';
 import { logger } from '@/lib/utils';
@@ -25,17 +25,15 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   
   const { getToken } = useAuth();
   
-  // No cleanup needed since we removed retry logic
-  
-  const clearAnalysis = () => {
+  const clearAnalysis = useCallback(() => {
     setAnalysis(null);
     setLoading(false);
     setError(null);
     setCurrentProblemId(null);
     inFlightRequest.current = false;
-  };
+  }, []);
   
-  const checkAnalysis = async (problemId: string) => {
+  const checkAnalysis = useCallback(async (problemId: string) => {
     // Check if we're currently submitting a solution for this problem
     const isSubmitting = sessionStorage.getItem(`submitting_${problemId}`);
     if (isSubmitting) {
@@ -88,15 +86,9 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setLoading(false);
       inFlightRequest.current = false;
     }
-  };
+  }, [getToken, loading, currentProblemId, clearAnalysis]);
 
-  const handleRetry = (problemId: string) => {
-    // This function is no longer needed since we don't retry for missing analysis
-    // Analysis should only be checked after user submits a solution
-    logger.info('Retry logic disabled - analysis should be created when user submits solution');
-  };
-  
-  const markReattempting = (problemId: string) => {
+  const markReattempting = useCallback((problemId: string) => {
     logger.info('Marking problem as being reattempted:', problemId);
     clearAnalysis();
     sessionStorage.setItem(`reattempting_${problemId}`, 'true');
@@ -113,9 +105,9 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       sessionStorage.removeItem(`reattempting_${problemId}`);
       sessionStorage.removeItem(`reattempt_time_${problemId}`);
     }, 30 * 60 * 1000); // 30 minutes
-  };
+  }, [clearAnalysis, analysis]);
   
-  const markSubmitting = (problemId: string) => {
+  const markSubmitting = useCallback((problemId: string) => {
     logger.info('Marking problem as being submitted:', problemId);
     clearAnalysis();
     sessionStorage.removeItem(`reattempting_${problemId}`);
@@ -131,14 +123,14 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setTimeout(() => {
       sessionStorage.removeItem(`submitting_${problemId}`);
     }, 10 * 60 * 1000);
-  };
+  }, [clearAnalysis, analysis]);
   
   // Function to clear reattempting state when analysis is complete
-  const clearReattemptingState = (problemId: string) => {
+  const clearReattemptingState = useCallback((problemId: string) => {
     logger.info('Clearing reattempting state for problem:', problemId);
     sessionStorage.removeItem(`reattempting_${problemId}`);
     sessionStorage.removeItem(`reattempt_time_${problemId}`);
-  };
+  }, []);
 
   return (
     <AnalysisContext.Provider

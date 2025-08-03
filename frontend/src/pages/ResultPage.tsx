@@ -212,7 +212,7 @@ export default function ResultPage() {
     fetchData();
 
     return () => { isMounted = false; };
-  }, [analysisId, problemId, contextAnalysis, getToken, checkAnalysis, clearAnalysis, contextLoading]);
+  }, [analysisId, problemId, contextAnalysis?._id, getToken, contextLoading]);
 
   useEffect(() => {
     const fetchHistory = async () => {

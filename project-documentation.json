@@ -1,0 +1,383 @@
+{
+  "projectName": "Zemon",
+  "description": "An educational platform for engineering students with learning, practice, and showcase features",
+  "architecture": {
+    "frontend": {
+      "framework": "React with TypeScript",
+      "buildTool": "Vite",
+      "styling": "Tailwind CSS with DaisyUI and ShadCN/UI components",
+      "routing": "React Router DOM",
+      "stateManagement": "React Context API",
+      "authentication": "Clerk"
+    },
+    "backend": {
+      "framework": "Node.js with Express",
+      "language": "TypeScript",
+      "database": "MongoDB with Mongoose",
+      "caching": "Upstash Redis",
+      "authentication": "Clerk",
+      "realtime": "Socket.IO"
+    }
+  },
+  "features": [
+    "Learning resources (Forge)",
+    "Coding challenges (Crucible)",
+    "Community showcase (Arena)",
+    "AI-powered analysis and assistance",
+    "Real-time collaboration",
+    "User profiles and progress tracking"
+  ],
+  "mainSections": {
+    "forge": "Learning resources and tutorials",
+    "crucible": "Coding challenges and problem-solving",
+    "arena": "Community interaction and project showcase"
+  },
+  "backend": {
+    "apiRoutes": {
+      "/api/health": {
+        "GET": "Health check endpoint"
+      },
+      "/api/users": {
+        "GET /me": "Get current user (protected)",
+        "GET /me/role": "Get user role (protected)",
+        "PATCH /me": "Update current user (protected)",
+        "PATCH /me/background": "Update profile background (protected)",
+        "POST /webhooks/clerk": "Clerk webhook handler"
+      },
+      "/api/crucible": {
+        "GET": "Get all challenges",
+        "GET /:id": "Get a specific challenge",
+        "POST": "Create a challenge (protected)",
+        "GET /:challengeId/solutions": "Get solutions for a challenge"
+      },
+      "/api/forge": {
+        "GET": "Get all learning resources",
+        "GET /:id": "Get a specific resource",
+        "POST": "Create a resource (protected)"
+      },
+      "/api/ai": {
+        "POST /ask": "Ask AI for help (protected, rate-limited)",
+        "POST /analyze-solution": "Analyze user solution (protected, rate-limited)",
+        "POST /generate-hints": "Generate problem hints (protected, rate-limited)"
+      },
+      "/api/profile": {
+        "GET /crucible/analyses": "Get user's analysis history (protected)",
+        "GET /crucible/drafts": "Get user's active drafts (protected)"
+      },
+      "/api/admin": {
+        "GET /users": "Get all users (admin/moderator only)"
+      },
+      "/api/arena/channels": {
+        "GET": "Get all channels grouped by category",
+        "GET /:channelId/messages": "Get messages for a channel (protected)",
+        "POST /:channelId/messages": "Send a message to a channel (protected)",
+        "POST /:channelId/mark-read": "Mark all messages as read (protected)",
+        "POST /:channelId/join": "Join channel request (protected)",
+        "GET /join-requests": "Get all join requests (admin/moderator only)",
+        "POST /join-requests/:userId/:channelId/accept": "Accept join request (admin/moderator only)",
+        "POST /join-requests/:userId/:channelId/reject": "Reject join request (admin/moderator only)",
+        "POST /:parentChannelId/ban": "Ban user from parent channel (admin/moderator only)",
+        "POST /:parentChannelId/unban": "Unban user from parent channel (admin/moderator only)",
+        "GET /user-channel-status": "Get user channel status (protected)",
+        "GET /user-channel-status/:userId": "Get channel status for any user (admin/moderator only)"
+      },
+      "/api/arena/showcase": {
+        "GET": "Get all showcased projects",
+        "POST": "Submit a project (protected)",
+        "POST /:projectId/upvote": "Upvote a project (protected)"
+      },
+      "/api/arena/users": {
+        "POST /:userId/ban": "Ban user (admin/moderator only)",
+        "POST /:userId/unban": "Unban user (admin/moderator only)",
+        "POST /:userId/kick": "Kick user (admin/moderator only)",
+        "POST /:userId/make-moderator": "Make user moderator (admin only)"
+      }
+    },
+    "middleware": {
+      "auth.middleware.ts": "Authentication middleware using Clerk",
+      "error.middleware.ts": "Global error handling middleware",
+      "cache.middleware.ts": "Redis caching middleware",
+      "rateLimiter.middleware.ts": "Rate limiting middleware"
+    },
+    "controllers": {
+      "user.controller.ts": "User-related controllers",
+      "crucible.controller.ts": "Challenge-related controllers",
+      "forge.controller.ts": "Learning resource controllers",
+      "ai.controller.ts": "AI-related controllers",
+      "admin.controller.ts": "Admin-only controllers",
+      "profile.controller.ts": "User profile controllers",
+      "arenaChannels.controller.ts": "Community channels controllers",
+      "arenaShowcase.controller.ts": "Project showcase controllers",
+      "arenaUsers.controller.ts": "Arena user management controllers"
+    },
+    "services": {
+      "ai.service.ts": "AI integration services",
+      "socket.service.ts": "Socket.IO real-time communication",
+      "solutionAnalysis.service.ts": "Solution analysis using AI"
+    },
+    "models": {
+      "user.model.ts": {
+        "fields": [
+          "clerkId", "email", "fullName", "username",
+          "collegeDetails", "profile", "interests", "stats",
+          "bookmarkedResources", "completedSolutions", "activeDrafts",
+          "archivedDrafts", "workspacePreferences", "college",
+          "socialLinks", "profileBackground"
+        ],
+        "relationships": [
+          "Has many CrucibleSolutions",
+          "Has many SolutionDrafts",
+          "Has many ForgeResources",
+          "Has many ArenaMessages",
+          "Has many ProjectShowcases"
+        ]
+      },
+      "crucibleProblem.model.ts": {
+        "fields": [
+          "title", "description", "difficulty", "tags",
+          "requirements", "constraints", "expectedOutcome", "hints",
+          "createdBy", "metrics", "estimatedTime", "learningObjectives",
+          "prerequisites", "userPersona", "dataAssumptions", "edgeCases",
+          "relatedResources", "subtasks", "communityTips", "aiPrompts",
+          "technicalParameters", "status"
+        ],
+        "relationships": [
+          "Belongs to User (createdBy)",
+          "Has many CrucibleSolutions",
+          "Has many SolutionDrafts",
+          "Has many CrucibleNotes",
+          "Has many CrucibleDiagrams",
+          "Has many ProgressTrackings",
+          "Has many ResearchItems",
+          "Has many AIChatHistories"
+        ]
+      },
+      "crucibleSolution.model.ts": {
+        "fields": [
+          "userId", "problemId", "content", "status", "submittedAt",
+          "score", "feedback", "isPublic"
+        ],
+        "relationships": [
+          "Belongs to User",
+          "Belongs to CrucibleProblem",
+          "Has many SolutionAnalyses"
+        ]
+      },
+      "solutionDraft.model.ts": {
+        "fields": [
+          "userId", "problemId", "currentContent", "versions",
+          "status", "lastEdited", "autoSaveEnabled"
+        ],
+        "relationships": [
+          "Belongs to User",
+          "Belongs to CrucibleProblem"
+        ]
+      },
+      "solutionAnalysis.model.ts": {
+        "fields": [
+          "userId", "problemId", "solutionContent", "overallScore",
+          "aiConfidence", "summary", "evaluatedParameters", "feedback"
+        ],
+        "relationships": [
+          "Belongs to User",
+          "Belongs to CrucibleProblem"
+        ]
+      },
+      "crucibleNote.model.ts": {
+        "fields": [
+          "userId", "problemId", "content", "tags", "status"
+        ],
+        "relationships": [
+          "Belongs to User",
+          "Belongs to CrucibleProblem"
+        ]
+      },
+      "crucibleDiagram.model.ts": {
+        "fields": [
+          "userId", "problemId", "title", "type", "content",
+          "thumbnail", "status"
+        ],
+        "relationships": [
+          "Belongs to User",
+          "Belongs to CrucibleProblem"
+        ]
+      },
+      "progressTracking.model.ts": {
+        "fields": [
+          "userId", "problemId", "status", "timeSpent",
+          "milestones", "lastActive"
+        ],
+        "relationships": [
+          "Belongs to User",
+          "Belongs to CrucibleProblem"
+        ]
+      },
+      "researchItem.model.ts": {
+        "fields": [
+          "userId", "problemId", "title", "type", "content",
+          "notes", "tags", "status"
+        ],
+        "relationships": [
+          "Belongs to User",
+          "Belongs to CrucibleProblem"
+        ]
+      },
+      "aiChatHistory.model.ts": {
+        "fields": [
+          "userId", "problemId", "title", "messages", "status"
+        ],
+        "relationships": [
+          "Belongs to User",
+          "Belongs to CrucibleProblem"
+        ]
+      },
+      "workspaceState.model.ts": {
+        "fields": [
+          "userId", "problemId", "activeMode", "layout", "editorSettings"
+        ],
+        "relationships": [
+          "Belongs to User",
+          "Belongs to CrucibleProblem"
+        ]
+      },
+      "arenaChannel.model.ts": {
+        "fields": [
+          "name", "description", "group", "isPrivate", "isActive",
+          "accessControl", "parentChannelId"
+        ],
+        "relationships": [
+          "Has many ArenaMessages",
+          "Has many UserChannelStatuses",
+          "Has many UserRoles",
+          "May belong to parent ArenaChannel"
+        ]
+      },
+      "arenaMessage.model.ts": {
+        "fields": [
+          "channelId", "userId", "username", "content", "type",
+          "replyToId", "mentions", "timestamp", "isEdited",
+          "editedAt", "isDeleted", "deletedAt", "deletedBy"
+        ],
+        "relationships": [
+          "Belongs to ArenaChannel",
+          "Belongs to User",
+          "May reply to another ArenaMessage"
+        ]
+      },
+      "projectShowcase.model.ts": {
+        "fields": [
+          "title", "description", "images", "gitRepositoryUrl",
+          "demoUrl", "userId", "username", "upvotes", "upvotedBy",
+          "downvotes", "downvotedBy", "submittedAt", "isApproved",
+          "approvedAt", "approvedBy"
+        ],
+        "relationships": [
+          "Belongs to User"
+        ]
+      },
+      "weeklyHackathon.model.ts": {
+        "fields": [
+          "title", "description", "startDate", "endDate",
+          "requirements", "prizes", "winners", "leaderboard",
+          "status"
+        ],
+        "relationships": [
+          "Has many HackathonSubmissions"
+        ]
+      },
+      "userRole.model.ts": {
+        "fields": [
+          "userId", "role", "channelId", "grantedBy", "grantedAt"
+        ],
+        "relationships": [
+          "Belongs to User",
+          "May belong to ArenaChannel",
+          "Granted by User"
+        ]
+      },
+      "userChannelStatus.model.ts": {
+        "fields": [
+          "userId", "channelId", "lastReadMessageId", "lastReadAt",
+          "isMuted", "isPinned", "joinStatus"
+        ],
+        "relationships": [
+          "Belongs to User",
+          "Belongs to ArenaChannel"
+        ]
+      }
+    }
+  },
+  "frontend": {
+    "pages": {
+      "LandingPage.tsx": "Public landing page",
+      "SignInPage.tsx": "User sign-in page",
+      "SignUpPage.tsx": "User registration page",
+      "DashboardPage.tsx": "User dashboard with activity overview",
+      "ProfilePage.tsx": "User profile page",
+      "SettingsPage.tsx": "User settings page",
+      "ForgePage.tsx": "Learning resources page",
+      "CruciblePage.tsx": "Coding challenges page",
+      "ArenaPage.tsx": "Community and showcase page",
+      "PricingPage.tsx": "Subscription plans page",
+      "DevelopersPage.tsx": "Developer documentation page"
+    },
+    "components": {
+      "layout": {
+        "AppLayout.tsx": "Main authenticated layout with navigation",
+        "PublicLayout.tsx": "Public layout for unauthenticated users"
+      },
+      "crucible": {
+        "CrucibleWorkspaceView.tsx": "Main workspace for solving challenges",
+        "ProblemDetailsSidebar.tsx": "Sidebar showing problem details",
+        "AIChatSidebar.tsx": "AI assistant chat interface"
+      },
+      "arena": {
+        "StartHereChannel.tsx": "Onboarding channel for new users"
+      },
+      "ui": {
+        "background-selector.tsx": "Component for selecting profile backgrounds",
+        "ThemeToggle.tsx": "Toggle for switching between light/dark themes"
+      },
+      "tiptap-ui-primitive": {
+        "tooltip": "Tooltip components",
+        "popover": "Popover components"
+      }
+    },
+    "context": {
+      "UserRoleContext.tsx": "Context for managing user roles and permissions",
+      "WorkspaceProvider": "Context for managing workspace state",
+      "AnalysisProvider": "Context for managing solution analysis"
+    },
+    "hooks": {
+      "useAnalysis": "Hook for solution analysis functionality",
+      "useArenaSocket": "Hook for Socket.IO connections"
+    },
+    "services": {
+      "api.service.ts": "Service for making API requests",
+      "socket.service.ts": "Service for Socket.IO connections"
+    }
+  },
+  "authentication": {
+    "provider": "Clerk",
+    "flow": [
+      "User visits a protected route",
+      "Middleware checks if user is authenticated",
+      "If not authenticated, redirect to sign-in page with return URL",
+      "After successful sign-in, redirect back to the original URL",
+      "If authenticated, render the protected route within the AppLayout"
+    ]
+  },
+  "theming": {
+    "system": "CSS variables with light and dark mode support",
+    "components": [
+      "ThemeContext provider manages the current theme",
+      "ThemeToggle component allows users to switch between themes",
+      "Theme preference is stored in localStorage and synced with system preference"
+    ]
+  },
+  "responsiveDesign": {
+    "mobile": "Collapsible sidebar, stacked layouts",
+    "tablet": "Partially expanded sidebar, grid layouts",
+    "desktop": "Full sidebar, multi-column layouts"
+  }
+}
