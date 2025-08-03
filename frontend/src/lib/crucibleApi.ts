@@ -56,11 +56,7 @@ export interface ISolutionDraft {
   userId?: string;
   problemId: string;
   currentContent: string;
-  versions?: Array<{
-    content: string;
-    timestamp: Date;
-    description: string;
-  }>;
+  // REMOVED: versions field - no longer needed
   status?: 'active' | 'archived';
   lastEdited?: Date;
   autoSaveEnabled?: boolean;
@@ -366,17 +362,7 @@ export async function reattemptDraft(
   );
 } 
 
-// Fetch all versions of a draft (auth required)
-export async function getDraftVersions(
-  problemId: string,
-  getToken: () => Promise<string | null>
-): Promise<Array<{ content: string; timestamp: Date; description: string }>> {
-  return apiRequest<Array<{ content: string; timestamp: Date; description: string }>>(
-    `/crucible/${problemId}/draft/versions`,
-    {},
-    getToken
-  );
-} 
+// REMOVED: getDraftVersions function - no longer needed 
 
 // Check if user has analysis for a problem and return analysis ID if exists
 export async function checkUserAnalysisForProblem(

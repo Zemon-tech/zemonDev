@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
-import { updateDraft, submitSolutionForAnalysis, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft, reattemptDraft, getDraftVersions, getDraft } from '../../lib/crucibleApi';
+import { updateDraft, submitSolutionForAnalysis, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft, reattemptDraft, getDraft } from '../../lib/crucibleApi';
 import { logger } from '../../lib/utils';
 import { useWorkspace } from '../../lib/WorkspaceContext';
 import { useAnalysis } from '@/context/AnalysisContext';
@@ -40,8 +40,7 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
   const [solutionContent, setSolutionContent] = useState(initialDraft?.currentContent || '');
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [isReattempting, setIsReattempting] = useState<boolean>(false);
-  const [draftVersions, setDraftVersions] = useState<Array<{ content: string; timestamp: Date; description: string }>>([]);
-  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  // REMOVED: Version-related state variables
   const [isCheckingSubmission, setIsCheckingSubmission] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [lastSavedContent, setLastSavedContent] = useState(initialDraft?.currentContent || '');
@@ -247,48 +246,7 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [problem._id, getToken, navigate, initialDraft, isReattempting, ensureActiveDraft]);
 
-  // Fetch draft versions with optimized logic
-  useEffect(() => {
-    let isMounted = true;
-    async function fetchVersions() {
-      // Only fetch if version history is shown and we have a draft
-      if (!showVersionHistory || !initialDraft) {
-        setDraftVersions([]);
-        return;
-      }
-      
-      try {
-        const token = await getToken();
-        if (!token) return;
-        
-        const versions = await getDraftVersions(problem._id, () => Promise.resolve(token));
-        if (isMounted) {
-          setDraftVersions(versions || []);
-        }
-      } catch (err) {
-        logger.warn('Failed to fetch draft versions:', err);
-        if (isMounted) {
-          setDraftVersions([]);
-        }
-      }
-    }
-    
-    fetchVersions();
-    return () => { isMounted = false; };
-  }, [showVersionHistory, problem._id, getToken, initialDraft]);
-
-  // Handler to restore a version
-  const handleRestoreVersion = async (version: { content: string; timestamp: Date; description: string }) => {
-    try {
-      const token = await getToken();
-      if (!token) return;
-      await updateDraft(problem._id, version.content, () => Promise.resolve(token));
-      setSolutionContent(version.content);
-      setShowVersionHistory(false);
-    } catch (err) {
-      alert('Failed to restore version.');
-    }
-  };
+  // REMOVED: Version history functionality - no longer needed
 
   // Handler for reattempt
   const handleReattempt = useCallback(async () => {
@@ -437,46 +395,8 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
       <div className="flex-1 overflow-hidden flex flex-col border-x border-base-200 dark:border-base-700 shadow-lg">
         {isWorkspaceModeVisible && <WorkspaceModeSelector />}
         <div className="flex-1 overflow-auto p-4 bg-base-50 dark:bg-base-900">
-          {/* Version History Button and Status */}
-          <div className="flex justify-between items-center mb-2">
-            <div className="flex items-center gap-2">
-              {isSavingDraft && (
-                <div className="flex items-center gap-1 text-xs text-base-content/60">
-                  <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                  <span>Saving...</span>
-                </div>
-              )}
-              {isReattempting && solutionContent && solutionContent.trim() !== '' && (
-                <div className="flex items-center gap-1 text-xs text-success">
-                  <div className="w-3 h-3 bg-success rounded-full"></div>
-                  <span>Previous solution loaded - improve it to get a better score!</span>
-                </div>
-              )}
-            </div>
-            <button className="btn btn-sm btn-outline" onClick={() => setShowVersionHistory((v) => !v)}>
-              {showVersionHistory ? 'Hide Version History' : 'Show Version History'}
-            </button>
-          </div>
-          {/* Version History UI */}
-          {showVersionHistory && (
-            <div className="mb-4">
-              <ul className="menu bg-base-200 rounded-box p-4">
-                {draftVersions.length === 0 ? (
-                  <li>No versions found.</li>
-                ) : (
-                  draftVersions.map((version, idx) => (
-                    <li key={idx} className="flex flex-col md:flex-row md:items-center gap-2 mb-2">
-                      <span className="font-mono text-xs text-base-content/70">{new Date(version.timestamp).toLocaleString()}</span>
-                      <span className="ml-2 text-base-content/80 flex-1 truncate">{version.description || 'No description'}</span>
-                      <button className="btn btn-xs btn-primary ml-auto" onClick={() => handleRestoreVersion(version)}>
-                        Restore
-                      </button>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </div>
-          )}
+          {/* REMOVED: Version History Button and Status */}
+          {/* REMOVED: Version History UI */}
           {/* Show appropriate content based on submission status */}
           {activeContent === 'solution' && (isCheckingSubmission || analysisLoading) && initialDraft && initialDraft.status !== 'active' ? (
             // Only show loading state for existing problems with archived drafts
