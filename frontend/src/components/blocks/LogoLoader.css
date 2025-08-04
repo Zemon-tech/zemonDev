@@ -1,6 +1,31 @@
+/* Light/Dark Theme CSS Custom Properties */
+:root {
+  /* Light Mode (default) */
+  --logo-fill-color: hsl(var(--p));
+  --logo-stroke-color: hsl(var(--p));
+  --loader-text-color: hsl(var(--bc));
+  --shiny-text-color: #4a5568;
+  --shiny-gradient-start: rgba(0, 0, 0, 0);
+  --shiny-gradient-middle: rgba(0, 0, 0, 0.8);
+  --shiny-gradient-end: rgba(0, 0, 0, 0);
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --logo-fill-color: hsl(var(--p));
+    --logo-stroke-color: hsl(var(--p));
+    --loader-text-color: hsl(var(--bc));
+    --shiny-text-color: #e2e8f0;
+    --shiny-gradient-start: rgba(255, 255, 255, 0);
+    --shiny-gradient-middle: rgba(255, 255, 255, 0.8);
+    --shiny-gradient-end: rgba(255, 255, 255, 0);
+  }
+}
+
 /* SVG path styling for the filled shape */
 .filled-path {
-  fill: hsl(var(--p));
+  fill: var(--logo-fill-color);
   stroke: none; /* No stroke for the filled shape */
   opacity: 0; /* Start completely transparent */
   animation: fade-in 3s ease-in-out infinite;
@@ -9,7 +34,7 @@
 /* SVG path styling for the drawing outline */
 .outline-path {
   fill: none; /* No fill for the outline */
-  stroke: hsl(var(--p));
+  stroke: var(--logo-stroke-color);
   stroke-width: 10;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -32,7 +57,7 @@
 }
 
 .loader-text {
-  color: hsl(var(--bc));
+  color: var(--loader-text-color);
   font-weight: 500;
   letter-spacing: 0.02em;
   opacity: 1;

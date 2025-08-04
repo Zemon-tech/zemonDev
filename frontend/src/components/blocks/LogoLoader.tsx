@@ -61,7 +61,7 @@ export const LogoLoader: React.FC<LogoLoaderProps> = ({
   return (
     <div className={`flex flex-col items-center justify-center w-full h-full ${className}`} style={{ minHeight: '1px' }}>
       <div className={`flex flex-col items-center justify-center gap-6`}>
-        <div className={`${sizeClasses[size]} flex items-center justify-center`}>
+        <div className={`${sizeClasses[size]} flex items-center justify-center transform -translate-x-4`}>
           <svg 
             version="1.0" 
             xmlns="http://www.w3.org/2000/svg"
