@@ -18,7 +18,6 @@ import {
   Zap,
   ArrowUpRight,
   ThumbsUp,
-  Info,
   TrendingUp,
   Award,
   BarChart3
@@ -28,18 +27,16 @@ import { useAuth } from '@clerk/clerk-react';
 
 import { Aurora } from '@/components/blocks/Aurora';
 import { DotGrid } from '@/components/blocks/DotGrid';
-import { SpotlightCard } from '@/components/blocks/SpotlightCard';
 import { AnimatedContent } from '@/components/blocks/AnimatedContent';
 import { CountUp } from '@/components/blocks/CountUp';
-import { TiltCard } from '@/components/blocks/TiltCard';
 import { CircularProgress } from '@/components/blocks/CircularProgress';
 import { FloatingIcon } from '@/components/blocks/FloatingIcon';
 import { LogoLoader } from '@/components/blocks/LogoLoader';
 
 // Import new components
 import { AnimatedGradient } from '@/components/ui/animated-gradient-with-svg';
-import { Feature } from '@/components/ui/feature-with-image';
 import { Badge } from '@/components/ui/badge';
+
 
 import { getAnalysisResult, ISolutionAnalysisResult, getProblem, ICrucibleProblem, getAnalysisHistory, reattemptDraft } from '@/lib/crucibleApi';
 import { useAnalysis } from '@/context/AnalysisContext';
@@ -103,11 +100,11 @@ const StatsCard = ({ title, value, subtitle, colors, delay, icon: Icon }: any) =
 };
 
 // Feedback Feature Component
-const FeedbackFeature = ({ title, items, badgeText, badgeVariant, icon: Icon, imageUrl, colors }: any) => {
+const FeedbackFeature = ({ title, items, badgeText, badgeVariant, icon: Icon, imageUrl, colors, showViewAll, allItems, iconOnLeft = false }: any) => {
   return (
     <div className="w-full py-8">
       <div className="container mx-auto">
-        <div className="flex flex-col-reverse lg:flex-row gap-8 lg:items-center">
+        <div className={`flex flex-col-reverse lg:flex-row gap-8 lg:items-center ${iconOnLeft ? 'lg:flex-row-reverse' : ''}`}>
           <div className="flex-1">
             <div className="flex gap-4 pl-0 lg:pl-8 flex-col">
               <div>
@@ -118,19 +115,21 @@ const FeedbackFeature = ({ title, items, badgeText, badgeVariant, icon: Icon, im
                   <FloatingIcon icon={Icon} className="w-8 h-8 text-primary" />
                   {title}
                 </h2>
-                <div className="space-y-3 mt-4">
-                  {items?.map((item: string, index: number) => (
-                    <motion.div 
-                      key={index}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="flex items-start gap-3 text-base-content/80"
-                    >
-                      <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-1" />
-                      <span className="leading-relaxed">{item}</span>
-                    </motion.div>
-                  ))}
+                <div className="mt-4">
+                  <div className="max-h-48 overflow-y-auto scrollbar-hide space-y-3 pr-2">
+                    {allItems?.map((item: string, index: number) => (
+                      <motion.div 
+                        key={index}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="flex items-start gap-3 text-base-content/80"
+                      >
+                        <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-1" />
+                        <span className="leading-relaxed">{item}</span>
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -152,7 +151,7 @@ const FeedbackFeature = ({ title, items, badgeText, badgeVariant, icon: Icon, im
 const parameterIcons: Record<string, any> = {
   "Logical Thinking": Brain,
   "Systems Design": Network,
-  "Creativity": Lightbulb,
+  "Creativity": Sparkles,
   "Trade-off Analysis": Scale,
   "Performance": Zap,
   "Security": AlertOctagon,
@@ -161,7 +160,68 @@ const parameterIcons: Record<string, any> = {
   "Code Quality": CheckCircle2,
   "Error Handling": AlertCircle,
   "Communication": MessageSquare,
-  "Innovation": Sparkles,
+  "Innovation": Lightbulb,
+  "Problem Solving": Target,
+  "Algorithm Design": TrendingUp,
+  "Data Structures": Award,
+  "System Architecture": Network,
+  "Testing": CheckCircle2,
+  "Optimization": Zap,
+  "Best Practices": Trophy,
+  "Code Review": MessageSquare,
+  "Debugging": AlertCircle,
+  "User Experience": Lightbulb,
+  "Accessibility": Scale,
+  "Performance Optimization": Zap,
+  "Security Best Practices": AlertOctagon,
+  "API Design": Network,
+  "Database Design": BookOpen,
+  "Frontend Development": Sparkles,
+  "Backend Development": Brain,
+  "Full Stack Development": Network,
+  "Mobile Development": Target,
+  "DevOps": RefreshCw,
+  "Cloud Computing": Zap,
+  "Microservices": Network,
+  "Monolithic Architecture": Award,
+  "Agile Development": TrendingUp,
+  "Version Control": BookOpen,
+  "CI/CD": RefreshCw,
+  "Monitoring": AlertOctagon,
+  "Logging": MessageSquare,
+  "Input Validation": CheckCircle2,
+  "Output Formatting": Scale,
+  "Resource Management": Zap,
+  "Memory Management": Brain,
+  "Concurrency": Network,
+  "Asynchronous Programming": RefreshCw,
+  "Event Handling": Lightbulb,
+  "State Management": Award,
+  "Routing": Target,
+  "Authentication": AlertOctagon,
+  "Authorization": Scale,
+  "Data Validation": CheckCircle2,
+  "Data Transformation": TrendingUp,
+  "File I/O": BookOpen,
+  "Network Communication": Network,
+  "Caching": Zap,
+  "Load Balancing": Scale,
+  "Fault Tolerance": AlertCircle,
+  "Disaster Recovery": AlertOctagon,
+  "Backup Strategies": BookOpen,
+  "Data Migration": RefreshCw,
+  "Schema Design": Award,
+  "Query Optimization": Zap,
+  "Indexing": Target,
+  "Transactions": Scale,
+  "ACID Properties": CheckCircle2,
+  "Normalization": TrendingUp,
+  "Denormalization": Network,
+  "Sharding": RefreshCw,
+  "Replication": MessageSquare,
+  "Consistency": Scale,
+  "Availability": Zap,
+  "Partition Tolerance": Network,
   default: Brain,
 };
 
@@ -200,6 +260,7 @@ export default function ResultPage() {
   const [isReattempting, setIsReattempting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showFullSummary, setShowFullSummary] = useState(false); // <-- Add this state
 
   const { problemId, analysisId } = useMemo(() => {
     const isProblemResultRoute = location.pathname.includes('/problem/') && location.pathname.endsWith('/result');
@@ -380,28 +441,73 @@ export default function ResultPage() {
       <div className="max-w-7xl mx-auto py-8 px-4 space-y-12">
         {/* Header Section */}
         <AnimatedContent>
-          <div className="text-center mb-12">
-            <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-4xl md:text-6xl font-bold font-heading mb-6 text-base-content"
-            >
-              {problem.title}
-            </motion.h1>
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-xl text-base-content/70 max-w-3xl mx-auto leading-relaxed"
-            >
-              {analysisToDisplay.summary}
-            </motion.p>
+          <div className="flex flex-col lg:flex-row items-start gap-8 mb-12">
+            <div className="flex-1">
+              <motion.h1 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-4xl md:text-5xl font-bold font-heading mb-6 text-base-content text-left"
+              >
+                {problem.title}
+              </motion.h1>
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="text-lg text-base-content/70 leading-relaxed"
+              >
+                {analysisToDisplay.summary.length > 200 ? (
+                  !showFullSummary ? (
+                    <>
+                      <p className="mb-4">
+                        {analysisToDisplay.summary.substring(0, 200)}...
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setShowFullSummary(true)}
+                        className="text-primary hover:text-primary/80 border border-base-300 focus:ring-0 focus:border-base-300"
+                      >
+                        View More
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-base-content/70 leading-relaxed">{analysisToDisplay.summary}</p>
+                  )
+                ) : (
+                  <p>{analysisToDisplay.summary}</p>
+                )}
+              </motion.div>
+            </div>
+            <div className="lg:w-64 flex-shrink-0">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4 }}
+                className="text-center"
+              >
+                <CircularProgress value={analysisToDisplay.overallScore} size={160} className="bg-base-100/50 backdrop-blur-sm rounded-full p-4 mb-4">
+                  <div className="flex flex-col items-center">
+                    <Trophy className="w-8 h-8 text-primary mb-1" />
+                    <span className="text-sm font-medium text-base-content/70">Score</span>
+                    <CountUp from={0} to={analysisToDisplay.overallScore} duration={2} className="text-3xl font-bold text-primary" />
+                  </div>
+                </CircularProgress>
+                <div className="flex items-center justify-center gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <FloatingIcon icon={Brain} className="w-4 h-4 text-primary" />
+                    <span className="text-base-content/70">AI Confidence:</span>
+                    <CountUp from={0} to={analysisToDisplay.aiConfidence} duration={1.5} className="font-bold text-primary" suffix="%" />
+                  </div>
+                </div>
+              </motion.div>
+            </div>
           </div>
         </AnimatedContent>
 
         {/* Stats Grid */}
         <AnimatedContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 max-w-4xl mx-auto">
             <StatsCard
               title="Overall Score"
               value={`${analysisToDisplay.overallScore}/100`}
@@ -433,43 +539,50 @@ export default function ResultPage() {
         <AnimatedContent>
           <div className="mb-12">
             <h2 className="text-2xl font-bold mb-6 text-center text-base-content">Detailed Analysis</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {analysisToDisplay.evaluatedParameters?.map((param: any, index: number) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="relative group"
-                >
-                  <div className="p-4 bg-base-100/50 backdrop-blur-sm border border-base-200 rounded-lg hover:shadow-lg transition-all">
-                    <div className="flex items-center gap-3 mb-3">
-                      <FloatingIcon icon={parameterIcons[param.name] || parameterIcons.default} className="w-5 h-5 text-primary" />
-                      <h3 className="text-sm font-medium truncate">{param.name}</h3>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-2 bg-base-300 rounded-full overflow-hidden">
-                        <motion.div 
-                          className={`h-full bg-gradient-to-r ${param.score <= 25 ? "from-red-500 to-red-600" : param.score <= 50 ? "from-orange-500 to-orange-600" : param.score <= 75 ? "from-yellow-500 to-yellow-600" : "from-green-500 to-green-600"}`}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${param.score}%` }}
-                          transition={{ duration: 1, delay: 0.5 }}
-                        />
+            <div className="flex justify-center">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-w-6xl">
+                {analysisToDisplay.evaluatedParameters?.map((param: any, index: number) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="relative group"
+                  >
+                    <div className="p-3 bg-gradient-to-br from-base-100/80 to-base-200/40 backdrop-blur-sm border border-base-300/50 rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer">
+                      <div className="flex flex-col items-center text-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                          <FloatingIcon icon={parameterIcons[param.name] || parameterIcons.default} className="w-4 h-4 text-primary" />
+                        </div>
+                        <h3 className="text-xs font-semibold text-base-content/90 leading-tight">{param.name}</h3>
+                        <div className="w-full">
+                          <div className="flex items-center justify-between mb-1">
+                            <CountUp 
+                              from={0} 
+                              to={param.score} 
+                              duration={1.5}
+                              className="text-lg font-bold text-primary"
+                              suffix="%"
+                            />
+                          </div>
+                          <div className="w-full h-1.5 bg-base-300/50 rounded-full overflow-hidden">
+                            <motion.div 
+                              className={`h-full bg-gradient-to-r ${param.score <= 25 ? "from-red-400 to-red-500" : param.score <= 50 ? "from-orange-400 to-orange-500" : param.score <= 75 ? "from-yellow-400 to-yellow-500" : "from-green-400 to-green-500"}`}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${param.score}%` }}
+                              transition={{ duration: 1, delay: 0.5 }}
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <CountUp 
-                        from={0} 
-                        to={param.score} 
-                        duration={1.5}
-                        className="text-sm font-bold text-primary"
-                        suffix="%"
-                      />
+                      <div className="hidden group-hover:block absolute top-full left-0 right-0 mt-2 p-3 bg-base-100/95 backdrop-blur-md border border-base-300 rounded-lg shadow-xl z-10 text-xs max-w-xs">
+                        <div className="font-medium text-base-content mb-1">{param.name}</div>
+                        <div className="text-base-content/70">{param.justification}</div>
+                      </div>
                     </div>
-                    <div className="hidden group-hover:block absolute top-full left-0 right-0 mt-2 p-3 bg-base-100 border border-base-300 rounded-lg shadow-lg z-10 text-sm">
-                      {param.justification}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </div>
         </AnimatedContent>
@@ -478,29 +591,30 @@ export default function ResultPage() {
         <div className="space-y-16">
           <FeedbackFeature
             title="Strengths"
-            items={analysisToDisplay.feedback?.strengths}
             badgeText="Excellent"
             badgeVariant="default"
             icon={ThumbsUp}
             colors={["#10B981", "#34D399", "#6EE7B7"]}
+            allItems={analysisToDisplay.feedback?.strengths}
           />
           
           <FeedbackFeature
             title="Areas for Improvement"
-            items={analysisToDisplay.feedback?.areasForImprovement}
             badgeText="Opportunities"
             badgeVariant="secondary"
             icon={ArrowUpRight}
             colors={["#F59E0B", "#FCD34D", "#FEF3C7"]}
+            allItems={analysisToDisplay.feedback?.areasForImprovement}
+            iconOnLeft={true}
           />
           
           <FeedbackFeature
             title="Suggestions"
-            items={analysisToDisplay.feedback?.suggestions}
             badgeText="Tips"
             badgeVariant="outline"
             icon={Lightbulb}
             colors={["#8B5CF6", "#A78BFA", "#C4B5FD"]}
+            allItems={analysisToDisplay.feedback?.suggestions}
           />
         </div>
 
@@ -509,17 +623,30 @@ export default function ResultPage() {
           <div className="flex flex-col sm:flex-row justify-center gap-4 mt-12">
             <Button 
               variant="outline" 
-              className="px-8 py-3 text-lg" 
+              size="lg"
+              className="px-8 py-3 text-lg border-2 hover:bg-base-200 focus:ring-0 focus:border-2 border-base-300 hover:border-base-300 focus:border-base-300" 
               onClick={() => navigate(`/${username}/crucible`)}
             >
+              <ArrowUpRight className="w-5 h-5 mr-2" />
               Back to Problem
             </Button>
             <Button 
-              className="px-8 py-3 text-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90" 
+              size="lg"
+              className="px-8 py-3 text-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg hover:shadow-xl transition-all duration-300 border-0 focus:ring-0 focus:border-0" 
               onClick={handleReattempt} 
               disabled={isReattempting}
             >
-              {isReattempting ? 'Starting...' : 'Reattempt Problem'}
+              {isReattempting ? (
+                <>
+                  <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                  Starting...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  Reattempt Problem
+                </>
+              )}
             </Button>
           </div>
           
@@ -527,10 +654,16 @@ export default function ResultPage() {
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-center mt-6 p-4 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg border border-primary/20"
+              className="text-center mt-6 p-4 bg-gradient-to-br from-primary/5 via-accent/5 to-primary/5 rounded-xl border border-primary/20 backdrop-blur-sm focus:ring-0 focus:border-0"
             >
-              <p className="text-base-content/80">
-                💡 <strong>Tip:</strong> Your current score is {analysisToDisplay.overallScore}/100. 
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                  <Lightbulb className="w-3 h-3 text-primary" />
+                </div>
+                <h3 className="text-sm font-semibold text-base-content">Pro Tip</h3>
+              </div>
+              <p className="text-sm text-base-content/80">
+                Your current score is <span className="font-bold text-primary">{analysisToDisplay.overallScore}/100</span>. 
                 When you reattempt, you'll see your previous solution and can improve it for a better score!
               </p>
             </motion.div>
@@ -541,31 +674,75 @@ export default function ResultPage() {
         {history.length > 0 && (
           <AnimatedContent>
             <div className="mt-16">
-              <h2 className="text-2xl font-bold mb-6 text-center text-base-content">Analysis History</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-base-content mb-2">Analysis History</h2>
+                <p className="text-base-content/60">Your previous attempts and improvements</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {history.map((item, index) => (
                   <motion.div
                     key={item._id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-lg ${
+                    className={`group relative overflow-hidden rounded-xl border cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105 focus:ring-0 focus:border-0 ${
                       item._id === analysisToDisplay?._id 
-                        ? 'bg-primary/10 border-primary/30' 
-                        : 'bg-base-100/50 border-base-200 hover:border-primary/30'
+                        ? 'bg-gradient-to-br from-primary/10 to-accent/10 border-primary/40 shadow-lg' 
+                        : 'bg-gradient-to-br from-base-100/80 to-base-200/40 border-base-300/50 hover:border-primary/40 hover:bg-gradient-to-br hover:from-primary/5 hover:to-accent/5'
                     }`}
                     onClick={() => navigate(`/${username}/crucible/results/${item._id}`)}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-base-content/60">
-                        {new Date(item.createdAt).toLocaleDateString()}
-                      </span>
-                      <span className="text-sm font-bold text-primary">
-                        {item.overallScore}/100
-                      </span>
-                    </div>
-                    <div className="text-xs text-base-content/40">
-                      {new Date(item.createdAt).toLocaleTimeString()}
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            item._id === analysisToDisplay?._id 
+                              ? 'bg-primary/20 text-primary' 
+                              : 'bg-base-300/50 text-base-content/60'
+                          }`}>
+                            <BarChart3 className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-base-content">
+                              {new Date(item.createdAt).toLocaleDateString()}
+                            </div>
+                            <div className="text-xs text-base-content/50">
+                              {new Date(item.createdAt).toLocaleTimeString()}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-2xl font-bold ${
+                            item._id === analysisToDisplay?._id ? 'text-primary' : 'text-base-content'
+                          }`}>
+                            {item.overallScore}
+                          </div>
+                          <div className="text-xs text-base-content/50">/100</div>
+                        </div>
+                      </div>
+                      
+                      <div className="w-full h-2 bg-base-300/50 rounded-full overflow-hidden">
+                        <motion.div 
+                          className={`h-full bg-gradient-to-r ${
+                            item.overallScore <= 25 ? "from-red-400 to-red-500" : 
+                            item.overallScore <= 50 ? "from-orange-400 to-orange-500" : 
+                            item.overallScore <= 75 ? "from-yellow-400 to-yellow-500" : 
+                            "from-green-400 to-green-500"
+                          }`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${item.overallScore}%` }}
+                          transition={{ duration: 1, delay: 0.5 }}
+                        />
+                      </div>
+                      
+                      <div className="mt-4 flex items-center justify-between">
+                        <Badge variant={item._id === analysisToDisplay?._id ? "default" : "secondary"} className="text-xs">
+                          {item._id === analysisToDisplay?._id ? 'Current' : 'Previous'}
+                        </Badge>
+                        <ArrowUpRight className={`w-4 h-4 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1 ${
+                          item._id === analysisToDisplay?._id ? 'text-primary' : 'text-base-content/40'
+                        }`} />
+                      </div>
                     </div>
                   </motion.div>
                 ))}
