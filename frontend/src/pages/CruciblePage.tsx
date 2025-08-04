@@ -307,29 +307,6 @@ export default function CruciblePage() {
             <p className="text-lg md:text-xl text-base-content/80 mb-6 max-w-2xl mx-auto leading-relaxed">
               Solve real-world programming challenges, design scalable systems, and build your portfolio with our curated collection of problems.
             </p>
-            
-            {/* Search Bar */}
-            <div className="relative max-w-xl mx-auto mb-6">
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary to-primary/80 rounded-xl blur opacity-20 group-hover:opacity-30 transition duration-1000 group-hover:duration-200"></div>
-                <input
-                  type="text"
-                  className="relative w-full pl-10 pr-10 py-3 text-base bg-base-100/90 backdrop-blur-md border border-base-300 rounded-xl shadow-lg focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all duration-300 text-base-content placeholder:text-base-content/60"
-                  placeholder="Search for challenges..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-base-content/60" />
-                {searchQuery && (
-                  <button
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-base-content/60 hover:text-error hover:bg-error/10 transition-colors"
-                    onClick={() => setSearchQuery('')}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            </div>
 
             {/* Stats */}
             <div className="flex justify-center gap-6 mb-6">

@@ -12,6 +12,8 @@ const typeIconMap: Record<string, React.ReactNode> = {
   tool: <Wrench className="w-4 h-4 text-primary" />, // Tool
   video: <Film className="w-4 h-4 text-primary" />, // Video
   repository: <FolderGit2 className="w-4 h-4 text-primary" />, // Repository
+  course: <BookOpen className="w-4 h-4 text-primary" />, // Course
+  book: <BookOpen className="w-4 h-4 text-primary" />, // Book
 };
 
 export type Resource = {
