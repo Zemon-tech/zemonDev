@@ -31,6 +31,7 @@ import { CountUp } from '@/components/blocks/CountUp';
 import { TiltCard } from '@/components/blocks/TiltCard';
 import { CircularProgress } from '@/components/blocks/CircularProgress';
 import { FloatingIcon } from '@/components/blocks/FloatingIcon';
+import { LogoLoader } from '@/components/blocks/LogoLoader';
 
 import { getAnalysisResult, ISolutionAnalysisResult, getProblem, ICrucibleProblem, getAnalysisHistory, reattemptDraft } from '@/lib/crucibleApi';
 import { useAnalysis } from '@/context/AnalysisContext';
@@ -251,18 +252,14 @@ export default function ResultPage() {
   // --- 4. RENDER LOGIC ---
   if (isLoading || isSubmitting) {
     return (
-      <div className="relative min-h-screen bg-base-100 flex items-center justify-center">
+      <div className="fixed inset-0 bg-base-100 flex items-center justify-center overflow-hidden">
         <Aurora className="fixed inset-0 opacity-30 pointer-events-none" />
         <DotGrid className="fixed inset-0 opacity-10 pointer-events-none" />
-        <div className="text-center">
-          <RefreshCw className="w-12 h-12 mx-auto mb-4 text-primary animate-spin" />
-          <h2 className="text-xl font-bold">
-            {isSubmitting ? 'Analyzing your solution...' : 'Loading Analysis...'}
-          </h2>
-          <p className="text-base-content/70 mt-2">
-            {isSubmitting ? 'This may take up to 45 seconds to complete' : 'Please wait while we fetch the data.'}
-          </p>
-        </div>
+        <LogoLoader 
+          text={isSubmitting ? 'Analysing your solution…' : 'Loading Analysis…'}
+          size="lg"
+          className="z-10"
+        />
       </div>
     );
   }

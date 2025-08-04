@@ -6,7 +6,7 @@ import { getForgeResources, registerForgeResourceView, toggleBookmark, getBookma
 import { ResourceCard } from '@/components/blocks/ResourceCard';
 import type { Resource } from '@/components/blocks/ResourceCard';
 import { Button } from '@/components/ui/button';
-import { useRef } from 'react';
+
 
 
 
@@ -21,7 +21,7 @@ export default function ForgePage() {
   const [error, setError] = useState('');
   const [bookmarkedResources, setBookmarkedResources] = useState<string[]>([]);
   const navigate = useNavigate();
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  
 
   useEffect(() => {
     setLoading(true);

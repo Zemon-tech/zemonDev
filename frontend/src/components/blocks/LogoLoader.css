@@ -1,0 +1,57 @@
+/* SVG path styling for the filled shape */
+.filled-path {
+  fill: hsl(var(--p));
+  stroke: none; /* No stroke for the filled shape */
+  opacity: 0; /* Start completely transparent */
+  animation: fade-in 3s ease-in-out infinite;
+}
+
+/* SVG path styling for the drawing outline */
+.outline-path {
+  fill: none; /* No fill for the outline */
+  stroke: hsl(var(--p));
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  /* These properties will be set by JavaScript dynamically */
+  stroke-dasharray: var(--path-length, 1000);
+  stroke-dashoffset: var(--path-length, 1000);
+  
+  /* Animation to draw the outline - now loops infinitely */
+  animation: draw-outline 3s ease-in-out infinite;
+}
+
+/* Fallback animation if CSS variables don't work */
+@supports not (stroke-dasharray: var(--path-length)) {
+  .outline-path {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: draw-outline-fallback 3s ease-in-out infinite;
+  }
+}
+
+.loader-text {
+  color: hsl(var(--bc));
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  opacity: 1;
+}
+
+/* The animation keyframes */
+@keyframes draw-outline {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes draw-outline-fallback {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+} 
