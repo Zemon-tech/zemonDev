@@ -57,7 +57,8 @@ export default {
   },
   plugins: [
     require('daisyui'),
-    require('tailwind-scrollbar-hide')
+    require('tailwind-scrollbar-hide'),
+    require('@tailwindcss/line-clamp')
   ],
   daisyui: {
     themes: true, // Enable all themes

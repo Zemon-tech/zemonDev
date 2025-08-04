@@ -7,7 +7,7 @@ import { useWorkspace } from '@/lib/WorkspaceContext';
 import { Button } from '@/components/ui/button';
 
 // Icons
-import { Search, Bell, X, MessageCircle, BookOpen, FileText, Layers, StickyNote, ArrowLeft, Send, Loader2 } from 'lucide-react';
+import { Search, Bell, X, MessageCircle, BookOpen, FileText, Layers, StickyNote, ArrowLeft, Send, Loader2, Sparkles } from 'lucide-react';
 import gsap from 'gsap';
 import { useRef } from 'react';
 
@@ -32,6 +32,9 @@ export default function AppLayout() {
   
   // Only show submit button on problem page, not on result page
   const showSubmitButton = isCrucibleProblemPage && !isResultPage;
+  
+  // Show result page nav buttons only on result page
+  const showResultPageButtons = isResultPage;
   
   // Only use workspace context values when on a problem page
   const activeContent = isCrucibleProblemPage ? workspaceContext.activeContent : 'solution';
@@ -104,6 +107,16 @@ export default function AppLayout() {
   // Handle navigation with username
   const handleNavigation = (path: string) => {
     navigate(`/${currentUsername}${path}`);
+  };
+  
+  // Result page button handlers
+  const handleBackToProblem = () => {
+    navigate(`/${currentUsername}/crucible`);
+  };
+  
+  const handleReattemptProblem = () => {
+    // Dispatch event to trigger reattempt from ResultPage
+    window.dispatchEvent(new CustomEvent('reattempt-problem'));
   };
   
   // Show back to forge only on /:username/forge/:id
@@ -243,6 +256,28 @@ export default function AppLayout() {
               <div className="flex items-center gap-4">
                 {/* Removed chat/leaderboard/showcase buttons */}
               </div>
+            </div>
+          )}
+
+          {/* Result Page Navigation */}
+          {showResultPageButtons && (
+            <div className="hidden md:flex items-center gap-2">
+              <button
+                className="btn btn-ghost btn-sm text-primary font-medium flex items-center gap-1.5"
+                onClick={handleBackToProblem}
+                title="Back to Problem"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Back to Problem</span>
+              </button>
+              <button
+                className="btn btn-primary btn-sm flex items-center gap-1.5"
+                onClick={handleReattemptProblem}
+                title="Reattempt Problem"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span className="hidden sm:inline">Reattempt</span>
+              </button>
             </div>
           )}
 

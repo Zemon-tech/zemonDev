@@ -5,7 +5,7 @@ import {
   Brain, 
   CheckCircle2, 
   AlertCircle,
-  Sparkles, 
+  Sparkles,
   BookOpen,
   MessageSquare,
   RefreshCw,
@@ -36,6 +36,7 @@ import { LogoLoader } from '@/components/blocks/LogoLoader';
 // Import new components
 import { AnimatedGradient } from '@/components/ui/animated-gradient-with-svg';
 import { Badge } from '@/components/ui/badge';
+import { ParameterCarousel } from '@/components/ui/parameter-carousel';
 
 
 import { getAnalysisResult, ISolutionAnalysisResult, getProblem, ICrucibleProblem, getAnalysisHistory, reattemptDraft } from '@/lib/crucibleApi';
@@ -100,7 +101,7 @@ const StatsCard = ({ title, value, subtitle, colors, delay, icon: Icon }: any) =
 };
 
 // Feedback Feature Component
-const FeedbackFeature = ({ title, items, badgeText, badgeVariant, icon: Icon, imageUrl, colors, showViewAll, allItems, iconOnLeft = false }: any) => {
+const FeedbackFeature = ({ title, badgeText, badgeVariant, icon: Icon, colors, allItems, iconOnLeft = false }: any) => {
   return (
     <div className="w-full py-8">
       <div className="container mx-auto">
@@ -376,6 +377,19 @@ export default function ResultPage() {
     }
   };
 
+  // Listen for reattempt event from navbar
+  useEffect(() => {
+    const handleReattemptEvent = () => {
+      handleReattempt();
+    };
+
+    window.addEventListener('reattempt-problem', handleReattemptEvent);
+    
+    return () => {
+      window.removeEventListener('reattempt-problem', handleReattemptEvent);
+    };
+  }, [problem?._id, getToken, markReattempting, navigate, location.pathname]);
+
   // --- 3. DERIVED STATE FOR RENDER ---
   const isLoading = loading || (contextLoading && !analysisToDisplay);
   const displayError = error || contextError;
@@ -507,7 +521,7 @@ export default function ResultPage() {
 
         {/* Stats Grid */}
         <AnimatedContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             <StatsCard
               title="Overall Score"
               value={`${analysisToDisplay.overallScore}/100`}
@@ -537,54 +551,14 @@ export default function ResultPage() {
 
         {/* Parameter Scores */}
         <AnimatedContent>
-          <div className="mb-12">
-            <h2 className="text-2xl font-bold mb-6 text-center text-base-content">Detailed Analysis</h2>
-            <div className="flex justify-center">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-w-6xl">
-                {analysisToDisplay.evaluatedParameters?.map((param: any, index: number) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="relative group"
-                  >
-                    <div className="p-3 bg-gradient-to-br from-base-100/80 to-base-200/40 backdrop-blur-sm border border-base-300/50 rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer">
-                      <div className="flex flex-col items-center text-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                          <FloatingIcon icon={parameterIcons[param.name] || parameterIcons.default} className="w-4 h-4 text-primary" />
-                        </div>
-                        <h3 className="text-xs font-semibold text-base-content/90 leading-tight">{param.name}</h3>
-                        <div className="w-full">
-                          <div className="flex items-center justify-between mb-1">
-                            <CountUp 
-                              from={0} 
-                              to={param.score} 
-                              duration={1.5}
-                              className="text-lg font-bold text-primary"
-                              suffix="%"
-                            />
-                          </div>
-                          <div className="w-full h-1.5 bg-base-300/50 rounded-full overflow-hidden">
-                            <motion.div 
-                              className={`h-full bg-gradient-to-r ${param.score <= 25 ? "from-red-400 to-red-500" : param.score <= 50 ? "from-orange-400 to-orange-500" : param.score <= 75 ? "from-yellow-400 to-yellow-500" : "from-green-400 to-green-500"}`}
-                              initial={{ width: 0 }}
-                              animate={{ width: `${param.score}%` }}
-                              transition={{ duration: 1, delay: 0.5 }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="hidden group-hover:block absolute top-full left-0 right-0 mt-2 p-3 bg-base-100/95 backdrop-blur-md border border-base-300 rounded-lg shadow-xl z-10 text-xs max-w-xs">
-                        <div className="font-medium text-base-content mb-1">{param.name}</div>
-                        <div className="text-base-content/70">{param.justification}</div>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <ParameterCarousel 
+            parameters={analysisToDisplay.evaluatedParameters?.map((param: any) => ({
+              name: param.name,
+              score: param.score,
+              justification: param.justification,
+              icon: parameterIcons[param.name] || parameterIcons.default
+            })) || []}
+          />
         </AnimatedContent>
 
         {/* Feedback Sections */}
@@ -618,43 +592,13 @@ export default function ResultPage() {
           />
         </div>
 
-        {/* Action Buttons */}
-        <AnimatedContent>
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mt-12">
-            <Button 
-              variant="outline" 
-              size="lg"
-              className="px-8 py-3 text-lg border-2 hover:bg-base-200 focus:ring-0 focus:border-2 border-base-300 hover:border-base-300 focus:border-base-300" 
-              onClick={() => navigate(`/${username}/crucible`)}
-            >
-              <ArrowUpRight className="w-5 h-5 mr-2" />
-              Back to Problem
-            </Button>
-            <Button 
-              size="lg"
-              className="px-8 py-3 text-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg hover:shadow-xl transition-all duration-300 border-0 focus:ring-0 focus:border-0" 
-              onClick={handleReattempt} 
-              disabled={isReattempting}
-            >
-              {isReattempting ? (
-                <>
-                  <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                  Starting...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Reattempt Problem
-                </>
-              )}
-            </Button>
-          </div>
-          
-          {analysisToDisplay.overallScore < 100 && (
+        {/* Pro Tip Section */}
+        {analysisToDisplay.overallScore < 100 && (
+          <AnimatedContent>
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-center mt-6 p-4 bg-gradient-to-br from-primary/5 via-accent/5 to-primary/5 rounded-xl border border-primary/20 backdrop-blur-sm focus:ring-0 focus:border-0"
+              className="text-center mt-12 p-4 bg-gradient-to-br from-primary/5 via-accent/5 to-primary/5 rounded-xl border border-primary/20 backdrop-blur-sm focus:ring-0 focus:border-0"
             >
               <div className="flex items-center justify-center gap-2 mb-2">
                 <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
@@ -667,8 +611,8 @@ export default function ResultPage() {
                 When you reattempt, you'll see your previous solution and can improve it for a better score!
               </p>
             </motion.div>
-          )}
-        </AnimatedContent>
+          </AnimatedContent>
+        )}
 
         {/* History Section */}
         {history.length > 0 && (
