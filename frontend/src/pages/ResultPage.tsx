@@ -18,7 +18,10 @@ import {
   Zap,
   ArrowUpRight,
   ThumbsUp,
-  Info
+  Info,
+  TrendingUp,
+  Award,
+  BarChart3
 } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@clerk/clerk-react';
@@ -33,47 +36,116 @@ import { CircularProgress } from '@/components/blocks/CircularProgress';
 import { FloatingIcon } from '@/components/blocks/FloatingIcon';
 import { LogoLoader } from '@/components/blocks/LogoLoader';
 
+// Import new components
+import { AnimatedGradient } from '@/components/ui/animated-gradient-with-svg';
+import { Feature } from '@/components/ui/feature-with-image';
+import { Badge } from '@/components/ui/badge';
+
 import { getAnalysisResult, ISolutionAnalysisResult, getProblem, ICrucibleProblem, getAnalysisHistory, reattemptDraft } from '@/lib/crucibleApi';
 import { useAnalysis } from '@/context/AnalysisContext';
 import { logger } from '@/lib/utils';
 
-const CharacteristicBadge = ({ icon: Icon, name, score, justification }: any) => {
-  const getProgressColor = (score: number) => {
-    if (score <= 25) return "from-red-500 to-red-600";
-    if (score <= 50) return "from-orange-500 to-orange-600";
-    if (score <= 75) return "from-yellow-500 to-yellow-600";
-    return "from-green-500 to-green-600";
+// Stats Card Component with Animated Gradient
+const StatsCard = ({ title, value, subtitle, colors, delay, icon: Icon }: any) => {
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: delay + 0.3,
+      },
+    },
+  };
+
+  const item = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { duration: 0.5 } },
   };
 
   return (
-    <TiltCard className="relative group">
-      <SpotlightCard className="p-3 flex items-center gap-3 bg-base-200/50 backdrop-blur-sm border border-base-300 rounded-lg hover:shadow-lg transition-all cursor-default">
-        <FloatingIcon icon={Icon} className="w-8 h-8 text-primary" />
-        <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium truncate">{name}</h3>
-          <div className="flex items-center gap-2">
-            <div className="flex-1 h-1.5 bg-base-300 rounded-full overflow-hidden">
-              <motion.div 
-                className={`h-full bg-gradient-to-r ${getProgressColor(score)}`}
-                initial={{ width: 0 }}
-                animate={{ width: `${score}%` }}
-                transition={{ duration: 1, delay: 0.5 }}
-              />
+    <motion.div
+      className="relative overflow-hidden h-full bg-background/50 backdrop-blur-sm rounded-xl border border-base-200"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5, delay }}
+    >
+      <AnimatedGradient colors={colors} speed={0.05} blur="medium" />
+      <motion.div
+        className="relative z-10 p-6 text-foreground"
+        variants={container}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.div className="flex items-center gap-3 mb-4" variants={item}>
+          <FloatingIcon icon={Icon} className="w-6 h-6 text-primary" />
+          <h3 className="text-sm font-medium text-foreground/80">
+            {title}
+          </h3>
+        </motion.div>
+        <motion.div
+          className="text-3xl font-bold mb-2 text-foreground"
+          variants={item}
+        >
+          {value}
+        </motion.div>
+        {subtitle && (
+          <motion.p 
+            className="text-sm text-foreground/60" 
+            variants={item}
+          >
+            {subtitle}
+          </motion.p>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// Feedback Feature Component
+const FeedbackFeature = ({ title, items, badgeText, badgeVariant, icon: Icon, imageUrl, colors }: any) => {
+  return (
+    <div className="w-full py-8">
+      <div className="container mx-auto">
+        <div className="flex flex-col-reverse lg:flex-row gap-8 lg:items-center">
+          <div className="flex-1">
+            <div className="flex gap-4 pl-0 lg:pl-8 flex-col">
+              <div>
+                <Badge variant={badgeVariant}>{badgeText}</Badge>
+              </div>
+              <div className="flex gap-2 flex-col">
+                <h2 className="text-2xl md:text-3xl tracking-tighter lg:max-w-xl font-bold text-left flex items-center gap-3">
+                  <FloatingIcon icon={Icon} className="w-8 h-8 text-primary" />
+                  {title}
+                </h2>
+                <div className="space-y-3 mt-4">
+                  {items?.map((item: string, index: number) => (
+                    <motion.div 
+                      key={index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="flex items-start gap-3 text-base-content/80"
+                    >
+                      <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-1" />
+                      <span className="leading-relaxed">{item}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
             </div>
-            <CountUp 
-              from={0} 
-              to={score} 
-              duration={1.5}
-              className="text-sm font-bold text-primary"
-              suffix="%"
-            />
           </div>
-          <div className="hidden group-hover:block absolute top-full left-0 right-0 mt-2 p-3 bg-base-100 border border-base-300 rounded-lg shadow-lg z-10 text-sm">
-            {justification}
+          <div className="flex-1">
+            <div className="relative overflow-hidden rounded-xl aspect-video bg-gradient-to-br from-primary/10 to-accent/10 border border-base-200">
+              <AnimatedGradient colors={colors} speed={0.03} blur="light" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <FloatingIcon icon={Icon} className="w-16 h-16 text-primary/60" />
+              </div>
+            </div>
           </div>
         </div>
-      </SpotlightCard>
-    </TiltCard>
+      </div>
+    </div>
   );
 };
 
@@ -120,7 +192,6 @@ export default function ResultPage() {
     clearReattemptingState = analysisContext.clearReattemptingState;
   } catch (error) {
     console.warn('AnalysisContext not available, using fallback values:', error);
-    // Use fallback values - this allows the page to render even without context
   }
   
   const [localAnalysis, setLocalAnalysis] = useState<ISolutionAnalysisResult | null>(null);
@@ -181,7 +252,6 @@ export default function ResultPage() {
           currentProblemId = fetchedAnalysis.problemId;
           setLocalAnalysis(fetchedAnalysis);
           
-          // Clear reattempting state since we have a valid analysis
           if (currentProblemId) {
             clearReattemptingState(currentProblemId);
           }
@@ -256,7 +326,6 @@ export default function ResultPage() {
         <Aurora className="fixed inset-0 opacity-30 pointer-events-none" />
         <DotGrid className="fixed inset-0 opacity-10 pointer-events-none" />
         <LogoLoader 
-          text={isSubmitting ? 'Analysing your solution…' : 'Loading Analysis…'}
           size="lg"
           className="z-10"
         />
@@ -308,180 +377,202 @@ export default function ResultPage() {
       <Aurora className="fixed inset-0 opacity-30 pointer-events-none" />
       <DotGrid className="fixed inset-0 opacity-10 pointer-events-none" />
 
-      <div className="max-w-5xl mx-auto py-4 space-y-6">
+      <div className="max-w-7xl mx-auto py-8 px-4 space-y-12">
+        {/* Header Section */}
         <AnimatedContent>
-          <TiltCard className="relative overflow-hidden glass bg-gradient-to-tr from-primary/5 to-accent/5 p-6 rounded-xl border border-base-200">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-start gap-6">
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold font-heading mb-3 text-base-content">
-                  {problem.title}
-                </h1>
-                <p className="text-lg text-base-content/80 mb-4">{analysisToDisplay.summary}</p>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <FloatingIcon icon={Brain} className="w-5 h-5 text-primary" />
-                    <span className="font-semibold text-base-content">AI Confidence:</span>
-                    <CountUp from={0} to={analysisToDisplay.aiConfidence} duration={1.5} className="text-lg font-bold text-primary" suffix="%" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FloatingIcon icon={Target} className="w-5 h-5 text-accent" />
-                    <span className="font-semibold text-base-content">Overall Score:</span>
-                    <CountUp from={0} to={analysisToDisplay.overallScore} duration={1.5} className="text-lg font-bold text-accent" suffix="/100" />
-                  </div>
-                </div>
-              </div>
-              <div className="shrink-0">
-                <CircularProgress value={analysisToDisplay.overallScore} size={160} className="bg-base-100/50 backdrop-blur-sm rounded-full p-4">
-                  <div className="flex flex-col items-center">
-                    <Trophy className="w-8 h-8 text-primary mb-1" />
-                    <span className="text-sm font-medium text-base-content/70">Score</span>
-                    <CountUp from={0} to={analysisToDisplay.overallScore} duration={2} className="text-3xl font-bold text-primary" />
-                  </div>
-                </CircularProgress>
-              </div>
-            </motion.div>
-          </TiltCard>
+          <div className="text-center mb-12">
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-4xl md:text-6xl font-bold font-heading mb-6 text-base-content"
+            >
+              {problem.title}
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-xl text-base-content/70 max-w-3xl mx-auto leading-relaxed"
+            >
+              {analysisToDisplay.summary}
+            </motion.p>
+          </div>
         </AnimatedContent>
 
-        <AnimatedContent className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {analysisToDisplay.evaluatedParameters?.map((param: any, index: number) => (
-            <CharacteristicBadge
-              key={index}
-              icon={parameterIcons[param.name] || parameterIcons.default}
-              name={param.name}
-              score={param.score}
-              justification={param.justification}
+        {/* Stats Grid */}
+        <AnimatedContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <StatsCard
+              title="Overall Score"
+              value={`${analysisToDisplay.overallScore}/100`}
+              subtitle="Your performance score"
+              colors={["#3B82F6", "#60A5FA", "#93C5FD"]}
+              delay={0.2}
+              icon={Trophy}
             />
-          ))}
+            <StatsCard
+              title="AI Confidence"
+              value={`${analysisToDisplay.aiConfidence}%`}
+              subtitle="Analysis reliability"
+              colors={["#60A5FA", "#34D399", "#93C5FD"]}
+              delay={0.4}
+              icon={Brain}
+            />
+            <StatsCard
+              title="Problem Difficulty"
+              value={problem.difficulty || "Medium"}
+              subtitle="Challenge level"
+              colors={["#F59E0B", "#A78BFA", "#FCD34D"]}
+              delay={0.6}
+              icon={Target}
+            />
+          </div>
         </AnimatedContent>
 
+        {/* Parameter Scores */}
         <AnimatedContent>
-          <SpotlightCard className="p-4 bg-base-100/50 backdrop-blur-sm border border-base-200 rounded-xl">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <h2 className="text-xl font-bold mb-3 flex items-center gap-2 text-base-content">
-                  <Target className="w-5 h-5 text-primary" />
-                  Problem Requirements
-                </h2>
-                <ul className="space-y-2">
-                  {problem.requirements?.functional?.map((req, index) => (
-                    <motion.li key={`func-${index}`} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.1 }} className="flex items-center gap-2 text-base-content/80">
-                      <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
-                      <span>{req}</span>
-                    </motion.li>
-                  ))}
-                  {problem.requirements?.nonFunctional?.map((req, index) => (
-                    <motion.li key={`nonfunc-${index}`} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: (problem.requirements.functional?.length || 0) + index * 0.1 }} className="flex items-center gap-2 text-base-content/80">
-                      <CheckCircle2 className="w-4 h-4 text-info shrink-0" />
-                      <span>{req}</span>
-                    </motion.li>
-                  ))}
-                </ul>
-              </div>
-              <div className="md:w-64">
-                <h2 className="text-xl font-bold mb-3 flex items-center gap-2 text-base-content">
-                  <Zap className="w-5 h-5 text-primary" />
-                  Technologies
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {problem.tags?.map((tag, index) => (
-                    <motion.span key={index} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: index * 0.1 }} className="px-3 py-1 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 backdrop-blur-sm text-sm font-medium text-primary border border-primary/20">
-                      {tag}
-                    </motion.span>
-                  ))}
-                </div>
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold mb-6 text-center text-base-content">Detailed Analysis</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {analysisToDisplay.evaluatedParameters?.map((param: any, index: number) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="relative group"
+                >
+                  <div className="p-4 bg-base-100/50 backdrop-blur-sm border border-base-200 rounded-lg hover:shadow-lg transition-all">
+                    <div className="flex items-center gap-3 mb-3">
+                      <FloatingIcon icon={parameterIcons[param.name] || parameterIcons.default} className="w-5 h-5 text-primary" />
+                      <h3 className="text-sm font-medium truncate">{param.name}</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 bg-base-300 rounded-full overflow-hidden">
+                        <motion.div 
+                          className={`h-full bg-gradient-to-r ${param.score <= 25 ? "from-red-500 to-red-600" : param.score <= 50 ? "from-orange-500 to-orange-600" : param.score <= 75 ? "from-yellow-500 to-yellow-600" : "from-green-500 to-green-600"}`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${param.score}%` }}
+                          transition={{ duration: 1, delay: 0.5 }}
+                        />
+                      </div>
+                      <CountUp 
+                        from={0} 
+                        to={param.score} 
+                        duration={1.5}
+                        className="text-sm font-bold text-primary"
+                        suffix="%"
+                      />
+                    </div>
+                    <div className="hidden group-hover:block absolute top-full left-0 right-0 mt-2 p-3 bg-base-100 border border-base-300 rounded-lg shadow-lg z-10 text-sm">
+                      {param.justification}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </AnimatedContent>
+
+        {/* Feedback Sections */}
+        <div className="space-y-16">
+          <FeedbackFeature
+            title="Strengths"
+            items={analysisToDisplay.feedback?.strengths}
+            badgeText="Excellent"
+            badgeVariant="default"
+            icon={ThumbsUp}
+            colors={["#10B981", "#34D399", "#6EE7B7"]}
+          />
+          
+          <FeedbackFeature
+            title="Areas for Improvement"
+            items={analysisToDisplay.feedback?.areasForImprovement}
+            badgeText="Opportunities"
+            badgeVariant="secondary"
+            icon={ArrowUpRight}
+            colors={["#F59E0B", "#FCD34D", "#FEF3C7"]}
+          />
+          
+          <FeedbackFeature
+            title="Suggestions"
+            items={analysisToDisplay.feedback?.suggestions}
+            badgeText="Tips"
+            badgeVariant="outline"
+            icon={Lightbulb}
+            colors={["#8B5CF6", "#A78BFA", "#C4B5FD"]}
+          />
+        </div>
+
+        {/* Action Buttons */}
+        <AnimatedContent>
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mt-12">
+            <Button 
+              variant="outline" 
+              className="px-8 py-3 text-lg" 
+              onClick={() => navigate(`/${username}/crucible`)}
+            >
+              Back to Problem
+            </Button>
+            <Button 
+              className="px-8 py-3 text-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90" 
+              onClick={handleReattempt} 
+              disabled={isReattempting}
+            >
+              {isReattempting ? 'Starting...' : 'Reattempt Problem'}
+            </Button>
+          </div>
+          
+          {analysisToDisplay.overallScore < 100 && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center mt-6 p-4 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg border border-primary/20"
+            >
+              <p className="text-base-content/80">
+                💡 <strong>Tip:</strong> Your current score is {analysisToDisplay.overallScore}/100. 
+                When you reattempt, you'll see your previous solution and can improve it for a better score!
+              </p>
+            </motion.div>
+          )}
+        </AnimatedContent>
+
+        {/* History Section */}
+        {history.length > 0 && (
+          <AnimatedContent>
+            <div className="mt-16">
+              <h2 className="text-2xl font-bold mb-6 text-center text-base-content">Analysis History</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {history.map((item, index) => (
+                  <motion.div
+                    key={item._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-lg ${
+                      item._id === analysisToDisplay?._id 
+                        ? 'bg-primary/10 border-primary/30' 
+                        : 'bg-base-100/50 border-base-200 hover:border-primary/30'
+                    }`}
+                    onClick={() => navigate(`/${username}/crucible/results/${item._id}`)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-base-content/60">
+                        {new Date(item.createdAt).toLocaleDateString()}
+                      </span>
+                      <span className="text-sm font-bold text-primary">
+                        {item.overallScore}/100
+                      </span>
+                    </div>
+                    <div className="text-xs text-base-content/40">
+                      {new Date(item.createdAt).toLocaleTimeString()}
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             </div>
-          </SpotlightCard>
-        </AnimatedContent>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <AnimatedContent>
-            <SpotlightCard className="h-full p-4 bg-base-100/50 backdrop-blur-sm border border-base-200 rounded-xl">
-              <h2 className="text-xl font-bold mb-3 flex items-center gap-2 text-base-content">
-                <ThumbsUp className="w-5 h-5 text-success" />
-                Strengths
-              </h2>
-              <ul className="space-y-3">
-                {analysisToDisplay.feedback?.strengths?.map((strength: any, index: number) => (
-                  <motion.li key={index} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="flex items-start gap-2 text-base-content/80">
-                    <CheckCircle2 className="w-4 h-4 text-success shrink-0 mt-1" />
-                    <span>{strength}</span>
-                  </motion.li>
-                ))}
-              </ul>
-            </SpotlightCard>
           </AnimatedContent>
-
-          <AnimatedContent>
-            <SpotlightCard className="h-full p-4 bg-base-100/50 backdrop-blur-sm border border-base-200 rounded-xl">
-              <h2 className="text-xl font-bold mb-3 flex items-center gap-2 text-base-content">
-                <ArrowUpRight className="w-5 h-5 text-warning" />
-                Areas for Improvement
-              </h2>
-              <ul className="space-y-3">
-                {analysisToDisplay.feedback?.areasForImprovement?.map((area: any, index: number) => (
-                  <motion.li key={index} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="flex items-start gap-2 text-base-content/80">
-                    <AlertCircle className="w-4 h-4 text-warning shrink-0 mt-1" />
-                    <span>{area}</span>
-                  </motion.li>
-                ))}
-              </ul>
-            </SpotlightCard>
-          </AnimatedContent>
-
-          <AnimatedContent>
-            <SpotlightCard className="h-full p-4 bg-base-100/50 backdrop-blur-sm border border-base-200 rounded-xl">
-              <h2 className="text-xl font-bold mb-3 flex items-center gap-2 text-base-content">
-                <Lightbulb className="w-5 h-5 text-primary" />
-                Suggestions
-              </h2>
-              <ul className="space-y-3">
-                {analysisToDisplay.feedback?.suggestions?.map((suggestion: any, index: number) => (
-                  <motion.li key={index} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="flex items-start gap-2 text-base-content/80">
-                    <Info className="w-4 h-4 text-primary shrink-0 mt-1" />
-                    <span>{suggestion}</span>
-                  </motion.li>
-                ))}
-              </ul>
-            </SpotlightCard>
-          </AnimatedContent>
-        </div>
-
-        <div className="flex justify-center gap-4 mt-8">
-          <Button variant="outline" className="px-6 py-2" onClick={() => navigate(`/${username}/crucible`)}>
-            Back to Problem
-          </Button>
-          <Button className="px-6 py-2" onClick={handleReattempt} disabled={isReattempting}>
-            {isReattempting ? 'Starting...' : 'Reattempt Problem'}
-          </Button>
-        </div>
-        {analysisToDisplay.overallScore < 100 && (
-          <div className="text-center mt-4 p-3 bg-base-200/50 rounded-lg">
-            <p className="text-sm text-base-content/70">
-              💡 <strong>Tip:</strong> Your current score is {analysisToDisplay.overallScore}/100. 
-              When you reattempt, you'll see your previous solution and can improve it for a better score!
-            </p>
-          </div>
         )}
-
-        <div className="mt-12">
-          <h2 className="text-xl font-bold mb-4">Past Analyses</h2>
-          {history.length === 0 ? (
-            <div className="text-base-content/60">No past analyses found.</div>
-          ) : (
-            <ul className="menu bg-base-200 rounded-box p-4">
-              {history.map((item) => (
-                <li key={item._id}>
-                  <button className={`menu-item text-left w-full ${item._id === analysisToDisplay?._id ? 'menu-active' : ''}`} onClick={() => navigate(`/${username}/crucible/results/${item._id}`)}>
-                    <span className="font-semibold">{new Date(item.createdAt).toLocaleString()}</span>
-                    <span className="ml-2 text-base-content/70">Score: {item.overallScore}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
       </div>
     </div>
   );
