@@ -1,5 +1,10 @@
 import { Router } from 'express';
-import { getAllUsers } from '../controllers/admin.controller';
+import { 
+  getAllUsers, 
+  getShowcaseProjects, 
+  approveShowcaseProject, 
+  rejectShowcaseProject 
+} from '../controllers/admin.controller';
 import { protect, checkRole } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -10,5 +15,10 @@ router.use(checkRole(['admin', 'moderator']));
 
 // Define routes
 router.get('/users', getAllUsers);
+
+// Showcase approval routes
+router.get('/showcase', getShowcaseProjects);
+router.post('/showcase/:projectId/approve', approveShowcaseProject);
+router.post('/showcase/:projectId/reject', rejectShowcaseProject);
 
 export default router;

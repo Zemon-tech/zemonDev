@@ -2,17 +2,18 @@ import React, { useState } from 'react';
 import UserList from './UserList';
 import JoinRequestsTable from './JoinRequestsTable';
 import ChannelManagement from './ChannelManagement';
+import ShowcaseManagement from './ShowcaseManagement';
 import { useUserRole } from '@/context/UserRoleContext';
 
 
 const AdminPanel: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'users' | 'channels' | 'content' | 'joinRequests'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'channels' | 'showcase' | 'joinRequests'>('users');
   const { hasAdminAccess } = useUserRole();
 
   const tabs = [
     { id: 'users' as const, label: 'Users', icon: '👥' },
     { id: 'channels' as const, label: 'Channels', icon: '📺' },
-    { id: 'content' as const, label: 'Content', icon: '📝' },
+    { id: 'showcase' as const, label: 'Showcase', icon: '⭐' },
     { id: 'joinRequests' as const, label: 'Join Requests', icon: '🔗' },
   ];
 
@@ -30,17 +31,8 @@ const AdminPanel: React.FC = () => {
             <p className="text-base-content/70">You need admin privileges to access channel management</p>
           </div>
         );
-      case 'content':
-        return (
-          <div className="p-6 text-center">
-            <div className="text-6xl mb-4">📝</div>
-            <h3 className="text-xl font-semibold mb-2">Content Management</h3>
-            <p className="text-base-content/70">Coming Soon</p>
-            <p className="text-sm text-base-content/50 mt-2">
-              Moderate messages, announcements, and showcase content
-            </p>
-          </div>
-        );
+      case 'showcase':
+        return <ShowcaseManagement />;
       case 'joinRequests':
         return <JoinRequestsTable />;
       default:

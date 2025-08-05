@@ -105,97 +105,96 @@ const ShowcaseChannel: React.FC = () => {
               key={project._id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={cn(
-                "group bg-white rounded-xl border border-base-200 shadow-sm hover:shadow-lg transition-all duration-200 flex flex-col min-h-0 h-64", // fixed height
-                "hover:-translate-y-1 hover:border-primary/40"
-              )}
+              className="group"
               style={{ maxWidth: 340, minWidth: 0 }}
             >
-              {/* Image Thumbnail */}
-              <div className="h-24 w-full bg-base-200 rounded-t-xl overflow-hidden flex items-center justify-center">
-                {project.images && project.images[0] ? (
-                  <img
-                    src={project.images[0]}
-                    alt={project.title}
-                    className="object-cover w-full h-full"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center w-full h-full text-base-content/30 text-4xl">
-                    <Hash className="w-8 h-8" />
+              <div className="card bg-base-100 shadow-sm hover:shadow-lg transition-all duration-200 h-64 flex flex-col min-h-0 hover:-translate-y-1 hover:border-primary/40">
+                {/* Image Thumbnail */}
+                <figure className="h-24 w-full bg-base-200 overflow-hidden flex items-center justify-center">
+                  {project.images && project.images[0] ? (
+                    <img
+                      src={project.images[0]}
+                      alt={project.title}
+                      className="object-cover w-full h-full"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center w-full h-full text-base-content/30 text-4xl">
+                      <Hash className="w-8 h-8" />
+                    </div>
+                  )}
+                </figure>
+                {/* Card Body */}
+                <div className="card-body flex-1 flex flex-col px-3 py-2 gap-1 min-h-0">
+                  {/* Header: Avatar, Username, Date */}
+                  <div className="flex items-center gap-2 text-xs text-base-content/70 mb-0 min-w-0">
+                    <Avatar className="w-6 h-6">
+                      <AvatarFallback>{project.username.charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium text-base-content/80 truncate max-w-[80px]">{project.username}</span>
+                    <span className="mx-1">•</span>
+                    <span className="truncate max-w-[60px]">{new Date(project.submittedAt).toLocaleDateString()}</span>
                   </div>
-                )}
-              </div>
-              {/* Card Content */}
-              <div className="flex-1 flex flex-col px-3 py-2 gap-1 min-h-0">
-                {/* Header: Avatar, Username, Date */}
-                <div className="flex items-center gap-2 text-xs text-base-content/70 mb-0 min-w-0">
-                  <Avatar className="w-6 h-6">
-                    <AvatarFallback>{project.username.charAt(0).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <span className="font-medium text-base-content/80 truncate max-w-[80px]">{project.username}</span>
-                  <span className="mx-1">•</span>
-                  <span className="truncate max-w-[60px]">{new Date(project.submittedAt).toLocaleDateString()}</span>
-                </div>
-                {/* Title */}
-                <h3 className="font-semibold text-base-content text-sm truncate line-clamp-1" title={project.title}>{project.title}</h3>
-                {/* Description (truncated) */}
-                {project.description && (
-                  <p className="text-xs text-base-content/70 line-clamp-2 min-h-0" title={project.description}>{project.description}</p>
-                )}
-                {/* Actions */}
-                <div className="flex items-center gap-2 mt-auto pt-1 pb-1 justify-between">
-                  {/* Upvote */}
-                  <span title={project.hasUpvoted ? 'You upvoted' : 'Upvote'}>
-                    <button
-                      onClick={() => upvoteProject(project._id)}
-                      disabled={project.hasUpvoted || project.hasDownvoted}
-                      className={cn(
-                        "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border border-base-200",
-                        project.hasUpvoted ? "bg-primary/10 text-primary border-primary" : "bg-base-100 text-base-content/70 hover:bg-primary/10 hover:text-primary"
-                      )}
-                    >
-                      <ThumbsUp className="w-4 h-4" />
-                      <span>{project.upvotes}</span>
-                    </button>
-                  </span>
-                  {/* Downvote */}
-                  <span title={project.hasDownvoted ? 'You downvoted' : 'Downvote'}>
-                    <button
-                      onClick={() => project.hasDownvoted ? removeDownvoteProject(project._id) : downvoteProject(project._id)}
-                      disabled={project.hasUpvoted}
-                      className={cn(
-                        "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border border-base-200",
-                        project.hasDownvoted ? "bg-red-100 text-red-600 border-red-300" : "bg-base-100 text-base-content/70 hover:bg-red-100 hover:text-red-600"
-                      )}
-                    >
-                      <ThumbsDown className="w-4 h-4" />
-                      <span>{project.downvotes}</span>
-                    </button>
-                  </span>
-                  {/* Repo */}
-                  <span title="View Repository">
-                    <a
-                      href={project.gitRepositoryUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 rounded-full hover:bg-base-200 text-base-content/70 hover:text-primary transition-colors"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
-                  </span>
-                  {/* Demo */}
-                  {project.demoUrl && (
-                    <span title="View Demo">
+                  {/* Title */}
+                  <h3 className="card-title text-base-content text-sm truncate line-clamp-1" title={project.title}>{project.title}</h3>
+                  {/* Description (truncated) */}
+                  {project.description && (
+                    <p className="text-xs text-base-content/70 line-clamp-2 min-h-0" title={project.description}>{project.description}</p>
+                  )}
+                  {/* Actions */}
+                  <div className="card-actions flex items-center gap-2 mt-auto pt-1 pb-1 justify-between">
+                    {/* Upvote */}
+                    <span title={project.hasUpvoted ? 'You upvoted' : 'Upvote'}>
+                      <button
+                        onClick={() => upvoteProject(project._id)}
+                        disabled={project.hasUpvoted || project.hasDownvoted}
+                        className={cn(
+                          "btn btn-xs gap-1 px-2 py-1 rounded-full text-xs font-medium",
+                          project.hasUpvoted ? "btn-primary" : "btn-outline"
+                        )}
+                      >
+                        <ThumbsUp className="w-4 h-4" />
+                        <span>{project.upvotes}</span>
+                      </button>
+                    </span>
+                    {/* Downvote */}
+                    <span title={project.hasDownvoted ? 'You downvoted' : 'Downvote'}>
+                      <button
+                        onClick={() => project.hasDownvoted ? removeDownvoteProject(project._id) : downvoteProject(project._id)}
+                        disabled={project.hasUpvoted}
+                        className={cn(
+                          "btn btn-xs gap-1 px-2 py-1 rounded-full text-xs font-medium",
+                          project.hasDownvoted ? "btn-error" : "btn-outline"
+                        )}
+                      >
+                        <ThumbsDown className="w-4 h-4" />
+                        <span>{project.downvotes}</span>
+                      </button>
+                    </span>
+                    {/* Repo */}
+                    <span title="View Repository">
                       <a
-                        href={project.demoUrl}
+                        href={project.gitRepositoryUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1.5 rounded-full hover:bg-base-200 text-base-content/70 hover:text-primary transition-colors"
+                        className="btn btn-ghost btn-xs p-1.5 rounded-full hover:bg-base-200 text-base-content/70 hover:text-primary transition-colors"
                       >
-                        <Share2 className="w-4 h-4" />
+                        <ExternalLink className="w-4 h-4" />
                       </a>
                     </span>
-                  )}
+                    {/* Demo */}
+                    {project.demoUrl && (
+                      <span title="View Demo">
+                        <a
+                          href={project.demoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-ghost btn-xs p-1.5 rounded-full hover:bg-base-200 text-base-content/70 hover:text-primary transition-colors"
+                        >
+                          <Share2 className="w-4 h-4" />
+                        </a>
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </motion.div>

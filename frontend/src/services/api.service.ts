@@ -163,4 +163,49 @@ export class ApiService {
       getToken
     );
   }
+
+  // Admin Showcase API
+  static async getAdminShowcaseProjects(
+    getToken: () => Promise<string | null>,
+    status?: 'pending' | 'approved' | 'all',
+    page = 1,
+    limit = 20
+  ) {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+    
+    return this.makeRequest(
+      `/api/admin/showcase?${params}`,
+      {},
+      getToken
+    );
+  }
+
+  static async approveShowcaseProject(
+    projectId: string,
+    getToken: () => Promise<string | null>
+  ) {
+    return this.makeRequest(
+      `/api/admin/showcase/${projectId}/approve`,
+      { method: 'POST' },
+      getToken
+    );
+  }
+
+  static async rejectShowcaseProject(
+    projectId: string,
+    reason: string,
+    getToken: () => Promise<string | null>
+  ) {
+    return this.makeRequest(
+      `/api/admin/showcase/${projectId}/reject`,
+      { 
+        method: 'POST',
+        body: JSON.stringify({ reason })
+      },
+      getToken
+    );
+  }
 } 
