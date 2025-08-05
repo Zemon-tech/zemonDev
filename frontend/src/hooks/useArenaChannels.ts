@@ -22,27 +22,26 @@ export const useArenaChannels = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchChannels = async () => {
+    try {
+      setLoading(true);
+      const response = await ApiService.getChannels(getToken);
+      const fetchedChannels = response.data;
+
+      setChannels(fetchedChannels);
+      setError(null);
+    } catch (err) {
+      setError('Failed to fetch channels');
+      console.error('Error fetching channels:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!isSignedIn) return;
-
-    const fetchChannels = async () => {
-      try {
-        const response = await ApiService.getChannels(getToken);
-        const fetchedChannels = response.data;
-
-
-        setChannels(fetchedChannels);
-        setError(null);
-      } catch (err) {
-        setError('Failed to fetch channels');
-        console.error('Error fetching channels:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchChannels();
   }, [getToken, isSignedIn]);
 
-  return { channels, loading, error };
+  return { channels, loading, error, refetch: fetchChannels };
 }; 

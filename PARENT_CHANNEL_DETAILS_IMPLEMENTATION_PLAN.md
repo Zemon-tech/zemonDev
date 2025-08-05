@@ -158,7 +158,8 @@ backend/src/migrations/change-parent-channels-to-info.ts ✅ COMPLETED
 ### Modified Files
 ```
 backend/src/models/arenaChannel.model.ts ✅ COMPLETED (added 'info' type)
-backend/src/controllers/arenaChannels.controller.ts
+backend/src/controllers/arenaChannels.controller.ts ✅ COMPLETED (added updateChannelDescription endpoint)
+backend/src/api/arena-channels.routes.ts ✅ COMPLETED (added PATCH route)
 frontend/src/pages/ArenaPage.tsx ✅ COMPLETED
 frontend/src/hooks/useArenaChannels.ts ✅ COMPLETED
 frontend/src/components/admin/AdminPanel.tsx ✅ COMPLETED
@@ -325,4 +326,5 @@ node scripts/run-migration.js
 - Proper TypeScript typing throughout
 - Error handling and loading states
 - Admin role verification
-- Real-time form updates 
+- Real-time form updates
+- Cache invalidation for fresh data after updates 

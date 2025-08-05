@@ -16,7 +16,8 @@ import {
   getUserChannelStatus,
   banOrKickUserFromParentChannel,
   unbanUserFromParentChannel,
-  getUserChannelStatusForAdmin
+  getUserChannelStatusForAdmin,
+  updateChannelDescription
 } from '../controllers/arenaChannels.controller';
 import { protect, checkRole } from '../middleware/auth.middleware';
 import { standardLimiter } from '../middleware/rateLimiter.middleware';
@@ -66,5 +67,8 @@ router.get('/user-channel-status', protect, getUserChannelStatus);
 
 // Admin: Get channel statuses for any user
 router.get('/user-channel-status/:userId', protect, checkRole(['admin', 'moderator']), getUserChannelStatusForAdmin);
+
+// Update channel description (Admin only)
+router.patch('/:channelId/description', standardLimiter, protect, checkRole(['admin']), updateChannelDescription);
 
 export default router; 

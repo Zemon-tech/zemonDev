@@ -6,6 +6,7 @@ import { ArenaChannel, ArenaMessage, UserChannelStatus } from '../models';
 import mongoose from 'mongoose';
 import { emitToChannel } from '../services/socket.service';
 import User from '../models/user.model';
+import { clearCache } from '../middleware/cache.middleware';
 
 /**
  * @desc    Get all channels grouped by category
@@ -674,4 +675,37 @@ export const unbanUserFromParentChannel = asyncHandler(
       return next(err);
     }
   }
-); 
+);
+
+/**
+ * @desc    Update channel description
+ * @route   PATCH /api/arena/channels/:channelId/description
+ * @access  Admin only
+ */
+export const updateChannelDescription = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { channelId } = req.params;
+    const { description } = req.body;
+
+    // Check if channel exists
+    const channel = await ArenaChannel.findById(channelId);
+    if (!channel) {
+      return next(new AppError('Channel not found', 404));
+    }
+
+    // Update the channel description
+    channel.description = description;
+    await channel.save();
+
+    // Clear cache for channels to ensure fresh data
+    await clearCache('*/arena/channels');
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        'Channel description updated successfully',
+        { channelId, description }
+      )
+    );
+  }
+);

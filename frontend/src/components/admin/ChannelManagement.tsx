@@ -10,7 +10,7 @@ interface ChannelManagementProps {}
 
 const ChannelManagement: React.FC<ChannelManagementProps> = () => {
   const { getToken } = useAuth();
-  const { channels, loading, error } = useArenaChannels();
+  const { channels, loading, error, refetch } = useArenaChannels();
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [description, setDescription] = useState('');
@@ -40,13 +40,12 @@ const ChannelManagement: React.FC<ChannelManagementProps> = () => {
       await ApiService.updateChannelDescription(selectedChannel._id, description, getToken);
       setUpdateSuccess(true);
       
-      // Update the local state to reflect the change
-      // Note: In a real app, you might want to refetch the channels
-      setTimeout(() => {
+      // Refetch channels to get updated data
+      setTimeout(async () => {
         setIsModalOpen(false);
         setUpdateSuccess(false);
-        // Trigger a page reload or refetch channels
-        window.location.reload();
+        // Refetch channels to get the updated description
+        await refetch();
       }, 1500);
     } catch (error) {
       console.error('Failed to update channel description:', error);
