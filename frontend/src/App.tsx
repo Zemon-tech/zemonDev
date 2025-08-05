@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-react";
 import { ThemeProvider } from './lib/ThemeContext';
+import { SidebarProvider } from './lib/SidebarContext';
 import { WorkspaceProvider } from './lib/WorkspaceContext';
 import { ToastProvider } from './components/ui/toast';
 
@@ -82,47 +83,49 @@ function App() {
       // and avoids the "For security purposes, only one of the 'Origin' and 'Authorization' headers should be provided" error
     >
       <ThemeProvider>
-        <ToastProvider>
-          <Router>
-            <Routes>
-              {/* Public Routes */}
-              <Route element={<PublicLayout />}>
-                {/* Root Route - Redirects to dashboard if authenticated */}
-                <Route path="/" element={<RootRoute />} />
-                <Route path="/signin" element={<SignInPage />} />
-                <Route path="/signup" element={<SignUpPage />} />
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="/blogs" element={<BlogsPage />} />
-                <Route path="/pricing" element={<PricingPage />} />
-                <Route path="/developers" element={<DevelopersPage />} />
-              </Route>
-              
-              {/* Protected Routes - Username based */}
-              <Route path=":username" element={<WorkspaceLayout />}>
-                <Route index element={<ProfilePage />} />
-                <Route path="dashboard" element={<DashboardPage />} />
-                <Route path="forge" element={<ForgePage />} />
-                <Route path="forge/:id" element={<ForgeDetailPage />} />
-                <Route path="forge/category/:categoryId" element={<ForgeCategoryPage />} />
-                <Route path="crucible" element={<CruciblePage />} />
-                <Route path="crucible/category/:categoryId" element={<CrucibleCategoryPage />} />
-                <Route path="crucible/problem/:id" element={<CrucibleProblemPage />} />
-                <Route path="crucible/problem/:id/result" element={<ResultPage />} />
-                <Route path="crucible/results/:analysisId" element={<ResultPage />} />
-                <Route path="arena" element={<ArenaPage />} />
-                <Route path="admin" element={
-                  <ProtectedAdminRoute>
-                    <AdminPage />
-                  </ProtectedAdminRoute>
-                } />
-                <Route path="settings" element={<SettingsPage />} />
-              </Route>
-              
-              {/* Catch-all route */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Router>
-        </ToastProvider>
+        <SidebarProvider>
+          <ToastProvider>
+            <Router>
+              <Routes>
+                {/* Public Routes */}
+                <Route element={<PublicLayout />}>
+                  {/* Root Route - Redirects to dashboard if authenticated */}
+                  <Route path="/" element={<RootRoute />} />
+                  <Route path="/signin" element={<SignInPage />} />
+                  <Route path="/signup" element={<SignUpPage />} />
+                  <Route path="/about" element={<AboutPage />} />
+                  <Route path="/blogs" element={<BlogsPage />} />
+                  <Route path="/pricing" element={<PricingPage />} />
+                  <Route path="/developers" element={<DevelopersPage />} />
+                </Route>
+                
+                {/* Protected Routes - Username based */}
+                <Route path=":username" element={<WorkspaceLayout />}>
+                  <Route index element={<ProfilePage />} />
+                  <Route path="dashboard" element={<DashboardPage />} />
+                  <Route path="forge" element={<ForgePage />} />
+                  <Route path="forge/:id" element={<ForgeDetailPage />} />
+                  <Route path="forge/category/:categoryId" element={<ForgeCategoryPage />} />
+                  <Route path="crucible" element={<CruciblePage />} />
+                  <Route path="crucible/category/:categoryId" element={<CrucibleCategoryPage />} />
+                  <Route path="crucible/problem/:id" element={<CrucibleProblemPage />} />
+                  <Route path="crucible/problem/:id/result" element={<ResultPage />} />
+                  <Route path="crucible/results/:analysisId" element={<ResultPage />} />
+                  <Route path="arena" element={<ArenaPage />} />
+                  <Route path="admin" element={
+                    <ProtectedAdminRoute>
+                      <AdminPage />
+                    </ProtectedAdminRoute>
+                  } />
+                  <Route path="settings" element={<SettingsPage />} />
+                </Route>
+                
+                {/* Catch-all route */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Router>
+          </ToastProvider>
+        </SidebarProvider>
       </ThemeProvider>
     </ClerkProvider>
   );

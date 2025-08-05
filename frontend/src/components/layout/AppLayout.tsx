@@ -4,6 +4,7 @@ import { UserButton, useUser } from '@clerk/clerk-react';
 import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
 import Sidebar from './Sidebar';
 import { useWorkspace } from '@/lib/WorkspaceContext';
+import { useSidebar } from '@/lib/SidebarContext';
 import { Button } from '@/components/ui/button';
 
 // Icons
@@ -16,7 +17,6 @@ import { Eye, EyeOff } from 'lucide-react'; // [ADD] For toggle icon
 import { Lock, Unlock } from 'lucide-react'; // [ADD] For nav lock button icon
 
 export default function AppLayout() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { username: urlUsername } = useParams();
@@ -26,6 +26,9 @@ export default function AppLayout() {
   
   // Always call useWorkspace to maintain hook order consistency
   const workspaceContext = useWorkspace();
+  
+  // Use sidebar context instead of local state
+  const { isSidebarOpen, toggleSidebar, setSidebarOpen, isLoading: sidebarLoading } = useSidebar();
   
   // Show workspace nav buttons only on /:username/crucible/problem/:id
   const isCrucibleProblemPage = /^\/[\w-]+\/crucible\/problem\/.+/.test(location.pathname);
@@ -61,26 +64,19 @@ export default function AppLayout() {
     }
   };
   
-  // Auto-close sidebar when entering a problem page
-  useEffect(() => {
-    if (isCrucibleProblemPage) {
-      setIsSidebarOpen(false);
-    }
-  }, [isCrucibleProblemPage, location.pathname]);
-
-  // [ADD] Focus mode state
+  // [MODIFY] Focus mode state - respect persisted sidebar state
   const [focusMode, setFocusMode] = useState(false);
   const [navHovered, setNavHovered] = useState(false); // [ADD] For nav bar hover
   const [navLockedOpen, setNavLockedOpen] = useState(false); // [ADD] Nav lock state
 
-  // [MODIFY] Auto-enable focus mode on CrucibleProblemPage
+  // [MODIFY] Auto-enable focus mode on CrucibleProblemPage - but don't force sidebar state
   useEffect(() => {
     if (isCrucibleProblemPage) {
       setFocusMode(true);
-      setIsSidebarOpen(false); // Hide sidebar by default in focus mode
+      // Don't force sidebar to close - let user's persisted preference remain
     } else {
       setFocusMode(false);
-      setIsSidebarOpen(true);
+      // Don't force sidebar to open - let user's persisted preference remain
     }
   }, [isCrucibleProblemPage, location.pathname]);
 
@@ -100,9 +96,7 @@ export default function AppLayout() {
     return <Navigate to={`/${currentUsername}${pathWithoutUsername}`} replace />;
   }
   
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
+  // toggleSidebar is now provided by the SidebarContext
   
   // Workspace nav button handlers
   const handleToggleProblemSidebar = () => {
