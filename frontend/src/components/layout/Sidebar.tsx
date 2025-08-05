@@ -100,13 +100,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, current
           )}
         </div>
 
-        {/* Problem indicator (when sidebar is collapsed) */}
-        {!isOpen && isCrucibleProblemPage && (
-          <div className="mt-2 px-2 py-1 mx-auto rounded-md bg-primary/10 flex items-center justify-center tooltip" data-tip="Problem workspace active">
-            <Code size={16} className="text-primary" />
-          </div>
-        )}
-
         {/* Arena indicator (when sidebar is collapsed) */}
         {!isOpen && isArenaPage && (
           <button

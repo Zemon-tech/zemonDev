@@ -191,7 +191,7 @@ export default function AppLayout() {
         )}
         {/* Top Navigation */}
         <header
-          className={`h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between px-3 shrink-0 transition-transform duration-300 ${shouldShowNav ? 'translate-y-0 opacity-100 pointer-events-auto' : '-translate-y-full opacity-0 pointer-events-none'}`}
+          className={`h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between px-3 shrink-0 transition-transform duration-300 z-50 ${shouldShowNav ? 'translate-y-0 opacity-100 pointer-events-auto' : '-translate-y-full opacity-0 pointer-events-none'}`}
           onMouseEnter={() => focusMode && setNavHovered(true)}
           onMouseLeave={() => focusMode && setNavHovered(false)}
           tabIndex={-1}
@@ -377,24 +377,22 @@ export default function AppLayout() {
               <Bell size={18} />
               <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-error rounded-full"></span>
             </Button>
-            
             {/* Theme switcher */}
             <ThemeSwitcher />
-            
+            {/* [MOVE] Focus mode toggle button here */}
+            {isCrucibleProblemPage && (
+              <button
+                className="btn btn-ghost btn-xs rounded-full border border-base-300 hover:bg-base-200 transition-all ml-2"
+                onClick={() => setFocusMode((prev) => !prev)}
+                title={focusMode ? 'Exit Focus Mode' : 'Enter Focus Mode'}
+                type="button"
+              >
+                {focusMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            )}
             {/* User menu */}
             <UserButton afterSignOutUrl="/" />
           </div>
-          {/* [ADD] Focus mode toggle button */}
-          {isCrucibleProblemPage && (
-            <button
-              className="ml-2 btn btn-ghost btn-xs rounded-full border border-base-300 hover:bg-base-200 transition-all"
-              style={{ position: 'absolute', top: 8, right: 16, zIndex: 100 }}
-              onClick={() => setFocusMode((prev) => !prev)}
-              title={focusMode ? 'Exit Focus Mode' : 'Enter Focus Mode'}
-            >
-              {focusMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          )}
         </header>
         
         {/* Page Content */}
