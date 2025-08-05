@@ -9,7 +9,7 @@ import SolutionEditor from './SolutionEditor';
 import NotesCollector from './NotesCollector';
 import ProblemDetailsSidebar from './ProblemDetailsSidebar';
 import AIChatSidebar from './AIChatSidebar';
-import WorkspaceModeSelector from './WorkspaceModeSelector';
+
 
 
 interface CrucibleWorkspaceViewProps {
@@ -28,7 +28,6 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
   const {
     setWordCount,
     activeContent,
-    isWorkspaceModeVisible,
     showProblemSidebar,
     setShowProblemSidebar,
     showChatSidebar,
@@ -393,7 +392,6 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
         />
       )}
       <div className="flex-1 overflow-hidden flex flex-col border-x border-base-200 dark:border-base-700 shadow-lg">
-        {isWorkspaceModeVisible && <WorkspaceModeSelector />}
         <div className="flex-1 overflow-auto p-4 bg-base-50 dark:bg-base-900">
           {/* REMOVED: Version History Button and Status */}
           {/* REMOVED: Version History UI */}

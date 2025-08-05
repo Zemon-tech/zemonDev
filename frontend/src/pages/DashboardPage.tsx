@@ -183,15 +183,6 @@ function DashboardStatsRow() {
       isProgress: false
     },
     {
-      icon: <Target className="w-5 h-5 text-green-500" />,
-      value: 65,
-      label: "Frontend Path",
-      color: "text-green-500",
-      bgGradient: "from-green-500/10 to-emerald-500/10",
-      borderColor: "border-green-500/20",
-      isProgress: true
-    },
-    {
       icon: <Trophy className="w-5 h-5 text-yellow-500" />,
       value: "Top 10%",
       label: "Community Rank",

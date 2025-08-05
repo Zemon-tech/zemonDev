@@ -7,7 +7,7 @@ import { useWorkspace } from '@/lib/WorkspaceContext';
 import { Button } from '@/components/ui/button';
 
 // Icons
-import { Search, Bell, X, MessageCircle, BookOpen, FileText, Layers, StickyNote, ArrowLeft, Send, Loader2, Sparkles } from 'lucide-react';
+import { Search, Bell, X, MessageCircle, BookOpen, FileText, StickyNote, ArrowLeft, Send, Loader2, Sparkles } from 'lucide-react';
 import gsap from 'gsap';
 import { useRef } from 'react';
 
@@ -97,12 +97,6 @@ export default function AppLayout() {
       window.dispatchEvent(new CustomEvent('switch-content'));
     }
   };
-  
-  const handleToggleWorkspaceMode = () => {
-    if (isCrucibleProblemPage) {
-      window.dispatchEvent(new CustomEvent('toggle-workspace-mode'));
-    }
-  };
 
   // Handle navigation with username
   const handleNavigation = (path: string) => {
@@ -164,12 +158,14 @@ export default function AppLayout() {
         <header className="h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between px-3 shrink-0">
           {/* Left side - Menu toggle */}
           <div className="flex items-center gap-4">
-            <button 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={toggleSidebar}
-              className="btn btn-ghost btn-sm btn-circle"
+              className="h-9 w-9 p-0 rounded-lg hover:bg-base-200/80 transition-all duration-200"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-            </button>
+            </Button>
             {/* Submit Button - Only show on problem page */}
             {showSubmitButton && (
               <Button
@@ -196,56 +192,56 @@ export default function AppLayout() {
           {/* Center area - Workspace nav or Forge accent bar */}
           {isCrucibleProblemPage ? (
             <div className="hidden md:flex items-center gap-2">
-              <button 
-                className="btn btn-ghost btn-sm text-primary font-medium flex items-center gap-1.5 mr-2" 
-                onClick={() => handleNavigation('/crucible')} 
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleNavigation('/crucible')}
+                className="h-9 px-3 rounded-lg text-primary hover:bg-primary/10 transition-all duration-200"
                 title="Back to Crucible"
               >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Back to Crucible</span>
-              </button>
-              <div className="flex items-center border-l border-base-200 dark:border-base-700 pl-2 gap-1">
-                <button 
-                  className="btn btn-sm btn-ghost rounded-md px-2 text-base-content/80 hover:text-base-content" 
-                  onClick={handleToggleProblemSidebar} 
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline text-sm font-medium">Back to Crucible</span>
+              </Button>
+              <div className="flex items-center gap-2 ml-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleToggleProblemSidebar}
+                  className="h-9 px-3 rounded-lg hover:bg-base-200/80 transition-all duration-200"
                   title="Show/Hide Problem Details"
                 >
-                  <BookOpen className="w-4 h-4" />
-                  <span className="hidden sm:inline ml-1 text-xs">Problem</span>
-                </button>
-                <button 
-                  className="btn btn-sm btn-ghost rounded-md px-2 text-base-content/80 hover:text-base-content" 
-                  onClick={handleToggleChatSidebar} 
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline text-sm font-medium">Problem</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleToggleChatSidebar}
+                  className="h-9 px-3 rounded-lg hover:bg-base-200/80 transition-all duration-200"
                   title="Show/Hide AI Chat"
                 >
-                  <MessageCircle className="w-4 h-4" />
-                  <span className="hidden sm:inline ml-1 text-xs">AI Chat</span>
-                </button>
-                <button 
-                  className="btn btn-sm btn-ghost rounded-md px-2 text-base-content/80 hover:text-base-content" 
-                  onClick={handleSwitchContent} 
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline text-sm font-medium">AI Chat</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSwitchContent}
+                  className="h-9 px-3 rounded-lg hover:bg-base-200/80 transition-all duration-200"
                   title="Switch between Solution and Notes"
                 >
                   {activeContent === 'solution' ? (
                     <>
-                      <StickyNote className="w-4 h-4" />
-                      <span className="hidden sm:inline ml-1 text-xs">Notes</span>
+                      <StickyNote className="w-4 h-4 mr-2" />
+                      <span className="hidden sm:inline text-sm font-medium">Notes</span>
                     </>
                   ) : (
                     <>
-                      <FileText className="w-4 h-4" />
-                      <span className="hidden sm:inline ml-1 text-xs">Solution</span>
+                      <FileText className="w-4 h-4 mr-2" />
+                      <span className="hidden sm:inline text-sm font-medium">Solution</span>
                     </>
                   )}
-                </button>
-                <button 
-                  className="btn btn-sm btn-ghost rounded-md px-2 text-base-content/80 hover:text-base-content" 
-                  onClick={handleToggleWorkspaceMode} 
-                  title="Toggle Workspace Mode"
-                >
-                  <Layers className="w-4 h-4" />
-                  <span className="hidden sm:inline ml-1 text-xs">Mode</span>
-                </button>
+                </Button>
               </div>
             </div>
           ) : null}
@@ -262,42 +258,52 @@ export default function AppLayout() {
           {/* Result Page Navigation */}
           {showResultPageButtons && (
             <div className="hidden md:flex items-center gap-2">
-              <button
-                className="btn btn-ghost btn-sm text-primary font-medium flex items-center gap-1.5"
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handleBackToProblem}
+                className="h-9 px-3 rounded-lg text-primary hover:bg-primary/10 transition-all duration-200"
                 title="Back to Problem"
               >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Back to Problem</span>
-              </button>
-              <button
-                className="btn btn-primary btn-sm flex items-center gap-1.5"
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline text-sm font-medium">Back to Problem</span>
+              </Button>
+              <Button
+                size="sm"
                 onClick={handleReattemptProblem}
+                className="h-9 px-3 rounded-lg bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-200"
                 title="Reattempt Problem"
               >
-                <Sparkles className="w-4 h-4" />
-                <span className="hidden sm:inline">Reattempt</span>
-              </button>
+                <Sparkles className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline text-sm font-medium">Reattempt</span>
+              </Button>
             </div>
           )}
 
           {/* Back to Forge button (only on Forge detail page) */}
           {isForgeDetailPage && (
-            <button
-              className="btn btn-ghost btn-sm text-primary font-medium flex items-center gap-1.5"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => handleNavigation('/forge')}
+              className="h-9 px-3 rounded-lg text-primary hover:bg-primary/10 transition-all duration-200"
             >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Forge
-            </button>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              <span className="text-sm font-medium">Back to Forge</span>
+            </Button>
           )}
           
           {/* Search icon and input inline in navbar */}
           <div className="flex-1 flex justify-end items-center gap-2">
             {!isSearchOpen && (
-              <button className="btn btn-ghost btn-sm btn-circle" onClick={() => setIsSearchOpen(true)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsSearchOpen(true)}
+                className="h-9 w-9 p-0 rounded-lg hover:bg-base-200/80 transition-all duration-200"
+              >
                 <Search size={18} />
-              </button>
+              </Button>
             )}
             {isSearchOpen && (
               <div className="relative flex items-center w-full max-w-xs">
@@ -308,7 +314,14 @@ export default function AppLayout() {
                   className="input input-sm input-bordered w-full pl-9 pr-8"
                   placeholder="Search..."
                 />
-                <button className="btn btn-ghost btn-xs absolute right-1.5" onClick={() => setIsSearchOpen(false)}><X size={16} /></button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsSearchOpen(false)}
+                  className="h-6 w-6 p-0 absolute right-1.5 hover:bg-base-200/80"
+                >
+                  <X size={16} />
+                </Button>
               </div>
             )}
           </div>
@@ -316,10 +329,14 @@ export default function AppLayout() {
           {/* Right side - user actions */}
           <div className="flex items-center space-x-3">
             {/* Notifications */}
-            <button className="btn btn-ghost btn-sm btn-circle relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 w-9 p-0 rounded-lg hover:bg-base-200/80 transition-all duration-200 relative"
+            >
               <Bell size={18} />
               <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-error rounded-full"></span>
-            </button>
+            </Button>
             
             {/* Theme switcher */}
             <ThemeSwitcher />
