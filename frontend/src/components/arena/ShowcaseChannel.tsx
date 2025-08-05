@@ -175,14 +175,14 @@ const ShowcaseChannel: React.FC = () => {
               transition={{ duration: 0.3 }}
               className="group"
             >
-              <Card className="h-full bg-base-100/70 border-base-300/50 shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 overflow-hidden group/card p-0">
+              <Card className="h-full bg-base-200/80 border-base-300/50 shadow-md hover:shadow-xl transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 overflow-hidden group/card p-0">
                 {/* --- Compact Image Section --- */}
-                <div className="relative h-32 w-full overflow-hidden">
+                <div className="relative h-38 w-full overflow-hidden">
                   <ImageCarousel images={project.images || []} title={project.title} />
                 </div>
 
-                {/* --- Card Content --- */}
-                <CardHeader className="pb-2 pt-3 px-4">
+                              {/* --- Card Content --- */}
+              <CardHeader className="pb-2 pt-2 px-4">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="font-semibold text-base-content text-base truncate" title={project.title}>
                       {project.title}
