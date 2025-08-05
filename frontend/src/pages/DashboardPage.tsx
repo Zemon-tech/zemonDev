@@ -170,7 +170,8 @@ function DashboardStatsRow() {
       label: "Zemon Streak",
       color: "text-orange-500",
       bgGradient: "from-orange-500/10 to-red-500/10",
-      borderColor: "border-orange-500/20"
+      borderColor: "border-orange-500/20",
+      isProgress: false
     },
     {
       icon: <Code className="w-5 h-5 text-blue-500" />,
@@ -178,7 +179,8 @@ function DashboardStatsRow() {
       label: "Problems Solved",
       color: "text-blue-500",
       bgGradient: "from-blue-500/10 to-cyan-500/10",
-      borderColor: "border-blue-500/20"
+      borderColor: "border-blue-500/20",
+      isProgress: false
     },
     {
       icon: <Target className="w-5 h-5 text-green-500" />,
@@ -187,6 +189,7 @@ function DashboardStatsRow() {
       color: "text-green-500",
       bgGradient: "from-green-500/10 to-emerald-500/10",
       borderColor: "border-green-500/20",
+      isProgress: true
     },
     {
       icon: <Trophy className="w-5 h-5 text-yellow-500" />,
@@ -194,7 +197,8 @@ function DashboardStatsRow() {
       label: "Community Rank",
       color: "text-yellow-500",
       bgGradient: "from-yellow-500/10 to-orange-500/10",
-      borderColor: "border-yellow-500/20"
+      borderColor: "border-yellow-500/20",
+      isProgress: false
     }
   ];
 
@@ -540,10 +544,10 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="h-screen w-full bg-gradient-to-br from-background via-base-100 to-base-200 flex flex-col relative overflow-hidden">
+    <div className="h-full w-full bg-gradient-to-br from-background via-base-100 to-base-200 flex flex-col relative overflow-hidden">
       <FloatingParticles />
       
-      <div className="flex-1 flex flex-col w-full px-6 py-4 space-y-4 relative z-10">
+      <div className="flex-1 flex flex-col w-full px-6 py-4 space-y-4 relative z-10 overflow-hidden">
         {/* --- Header Section --- */}
         <DashboardHeader user={user} onAchievement={handleAchievement} />
         
@@ -551,18 +555,24 @@ export default function DashboardPage() {
         <DashboardStatsRow />
         
         {/* --- Main Grid Layout --- */}
-        <div className="grid grid-cols-12 gap-4 flex-1">
+        <div className="grid grid-cols-12 gap-4 flex-1 overflow-hidden">
           {/* Leaderboard */}
-          <div className="col-span-12 md:col-span-4 flex flex-col">
-            <DashboardLeaderboard />
+          <div className="col-span-12 md:col-span-4 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto">
+              <DashboardLeaderboard />
+            </div>
           </div>
           {/* Activity Timeline */}
-          <div className="col-span-12 md:col-span-4 flex flex-col">
-            <DashboardActivityTimeline />
+          <div className="col-span-12 md:col-span-4 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto">
+              <DashboardActivityTimeline />
+            </div>
           </div>
           {/* Project Showcase */}
-          <div className="col-span-12 md:col-span-4 flex flex-col">
-            <DashboardShowcase />
+          <div className="col-span-12 md:col-span-4 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto">
+              <DashboardShowcase />
+            </div>
           </div>
         </div>
       </div>
