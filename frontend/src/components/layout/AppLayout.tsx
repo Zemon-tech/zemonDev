@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Search, Bell, X, MessageCircle, BookOpen, FileText, StickyNote, ArrowLeft, Send, Loader2, Sparkles } from 'lucide-react';
 import gsap from 'gsap';
 import { useRef } from 'react';
+// [ADD] Import useHotkeys for optional keyboard shortcut
+import { useHotkeys } from 'react-hotkeys-hook';
+import { Eye, EyeOff } from 'lucide-react'; // [ADD] For toggle icon
 
 export default function AppLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -63,6 +66,26 @@ export default function AppLayout() {
       setIsSidebarOpen(false);
     }
   }, [isCrucibleProblemPage, location.pathname]);
+
+  // [ADD] Focus mode state
+  const [focusMode, setFocusMode] = useState(false);
+  const [navHovered, setNavHovered] = useState(false); // [ADD] For nav bar hover
+
+  // [MODIFY] Auto-enable focus mode on CrucibleProblemPage
+  useEffect(() => {
+    if (isCrucibleProblemPage) {
+      setFocusMode(true);
+      setIsSidebarOpen(false); // Hide sidebar by default in focus mode
+    } else {
+      setFocusMode(false);
+      setIsSidebarOpen(true);
+    }
+  }, [isCrucibleProblemPage, location.pathname]);
+
+  // [OPTIONAL] Keyboard shortcut to toggle focus mode (Cmd+Shift+F)
+  useHotkeys('meta+shift+f', () => {
+    if (isCrucibleProblemPage) setFocusMode((prev) => !prev);
+  }, [isCrucibleProblemPage]);
   
   // Get the current user's username or fallback
   const currentUsername = user?.username || (user ? `user${user.id.slice(-8)}` : '');
@@ -143,19 +166,36 @@ export default function AppLayout() {
     };
   }, [isForgePage]);
   
+  // [ADD] Show nav bar if hovered in focus mode
+  const shouldShowNav = !focusMode || navHovered;
+
   return (
     <div className="flex h-screen bg-base-100">
       {/* Sidebar - Desktop & Mobile */}
       <Sidebar
-        isOpen={isSidebarOpen}
+        isOpen={isSidebarOpen && !focusMode} // [MODIFY] Hide sidebar in focus mode
         toggleSidebar={toggleSidebar}
         currentUsername={currentUsername}
+        focusMode={focusMode} // [PASS] focusMode prop for hover logic
       />
       
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
+        {/* [ADD] Top-edge hover zone for nav bar in focus mode */}
+        {focusMode && (
+          <div
+            className="fixed top-0 left-0 w-full h-4 z-50 cursor-pointer"
+            style={{ pointerEvents: navHovered ? 'none' : 'auto' }}
+            onMouseEnter={() => setNavHovered(true)}
+          />
+        )}
         {/* Top Navigation */}
-        <header className="h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between px-3 shrink-0">
+        <header
+          className={`h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between px-3 shrink-0 transition-transform duration-300 ${shouldShowNav ? 'translate-y-0 opacity-100 pointer-events-auto' : '-translate-y-full opacity-0 pointer-events-none'}`}
+          onMouseEnter={() => focusMode && setNavHovered(true)}
+          onMouseLeave={() => focusMode && setNavHovered(false)}
+          tabIndex={-1}
+        >
           {/* Left side - Menu toggle */}
           <div className="flex items-center gap-4">
             <Button
@@ -344,6 +384,17 @@ export default function AppLayout() {
             {/* User menu */}
             <UserButton afterSignOutUrl="/" />
           </div>
+          {/* [ADD] Focus mode toggle button */}
+          {isCrucibleProblemPage && (
+            <button
+              className="ml-2 btn btn-ghost btn-xs rounded-full border border-base-300 hover:bg-base-200 transition-all"
+              style={{ position: 'absolute', top: 8, right: 16, zIndex: 100 }}
+              onClick={() => setFocusMode((prev) => !prev)}
+              title={focusMode ? 'Exit Focus Mode' : 'Enter Focus Mode'}
+            >
+              {focusMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          )}
         </header>
         
         {/* Page Content */}
