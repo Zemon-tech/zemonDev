@@ -42,6 +42,8 @@ const DirectMessageChannel: React.FC<DirectMessageChannelProps> = ({
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const [wasLoadingMore, setWasLoadingMore] = useState(false);
+  const [scrollPositionBeforeLoad, setScrollPositionBeforeLoad] = useState<number | null>(null);
 
   // Infinite scroll setup with improved scroll position tracking
   const { containerRef, restoreScrollPosition } = useInfiniteScroll({
@@ -52,21 +54,53 @@ const DirectMessageChannel: React.FC<DirectMessageChannelProps> = ({
     enabled: hasInitialized && !loading && !hasReachedEnd && consecutiveDuplicateLoads < 3
   });
 
+  // Track loading more state to prevent auto-scroll during pagination
+  useEffect(() => {
+    if (loadingMore) {
+      setWasLoadingMore(true);
+      // Store the scroll position before loading more messages
+      if (containerRef.current) {
+        setScrollPositionBeforeLoad(containerRef.current.scrollTop);
+      }
+    } else if (wasLoadingMore) {
+      // Reset the flag after a longer delay to prevent auto-scroll after pagination
+      const timer = setTimeout(() => {
+        setWasLoadingMore(false);
+        // Don't clear scrollPositionBeforeLoad immediately - keep it for a bit longer
+      }, 1000); // Increased delay to prevent auto-scroll after pagination
+      return () => clearTimeout(timer);
+    }
+  }, [loadingMore, wasLoadingMore]);
+
+  // Clear scroll position tracking after a longer delay to allow normal auto-scroll
+  useEffect(() => {
+    if (scrollPositionBeforeLoad !== null && !wasLoadingMore) {
+      const timer = setTimeout(() => {
+        setScrollPositionBeforeLoad(null);
+      }, 3000); // Keep protection for 3 seconds total
+      return () => clearTimeout(timer);
+    }
+  }, [scrollPositionBeforeLoad, wasLoadingMore]);
+
   // Auto-scroll to bottom when new messages arrive (but not when loading more)
   useEffect(() => {
     // Only auto-scroll if we're not loading more messages and we have messages
     // Also check if we're near the bottom to avoid jumping
-    if (!loadingMore && messages.length > 0) {
+    if (!loadingMore && !wasLoadingMore && messages.length > 0) {
       const container = containerRef.current;
       if (container) {
         const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-        // Only auto-scroll if we're near bottom AND not at the very top
-        if (isNearBottom && container.scrollTop > 0) {
+        
+        // Check if this is a legitimate auto-scroll (not after pagination)
+        const isAfterPagination = scrollPositionBeforeLoad !== null;
+        const shouldAutoScroll = isNearBottom && container.scrollTop > 0 && !isAfterPagination;
+        
+        if (shouldAutoScroll) {
           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
       }
     }
-  }, [messages, loadingMore]);
+  }, [messages, loadingMore, wasLoadingMore, scrollPositionBeforeLoad]);
 
   // Scroll to bottom on initial load
   useEffect(() => {

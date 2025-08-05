@@ -113,9 +113,20 @@ export const useInfiniteScroll = ({
       shouldRestore: shouldRestoreScrollRef.current
     });
     
-    // Only restore scroll position when we were loading more content AND we're not at the top
-    // This prevents restoration when user is at the very top (scrollTop = 0)
-    if (shouldRestoreScrollRef.current && oldScrollTop > 0) {
+    // Special handling for when user was at the top (scrollTop = 0)
+    if (shouldRestoreScrollRef.current && oldScrollTop === 0) {
+      console.log('User was at the top - keeping them at the top');
+      // Use multiple requestAnimationFrame calls to ensure DOM has fully updated
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (containerRef.current) {
+            // Keep the user at the top
+            containerRef.current.scrollTop = 0;
+            console.log('Scroll position kept at top: 0');
+          }
+        });
+      });
+    } else if (shouldRestoreScrollRef.current && oldScrollTop > 0) {
       console.log('Attempting to restore scroll position');
       // Use multiple requestAnimationFrame calls to ensure DOM has fully updated
       requestAnimationFrame(() => {
@@ -128,8 +139,8 @@ export const useInfiniteScroll = ({
           }
         });
       });
-    } else if (oldScrollTop === 0) {
-      console.log('Skipping scroll restoration - user is at the top');
+    } else {
+      console.log('Skipping scroll restoration - no valid condition met');
     }
     
     // Reset the flag
