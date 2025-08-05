@@ -39,6 +39,7 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
   const [hasInitialized, setHasInitialized] = useState(false);
   const [hasReachedEnd, setHasReachedEnd] = useState(false);
   const [lastLoadedCursor, setLastLoadedCursor] = useState<string | null>(null);
+  const [nextRequestCursor, setNextRequestCursor] = useState<string | null>(null);
   const [lastLoadTime, setLastLoadTime] = useState<number>(0);
   const [consecutiveDuplicateLoads, setConsecutiveDuplicateLoads] = useState(0);
 
@@ -84,6 +85,7 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
         setError(null);
         setHasReachedEnd(false);
         setLastLoadedCursor(null);
+        setNextRequestCursor(null);
         setConsecutiveDuplicateLoads(0); // Reset duplicate counter for new channel
         
         const response = await ApiService.getChannelMessages(channelId, getToken);
@@ -138,9 +140,9 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
       return;
     }
 
-    // Prevent duplicate requests with the same cursor
-    const currentCursor = pagination.nextCursor;
-    if (currentCursor === lastLoadedCursor) {
+    // Use the next request cursor if available, otherwise use pagination cursor
+    const currentCursor = nextRequestCursor || pagination.nextCursor;
+    if (currentCursor === lastLoadedCursor && lastLoadedCursor !== null) {
       console.log('Skipping duplicate request with same cursor:', currentCursor);
       return;
     }
@@ -218,9 +220,15 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
       
       setPagination(response.data.pagination);
       
-      // Update the last loaded cursor to the next cursor from the response
-      if (response.data.pagination.nextCursor) {
-        setLastLoadedCursor(response.data.pagination.nextCursor);
+      // Update the next request cursor to the next cursor from the response
+      if (response.data.pagination.nextCursor && response.data.pagination.nextCursor !== currentCursor) {
+        setNextRequestCursor(response.data.pagination.nextCursor);
+        setLastLoadedCursor(currentCursor || null); // Track what we just used
+        console.log('Updated nextRequestCursor to:', response.data.pagination.nextCursor);
+        console.log('Updated lastLoadedCursor to:', currentCursor);
+      } else if (response.data.pagination.nextCursor === currentCursor) {
+        console.log('Next cursor is same as current cursor - reached end');
+        setHasReachedEnd(true);
       }
       
       // Check if we've reached the end

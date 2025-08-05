@@ -23,6 +23,7 @@ export const useInfiniteScroll = ({
   const scrollTopRef = useRef<number>(0);
   const isLoadingRef = useRef<boolean>(false);
   const shouldRestoreScrollRef = useRef<boolean>(false);
+  const lastTriggerTimeRef = useRef<number>(0);
 
   // Update loading ref when loading state changes
   useEffect(() => {
@@ -62,12 +63,21 @@ export const useInfiniteScroll = ({
       
       const currentScrollTop = containerRef.current.scrollTop;
       
-      // If we're near the top, load more
-      // Trigger when we're at the top (0) or very close to it
-      if (currentScrollTop <= threshold) {
-        console.log('Triggering load more - scroll position:', currentScrollTop, 'threshold:', threshold);
-        onLoadMore();
-      }
+             // If we're near the top, load more
+       // Trigger when we're at the top (0) or very close to it
+       if (currentScrollTop <= threshold) {
+         // Prevent rapid triggers when stuck at the top
+         const now = Date.now();
+         const timeSinceLastTrigger = now - lastTriggerTimeRef.current;
+         
+         if (timeSinceLastTrigger > 2000) { // Only trigger every 2 seconds when at top
+           console.log('Triggering load more - scroll position:', currentScrollTop, 'threshold:', threshold);
+           lastTriggerTimeRef.current = now;
+           onLoadMore();
+         } else {
+           console.log('Skipping load more - too soon since last trigger at top:', timeSinceLastTrigger, 'ms');
+         }
+       }
     }, debounceMs);
   }, [onLoadMore, hasMore, enabled, threshold, debounceMs]);
 
