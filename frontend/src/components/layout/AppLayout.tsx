@@ -189,9 +189,14 @@ export default function AppLayout() {
             onMouseEnter={() => setNavHovered(true)}
           />
         )}
-        {/* Top Navigation */}
+        {/* Top Navigation - now fixed */}
         <header
-          className={`h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between px-3 shrink-0 transition-transform duration-300 z-50 ${shouldShowNav ? 'translate-y-0 opacity-100 pointer-events-auto' : '-translate-y-full opacity-0 pointer-events-none'}`}
+          className={`fixed top-0 left-0 w-full h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between px-3 shrink-0 z-50 transition-transform duration-300`}
+          style={{
+            transform: shouldShowNav ? 'translateY(0)' : 'translateY(-100%)',
+            opacity: shouldShowNav ? 1 : 0,
+            pointerEvents: shouldShowNav ? 'auto' : 'none',
+          }}
           onMouseEnter={() => focusMode && setNavHovered(true)}
           onMouseLeave={() => focusMode && setNavHovered(false)}
           tabIndex={-1}
@@ -394,9 +399,13 @@ export default function AppLayout() {
             <UserButton afterSignOutUrl="/" />
           </div>
         </header>
-        
         {/* Page Content */}
-        <main className="flex-1 overflow-auto bg-base-100 p-0">
+        <main
+          className="flex-1 overflow-auto bg-base-100 p-0 transition-transform duration-300"
+          style={{
+            transform: shouldShowNav ? 'translateY(3.5rem)' : 'translateY(0)', // 3.5rem = 56px = h-14
+          }}
+        >
           <Outlet />
         </main>
       </div>
