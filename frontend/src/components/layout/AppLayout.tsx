@@ -248,7 +248,7 @@ export default function AppLayout() {
             )}
           </div>
 
-          {/* Center area - Workspace nav or Forge accent bar */}
+          {/* Center area - Workspace nav, Result page buttons, or Forge accent bar */}
           {isCrucibleProblemPage ? (
             <div className="hidden md:flex items-center gap-2">
               <Button
@@ -302,6 +302,29 @@ export default function AppLayout() {
                   )}
                 </Button>
               </div>
+            </div>
+          ) : showResultPageButtons ? (
+            <div className="hidden md:flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToProblem}
+                className="h-9 px-3 rounded-lg text-primary hover:bg-primary/10 transition-all duration-200"
+                title="Back to Crucible"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline text-sm font-medium">Back to Crucible</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleReattemptProblem}
+                className="h-9 px-3 rounded-lg text-primary hover:bg-primary/10 transition-all duration-200"
+                title="Reattempt Problem"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline text-sm font-medium">Reattempt Problem</span>
+              </Button>
             </div>
           ) : isArenaPage ? (
             <div className="hidden md:flex items-center gap-2">
