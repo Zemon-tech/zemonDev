@@ -13,6 +13,7 @@ import { useRef } from 'react';
 // [ADD] Import useHotkeys for optional keyboard shortcut
 import { useHotkeys } from 'react-hotkeys-hook';
 import { Eye, EyeOff } from 'lucide-react'; // [ADD] For toggle icon
+import { Lock, Unlock } from 'lucide-react'; // [ADD] For nav lock button icon
 
 export default function AppLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -70,6 +71,7 @@ export default function AppLayout() {
   // [ADD] Focus mode state
   const [focusMode, setFocusMode] = useState(false);
   const [navHovered, setNavHovered] = useState(false); // [ADD] For nav bar hover
+  const [navLockedOpen, setNavLockedOpen] = useState(false); // [ADD] Nav lock state
 
   // [MODIFY] Auto-enable focus mode on CrucibleProblemPage
   useEffect(() => {
@@ -166,8 +168,18 @@ export default function AppLayout() {
     };
   }, [isForgePage]);
   
-  // [ADD] Show nav bar if hovered in focus mode
-  const shouldShowNav = !focusMode || navHovered;
+  // [MODIFY] Show nav bar if not in focus mode, or if navHovered, or if navLockedOpen
+  const shouldShowNav = !focusMode || navHovered || navLockedOpen;
+  
+  // [ADD] Calculate sidebar width for layout adjustments
+  const getSidebarWidth = () => {
+    if (focusMode) {
+      return 0; // Sidebar is hidden in focus mode
+    }
+    return isSidebarOpen ? 256 : 80; // w-64 = 256px, w-20 = 80px
+  };
+  
+  const sidebarWidth = getSidebarWidth();
 
   return (
     <div className="flex h-screen bg-base-100">
@@ -182,18 +194,25 @@ export default function AppLayout() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* [ADD] Top-edge hover zone for nav bar in focus mode */}
-        {focusMode && (
+        {focusMode && !navLockedOpen && (
           <div
             className="fixed top-0 left-0 w-full h-4 z-50 cursor-pointer"
             style={{ pointerEvents: navHovered ? 'none' : 'auto' }}
             onMouseEnter={() => setNavHovered(true)}
           />
         )}
-        {/* Top Navigation */}
+        {/* Top Navigation - now fixed with sidebar offset */}
         <header
-          className={`h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between px-3 shrink-0 transition-transform duration-300 z-50 ${shouldShowNav ? 'translate-y-0 opacity-100 pointer-events-auto' : '-translate-y-full opacity-0 pointer-events-none'}`}
+          className={`fixed top-0 left-0 w-full h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between px-3 shrink-0 z-50 transition-all duration-300`}
+          style={{
+            transform: shouldShowNav ? 'translateY(0)' : 'translateY(-100%)',
+            left: `${sidebarWidth}px`,
+            width: `calc(100vw - ${sidebarWidth}px)`,
+            opacity: shouldShowNav ? 1 : 0,
+            pointerEvents: shouldShowNav ? 'auto' : 'none',
+          }}
           onMouseEnter={() => focusMode && setNavHovered(true)}
-          onMouseLeave={() => focusMode && setNavHovered(false)}
+          onMouseLeave={() => focusMode && !navLockedOpen && setNavHovered(false)}
           tabIndex={-1}
         >
           {/* Left side - Menu toggle */}
@@ -284,41 +303,30 @@ export default function AppLayout() {
                 </Button>
               </div>
             </div>
-          ) : null}
-
-          {/* Arena Navigation */}
-          {isArenaPage && (
-            <div className="hidden md:flex items-center gap-2">
-              <div className="flex items-center gap-4">
-                {/* Removed chat/leaderboard/showcase buttons */}
-              </div>
-            </div>
-          )}
-
-          {/* Result Page Navigation */}
-          {showResultPageButtons && (
+          ) : isArenaPage ? (
             <div className="hidden md:flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleBackToProblem}
+                onClick={() => handleNavigation('/crucible')}
                 className="h-9 px-3 rounded-lg text-primary hover:bg-primary/10 transition-all duration-200"
-                title="Back to Problem"
+                title="Go to Crucible"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline text-sm font-medium">Back to Problem</span>
+                <BookOpen className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline text-sm font-medium">Crucible</span>
               </Button>
               <Button
+                variant="ghost"
                 size="sm"
-                onClick={handleReattemptProblem}
-                className="h-9 px-3 rounded-lg bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-200"
-                title="Reattempt Problem"
+                onClick={() => handleNavigation('/forge')}
+                className="h-9 px-3 rounded-lg text-primary hover:bg-primary/10 transition-all duration-200"
+                title="Go to Forge"
               >
-                <Sparkles className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline text-sm font-medium">Reattempt</span>
+                <FileText className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline text-sm font-medium">Forge</span>
               </Button>
             </div>
-          )}
+          ) : null}
 
           {/* Back to Forge button (only on Forge detail page) */}
           {isForgeDetailPage && (
@@ -379,6 +387,18 @@ export default function AppLayout() {
             </Button>
             {/* Theme switcher */}
             <ThemeSwitcher />
+            {/* [ADD] Nav lock button - only on Crucible Problem Page in focus mode */}
+            {isCrucibleProblemPage && focusMode && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setNavLockedOpen((prev) => !prev)}
+                className="h-9 w-9 p-0 rounded-lg hover:bg-base-200/80 transition-all duration-200"
+                title={navLockedOpen ? 'Unlock Navigation Bar (auto-hide)' : 'Lock Navigation Bar Open'}
+              >
+                {navLockedOpen ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+              </Button>
+            )}
             {/* [MOVE] Focus mode toggle button here */}
             {isCrucibleProblemPage && (
               <button
@@ -396,7 +416,15 @@ export default function AppLayout() {
         </header>
         
         {/* Page Content */}
-        <main className="flex-1 overflow-auto bg-base-100 p-0">
+        <main
+          className="overflow-auto bg-base-100 p-0 transition-all duration-300 absolute"
+          style={{
+            top: shouldShowNav ? '3.5rem' : '0',
+            left: `${sidebarWidth}px`,
+            width: `calc(100vw - ${sidebarWidth}px)`,
+            height: shouldShowNav ? 'calc(100vh - 3.5rem)' : '100vh',
+          }}
+        >
           <Outlet />
         </main>
       </div>
