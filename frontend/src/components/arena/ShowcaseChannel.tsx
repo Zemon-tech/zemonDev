@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -22,6 +22,61 @@ const ShowcaseChannel: React.FC = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Auto-rotating carousel component
+  const ImageCarousel: React.FC<{ images: string[]; title: string }> = ({ images, title }) => {
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+    useEffect(() => {
+      if (images.length <= 1) return;
+
+      const interval = setInterval(() => {
+        setCurrentImageIndex((prev) => (prev + 1) % images.length);
+      }, 5000); // Change image every 3 seconds
+
+      return () => clearInterval(interval);
+    }, [images.length]);
+
+    if (!images || images.length === 0) {
+      return (
+        <div className="flex items-center justify-center w-full h-full text-base-content/30 text-4xl">
+          <Hash className="w-8 h-8" />
+        </div>
+      );
+    }
+
+    if (images.length === 1) {
+      return (
+        <img
+          src={images[0]}
+          alt={title}
+          className="object-cover w-full h-full"
+        />
+      );
+    }
+
+    return (
+      <div className="relative w-full h-full overflow-hidden">
+        {images.map((image, index) => (
+          <motion.img
+            key={index}
+            src={image}
+            alt={`${title} - Image ${index + 1}`}
+            className="absolute inset-0 object-cover w-full h-full"
+            initial={{ opacity: 0 }}
+            animate={{ 
+              opacity: index === currentImageIndex ? 1 : 0,
+              scale: index === currentImageIndex ? 1 : 1.05
+            }}
+            transition={{ 
+              opacity: { duration: 0.5 },
+              scale: { duration: 0.5 }
+            }}
+          />
+        ))}
+      </div>
+    );
+  };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -69,6 +124,8 @@ const ShowcaseChannel: React.FC = () => {
     }
   };
 
+
+
   if (loading) {
     return (
       <div className="flex flex-col h-full items-center justify-center">
@@ -109,20 +166,10 @@ const ShowcaseChannel: React.FC = () => {
               style={{ maxWidth: 340, minWidth: 0 }}
             >
               <div className="card bg-base-100 shadow-sm hover:shadow-lg transition-all duration-200 h-64 flex flex-col min-h-0 hover:-translate-y-1 hover:border-primary/40">
-                {/* Image Thumbnail */}
-                <figure className="h-24 w-full bg-base-200 overflow-hidden flex items-center justify-center">
-                  {project.images && project.images[0] ? (
-                    <img
-                      src={project.images[0]}
-                      alt={project.title}
-                      className="object-cover w-full h-full"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center w-full h-full text-base-content/30 text-4xl">
-                      <Hash className="w-8 h-8" />
-                    </div>
-                  )}
-                </figure>
+                                 {/* Image Thumbnail */}
+                 <figure className="h-24 w-full bg-base-200 overflow-hidden flex items-center justify-center">
+                   <ImageCarousel images={project.images || []} title={project.title} />
+                 </figure>
                 {/* Card Body */}
                 <div className="card-body flex-1 flex flex-col px-3 py-2 gap-1 min-h-0">
                   {/* Header: Avatar, Username, Date */}
@@ -218,37 +265,136 @@ const ShowcaseChannel: React.FC = () => {
       </div>
       {/* Project Submission Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 relative">
-            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-600" onClick={() => setShowModal(false)}>&times;</button>
-            <h2 className="text-xl font-bold mb-4">Share Your Project</h2>
-            {formError && <div className="text-red-500 mb-2">{formError}</div>}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Title *</label>
-                <input name="title" value={form.title} onChange={handleFormChange} className="w-full border rounded px-3 py-2" required />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-base-100 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-base-content">Share Your Project</h3>
+              <button 
+                className="btn btn-ghost btn-sm btn-circle" 
+                onClick={() => setShowModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Error Message */}
+            {formError && (
+              <div className="alert alert-error mb-6">
+                <AlertCircle className="w-5 h-5" />
+                <span>{formError}</span>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
-                <textarea name="description" value={form.description} onChange={handleFormChange} className="w-full border rounded px-3 py-2" rows={3} />
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Title */}
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">Project Title *</span>
+                </label>
+                <input 
+                  name="title" 
+                  value={form.title} 
+                  onChange={handleFormChange} 
+                  className="input input-bordered w-full" 
+                  placeholder="Enter your project title"
+                  required 
+                />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Image URLs (up to 3)</label>
-                {[0,1,2].map(i => (
-                  <input key={i} name={`image${i}`} value={form.images[i]} onChange={handleFormChange} className="w-full border rounded px-3 py-2 mb-1" placeholder={`Image URL ${i+1}`} />
-                ))}
+
+              {/* Description */}
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">Description</span>
+                </label>
+                <textarea 
+                  name="description" 
+                  value={form.description} 
+                  onChange={handleFormChange} 
+                  className="textarea textarea-bordered w-full" 
+                  rows={4}
+                  placeholder="Describe your project, technologies used, and what makes it special..."
+                />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Repository URL *</label>
-                <input name="gitRepositoryUrl" value={form.gitRepositoryUrl} onChange={handleFormChange} className="w-full border rounded px-3 py-2" required />
+
+              {/* Image URLs */}
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">Project Images (up to 3)</span>
+                  <span className="label-text-alt text-base-content/60">Optional</span>
+                </label>
+                <div className="space-y-2">
+                  {[0, 1, 2].map(i => (
+                    <input 
+                      key={i} 
+                      name={`image${i}`} 
+                      value={form.images[i]} 
+                      onChange={handleFormChange} 
+                      className="input input-bordered w-full" 
+                      placeholder={`Image URL ${i + 1} (optional)`} 
+                    />
+                  ))}
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Demo URL *</label>
-                <input name="demoUrl" value={form.demoUrl} onChange={handleFormChange} className="w-full border rounded px-3 py-2" required />
+
+              {/* Repository URL */}
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">Repository URL *</span>
+                </label>
+                <input 
+                  name="gitRepositoryUrl" 
+                  value={form.gitRepositoryUrl} 
+                  onChange={handleFormChange} 
+                  className="input input-bordered w-full" 
+                  placeholder="https://github.com/username/project"
+                  required 
+                />
               </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setShowModal(false)} disabled={submitting}>Cancel</Button>
-                <Button type="submit" disabled={submitting}>{submitting ? 'Submitting...' : 'Submit'}</Button>
+
+              {/* Demo URL */}
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">Demo URL *</span>
+                </label>
+                <input 
+                  name="demoUrl" 
+                  value={form.demoUrl} 
+                  onChange={handleFormChange} 
+                  className="input input-bordered w-full" 
+                  placeholder="https://your-demo-url.com"
+                  required 
+                />
+              </div>
+
+              {/* Form Actions */}
+              <div className="flex justify-end gap-3 pt-4">
+                <button 
+                  type="button" 
+                  className="btn btn-outline" 
+                  onClick={() => setShowModal(false)} 
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      Submit Project
+                    </>
+                  )}
+                </button>
               </div>
             </form>
           </div>
