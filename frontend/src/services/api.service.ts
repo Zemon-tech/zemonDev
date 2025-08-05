@@ -147,4 +147,20 @@ export class ApiService {
   static async postJoinRequestAction(endpoint: string, getToken: () => Promise<string | null>) {
     return this.makeRequest(endpoint, { method: 'POST' }, getToken);
   }
+
+  // Channel Management API
+  static async updateChannelDescription(
+    channelId: string, 
+    description: string, 
+    getToken: () => Promise<string | null>
+  ) {
+    return this.makeRequest(
+      `/api/arena/channels/${channelId}/description`,
+      { 
+        method: 'PATCH',
+        body: JSON.stringify({ description })
+      }, 
+      getToken
+    );
+  }
 } 

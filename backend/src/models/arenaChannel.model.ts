@@ -27,7 +27,7 @@ const ArenaChannelSchema: Schema = new Schema(
     type: {
       type: String,
       required: true,
-      enum: ['chat', 'announcement', 'showcase'],
+      enum: ['chat', 'announcement', 'showcase','info'],
       default: 'chat',
     },
     group: {

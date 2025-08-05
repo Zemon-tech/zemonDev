@@ -5,8 +5,9 @@ import { ApiService } from '../services/api.service';
 export interface Channel {
   _id: string;
   name: string;
-  type: 'chat' | 'announcement' | 'showcase';
+  type: 'chat' | 'announcement' | 'showcase' | 'info';
   group: 'getting-started' | 'community' | 'hackathons';
+  description?: string;
   unreadCount?: number;
   permissions: {
     canMessage: boolean;

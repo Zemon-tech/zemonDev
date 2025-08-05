@@ -12,7 +12,8 @@
     "migrate:user-profile": "ts-node src/migrations/add-user-profile-fields.ts",
     "migrate:fix-user-profile": "ts-node src/migrations/fix-user-profile-fields.ts",
     "migrate:profile-background": "ts-node src/migrations/add-profile-background-field.ts",
-    "migrate:remove-version-history": "ts-node src/migrations/remove-version-history.ts"
+    "migrate:remove-version-history": "ts-node src/migrations/remove-version-history.ts",
+    "migrate:change-parent-channels-to-info": "ts-node src/migrations/change-parent-channels-to-info.ts"
   },
   "keywords": [
     "education",

@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import UserList from './UserList';
 import JoinRequestsTable from './JoinRequestsTable';
+import ChannelManagement from './ChannelManagement';
+import { useUserRole } from '@/context/UserRoleContext';
 
 
 const AdminPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'users' | 'channels' | 'content' | 'joinRequests'>('users');
+  const { hasAdminAccess } = useUserRole();
 
   const tabs = [
     { id: 'users' as const, label: 'Users', icon: '👥' },
@@ -18,14 +21,13 @@ const AdminPanel: React.FC = () => {
       case 'users':
         return <UserList />;
       case 'channels':
-        return (
+        return hasAdminAccess() ? (
+          <ChannelManagement />
+        ) : (
           <div className="p-6 text-center">
-            <div className="text-6xl mb-4">📺</div>
-            <h3 className="text-xl font-semibold mb-2">Channel Management</h3>
-            <p className="text-base-content/70">Coming Soon</p>
-            <p className="text-sm text-base-content/50 mt-2">
-              Create, edit, and manage arena channels
-            </p>
+            <div className="text-6xl mb-4">🚫</div>
+            <h3 className="text-xl font-semibold mb-2">Access Denied</h3>
+            <p className="text-base-content/70">You need admin privileges to access channel management</p>
           </div>
         );
       case 'content':

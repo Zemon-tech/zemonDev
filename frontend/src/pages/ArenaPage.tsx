@@ -19,6 +19,7 @@ import HackathonChannel from '@/components/arena/HackathonChannel';
 import ShowcaseChannel from '@/components/arena/ShowcaseChannel';
 import RulesChannel from '@/components/arena/RulesChannel';
 import StartHereChannel from '@/components/arena/StartHereChannel';
+import ParentChannelDetails from '@/components/arena/ParentChannelDetails';
 // Import NirvanaChannel
 import NirvanaChannel from '@/components/arena/NirvanaChannel';
 import AdminPage from '@/pages/AdminPage';
@@ -147,6 +148,11 @@ const ArenaPage: React.FC = () => {
     ? Object.values(channels).flat().find(c => c._id === activeChannelId)
     : null;
 
+  // Get sub-channels for the active channel
+  const activeChannelSubChannels = activeChannel
+    ? Object.values(channels).flat().filter(c => c.parentChannelId === activeChannel._id)
+    : [];
+
   const renderChannelContent = () => {
     if (showAdminPanel) {
       return <AdminPage />;
@@ -164,6 +170,17 @@ const ArenaPage: React.FC = () => {
     }
 
     // Handle channels by type first, then by name
+    if (activeChannel.type === 'info') {
+      return (
+        <ParentChannelDetails
+          channelId={activeChannel._id}
+          channel={activeChannel}
+          subChannels={activeChannelSubChannels}
+          userChannelStatuses={userChannelStatuses}
+        />
+      );
+    }
+    
     if (activeChannel.type === 'announcement') {
       return <AnnouncementsChannel channelId={activeChannel._id} userChannelStatuses={userChannelStatuses} />;
     }
