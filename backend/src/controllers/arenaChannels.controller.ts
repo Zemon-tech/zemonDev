@@ -43,7 +43,7 @@ export const getChannels = asyncHandler(
 export const getChannelMessages = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { channelId } = req.params;
-    const { page = 1, limit = 50, before } = req.query;
+    const { limit = 25, before } = req.query; // Use cursor-based pagination only
     const userId = req.user._id;
 
     // Check if channel exists
@@ -70,21 +70,39 @@ export const getChannelMessages = asyncHandler(
       }
     }
 
-    // Build query
+    // Build query for cursor-based pagination
     const query: any = { channelId };
     
     // If 'before' parameter is provided, get messages before that timestamp
     if (before) {
-      query.timestamp = { $lt: new Date(before as string) };
+      const beforeDate = new Date(before as string);
+      query.timestamp = { $lt: beforeDate };
+      console.log('Cursor-based query:', { before, beforeDate, query });
     }
 
-    // Fetch messages with pagination
+    // Get total count for pagination metadata
+    const totalCount = await ArenaMessage.countDocuments({ channelId });
+
+    // Calculate pagination metadata for cursor-based pagination
+    const currentLimit = parseInt(limit as string, 10);
+    
+    // Fetch messages with cursor-based pagination
     const messages = await ArenaMessage.find(query)
       .sort({ timestamp: -1 }) // Newest first
-      .skip((parseInt(page as string, 10) - 1) * parseInt(limit as string, 10))
-      .limit(parseInt(limit as string, 10))
+      .limit(currentLimit)
       .populate('userId', 'fullName')
       .populate('replyToId');
+
+    const hasMore = messages.length === currentLimit;
+
+    console.log('Backend pagination debug:', {
+      before,
+      messagesCount: messages.length,
+      firstMessageTimestamp: messages[0]?.timestamp,
+      lastMessageTimestamp: messages[messages.length - 1]?.timestamp,
+      limit: currentLimit,
+      hasMore
+    });
 
     // Update user's last read timestamp for this channel
     // Only update read status if user is approved for this channel
@@ -96,6 +114,16 @@ export const getChannelMessages = asyncHandler(
       await userStatus.save();
     }
 
+    // For cursor-based pagination, we need to get the timestamp of the OLDEST message in this batch
+    // Since we sort by timestamp: -1 (newest first), the oldest message is at the end of the array
+    // But we reverse the messages before sending, so we need to get the timestamp before reversing
+    let nextCursor = null;
+    if (hasMore && messages.length > 0) {
+      // Get the timestamp of the oldest message in this batch (last element before reverse)
+      const oldestMessageInBatch = messages[messages.length - 1];
+      nextCursor = oldestMessageInBatch?.timestamp?.toISOString();
+    }
+
     res.status(200).json(
       new ApiResponse(
         200,
@@ -103,8 +131,10 @@ export const getChannelMessages = asyncHandler(
         {
           messages: messages.reverse(), // Return in chronological order
           pagination: {
-            page: parseInt(page as string, 10),
-            limit: parseInt(limit as string, 10)
+            limit: currentLimit,
+            totalCount,
+            hasMore,
+            nextCursor
           }
         }
       )

@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Plus, Image, Gift, Smile, MoreHorizontal, Loader2 } from 'lucide-react';
+import { Plus, Image, Gift, Smile, MoreHorizontal, Loader2, MessageSquare } from 'lucide-react';
 import { useArenaChat } from '@/hooks/useArenaChat';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import type { Message } from '@/hooks/useArenaChat';
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
@@ -30,7 +31,6 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
     throw new Error('ChatChannel: userChannelStatuses prop is required');
   }
   const status = userChannelStatuses[String(channelId)];
-  console.log('ChatChannel: channelId', channelId, 'userChannelStatuses', userChannelStatuses);
   if (status === 'pending') {
     return (
       <div className="flex flex-col h-full items-center justify-center text-center">
@@ -60,7 +60,22 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
       </div>
     );
   }
-  const { messages, loading, typing, error, sendMessage, sendTyping } = useArenaChat(channelId, userChannelStatuses);
+  
+  const { 
+    messages, 
+    loading, 
+    loadingMore, 
+    typing, 
+    error, 
+    pagination, 
+    hasInitialized,
+    hasReachedEnd,
+    consecutiveDuplicateLoads,
+    sendMessage, 
+    sendTyping, 
+    loadMoreMessages 
+  } = useArenaChat(channelId, userChannelStatuses);
+  
   const [messageInput, setMessageInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [replyTo, setReplyTo] = useState<{_id: string, username: string, content: string} | null>(null);
@@ -70,10 +85,54 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
   const [showGifPicker, setShowGifPicker] = useState(false);
   const gf = React.useMemo(() => new GiphyFetch('YOUR_GIPHY_API_KEY'), []);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Infinite scroll setup with improved scroll position tracking
+  const { containerRef, restoreScrollPosition } = useInfiniteScroll({
+    onLoadMore: loadMoreMessages,
+    hasMore: pagination?.hasMore || false,
+    loading: loadingMore,
+    threshold: 150,
+    enabled: hasInitialized && !loading && !hasReachedEnd && consecutiveDuplicateLoads < 3
+  });
+
+  // Auto-scroll to bottom when new messages arrive (but not when loading more)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    // Only auto-scroll if we're not loading more messages and we have messages
+    // Also check if we're near the bottom to avoid jumping
+    if (!loadingMore && messages.length > 0) {
+      const container = containerRef.current;
+      if (container) {
+        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+        // Only auto-scroll if we're near bottom AND not at the very top
+        if (isNearBottom && container.scrollTop > 0) {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    }
+  }, [messages, loadingMore]);
+
+  // Scroll to bottom on initial load
+  useEffect(() => {
+    if (hasInitialized && !loading && messages.length > 0) {
+      // Use a small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [hasInitialized, loading, messages.length]);
+
+  // Restore scroll position after loading more messages with improved timing
+  useEffect(() => {
+    if (!loadingMore) {
+      // Use a longer delay to ensure DOM has fully updated
+      const timer = setTimeout(() => {
+        restoreScrollPosition();
+      }, 100); // Increased delay for better DOM synchronization
+
+      return () => clearTimeout(timer);
+    }
+  }, [loadingMore, restoreScrollPosition]);
 
   const handleSendMessage = () => {
     if (messageInput.trim()) {
@@ -240,8 +299,32 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-0 py-4">
+      <div 
+        ref={containerRef}
+        className="flex-1 overflow-y-auto"
+      >
+        {/* Loading more indicator */}
+        {loadingMore && (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="w-5 h-5 text-primary animate-spin mr-2" />
+            <span className="text-sm text-base-content/70">Loading more messages...</span>
+          </div>
+        )}
+
+        {/* End of messages indicator */}
+        {hasReachedEnd && messages.length > 0 && (
+          <div className="flex items-center justify-center py-6">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-base-200/80 border border-base-300">
+              <MessageSquare className="w-4 h-4 text-base-content/60" />
+              <span className="text-sm text-base-content/60 font-medium">Beginning of conversation</span>
+            </div>
+          </div>
+        )}
+        
+        <div 
+          ref={containerRef}
+          className="px-0 py-4"
+        >
           {/* Date divider logic */}
           {(() => {
             // Group consecutive messages from the same user (within 5min)

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useArenaSocket } from './useArenaSocket';
 import { ApiService } from '../services/api.service';
@@ -14,6 +14,13 @@ export interface Message {
   type: 'text' | 'system';
 }
 
+export interface PaginationInfo {
+  limit: number;
+  totalCount: number;
+  hasMore: boolean;
+  nextCursor?: string;
+}
+
 export type ArenaChatError =
   | { type: 'banned'; message: string; reason?: string; banExpiresAt?: string }
   | { type: 'kicked'; message: string }
@@ -25,8 +32,15 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
   const { socket } = useArenaSocket();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [typing, setTyping] = useState<string[]>([]);
   const [error, setError] = useState<ArenaChatError>(null);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
+  const [hasReachedEnd, setHasReachedEnd] = useState(false);
+  const [lastLoadedCursor, setLastLoadedCursor] = useState<string | null>(null);
+  const [lastLoadTime, setLastLoadTime] = useState<number>(0);
+  const [consecutiveDuplicateLoads, setConsecutiveDuplicateLoads] = useState(0);
 
   // Only allow if user has any status for the channel
   const hasStatus = userChannelStatuses[channelId] !== undefined;
@@ -67,9 +81,21 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
     const loadMessages = async () => {
       try {
         setLoading(true);
-        const response = await ApiService.getChannelMessages(channelId, getToken);
-        setMessages(response.data.messages); // FIX: use .messages
         setError(null);
+        setHasReachedEnd(false);
+        setLastLoadedCursor(null);
+        setConsecutiveDuplicateLoads(0); // Reset duplicate counter for new channel
+        
+        const response = await ApiService.getChannelMessages(channelId, getToken);
+        setMessages(response.data.messages);
+        setPagination(response.data.pagination);
+        setHasInitialized(true);
+        setLastLoadTime(0); // Reset load time for initial load
+        
+        // Check if we've reached the end (no more messages to load)
+        if (!response.data.pagination.hasMore) {
+          setHasReachedEnd(true);
+        }
       } catch (err: any) {
         // Check for 403 ban/kick error
         if (err?.response?.status === 403 && err?.response?.data) {
@@ -98,6 +124,124 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
 
     loadMessages();
   }, [channelId, getToken, isSignedIn, hasStatus]);
+
+  // Load more messages (for pagination)
+  const loadMoreMessages = useCallback(async () => {
+    if (!channelId || !isSignedIn || !hasStatus || loadingMore || !pagination?.hasMore || hasReachedEnd) {
+      return;
+    }
+
+    // Prevent rapid duplicate requests (within 1 second)
+    const now = Date.now();
+    if (now - lastLoadTime < 1000) {
+      console.log('Skipping rapid request - too soon since last load');
+      return;
+    }
+
+    // Prevent duplicate requests with the same cursor
+    const currentCursor = pagination.nextCursor;
+    if (currentCursor === lastLoadedCursor) {
+      console.log('Skipping duplicate request with same cursor:', currentCursor);
+      return;
+    }
+
+    // Additional check: if we've been getting mostly duplicates, stop loading
+    if (lastLoadedCursor && currentCursor) {
+      const currentTime = new Date(currentCursor).getTime();
+      const lastTime = new Date(lastLoadedCursor).getTime();
+      // If the cursor is moving backwards very slowly or not at all, we might be at the end
+      if (currentTime >= lastTime) {
+        console.log('Cursor is not moving forward - possible end of messages');
+        setHasReachedEnd(true);
+        return;
+      }
+    }
+
+    try {
+      setLoadingMore(true);
+      setLastLoadTime(now);
+      
+      console.log('Loading more messages with cursor:', currentCursor);
+      
+      const response = await ApiService.getChannelMessages(
+        channelId, 
+        getToken, 
+        25, 
+        currentCursor
+      );
+      
+      // Deduplicate messages to prevent repeats
+      setMessages(prev => {
+        const newMessages = response.data.messages;
+        const existingIds = new Set(prev.map((msg: Message) => msg._id));
+        const uniqueNewMessages = newMessages.filter((msg: Message) => !existingIds.has(msg._id));
+        
+        // Enhanced debug logging
+        console.log('Loading more messages:', {
+          newMessagesCount: newMessages.length,
+          uniqueNewMessagesCount: uniqueNewMessages.length,
+          existingMessagesCount: prev.length,
+          duplicateCount: newMessages.length - uniqueNewMessages.length,
+          cursor: currentCursor,
+          lastLoadedCursor: lastLoadedCursor,
+          hasMore: response.data.pagination.hasMore,
+          nextCursor: response.data.pagination.nextCursor,
+          consecutiveDuplicateLoads
+        });
+        
+        // If we got some unique messages, prepend them and reset duplicate counter
+        if (uniqueNewMessages.length > 0) {
+          setConsecutiveDuplicateLoads(0); // Reset counter when we get unique messages
+          return [...uniqueNewMessages, ...prev];
+        }
+        
+        // If we got mostly duplicates, increment the counter
+        if (uniqueNewMessages.length < newMessages.length / 2) {
+          setConsecutiveDuplicateLoads(prev => prev + 1);
+          console.log(`Consecutive duplicate loads: ${consecutiveDuplicateLoads + 1}`);
+          
+          // If we've had too many consecutive duplicate loads, stop loading
+          if (consecutiveDuplicateLoads >= 2) {
+            console.warn('Too many consecutive duplicate loads - stopping infinite scroll');
+            setHasReachedEnd(true);
+          }
+        }
+        
+        // If no unique messages and no new messages, we've reached the end
+        if (newMessages.length === 0) {
+          console.warn('No new messages returned - reached end');
+          setHasReachedEnd(true);
+        }
+        
+        return prev; // Don't change the messages array
+      });
+      
+      setPagination(response.data.pagination);
+      
+      // Update the last loaded cursor to the next cursor from the response
+      if (response.data.pagination.nextCursor) {
+        setLastLoadedCursor(response.data.pagination.nextCursor);
+      }
+      
+      // Check if we've reached the end
+      if (!response.data.pagination.hasMore) {
+        setHasReachedEnd(true);
+      }
+      
+      // Additional check: if the next cursor is the same as current cursor, we've reached the end
+      if (response.data.pagination.nextCursor === currentCursor) {
+        console.warn('Next cursor is same as current cursor - reached end');
+        setHasReachedEnd(true);
+      }
+    } catch (err: any) {
+      console.error('Error loading more messages:', err);
+      setError({ type: 'generic', message: 'Failed to load more messages' });
+      // Reset cursor on error to allow retry
+      setLastLoadedCursor(null);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [channelId, getToken, isSignedIn, hasStatus, loadingMore, pagination, hasReachedEnd, lastLoadedCursor, lastLoadTime, consecutiveDuplicateLoads]);
 
   const sendMessage = useCallback((content: string, replyToId?: string) => {
     if (!socket) {
@@ -144,9 +288,15 @@ export const useArenaChat = (channelId: string, userChannelStatuses: Record<stri
   return {
     messages,
     loading,
+    loadingMore,
     typing,
     error,
+    pagination,
+    hasInitialized,
+    hasReachedEnd,
+    consecutiveDuplicateLoads,
     sendMessage,
-    sendTyping
+    sendTyping,
+    loadMoreMessages
   };
 }; 

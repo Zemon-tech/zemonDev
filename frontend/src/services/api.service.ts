@@ -7,14 +7,6 @@ export class ApiService {
     getToken: () => Promise<string | null>
   ) {
     const authHeader = await this.getAuthHeader(getToken);
-    // Debug: Log the Authorization header (do not commit to production)
-    if (authHeader && authHeader.Authorization) {
-      // eslint-disable-next-line no-console
-      console.log('[DEBUG] Sending Authorization header:', authHeader.Authorization);
-    } else {
-      // eslint-disable-next-line no-console
-      console.warn('[DEBUG] No Authorization header set for request to', endpoint);
-    }
     if (Object.keys(authHeader).length === 0) {
       throw new Error('You must be signed in to access this resource. Please sign in.');
     }
@@ -57,7 +49,7 @@ export class ApiService {
   static async getChannelMessages(
     channelId: string, 
     getToken: () => Promise<string | null>,
-    limit = 50, 
+    limit = 25, 
     before?: string
   ) {
     const params = new URLSearchParams({ limit: limit.toString() });

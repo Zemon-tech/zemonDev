@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { PlusCircle, Pin, Loader2, AlertCircle, Shield, Users, Plus, Image, Gift, Smile } from 'lucide-react';
 import { useArenaChat, Message } from '@/hooks/useArenaChat';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useUserRole } from '@/context/UserRoleContext';
 import RestrictedMessageView from './RestrictedMessageView';
 import Picker from '@emoji-mart/react';
@@ -22,12 +23,30 @@ const AnnouncementsChannelComponent: React.FC<AnnouncementsChannelProps> = ({
   channelId = 'announcements',
   userChannelStatuses = {}
 }) => {
-  const { messages, loading, error, sendMessage } = useArenaChat(channelId, userChannelStatuses);
+  const { 
+    messages, 
+    loading, 
+    loadingMore, 
+    error, 
+    pagination, 
+    hasInitialized,
+    sendMessage 
+  } = useArenaChat(channelId, userChannelStatuses);
+  
   const { globalRole, channelRoles, isLoading: roleLoading } = useUserRole();
   const [announcementInput, setAnnouncementInput] = React.useState('');
   const [showEmojiPicker, setShowEmojiPicker] = React.useState(false);
   const [showGifPicker, setShowGifPicker] = React.useState(false);
   const gf = React.useMemo(() => new GiphyFetch('YOUR_GIPHY_API_KEY'), []);
+  
+  // Infinite scroll setup
+  const scrollContainerRef = useInfiniteScroll({
+    onLoadMore: () => {}, // Announcements typically don't need pagination, but keeping for consistency
+    hasMore: false,
+    loading: false,
+    threshold: 150,
+    enabled: false // Disable infinite scroll for announcements
+  });
   
   // Check if user has admin/moderator access for this channel - MEMOIZED to prevent infinite re-renders
   const canPost = useMemo(() => {

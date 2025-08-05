@@ -76,7 +76,6 @@ const ArenaPage: React.FC = () => {
 
   // Fetch user channel statuses
   useEffect(() => {
-    console.log('Fetching user channel statuses, isLoaded:', isLoaded, 'isSignedIn:', isSignedIn);
     const fetchStatuses = async () => {
       try {
         const res = await ApiService.getUserChannelStatuses(getToken); // Use real getToken from useAuth
