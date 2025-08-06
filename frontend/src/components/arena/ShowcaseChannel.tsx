@@ -11,7 +11,7 @@ import { useAuth, useUser } from '@clerk/clerk-react';
 import { ApiService } from '@/services/api.service';
 
 const ShowcaseChannel: React.FC = () => {
-  const { projects, loading, error, upvoteProject, downvoteProject, removeDownvoteProject, refetch } = useArenaShowcase();
+  const { projects, loading, error, upvoteProject, downvoteProject, removeUpvoteProject, removeDownvoteProject, refetch } = useArenaShowcase();
   const { getToken, isSignedIn } = useAuth();
   const { user } = useUser();
   const [showModal, setShowModal] = useState(false);
@@ -215,10 +215,9 @@ const ShowcaseChannel: React.FC = () => {
                     {/* Like */}
                     <button
                       onClick={() => upvoteProject(project._id)}
-                      disabled={project.hasUpvoted || project.hasDownvoted}
-                      title={project.hasUpvoted ? 'You upvoted' : 'Upvote'}
+                      title={project.hasUpvoted ? 'Remove upvote' : 'Upvote'}
                       className={cn(
-                        "group/like flex items-center gap-1 text-xs text-base-content/70 hover:text-primary transition-colors disabled:opacity-60 p-0 border-none bg-transparent shadow-none focus:outline-none",
+                        "group/like flex items-center gap-1 text-xs text-base-content/70 hover:text-primary transition-colors p-0 border-none bg-transparent shadow-none focus:outline-none",
                         project.hasUpvoted && "text-primary"
                       )}
                     >
@@ -227,11 +226,10 @@ const ShowcaseChannel: React.FC = () => {
                     </button>
                     {/* Dislike */}
                     <button
-                      onClick={() => project.hasDownvoted ? removeDownvoteProject(project._id) : downvoteProject(project._id)}
-                      disabled={project.hasUpvoted}
-                      title={project.hasDownvoted ? 'You downvoted' : 'Downvote'}
+                      onClick={() => downvoteProject(project._id)}
+                      title={project.hasDownvoted ? 'Remove downvote' : 'Downvote'}
                       className={cn(
-                        "group/dislike flex items-center gap-1 text-xs text-base-content/70 hover:text-error transition-colors disabled:opacity-60 p-0 border-none bg-transparent shadow-none focus:outline-none",
+                        "group/dislike flex items-center gap-1 text-xs text-base-content/70 hover:text-error transition-colors p-0 border-none bg-transparent shadow-none focus:outline-none",
                         project.hasDownvoted && "text-error"
                       )}
                     >

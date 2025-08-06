@@ -61,6 +61,7 @@ const ProjectShowcaseSchema: Schema = new Schema(
     upvotes: {
       type: Number,
       default: 0,
+      min: 0,
     },
     upvotedBy: [
       {
@@ -71,6 +72,7 @@ const ProjectShowcaseSchema: Schema = new Schema(
     downvotes: {
       type: Number,
       default: 0,
+      min: 0,
     },
     downvotedBy: [
       {
@@ -103,5 +105,17 @@ ProjectShowcaseSchema.index({ downvotes: -1 }); // For sorting by most downvoted
 ProjectShowcaseSchema.index({ submittedAt: -1 }); // For sorting by newest
 ProjectShowcaseSchema.index({ userId: 1 }); // For fetching user's projects
 ProjectShowcaseSchema.index({ isApproved: 1 }); // For filtering approved projects
+
+// Pre-save middleware to ensure vote counts are valid
+ProjectShowcaseSchema.pre('save', function(next) {
+  // Ensure vote counts are never negative and match the arrays
+  const upvotedCount = Array.isArray(this.upvotedBy) ? this.upvotedBy.length : 0;
+  const downvotedCount = Array.isArray(this.downvotedBy) ? this.downvotedBy.length : 0;
+  
+  this.upvotes = Math.max(0, upvotedCount);
+  this.downvotes = Math.max(0, downvotedCount);
+  
+  next();
+});
 
 export default mongoose.model<IProjectShowcase>('ProjectShowcase', ProjectShowcaseSchema); 

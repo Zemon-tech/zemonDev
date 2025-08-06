@@ -53,42 +53,158 @@ export const useArenaShowcase = () => {
 
   const upvoteProject = async (projectId: string) => {
     try {
-      await ApiService.upvoteProject(projectId, getToken);
-      setProjects(prev => prev.map(project => 
-        project._id === projectId 
-          ? { ...project, upvotes: project.upvotes + 1, hasUpvoted: true }
-          : project
-      ));
-    } catch (error) {
+      const project = projects.find(p => p._id === projectId);
+      if (!project) return;
+
+      // If already upvoted, remove the upvote
+      if (project.hasUpvoted) {
+        const response = await ApiService.removeUpvoteProject(projectId, getToken);
+        if (response?.data) {
+          setProjects(prev => prev.map(project => 
+            project._id === projectId 
+              ? { 
+                  ...project, 
+                  upvotes: response.data.upvotes,
+                  downvotes: response.data.downvotes,
+                  hasUpvoted: response.data.hasUpvoted,
+                  hasDownvoted: response.data.hasDownvoted
+                }
+              : project
+          ));
+        }
+      } else {
+        // Add upvote (backend will handle removing downvote if needed)
+        const response = await ApiService.upvoteProject(projectId, getToken);
+        if (response?.data) {
+          setProjects(prev => prev.map(project => 
+            project._id === projectId 
+              ? { 
+                  ...project, 
+                  upvotes: response.data.upvotes,
+                  downvotes: response.data.downvotes,
+                  hasUpvoted: response.data.hasUpvoted,
+                  hasDownvoted: response.data.hasDownvoted
+                }
+            : project
+          ));
+        }
+      }
+      setError(null); // Clear any previous errors
+    } catch (error: any) {
       console.error('Failed to upvote project:', error);
+      // Show error message to user if needed
+      if (error.message) {
+        setError(error.message);
+      }
     }
   };
 
   const downvoteProject = async (projectId: string) => {
     try {
-      await ApiService.downvoteProject(projectId, getToken);
-      setProjects(prev => prev.map(project =>
-        project._id === projectId
-          ? { ...project, downvotes: project.downvotes + 1, hasDownvoted: true }
-          : project
-      ));
-    } catch (error) {
+      const project = projects.find(p => p._id === projectId);
+      if (!project) return;
+
+      // If already downvoted, remove the downvote
+      if (project.hasDownvoted) {
+        const response = await ApiService.removeDownvoteProject(projectId, getToken);
+        if (response?.data) {
+          setProjects(prev => prev.map(project =>
+            project._id === projectId
+              ? { 
+                  ...project, 
+                  upvotes: response.data.upvotes,
+                  downvotes: response.data.downvotes,
+                  hasUpvoted: response.data.hasUpvoted,
+                  hasDownvoted: response.data.hasDownvoted
+                }
+            : project
+          ));
+        }
+      } else {
+        // Add downvote (backend will handle removing upvote if needed)
+        const response = await ApiService.downvoteProject(projectId, getToken);
+        if (response?.data) {
+          setProjects(prev => prev.map(project =>
+            project._id === projectId
+              ? { 
+                  ...project, 
+                  upvotes: response.data.upvotes,
+                  downvotes: response.data.downvotes,
+                  hasUpvoted: response.data.hasUpvoted,
+                  hasDownvoted: response.data.hasDownvoted
+                }
+            : project
+          ));
+        }
+      }
+      setError(null); // Clear any previous errors
+    } catch (error: any) {
       console.error('Failed to downvote project:', error);
+      // Show error message to user if needed
+      if (error.message) {
+        setError(error.message);
+      }
     }
   };
 
   const removeDownvoteProject = async (projectId: string) => {
     try {
-      await ApiService.removeDownvoteProject(projectId, getToken);
-      setProjects(prev => prev.map(project =>
-        project._id === projectId
-          ? { ...project, downvotes: project.downvotes - 1, hasDownvoted: false }
+      const response = await ApiService.removeDownvoteProject(projectId, getToken);
+      if (response?.data) {
+        setProjects(prev => prev.map(project =>
+          project._id === projectId
+            ? { 
+                ...project, 
+                upvotes: response.data.upvotes,
+                downvotes: response.data.downvotes,
+                hasUpvoted: response.data.hasUpvoted,
+                hasDownvoted: response.data.hasDownvoted
+              }
           : project
-      ));
-    } catch (error) {
+        ));
+      }
+      setError(null); // Clear any previous errors
+    } catch (error: any) {
       console.error('Failed to remove downvote:', error);
+      if (error.message) {
+        setError(error.message);
+      }
     }
   };
 
-  return { projects, loading, error, upvoteProject, downvoteProject, removeDownvoteProject, refetch: fetchProjects };
+  const removeUpvoteProject = async (projectId: string) => {
+    try {
+      const response = await ApiService.removeUpvoteProject(projectId, getToken);
+      if (response?.data) {
+        setProjects(prev => prev.map(project =>
+          project._id === projectId
+            ? { 
+                ...project, 
+                upvotes: response.data.upvotes,
+                downvotes: response.data.downvotes,
+                hasUpvoted: response.data.hasUpvoted,
+                hasDownvoted: response.data.hasDownvoted
+              }
+          : project
+        ));
+      }
+      setError(null); // Clear any previous errors
+    } catch (error: any) {
+      console.error('Failed to remove upvote:', error);
+      if (error.message) {
+        setError(error.message);
+      }
+    }
+  };
+
+  return { 
+    projects, 
+    loading, 
+    error, 
+    upvoteProject, 
+    downvoteProject, 
+    removeUpvoteProject,
+    removeDownvoteProject, 
+    refetch: fetchProjects 
+  };
 }; 

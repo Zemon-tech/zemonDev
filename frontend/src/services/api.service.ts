@@ -75,6 +75,14 @@ export class ApiService {
     );
   }
 
+  static async removeUpvoteProject(projectId: string, getToken: () => Promise<string | null>) {
+    return this.makeRequest(
+      `/api/arena/showcase/${projectId}/upvote`,
+      { method: 'DELETE' },
+      getToken
+    );
+  }
+
   static async downvoteProject(projectId: string, getToken: () => Promise<string | null>) {
     return this.makeRequest(
       `/api/arena/showcase/${projectId}/downvote`,

@@ -130,17 +130,21 @@ export const upvoteProject = asyncHandler(
       return next(new AppError('Project not found', 404));
     }
 
-    // Prevent upvoting if already downvoted
-    if (project.downvotedBy.some(id => id.toString() === userId.toString())) {
-      return next(new AppError('You have already downvoted this project. Remove downvote before upvoting.', 400));
-    }
     // Check if user has already upvoted
-    if (project.upvotedBy.some(id => id.toString() === userId.toString())) {
+    const hasUpvoted = project.upvotedBy.some(id => id.toString() === userId.toString());
+    if (hasUpvoted) {
       return next(new AppError('You have already upvoted this project', 400));
     }
 
+    // If user has downvoted, remove the downvote first
+    const hasDownvoted = project.downvotedBy.some(id => id.toString() === userId.toString());
+    if (hasDownvoted) {
+      project.downvotedBy = project.downvotedBy.filter(
+        id => id.toString() !== userId.toString()
+      );
+    }
+
     // Add upvote
-    project.upvotes += 1;
     project.upvotedBy.push(userId);
     await project.save();
 
@@ -151,7 +155,9 @@ export const upvoteProject = asyncHandler(
         {
           projectId,
           upvotes: project.upvotes,
-          hasUpvoted: true
+          downvotes: project.downvotes,
+          hasUpvoted: true,
+          hasDownvoted: false
         }
       )
     );
@@ -180,7 +186,6 @@ export const removeUpvote = asyncHandler(
     }
 
     // Remove upvote
-    project.upvotes -= 1;
     project.upvotedBy = project.upvotedBy.filter(
       id => id.toString() !== userId.toString()
     );
@@ -193,7 +198,9 @@ export const removeUpvote = asyncHandler(
         {
           projectId,
           upvotes: project.upvotes,
-          hasUpvoted: false
+          downvotes: project.downvotes,
+          hasUpvoted: false,
+          hasDownvoted: project.downvotedBy.some(id => id.toString() === userId.toString())
         }
       )
     );
@@ -216,17 +223,21 @@ export const downvoteProject = asyncHandler(
       return next(new AppError('Project not found', 404));
     }
 
-    // Prevent downvoting if already upvoted
-    if (project.upvotedBy.some(id => id.toString() === userId.toString())) {
-      return next(new AppError('You have already upvoted this project. Remove upvote before downvoting.', 400));
-    }
-    // Prevent double downvote
-    if (project.downvotedBy.some(id => id.toString() === userId.toString())) {
+    // Check if user has already downvoted
+    const hasDownvoted = project.downvotedBy.some(id => id.toString() === userId.toString());
+    if (hasDownvoted) {
       return next(new AppError('You have already downvoted this project', 400));
     }
 
+    // If user has upvoted, remove the upvote first
+    const hasUpvoted = project.upvotedBy.some(id => id.toString() === userId.toString());
+    if (hasUpvoted) {
+      project.upvotedBy = project.upvotedBy.filter(
+        id => id.toString() !== userId.toString()
+      );
+    }
+
     // Add downvote
-    project.downvotes += 1;
     project.downvotedBy.push(userId);
     await project.save();
 
@@ -236,7 +247,9 @@ export const downvoteProject = asyncHandler(
         'Project downvoted successfully',
         {
           projectId,
+          upvotes: project.upvotes,
           downvotes: project.downvotes,
+          hasUpvoted: false,
           hasDownvoted: true
         }
       )
@@ -266,7 +279,6 @@ export const removeDownvote = asyncHandler(
     }
 
     // Remove downvote
-    project.downvotes -= 1;
     project.downvotedBy = project.downvotedBy.filter(
       id => id.toString() !== userId.toString()
     );
@@ -278,7 +290,9 @@ export const removeDownvote = asyncHandler(
         'Downvote removed successfully',
         {
           projectId,
+          upvotes: project.upvotes,
           downvotes: project.downvotes,
+          hasUpvoted: project.upvotedBy.some(id => id.toString() === userId.toString()),
           hasDownvoted: false
         }
       )
