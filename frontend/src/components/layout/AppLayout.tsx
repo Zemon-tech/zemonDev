@@ -225,27 +225,6 @@ export default function AppLayout() {
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </Button>
-            {/* Submit Button - Only show on problem page */}
-            {showSubmitButton && (
-              <Button
-                size="sm"
-                className="gap-2 bg-gradient-to-tr from-primary to-accent hover:opacity-90"
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Evaluating...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4" />
-                    Submit Solution
-                  </>
-                )}
-              </Button>
-            )}
           </div>
 
           {/* Center area - Workspace nav, Result page buttons, or Forge accent bar */}
@@ -261,47 +240,66 @@ export default function AppLayout() {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline text-sm font-medium">Back to Crucible</span>
               </Button>
-              <div className="flex items-center gap-2 ml-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleToggleProblemSidebar}
+                className="h-9 px-3 rounded-lg hover:bg-base-200/80 transition-all duration-200"
+                title="Show/Hide Problem Details"
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline text-sm font-medium">Problem</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleToggleChatSidebar}
+                className="h-9 px-3 rounded-lg hover:bg-base-200/80 transition-all duration-200"
+                title="Show/Hide AI Chat"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline text-sm font-medium">AI Chat</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSwitchContent}
+                className="h-9 px-3 rounded-lg hover:bg-base-200/80 transition-all duration-200"
+                title="Switch between Solution and Notes"
+              >
+                {activeContent === 'solution' ? (
+                  <>
+                    <StickyNote className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline text-sm font-medium">Notes</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline text-sm font-medium">Solution</span>
+                  </>
+                )}
+              </Button>
+              {/* Submit Button - Only show on problem page */}
+              {showSubmitButton && (
                 <Button
-                  variant="ghost"
                   size="sm"
-                  onClick={handleToggleProblemSidebar}
-                  className="h-9 px-3 rounded-lg hover:bg-base-200/80 transition-all duration-200"
-                  title="Show/Hide Problem Details"
+                  className="gap-2 bg-gradient-to-tr from-primary to-accent hover:opacity-90 ml-4"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
                 >
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline text-sm font-medium">Problem</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleToggleChatSidebar}
-                  className="h-9 px-3 rounded-lg hover:bg-base-200/80 transition-all duration-200"
-                  title="Show/Hide AI Chat"
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline text-sm font-medium">AI Chat</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSwitchContent}
-                  className="h-9 px-3 rounded-lg hover:bg-base-200/80 transition-all duration-200"
-                  title="Switch between Solution and Notes"
-                >
-                  {activeContent === 'solution' ? (
+                  {isSubmitting ? (
                     <>
-                      <StickyNote className="w-4 h-4 mr-2" />
-                      <span className="hidden sm:inline text-sm font-medium">Notes</span>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Evaluating...
                     </>
                   ) : (
                     <>
-                      <FileText className="w-4 h-4 mr-2" />
-                      <span className="hidden sm:inline text-sm font-medium">Solution</span>
+                      <Send className="w-4 h-4" />
+                      Submit Solution
                     </>
                   )}
                 </Button>
-              </div>
+              )}
             </div>
           ) : showResultPageButtons ? (
             <div className="hidden md:flex items-center gap-2">
@@ -453,4 +451,4 @@ export default function AppLayout() {
       </div>
     </div>
   );
-} 
+}

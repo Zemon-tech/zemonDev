@@ -84,18 +84,13 @@ const editorStyles = `
     display: flex;
     gap: 0.25rem;
     padding: 0.5rem;
-    border-bottom: 1px solid var(--border-color, #e2e8f0);
-    background-color: var(--bg-color, #ffffff);
+    border-bottom: 1px solid hsl(var(--border));
+    background-color: hsl(var(--background));
     position: sticky;
     top: 0;
     z-index: 10;
     width: 100%;
     align-items: center;
-  }
-  
-  .dark .editor-toolbar {
-    background-color: var(--bg-dark, #1a1a1a);
-    border-bottom: 1px solid var(--border-dark, #2d2d2d);
   }
   
   .toolbar-group {
@@ -107,12 +102,8 @@ const editorStyles = `
   .toolbar-separator {
     width: 1px;
     height: 1.5rem;
-    background-color: var(--border-color, #e2e8f0);
+    background-color: hsl(var(--border));
     margin: 0 0.25rem;
-  }
-  
-  .dark .toolbar-separator {
-    background-color: var(--border-dark, #2d2d2d);
   }
   
   .toolbar-button {
@@ -124,28 +115,19 @@ const editorStyles = `
     cursor: pointer;
     background-color: transparent;
     border: none;
-    color: var(--text-color, #333);
+    color: hsl(var(--foreground));
     transition: background-color 0.2s;
     min-width: 32px;
     min-height: 32px;
   }
   
   .toolbar-button:hover {
-    background-color: var(--hover-bg, rgba(0, 0, 0, 0.05));
-  }
-  
-  .dark .toolbar-button:hover {
-    background-color: var(--hover-bg-dark, rgba(255, 255, 255, 0.1));
+    background-color: hsl(var(--accent));
   }
   
   .toolbar-button.is-active {
-    background-color: var(--active-bg, rgba(79, 70, 229, 0.1));
-    color: var(--active-color, #4f46e5);
-  }
-  
-  .dark .toolbar-button.is-active {
-    background-color: var(--active-bg-dark, rgba(139, 92, 246, 0.2));
-    color: var(--active-color-dark, #8b5cf6);
+    background-color: hsl(var(--primary) / 0.1);
+    color: hsl(var(--primary));
   }
 
   .toolbar-popover-content {
@@ -153,15 +135,10 @@ const editorStyles = `
     grid-template-columns: repeat(3, 1fr);
     gap: 0.25rem;
     padding: 0.5rem;
-    background-color: var(--bg-color, #ffffff);
-    border: 1px solid var(--border-color, #e2e8f0);
+    background-color: hsl(var(--background));
+    border: 1px solid hsl(var(--border));
     border-radius: 0.5rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  .dark .toolbar-popover-content {
-    background-color: var(--bg-dark, #1a1a1a);
-    border-color: var(--border-dark, #2d2d2d);
   }
 
   /* Task list styles */
@@ -198,8 +175,8 @@ const editorStyles = `
     font-size: 2em;
     font-weight: 700;
     margin: 1em 0 0.5em;
-    color: var(--heading-color, #111);
-    border-bottom: 2px solid var(--border-color, #e2e8f0);
+    color: hsl(var(--foreground));
+    border-bottom: 2px solid hsl(var(--border));
     padding-bottom: 0.25em;
   }
 
@@ -207,8 +184,8 @@ const editorStyles = `
     font-size: 1.5em;
     font-weight: 600;
     margin: 1em 0 0.5em;
-    color: var(--heading-color, #111);
-    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    color: hsl(var(--foreground));
+    border-bottom: 1px solid hsl(var(--border));
     padding-bottom: 0.25em;
   }
 
@@ -216,14 +193,7 @@ const editorStyles = `
     font-size: 1.25em;
     font-weight: 600;
     margin: 1em 0 0.5em;
-    color: var(--heading-color, #111);
-  }
-
-  .dark .ProseMirror h1,
-  .dark .ProseMirror h2,
-  .dark .ProseMirror h3 {
-    color: var(--heading-color-dark, #f1f5f9);
-    border-color: var(--border-dark, #2d2d2d);
+    color: hsl(var(--foreground));
   }
 
   /* Table styles */
@@ -232,46 +202,27 @@ const editorStyles = `
     margin: 1rem 0;
     width: 100%;
     text-align: left;
-    color: var(--text-color, #333);
-    background-color: var(--bg-color, #ffffff);
-    border: 1px solid var(--border-color, #e2e8f0);
+    color: hsl(var(--foreground));
+    background-color: hsl(var(--background));
+    border: 1px solid hsl(var(--border));
     border-radius: 0.5rem;
     overflow: hidden;
   }
 
-  .dark .ProseMirror table {
-    color: var(--text-color-dark, #f1f5f9);
-    background-color: var(--bg-dark, #1a1a1a);
-    border-color: var(--border-dark, #2d2d2d);
-  }
-
   .ProseMirror th {
-    background-color: var(--bg-accent, #f8fafc);
+    background-color: hsl(var(--muted));
     font-weight: 600;
     padding: 0.75rem 1rem;
-    border-bottom: 2px solid var(--border-color, #e2e8f0);
-  }
-
-  .dark .ProseMirror th {
-    background-color: var(--bg-accent-dark, #2d2d2d);
-    border-color: var(--border-dark, #404040);
+    border-bottom: 2px solid hsl(var(--border));
   }
 
   .ProseMirror td {
     padding: 0.75rem 1rem;
-    border: 1px solid var(--border-color, #e2e8f0);
-  }
-
-  .dark .ProseMirror td {
-    border-color: var(--border-dark, #2d2d2d);
+    border: 1px solid hsl(var(--border));
   }
 
   .ProseMirror tr:nth-child(even) {
-    background-color: var(--bg-alt, #f8fafc);
-  }
-
-  .dark .ProseMirror tr:nth-child(even) {
-    background-color: var(--bg-alt-dark, #1e1e1e);
+    background-color: hsl(var(--muted));
   }
 
   /* Image styles */
@@ -287,7 +238,7 @@ const editorStyles = `
   }
 
   .ProseMirror img.ProseMirror-selectednode {
-    outline: 2px solid var(--primary, #4f46e5);
+    outline: 2px solid hsl(var(--primary));
     outline-offset: 2px;
   }
 
@@ -311,7 +262,7 @@ const editorStyles = `
     content: '';
     position: absolute;
     inset: -2px;
-    border: 2px solid var(--primary, #4f46e5);
+    border: 2px solid hsl(var(--primary));
     border-radius: 0.5rem;
     pointer-events: none;
   }
@@ -320,8 +271,8 @@ const editorStyles = `
     position: absolute;
     width: 12px;
     height: 12px;
-    background-color: var(--primary, #4f46e5);
-    border: 2px solid white;
+    background-color: hsl(var(--primary));
+    border: 2px solid hsl(var(--background));
     border-radius: 50%;
     pointer-events: all;
     z-index: 20;
@@ -601,25 +552,25 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
         <BubbleMenu
           editor={editor}
           tippyOptions={{ duration: 100, placement: 'top' }}
-          className="bg-base-100 dark:bg-base-700 shadow-md rounded-lg p-1.5 flex gap-1 border border-base-200 dark:border-base-600"
+          className="bg-background shadow-md rounded-lg p-1.5 flex gap-1 border border-border"
         >
           <button
             onClick={() => editor.chain().focus().toggleBold().run()}
-            className={`p-1.5 rounded-md hover:bg-base-200 dark:hover:bg-base-600 transition-colors ${editor.isActive('bold') ? 'bg-primary/10 text-primary' : 'text-base-content'}`}
+            className={`p-1.5 rounded-md hover:bg-accent transition-colors ${editor.isActive('bold') ? 'bg-primary/10 text-primary' : 'text-foreground'}`}
             title="Bold"
           >
             <BoldIcon className="w-4 h-4" />
           </button>
           <button
             onClick={() => editor.chain().focus().toggleItalic().run()}
-            className={`p-1.5 rounded-md hover:bg-base-200 dark:hover:bg-base-600 transition-colors ${editor.isActive('italic') ? 'bg-primary/10 text-primary' : 'text-base-content'}`}
+            className={`p-1.5 rounded-md hover:bg-accent transition-colors ${editor.isActive('italic') ? 'bg-primary/10 text-primary' : 'text-foreground'}`}
             title="Italic"
           >
             <ItalicIcon className="w-4 h-4" />
           </button>
           <button
             onClick={() => editor.chain().focus().toggleStrike().run()}
-            className={`p-1.5 rounded-md hover:bg-base-200 dark:hover:bg-base-600 transition-colors ${editor.isActive('strike') ? 'bg-primary/10 text-primary' : 'text-base-content'}`}
+            className={`p-1.5 rounded-md hover:bg-accent transition-colors ${editor.isActive('strike') ? 'bg-primary/10 text-primary' : 'text-foreground'}`}
             title="Strike"
           >
             <StrikeIcon className="w-4 h-4" />
