@@ -10,6 +10,7 @@ import { useArenaChannels, Channel as ArenaChannel } from '@/hooks/useArenaChann
 import { useUser, useAuth } from '@clerk/clerk-react';
 import { useUserRole } from '@/context/UserRoleContext';
 import { ApiService } from '@/services/api.service';
+import { socketService } from '@/services/socket.service';
 
 
 // Import channel components
@@ -92,7 +93,36 @@ const ArenaPage: React.FC = () => {
       }
     };
     if (isLoaded && isSignedIn) fetchStatuses();
-  }, [isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn, getToken]);
+
+  // Filter out banned/kicked channels from display
+  const filteredChannels = React.useMemo(() => {
+    const filtered: Record<string, ArenaChannel[]> = {};
+    
+    Object.entries(channels).forEach(([group, channelList]) => {
+      const filteredChannelList = channelList.filter(channel => {
+        const channelId = String(channel._id);
+        const userStatus = userChannelStatuses[channelId];
+        
+        // If no status record, show the channel
+        if (!userStatus) return true;
+        
+        // Hide if banned or kicked
+        if (userStatus === 'banned' || userStatus === 'kicked') {
+          return false;
+        }
+        
+        // Show for other statuses (pending, approved, denied)
+        return true;
+      });
+      
+      if (filteredChannelList.length > 0) {
+        filtered[group] = filteredChannelList;
+      }
+    });
+    
+    return filtered;
+  }, [channels, userChannelStatuses]);
 
   // Set initial channel
   useEffect(() => {
@@ -119,6 +149,43 @@ const ArenaPage: React.FC = () => {
     
     return () => {
       window.removeEventListener('toggle-arena-sidebar', handleSidebarToggle);
+    };
+  }, []);
+
+  // Listen for socket events to hide channels immediately
+  useEffect(() => {
+    const handleChannelHidden = (data: { channelId: string; reason: string }) => {
+      console.log('Channel hidden via socket:', data);
+      // Update user channel statuses to hide the channel
+      setUserChannelStatuses(prev => ({
+        ...prev,
+        [data.channelId]: data.reason === 'banned' ? 'banned' : 'kicked'
+      }));
+    };
+
+    const handleChannelVisible = (data: { channelId: string; reason: string }) => {
+      console.log('Channel visible via socket:', data);
+      // Remove the banned/kicked status to show the channel again
+      setUserChannelStatuses(prev => {
+        const newStatuses = { ...prev };
+        delete newStatuses[data.channelId];
+        return newStatuses;
+      });
+    };
+
+    // Add socket event listeners
+    const socket = socketService.getSocket();
+    if (socket) {
+      socket.on('channel_hidden', handleChannelHidden);
+      socket.on('channel_visible', handleChannelVisible);
+    }
+
+    return () => {
+      const socket = socketService.getSocket();
+      if (socket) {
+        socket.off('channel_hidden', handleChannelHidden);
+        socket.off('channel_visible', handleChannelVisible);
+      }
     };
   }, []);
 
@@ -278,7 +345,7 @@ const ArenaPage: React.FC = () => {
 
             {/* Channel Groups */}
             <div className="flex-1 overflow-y-auto space-y-2 py-2">
-              {Object.entries(channels).map(([group, channelList]) => (
+              {Object.entries(filteredChannels).map(([group, channelList]) => (
                 <div key={group} className="px-2">
                   {/* Group Header */}
                   <button

@@ -92,7 +92,28 @@ const NirvanaChannel: React.FC = () => {
   }, [getToken, refreshKey]);
 
   const allChannels = Object.values(channels).flat();
-  const joinableChannels = allChannels.filter(c => (!c.parentChannelId || c.parentChannelId === null) && userChannelStatuses[c._id] !== 'approved');
+  const joinableChannels = allChannels.filter(c => {
+    // Only show parent channels (no parentChannelId)
+    if (c.parentChannelId && c.parentChannelId !== null) {
+      return false;
+    }
+    
+    // Check user status for this channel
+    const userStatus = userChannelStatuses[c._id];
+    
+    // If no status record, channel is joinable
+    if (!userStatus) {
+      return true;
+    }
+    
+    // Hide if banned or kicked
+    if (userStatus === 'banned' || userStatus === 'kicked') {
+      return false;
+    }
+    
+    // Only show if not already approved
+    return userStatus !== 'approved';
+  });
 
   const groupedChannels = React.useMemo(() => {
     const groups: Record<string, typeof joinableChannels> = {};

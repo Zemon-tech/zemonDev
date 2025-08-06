@@ -7,6 +7,7 @@ import mongoose from 'mongoose';
 import { emitToChannel } from '../services/socket.service';
 import User from '../models/user.model';
 import { clearCache } from '../middleware/cache.middleware';
+import { emitToUser } from '../services/socket.service';
 
 /**
  * @desc    Get all channels grouped by category
@@ -15,11 +16,49 @@ import { clearCache } from '../middleware/cache.middleware';
  */
 export const getChannels = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user._id;
+
     // Fetch only active channels
     const channels = await ArenaChannel.find({ isActive: true }).sort({ group: 1, name: 1 });
 
+    // Get user's channel statuses to filter out banned/kicked channels
+    const userStatuses = await UserChannelStatus.find({ userId });
+    const userStatusMap = userStatuses.reduce((map, status) => {
+      map[status.channelId.toString()] = status;
+      return map;
+    }, {} as Record<string, any>);
+
+    // Filter out channels where user is banned or kicked
+    const filteredChannels = channels.filter(channel => {
+      const channelId = (channel as any)._id.toString();
+      const userStatus = userStatusMap[channelId];
+      
+      if (!userStatus) {
+        // No status record means user can see the channel
+        return true;
+      }
+
+      // Check if user is banned (including expired bans)
+      if (userStatus.isBanned || userStatus.status === 'banned') {
+        // If ban has expired, allow access
+        if (userStatus.banExpiresAt && userStatus.banExpiresAt < new Date()) {
+          return true;
+        }
+        // Still banned, hide channel
+        return false;
+      }
+
+      // Check if user is kicked
+      if (userStatus.isKicked || userStatus.status === 'kicked') {
+        return false;
+      }
+
+      // User is not banned or kicked, can see channel
+      return true;
+    });
+
     // Group by category
-    const groupedChannels = channels.reduce((acc: Record<string, any[]>, channel) => {
+    const groupedChannels = filteredChannels.reduce((acc: Record<string, any[]>, channel) => {
       if (!acc[channel.group]) acc[channel.group] = [];
       acc[channel.group].push(channel);
       return acc;
@@ -646,6 +685,26 @@ export const banOrKickUserFromParentChannel = asyncHandler(
       }
       await session.commitTransaction();
       session.endSession();
+      
+      // Emit socket events to hide channels from user immediately
+      try {
+        for (const channelId of allChannelIds) {
+          if (duration === 'kick') {
+            emitToUser(userId.toString(), 'channel_hidden', {
+              channelId,
+              reason: 'kicked'
+            });
+          } else {
+            emitToUser(userId.toString(), 'channel_hidden', {
+              channelId,
+              reason: 'banned'
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to emit socket events:', error);
+      }
+      
       return res.status(200).json(new ApiResponse(200, `User ${duration === 'kick' ? 'kicked' : 'banned'} from parent and child channels`, { userId, parentChannelId, affectedChannels: allChannelIds }));
     } catch (err) {
       await session.abortTransaction();
@@ -698,6 +757,19 @@ export const unbanUserFromParentChannel = asyncHandler(
       }
       await session.commitTransaction();
       session.endSession();
+      
+      // Emit socket events to show channels to user again
+      try {
+        for (const channelId of allChannelIds) {
+          emitToUser(userId.toString(), 'channel_visible', {
+            channelId,
+            reason: 'unbanned'
+          });
+        }
+      } catch (error) {
+        console.error('Failed to emit socket events:', error);
+      }
+      
       return res.status(200).json(new ApiResponse(200, `User unbanned from parent and child channels`, { userId, parentChannelId, affectedChannels: allChannelIds }));
     } catch (err) {
       await session.abortTransaction();
@@ -738,4 +810,4 @@ export const updateChannelDescription = asyncHandler(
       )
     );
   }
-);
+); 

@@ -185,9 +185,10 @@ const AnnouncementsChannelComponent: React.FC<AnnouncementsChannelProps> = ({
           {/* Date grouping logic */}
           {(() => {
             // Group messages by date
-            const merged: Array<{ group: Message[]; showDate: boolean }> = [];
+            const merged: Array<{ group: Message[]; showDate: boolean; date: string }> = [];
             let group: Message[] = [];
-            let lastDate: string | null = null;
+            let currentDate: string | null = null;
+            let previousDate: string | null = null;
             
             // Combine pinned and regular messages, keeping pinned first
             const allMessages = [...pinnedMessages, ...regularMessages];
@@ -203,22 +204,48 @@ const AnnouncementsChannelComponent: React.FC<AnnouncementsChannelProps> = ({
             }
             
             allMessages.forEach((msg, idx) => {
-              const prev = allMessages[idx - 1];
               const msgDate = new Date(msg.timestamp).toDateString();
+              const prev = allMessages[idx - 1];
               const prevDate = prev ? new Date(prev.timestamp).toDateString() : null;
               
-              if (!prev || prevDate !== msgDate) {
-                if (group.length) merged.push({ group, showDate: lastDate !== msgDate });
+              // Check if we need to start a new group
+              const isNewDate = prevDate !== msgDate;
+              const isNewUser = prev && prev.username !== msg.username;
+              const timeGap = prev ? (new Date(msg.timestamp).getTime() - new Date(prev.timestamp).getTime()) / 1000 / 60 : 0;
+              const isTimeGap = timeGap >= 5; // 5 minutes gap
+              
+              // Start new group if: new date, new user, or time gap
+              if (!prev || isNewDate || isNewUser || isTimeGap) {
+                // Save previous group if it exists
+                if (group.length > 0) {
+                  merged.push({ 
+                    group, 
+                    showDate: previousDate !== currentDate,
+                    date: currentDate!
+                  });
+                  previousDate = currentDate;
+                }
+                
+                // Start new group
                 group = [msg];
-                lastDate = msgDate;
+                currentDate = msgDate;
               } else {
+                // Add to existing group
                 group.push(msg);
               }
             });
-            if (group.length) merged.push({ group, showDate: false });
+            
+            // Add the last group
+            if (group.length > 0) {
+              merged.push({ 
+                group, 
+                showDate: previousDate !== currentDate,
+                date: currentDate!
+              });
+            }
             
             // Render merged groups
-            return merged.map(({ group, showDate }, i) => {
+            return merged.map(({ group, showDate, date }, i) => {
               const first = group[0];
               return (
                 <React.Fragment key={first._id + '-' + i}>

@@ -83,6 +83,13 @@ export const banUser = asyncHandler(
         banExpiresAt: userStatus.banExpiresAt
       });
 
+      // Emit channel visibility update to hide channel immediately
+      emitToUser(userId.toString(), 'channel_hidden', {
+        channelId,
+        reason: 'banned',
+        banExpiresAt: userStatus.banExpiresAt
+      });
+
       // Notify channel moderators
       emitToChannel(channelId, 'user_moderation', {
         action: 'banned',
@@ -157,6 +164,12 @@ export const unbanUser = asyncHandler(
     try {
       emitToUser(userId.toString(), 'user_unbanned', {
         channelId
+      });
+
+      // Emit channel visibility update to show channel again
+      emitToUser(userId.toString(), 'channel_visible', {
+        channelId,
+        reason: 'unbanned'
       });
 
       // Notify channel moderators
@@ -246,6 +259,12 @@ export const kickUser = asyncHandler(
       emitToUser(userId.toString(), 'user_kicked', {
         channelId,
         reason: reason || 'Violation of community guidelines'
+      });
+
+      // Emit channel visibility update to hide channel immediately
+      emitToUser(userId.toString(), 'channel_hidden', {
+        channelId,
+        reason: 'kicked'
       });
 
       // Notify channel moderators
