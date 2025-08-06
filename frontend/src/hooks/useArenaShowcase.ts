@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { ApiService } from '../services/api.service';
+import { useNotification } from './useNotification';
 
 export interface Project {
   _id: string;
@@ -22,6 +23,7 @@ export const useArenaShowcase = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toasterRef, showSuccess, showError } = useNotification();
 
   const fetchProjects = async () => {
     try {
@@ -71,6 +73,7 @@ export const useArenaShowcase = () => {
                 }
               : project
           ));
+          showSuccess('Upvote removed successfully');
         }
       } else {
         // Add upvote (backend will handle removing downvote if needed)
@@ -87,15 +90,15 @@ export const useArenaShowcase = () => {
                 }
             : project
           ));
+          showSuccess('Project upvoted successfully!');
         }
       }
       setError(null); // Clear any previous errors
     } catch (error: any) {
       console.error('Failed to upvote project:', error);
-      // Show error message to user if needed
-      if (error.message) {
-        setError(error.message);
-      }
+      // Show error message to user
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to upvote project';
+      showError(errorMessage, 'Upvote Failed');
     }
   };
 
@@ -119,6 +122,7 @@ export const useArenaShowcase = () => {
                 }
             : project
           ));
+          showSuccess('Downvote removed successfully');
         }
       } else {
         // Add downvote (backend will handle removing upvote if needed)
@@ -135,15 +139,15 @@ export const useArenaShowcase = () => {
                 }
             : project
           ));
+          showSuccess('Project downvoted successfully');
         }
       }
       setError(null); // Clear any previous errors
     } catch (error: any) {
       console.error('Failed to downvote project:', error);
-      // Show error message to user if needed
-      if (error.message) {
-        setError(error.message);
-      }
+      // Show error message to user
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to downvote project';
+      showError(errorMessage, 'Downvote Failed');
     }
   };
 
@@ -205,6 +209,7 @@ export const useArenaShowcase = () => {
     downvoteProject, 
     removeUpvoteProject,
     removeDownvoteProject, 
-    refetch: fetchProjects 
+    refetch: fetchProjects,
+    toasterRef
   };
 }; 

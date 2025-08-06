@@ -9,9 +9,10 @@ import { ThumbsUp, ThumbsDown, Share2, ExternalLink, Plus, Hash, Loader2, AlertC
 import { useArenaShowcase } from '@/hooks/useArenaShowcase';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { ApiService } from '@/services/api.service';
+import Toaster from '@/components/ui/toast';
 
 const ShowcaseChannel: React.FC = () => {
-  const { projects, loading, error, upvoteProject, downvoteProject, removeUpvoteProject, removeDownvoteProject, refetch } = useArenaShowcase();
+  const { projects, loading, error, upvoteProject, downvoteProject, removeUpvoteProject, removeDownvoteProject, refetch, toasterRef } = useArenaShowcase();
   const { getToken, isSignedIn } = useAuth();
   const { user } = useUser();
   const [showModal, setShowModal] = useState(false);
@@ -120,8 +121,23 @@ const ShowcaseChannel: React.FC = () => {
       setShowModal(false);
       setForm({ title: '', description: '', images: ['', '', ''], gitRepositoryUrl: '', demoUrl: '' });
       refetch();
+      // Show success notification
+      toasterRef.current?.show({
+        title: 'Project Submitted',
+        message: 'Your project has been submitted successfully and is pending approval.',
+        variant: 'success',
+        duration: 4000,
+      });
     } catch (err: any) {
-      setFormError(err.message || 'Failed to submit project.');
+      const errorMessage = err?.response?.data?.message || err.message || 'Failed to submit project.';
+      setFormError(errorMessage);
+      // Show error notification
+      toasterRef.current?.show({
+        title: 'Submission Failed',
+        message: errorMessage,
+        variant: 'error',
+        duration: 5000,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -426,6 +442,9 @@ const ShowcaseChannel: React.FC = () => {
           </motion.div>
         </div>
       )}
+
+      {/* Notification Toaster */}
+      <Toaster ref={toasterRef} />
 
     </div>
   );

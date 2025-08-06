@@ -8,15 +8,7 @@ import { useAuth } from '@clerk/clerk-react';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
 import { GradientText } from '@/components/blocks/GradientText';
 import Lottie from 'lottie-react';
-
-// Create a simple toast implementation since we don't have the UI component
-const useToast = () => {
-  const toast = ({ title, description }: { title: string; description: string; variant?: string }) => {
-    console.log(`${title}: ${description}`);
-  };
-  
-  return { toast };
-};
+import { useToast } from '../components/ui/toast';
 
 // Problem categories with icons and colors
 const problemCategories = [
