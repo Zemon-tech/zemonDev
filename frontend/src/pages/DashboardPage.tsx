@@ -11,6 +11,8 @@ import { Confetti } from '@/components/blocks/Confetti';
 import { useEffect, useState } from 'react';
 import { useZemonStreak } from '@/hooks/useZemonStreak';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useStreakLeaderboard } from '@/hooks/useStreakLeaderboard';
+import { useCommunityRank } from '@/hooks/useCommunityRank';
 
 // --- AnimatedCount Utility ---
 function AnimatedCount({ value, duration = 1.2, className = '' }: { value: number; duration?: number; className?: string }) {
@@ -167,9 +169,16 @@ function DashboardHeader({ user, onAchievement }: { user: any; onAchievement: (a
 function DashboardStatsRow() {
   const { streakInfo, loading: streakLoading } = useZemonStreak();
   const { userProfile, loading: profileLoading } = useUserProfile();
+  const { data: communityRank, loading: rankLoading } = useCommunityRank();
   const solvedCount = profileLoading
     ? 0
     : ((userProfile as any)?.solvedCount ?? userProfile?.stats?.problemsSolved ?? (userProfile?.completedSolutions?.length || 0));
+  const topPercent = rankLoading || !communityRank
+    ? 10
+    : Math.max(
+        1,
+        Math.ceil(((communityRank.rank ?? communityRank.total) / Math.max(communityRank.total || 1, 1)) * 100)
+      );
   const stats = [
     {
       icon: <Flame className="w-5 h-5 text-orange-500" />,
@@ -191,7 +200,7 @@ function DashboardStatsRow() {
     },
     {
       icon: <Trophy className="w-5 h-5 text-yellow-500" />,
-      value: "Top 10%",
+      value: `Top ${topPercent}%`,
       label: "Community Rank",
       color: "text-yellow-500",
       bgGradient: "from-yellow-500/10 to-orange-500/10",
@@ -259,11 +268,16 @@ function DashboardStatsRow() {
 
 // --- Compact Leaderboard ---
 function DashboardLeaderboard() {
-  const leaderboardData = [
+  const { data, loading, error } = useStreakLeaderboard(3);
+  const fallbackData = [
     { name: 'Aarav Sharma', points: 1200, rank: 1, avatar: 'https://randomuser.me/api/portraits/men/32.jpg', streak: 15 },
     { name: 'Priya Patel', points: 1100, rank: 2, avatar: 'https://randomuser.me/api/portraits/women/44.jpg', streak: 12 },
     { name: 'Rahul Kumar', points: 1050, rank: 3, avatar: 'https://randomuser.me/api/portraits/men/45.jpg', streak: 8 }
   ];
+
+  const leaderboardData = (!loading && !error && data.length > 0)
+    ? data.map(u => ({ name: u.name, points: u.points, rank: u.rank, avatar: u.avatar, streak: u.streak }))
+    : fallbackData;
 
   const rankColors = ['text-yellow-500', 'text-gray-400', 'text-amber-600'];
   const rankIcons = ['🥇', '🥈', '🥉'];

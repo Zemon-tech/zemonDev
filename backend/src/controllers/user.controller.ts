@@ -5,6 +5,8 @@ import ApiResponse from '../utils/ApiResponse';
 import User from '../models/user.model';
 import UserRole from '../models/userRole.model';
 import { recordDailyVisit, getStreakInfo } from '../services/zemonStreak.service';
+import { standardLimiter } from '../middleware/rateLimiter.middleware';
+import { cacheMiddleware } from '../middleware/cache.middleware';
 
 /**
  * @desc    Get current user profile
@@ -38,6 +40,110 @@ export const getCurrentUser = asyncHandler(
         userWithSolved
       )
     );
+  }
+);
+
+/**
+ * @desc    Get current user's streak percentile (top %) among users with zemonStreak > 0
+ * @route   GET /api/users/me/streak-percentile
+ * @access  Private
+ */
+export const getStreakPercentileController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const me = await User.findById(req.user._id)
+        .select('zemonStreak longestZemonStreak lastZemonVisit')
+        .lean();
+
+      if (!me) {
+        return next(new AppError('User not found', 404));
+      }
+
+      const myStreak = me.zemonStreak || 0;
+      const myLongest = me.longestZemonStreak || 0;
+      const myLast = me.lastZemonVisit || new Date(0);
+
+      const eligibleFilter: any = { zemonStreak: { $gt: 0 } };
+      const totalEligible = await User.countDocuments(eligibleFilter);
+      const totalAll = await User.countDocuments({});
+
+      if (totalAll === 0 || myStreak === 0) {
+        return res.status(200).json(
+          new ApiResponse(200, 'Streak percentile calculated', {
+            percentile: 100,
+            rank: null,
+            total: totalAll,
+            streak: myStreak,
+            longestStreak: myLongest,
+          })
+        );
+      }
+
+      // Count users that strictly rank ahead using tie-breakers
+      const greater = await User.countDocuments({
+        ...eligibleFilter,
+        $or: [
+          { zemonStreak: { $gt: myStreak } },
+          { zemonStreak: myStreak, longestZemonStreak: { $gt: myLongest } },
+          {
+            zemonStreak: myStreak,
+            longestZemonStreak: myLongest,
+            lastZemonVisit: { $gt: myLast },
+          },
+        ],
+      });
+
+      const rank = greater + 1;
+      const raw = Math.ceil((rank / Math.max(totalAll, 1)) * 100);
+      const percentile = Math.max(1, Math.min(raw, 100));
+
+      res.status(200).json(
+        new ApiResponse(200, 'Streak percentile calculated', {
+          percentile,
+          rank,
+          total: totalAll,
+          streak: myStreak,
+          longestStreak: myLongest,
+        })
+      );
+    } catch (error) {
+      return next(new AppError('Failed to calculate streak percentile', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Get streak leaderboard (top N)
+ * @route   GET /api/users/leaderboard/streak?limit=3
+ * @access  Public (read-only)
+ */
+export const getStreakLeaderboard = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const limitParam = Number(req.query.limit) || 3;
+      const limit = Math.max(1, Math.min(limitParam, 10));
+
+      const users = await User.find({ zemonStreak: { $gt: 0 } })
+        .select('fullName username zemonStreak longestZemonStreak lastZemonVisit stats.reputation imageUrl')
+        .sort({ zemonStreak: -1, longestZemonStreak: -1, lastZemonVisit: -1 })
+        .limit(limit)
+        .lean();
+
+      const leaderboard = users.map((u) => ({
+        id: String(u._id),
+        name: u.fullName,
+        username: u.username,
+        streak: u.zemonStreak || 0,
+        longestStreak: u.longestZemonStreak || 0,
+        lastVisit: u.lastZemonVisit || null,
+        points: u.stats?.reputation || 0,
+        avatar: (u as any).imageUrl || null,
+      }));
+
+      res.status(200).json(new ApiResponse(200, 'Streak leaderboard', leaderboard));
+    } catch (error) {
+      return next(new AppError('Failed to fetch streak leaderboard', 500));
+    }
   }
 );
 

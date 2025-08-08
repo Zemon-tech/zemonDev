@@ -1,11 +1,14 @@
 import { Router } from 'express';
-import { getCurrentUser, updateCurrentUser, handleClerkWebhook, getUserRole, updateProfileBackground, recordDailyVisitController, getStreakInfoController, changePasswordController, updateSkillsController, deleteAccountController, exportUserDataController } from '../controllers/user.controller';
+import { getCurrentUser, updateCurrentUser, handleClerkWebhook, getUserRole, updateProfileBackground, recordDailyVisitController, getStreakInfoController, changePasswordController, updateSkillsController, deleteAccountController, exportUserDataController, getStreakLeaderboard, getStreakPercentileController } from '../controllers/user.controller';
 import { protect } from '../middleware/auth.middleware';
+import { standardLimiter } from '../middleware/rateLimiter.middleware';
+import { cacheMiddleware } from '../middleware/cache.middleware';
 
 const router = Router();
 
 // Public routes
 router.post('/webhooks/clerk', handleClerkWebhook);
+router.get('/leaderboard/streak', standardLimiter, cacheMiddleware(300), getStreakLeaderboard);
 
 // Protected routes
 router.get('/me', protect, getCurrentUser);
@@ -14,6 +17,7 @@ router.patch('/me', protect, updateCurrentUser);
 router.patch('/me/background', protect, updateProfileBackground);
 router.post('/me/visit', protect, recordDailyVisitController);
 router.get('/me/streak', protect, getStreakInfoController);
+router.get('/me/streak-percentile', protect, getStreakPercentileController);
 router.patch('/me/password', protect, changePasswordController);
 router.patch('/me/skills', protect, updateSkillsController);
 router.delete('/me', protect, deleteAccountController);
