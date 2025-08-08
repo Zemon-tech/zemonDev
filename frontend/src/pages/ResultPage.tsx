@@ -312,6 +312,8 @@ export default function ResultPage() {
           
           if (fetchedAnalysis.problemId) {
             clearReattemptingState(fetchedAnalysis.problemId);
+            // Ensure we fetch the related problem when loading by analysis ID
+            currentProblemId = fetchedAnalysis.problemId;
           }
         } else if (problemId) {
           logger.info(`Checking context for analysis for problem ID: ${problemId}`);
@@ -418,6 +420,18 @@ export default function ResultPage() {
   }
   
   if (!analysisToDisplay || !problem || !isAnalysisValid) {
+    if (isLoading) {
+      return (
+        <div className="fixed inset-0 bg-base-100 flex items-center justify-center overflow-hidden">
+          <Aurora className="fixed inset-0 opacity-30 pointer-events-none" />
+          <DotGrid className="fixed inset-0 opacity-10 pointer-events-none" />
+          <LogoLoader 
+            size="lg"
+            className="z-10"
+          />
+        </div>
+      );
+    }
     return (
       <div className="relative min-h-screen bg-base-100 flex items-center justify-center">
         <Aurora className="fixed inset-0 opacity-30 pointer-events-none" />
