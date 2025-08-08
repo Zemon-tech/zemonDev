@@ -7,7 +7,7 @@ import BackgroundSelector, { BackgroundOption, gradientOptions } from '@/compone
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useUserProfile, formatEducation, formatCollegeLocation, getDisplayName, getDisplayBio, getDisplayLocation, getSkills, getToolsAndTech, getSocialLinks } from '@/hooks/useUserProfile';
 import { getUserAnalysisHistory, getUserActiveDrafts, IUserAnalysisHistory, IUserActiveDraft } from '@/lib/profileApi';
 import { getBookmarkedResources } from '@/lib/forgeApi';
@@ -44,7 +44,6 @@ import {
   ChevronRight,
   Sparkles,
   Globe,
-  ArrowUpRight,
   User,
   Palette
 } from 'lucide-react';
@@ -302,11 +301,6 @@ export default function ProfilePage() {
   const statsRef = useRef<HTMLDivElement>(null);
   const buttonsRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Scroll-based animations
-  const { scrollYProgress } = useScroll();
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, -50]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0]);
 
   // Initialize GSAP animations
   useGSAP(() => {
@@ -800,7 +794,7 @@ export default function ProfilePage() {
                               title={`Visit ${social.label}`}
                               onClick={(e) => {
                                 // Additional safety check
-                                if (!social.href.startsWith('http://') && !social.href.startsWith('https://')) {
+                                if (social.href && !social.href.startsWith('http://') && !social.href.startsWith('https://')) {
                                   e.preventDefault();
                                   window.open(`https://${social.href}`, '_blank', 'noopener,noreferrer');
                                 }
@@ -972,11 +966,11 @@ export default function ProfilePage() {
                           <h2 className="text-xl font-bold text-base-content transition-colors duration-300">{section.title}</h2>
                           <p className="text-sm text-base-content/70">{section.subtitle}</p>
                         </div>
-                        {section.onClick && (
+                        {section.onClick ? (
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                             <ChevronRight className="w-5 h-5 text-base-content/50 transition-colors duration-300" />
                           </div>
-                        )}
+                        ) : null}
                       </div>
                       
                       <div className="space-y-3 flex-1">
@@ -1053,7 +1047,7 @@ export default function ProfilePage() {
                               }`} />
                               <span className="text-base-content font-medium transition-colors duration-300">{item}</span>
                             </div>
-                            {section.onClick && (
+                            {section.onClick ? (
                               <motion.div
                                 initial={{ opacity: 0, x: -5 }}
                                 animate={{ opacity: 1, x: 0 }}
@@ -1061,7 +1055,7 @@ export default function ProfilePage() {
                               >
                                 <ChevronRight className="w-4 h-4 text-base-content/50 transition-all duration-300" />
                               </motion.div>
-                            )}
+                            ) : null}
                           </motion.div>
                         ))}
                       </div>

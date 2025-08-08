@@ -224,13 +224,6 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex flex-col h-full items-center justify-center">
@@ -427,7 +420,7 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
             }
             
             // Render merged groups
-            return merged.map(({ group, showDate, date }, i) => {
+            return merged.map(({ group, showDate }, i) => {
               const first = group[0];
               return (
                 <React.Fragment key={first._id + '-' + i}>

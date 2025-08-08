@@ -18,7 +18,7 @@ const AnimatedGradient: React.FC<AnimatedGradientProps> = ({
   blur = "light",
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const dimensions = useDimensions(containerRef);
+  const dimensions = useDimensions(containerRef as React.RefObject<HTMLElement>);
 
   const circleSize = useMemo(
     () => Math.max(dimensions.width, dimensions.height),

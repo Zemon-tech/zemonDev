@@ -15,7 +15,7 @@ function CrucibleProblemPage() {
   const { isLoaded, isSignedIn, getToken } = useAuth();
   
   // Use the centralized analysis context
-  const { analysis, loading: analysisLoading, checkAnalysis } = useAnalysis();
+  const { analysis, loading: analysisLoading } = useAnalysis();
 
   const [problem, setProblem] = useState<ICrucibleProblem | null>(null);
   const [draft, setDraft] = useState<ISolutionDraft | null>(null);

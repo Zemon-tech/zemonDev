@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, MessageCircle, Star, Mail, Phone, Github, X, Eye, Linkedin, Twitter, BookOpen, Plus, Minus } from 'lucide-react';
+import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, MessageCircle, Star, Mail, Github, X, Eye, Linkedin, Twitter, BookOpen, Plus, Palette, Moon, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import clsx from 'clsx';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { updateProfile, changePassword, updateSkills, deleteAccount, exportUserData } from '@/lib/settingsApi';
+import { updateProfile, changePassword, deleteAccount, exportUserData } from '@/lib/settingsApi';
+import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher';
 
 const SECTIONS = [
   { key: 'profile', label: 'Profile & Account', icon: User },
@@ -279,7 +280,7 @@ function ProfileAccountSection() {
       </div>
       <AnimatePresence mode="wait">
         {tab === 'profile' && (
-          <motion.div key="profile" variants={tabVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col gap-6 w-full h-full overflow-y-auto pb-4">
+          <motion.div key="profile" variants={tabVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col gap-6 w-full h-full pb-4">
             {profileLoading ? (
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">
@@ -428,7 +429,7 @@ function ProfileAccountSection() {
           </motion.div>
         )}
         {tab === 'account' && (
-          <motion.div key="account" variants={tabVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col gap-6 w-full h-full overflow-y-auto pb-4">
+          <motion.div key="account" variants={tabVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col gap-6 w-full h-full pb-4">
             {/* Email */}
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
@@ -480,22 +481,7 @@ function ProfileAccountSection() {
               <div className="flex-1 flex flex-col gap-2">
                 <label className="block font-semibold mb-1 text-base-content/80">Active Sessions</label>
                 <div className="flex flex-col gap-1">
-                  {user?.sessions ? (
-                    user.sessions.map((session, i) => (
-                      <div key={i} className={clsx('flex items-center gap-2 px-2 py-1 rounded', session.id === user.lastSignInSessionId ? 'bg-primary/10' : 'bg-base-100 border border-base-200')}>
-                        <span>{session.device?.type || 'Unknown Device'}</span>
-                        <span className="text-xs text-base-content/60">
-                          ({session.device?.location || 'Unknown Location'}, {new Date(session.lastActiveAt).toLocaleDateString()})
-                        </span>
-                        {session.id === user.lastSignInSessionId && <span className="text-xs text-primary ml-1">Current</span>}
-                        {session.id !== user.lastSignInSessionId && (
-                          <Button size="sm" variant="outline" className="ml-auto">Logout</Button>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-base-content/60 text-sm">No active sessions found</div>
-                  )}
+                  <div className="text-base-content/60 text-sm">Session management coming soon</div>
                 </div>
               </div>
             </div>
@@ -545,35 +531,134 @@ function ProfileAccountSection() {
 }
 
 function PreferencesSection() {
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
-  const [notifications, setNotifications] = useState({ upvotes: true, approvals: true, mentions: true, invites: false });
+  const [notifications, setNotifications] = useState({ 
+    upvotes: true, 
+    approvals: true, 
+    mentions: true, 
+    invites: false 
+  });
+
   return (
-    <div className="flex flex-col gap-6 w-full h-full p-6">
-      <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5 flex flex-col gap-3">
-        <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-1"><Sun size={18} className="text-primary" /> Theme</div>
-        <div className="flex gap-2 mt-1">
-          <Button variant={theme === 'light' ? 'default' : 'outline'} onClick={() => setTheme('light')}>Light</Button>
-          <Button variant={theme === 'dark' ? 'default' : 'outline'} onClick={() => setTheme('dark')}>Dark</Button>
-          <Button variant={theme === 'system' ? 'default' : 'outline'} onClick={() => setTheme('system')}>System</Button>
+    <div className="flex flex-col gap-8 w-full h-full p-6">
+      {/* Theme Section */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="bg-gradient-to-br from-base-100 to-base-200/50 rounded-2xl shadow-lg border border-base-300/50 backdrop-blur-sm relative z-10"
+      >
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20">
+              <Palette className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-base-content">Theme & Appearance</h3>
+              <p className="text-base-content/60 text-sm">Customize your visual experience</p>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-base-200/50 border border-base-300/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Sun className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-base-content">Theme Selection</p>
+                  <p className="text-sm text-base-content/60">Choose from our curated collection of themes</p>
+                </div>
+              </div>
+              <ThemeSwitcher />
+            </div>
+          </div>
         </div>
-      </div>
-      <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5 flex flex-col gap-3">
-        <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-1"><Bell size={18} className="text-primary" /> Notifications</div>
-        <div className="flex flex-col gap-2 mt-1">
-          <label className="flex items-center gap-2 cursor-pointer hover:bg-primary/5 rounded px-2 py-1 transition-colors">
-            <input type="checkbox" checked={notifications.upvotes} onChange={e => setNotifications(n => ({ ...n, upvotes: e.target.checked }))} /> Notify on upvotes
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer hover:bg-primary/5 rounded px-2 py-1 transition-colors">
-            <input type="checkbox" checked={notifications.approvals} onChange={e => setNotifications(n => ({ ...n, approvals: e.target.checked }))} /> Project approvals
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer hover:bg-primary/5 rounded px-2 py-1 transition-colors">
-            <input type="checkbox" checked={notifications.mentions} onChange={e => setNotifications(n => ({ ...n, mentions: e.target.checked }))} /> Mentions in chat
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer hover:bg-primary/5 rounded px-2 py-1 transition-colors">
-            <input type="checkbox" checked={notifications.invites} onChange={e => setNotifications(n => ({ ...n, invites: e.target.checked }))} /> Invite reminders
-          </label>
+      </motion.div>
+
+      {/* Notifications Section */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="bg-gradient-to-br from-base-100 to-base-200/50 rounded-2xl shadow-lg border border-base-300/50 backdrop-blur-sm relative z-0"
+      >
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-secondary/20 to-secondary/10 border border-secondary/20">
+              <Bell className="w-6 h-6 text-secondary" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-base-content">Notifications</h3>
+              <p className="text-base-content/60 text-sm">Manage your notification preferences</p>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            {[
+              { key: 'upvotes', label: 'Upvotes & Reactions', description: 'Get notified when someone upvotes your content' },
+              { key: 'approvals', label: 'Project Approvals', description: 'Notifications for project approval status' },
+              { key: 'mentions', label: 'Mentions & Comments', description: 'When someone mentions you in discussions' },
+              { key: 'invites', label: 'Invite Reminders', description: 'Reminders for pending invitations' }
+            ].map((item) => (
+              <div key={item.key} className="flex items-center justify-between p-4 rounded-xl bg-base-200/50 border border-base-300/50 hover:bg-base-200/70 transition-colors">
+                <div className="flex-1">
+                  <p className="font-medium text-base-content">{item.label}</p>
+                  <p className="text-sm text-base-content/60">{item.description}</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={notifications[item.key as keyof typeof notifications]}
+                    onChange={(e) => setNotifications(prev => ({ ...prev, [item.key]: e.target.checked }))}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-base-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      </motion.div>
+
+      {/* Additional Preferences */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+        className="bg-gradient-to-br from-base-100 to-base-200/50 rounded-2xl shadow-lg border border-base-300/50 backdrop-blur-sm relative z-0"
+      >
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-accent/20 to-accent/10 border border-accent/20">
+              <Settings className="w-6 h-6 text-accent" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-base-content">Additional Preferences</h3>
+              <p className="text-base-content/60 text-sm">Fine-tune your experience</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl bg-base-200/50 border border-base-300/50">
+              <h4 className="font-medium text-base-content mb-2">Auto-save</h4>
+              <p className="text-sm text-base-content/60 mb-3">Automatically save your work</p>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" defaultChecked className="sr-only peer" />
+                <div className="w-11 h-6 bg-base-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+            
+            <div className="p-4 rounded-xl bg-base-200/50 border border-base-300/50">
+              <h4 className="font-medium text-base-content mb-2">Keyboard Shortcuts</h4>
+              <p className="text-sm text-base-content/60 mb-3">Enable keyboard shortcuts</p>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" defaultChecked className="sr-only peer" />
+                <div className="w-11 h-6 bg-base-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
@@ -691,33 +776,78 @@ function SupportSection() {
 export default function SettingsPage() {
   const [active, setActive] = useState('profile');
   return (
-    <div className="flex w-full bg-gradient-to-br from-base-100 via-base-50 to-base-200" style={{ height: '95vh', overflow: 'hidden' }}>
+    <div className="h-full w-full bg-gradient-to-br from-base-100 via-base-50 to-base-200 flex relative overflow-hidden">
       <SectionSidebar active={active} setActive={setActive} />
-      <main className="flex-1 flex flex-col h-full w-full" style={{ height: '95vh', overflow: 'hidden' }}>
+      <main className="flex-1 flex flex-col h-full w-full overflow-hidden">
         <AnimatePresence mode="wait">
           {active === 'profile' && (
-            <motion.section key="profile" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.3 }} className="h-full w-full" style={{ height: '90vh', overflow: 'hidden' }}>
-              <ProfileAccountSection />
+            <motion.section 
+              key="profile" 
+              initial={{ opacity: 0, x: 40 }} 
+              animate={{ opacity: 1, x: 0 }} 
+              exit={{ opacity: 0, x: -40 }} 
+              transition={{ duration: 0.3 }} 
+              className="h-full w-full overflow-hidden"
+            >
+              <div className="h-full overflow-y-auto">
+                <ProfileAccountSection />
+              </div>
             </motion.section>
           )}
           {active === 'preferences' && (
-            <motion.section key="preferences" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.3 }} className="h-full w-full" style={{ height: '90vh', overflow: 'hidden' }}>
-              <PreferencesSection />
+            <motion.section 
+              key="preferences" 
+              initial={{ opacity: 0, x: 40 }} 
+              animate={{ opacity: 1, x: 0 }} 
+              exit={{ opacity: 0, x: -40 }} 
+              transition={{ duration: 0.3 }} 
+              className="h-full w-full overflow-hidden"
+            >
+              <div className="h-full overflow-y-auto">
+                <PreferencesSection />
+              </div>
             </motion.section>
           )}
           {active === 'workspace' && (
-            <motion.section key="workspace" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.3 }} className="h-full w-full" style={{ height: '90vh', overflow: 'hidden' }}>
-              <WorkspaceSection />
+            <motion.section 
+              key="workspace" 
+              initial={{ opacity: 0, x: 40 }} 
+              animate={{ opacity: 1, x: 0 }} 
+              exit={{ opacity: 0, x: -40 }} 
+              transition={{ duration: 0.3 }} 
+              className="h-full w-full overflow-hidden"
+            >
+              <div className="h-full overflow-y-auto">
+                <WorkspaceSection />
+              </div>
             </motion.section>
           )}
           {active === 'collab' && (
-            <motion.section key="collab" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.3 }} className="h-full w-full" style={{ height: '90vh', overflow: 'hidden' }}>
-              <CollaborationSection />
+            <motion.section 
+              key="collab" 
+              initial={{ opacity: 0, x: 40 }} 
+              animate={{ opacity: 1, x: 0 }} 
+              exit={{ opacity: 0, x: -40 }} 
+              transition={{ duration: 0.3 }} 
+              className="h-full w-full overflow-hidden"
+            >
+              <div className="h-full overflow-y-auto">
+                <CollaborationSection />
+              </div>
             </motion.section>
           )}
           {active === 'support' && (
-            <motion.section key="support" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.3 }} className="h-full w-full" style={{ height: '90vh', overflow: 'hidden' }}>
-              <SupportSection />
+            <motion.section 
+              key="support" 
+              initial={{ opacity: 0, x: 40 }} 
+              animate={{ opacity: 1, x: 0 }} 
+              exit={{ opacity: 0, x: -40 }} 
+              transition={{ duration: 0.3 }} 
+              className="h-full w-full overflow-hidden"
+            >
+              <div className="h-full overflow-y-auto">
+                <SupportSection />
+              </div>
             </motion.section>
           )}
         </AnimatePresence>

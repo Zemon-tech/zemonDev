@@ -1,16 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { Search, X, Filter, ExternalLink, Bookmark, ArrowLeft, BookOpen, FileText, Film, Wrench, FolderGit2, FileBadge2 } from 'lucide-react';
+import { Search, X, Filter, ArrowLeft, BookOpen, FileText, Film, Wrench, FolderGit2, FileBadge2 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getForgeResources, registerForgeResourceView, toggleBookmark, getBookmarkedResources } from '../lib/forgeApi';
 import { ResourceCard } from '@/components/blocks/ResourceCard';
 import type { Resource } from '@/components/blocks/ResourceCard';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { SpotlightCard } from '@/components/blocks/SpotlightCard';
-import { GradientText } from '@/components/blocks/GradientText';
-
 // Category information mapping with icons and colors
 const categoryInfo = {
   course: {

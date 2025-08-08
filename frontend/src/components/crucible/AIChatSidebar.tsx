@@ -30,12 +30,6 @@ interface AIChatSidebarProps {
   solutionContent?: string;
 }
 
-interface CodeBlockProps {
-  inline?: boolean;
-  className?: string;
-  children?: React.ReactNode;
-}
-
 // Enhanced Markdown Components
 const MarkdownComponents = {
   h1: ({ children, ...props }: any) => (
@@ -298,7 +292,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
       toast({
         title: "Error",
         description: "Failed to add content to notes",
-        variant: "destructive",
+        variant: "error",
       });
     }
   }, [problemId, getToken, toast]);
@@ -435,7 +429,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
                 toast({
                   title: "Error",
                   description: data.message || "An error occurred during streaming",
-                  variant: "destructive",
+                  variant: "error",
                 });
                 break;
               }
@@ -459,7 +453,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
       toast({
         title: "Error",
         description: "Failed to send message. Please try again.",
-        variant: "destructive",
+        variant: "error",
       });
     } finally {
       setIsLoading(false);

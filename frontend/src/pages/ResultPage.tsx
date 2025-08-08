@@ -258,7 +258,6 @@ export default function ResultPage() {
   const [localAnalysis, setLocalAnalysis] = useState<ISolutionAnalysisResult | null>(null);
   const [problem, setProblem] = useState<ICrucibleProblem | null>(null);
   const [history, setHistory] = useState<ISolutionAnalysisResult[]>([]);
-  const [isReattempting, setIsReattempting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showFullSummary, setShowFullSummary] = useState(false); // <-- Add this state
@@ -303,25 +302,22 @@ export default function ResultPage() {
       }
 
       try {
-        let currentAnalysis: ISolutionAnalysisResult | null = null;
         let currentProblemId: string | null = problemId;
 
         if (analysisId) {
           logger.info(`Fetching analysis by ID: ${analysisId}`);
           const fetchedAnalysis = await getAnalysisResult(analysisId, getToken);
           if (!isMounted) return;
-          currentAnalysis = fetchedAnalysis;
-          currentProblemId = fetchedAnalysis.problemId;
           setLocalAnalysis(fetchedAnalysis);
           
-          if (currentProblemId) {
-            clearReattemptingState(currentProblemId);
+          if (fetchedAnalysis.problemId) {
+            clearReattemptingState(fetchedAnalysis.problemId);
           }
         } else if (problemId) {
           logger.info(`Checking context for analysis for problem ID: ${problemId}`);
           if (contextAnalysis && contextAnalysis.problemId === problemId) {
             logger.info("Using analysis from context.");
-            currentAnalysis = contextAnalysis;
+            setLocalAnalysis(contextAnalysis);
           } else if (!contextLoading) {
             logger.info("No context analysis found, initiating check.");
             checkAnalysis(problemId);
@@ -364,7 +360,6 @@ export default function ResultPage() {
   // --- 2. EVENT HANDLERS ---
   const handleReattempt = async () => {
     if (!problem?._id) return;
-    setIsReattempting(true);
     try {
       await reattemptDraft(problem._id, getToken);
       markReattempting(problem._id);
@@ -372,7 +367,6 @@ export default function ResultPage() {
       navigate(`/${username}/crucible/problem/${problem._id}`);
     } catch (err) {
       logger.error('Error during reattempt:', err);
-      setIsReattempting(false);
       alert('Could not start a new attempt. Please try again.');
     }
   };

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Settings, User, Hammer, Beaker, Swords, X, Code, PanelLeftClose } from 'lucide-react';
+import { Home, Settings, User, Hammer, Beaker, Swords, X, PanelLeftClose } from 'lucide-react';
 import React from 'react';
 import SubjectIcon from '@/components/ui/SubjectIcon';
 
@@ -13,9 +13,6 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, currentUsername, focusMode }) => {
   const location = useLocation();
   const [hovered, setHovered] = React.useState(false);
-
-  // Check if we're on a problem page
-  const isCrucibleProblemPage = /^\/[\w-]+\/crucible\/problem\/.+/.test(location.pathname);
 
   // [ADD] Show sidebar if hovered in focus mode
   const shouldShow = focusMode ? hovered : isOpen;

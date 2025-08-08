@@ -48,8 +48,6 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
   const [error, setError] = useState<string | null>(null);
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   const isFetchingRef = useRef(false);
-  const [isFetching, setIsFetching] = useState(false); // Keep for backward compatibility
-  const requestIdRef = useRef<string>('');
   const lastRequestTimeRef = useRef<number>(0);
 
   // Fetch user role from backend - MEMOIZED to prevent infinite re-renders
@@ -94,7 +92,6 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
     try {
       console.log(`[${requestId}] Starting role fetch`);
       isFetchingRef.current = true;
-      setIsFetching(true);
       setIsLoading(true);
       setError(null);
 
@@ -149,7 +146,6 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
     } finally {
       console.log(`[${requestId}] Role fetch completed`);
       setIsLoading(false);
-      setIsFetching(false);
       isFetchingRef.current = false;
     }
   }, [user?.id, getToken, lastFetchTime, allRoles.length]);

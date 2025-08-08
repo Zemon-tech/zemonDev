@@ -1,21 +1,16 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
 import { Hash, Info } from 'lucide-react';
 import { Channel } from '@/hooks/useArenaChannels';
 
 interface ParentChannelDetailsProps {
-  channelId: string;
   channel: Channel;
   subChannels: Channel[];
-  userChannelStatuses: Record<string, string>;
 }
 
 const ParentChannelDetails: React.FC<ParentChannelDetailsProps> = ({
-  channelId,
   channel,
   subChannels,
-  userChannelStatuses
 }) => {
   // Animation variants
   const containerVariants = {

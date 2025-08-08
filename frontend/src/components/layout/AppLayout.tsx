@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useParams, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { UserButton, useUser } from '@clerk/clerk-react';
-import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
 import Sidebar from './Sidebar';
 import { useWorkspace } from '@/lib/WorkspaceContext';
 import { useSidebar } from '@/lib/SidebarContext';
@@ -28,7 +27,7 @@ export default function AppLayout() {
   const workspaceContext = useWorkspace();
   
   // Use sidebar context instead of local state
-  const { isSidebarOpen, toggleSidebar, setSidebarOpen, isLoading: sidebarLoading } = useSidebar();
+  const { isSidebarOpen, toggleSidebar } = useSidebar();
   
   // Show workspace nav buttons only on /:username/crucible/problem/:id
   const isCrucibleProblemPage = /^\/[\w-]+\/crucible\/problem\/.+/.test(location.pathname);
@@ -400,8 +399,6 @@ export default function AppLayout() {
               <Bell size={18} />
               <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-error rounded-full"></span>
             </Button>
-            {/* Theme switcher */}
-            <ThemeSwitcher />
             {/* [ADD] Nav lock button - only on Crucible Problem Page in focus mode */}
             {isCrucibleProblemPage && focusMode && (
               <Button

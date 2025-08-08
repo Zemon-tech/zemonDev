@@ -2,7 +2,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { SignInButton, SignUpButton, useAuth } from '@clerk/clerk-react';
 import { useUserRole } from '@/context/UserRoleContext';
 import { Settings } from 'lucide-react';
-import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher';
 import SubjectIcon from '@/components/ui/SubjectIcon';
 
 export default function Navbar() {
@@ -49,8 +48,6 @@ export default function Navbar() {
               Admin
             </Link>
           )}
-          
-          <ThemeSwitcher />
           
           {!isSignedIn ? (
             <>

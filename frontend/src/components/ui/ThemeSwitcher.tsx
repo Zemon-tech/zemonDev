@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/ThemeContext";
@@ -45,43 +45,70 @@ const themes: Theme[] = [
 export function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.setAttribute("data-theme", newTheme);
     setIsOpen(false);
   };
+
+  // Handle click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
   // Find the current theme object or default to the first theme
   // Using non-null assertion because we know themes array is not empty
   const currentTheme = themes.find((t) => t.id === theme) || themes[0]!;
 
   return (
-    <div className="relative">
+    <div className="relative z-[9999]" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-md bg-base-200 hover:bg-base-300 transition-colors"
+        className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-base-200/80 to-base-300/80 hover:from-base-200 hover:to-base-300 border border-base-300/50 shadow-sm hover:shadow-md transition-all duration-200 backdrop-blur-sm"
       >
-        <span className="hidden sm:inline">Theme:</span>
-        <span>{currentTheme.name}</span>
-        <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen ? "rotate-180" : "")} />
+        <div className="w-3 h-3 rounded-full bg-gradient-to-br from-primary to-primary/60 shadow-sm"></div>
+        <span className="font-medium text-base-content">{currentTheme.name}</span>
+        <ChevronDown className={cn("h-4 w-4 transition-transform duration-200 text-base-content/60", isOpen ? "rotate-180" : "")} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 p-2 rounded-md shadow-lg bg-base-100 border border-base-300 z-50 max-h-[70vh] overflow-y-auto">
+        <div className="absolute right-0 mt-3 w-64 p-3 rounded-2xl shadow-2xl bg-base-100/95 border border-base-300/50 z-[9999] max-h-[70vh] overflow-y-auto backdrop-blur-xl">
           <div className="grid grid-cols-1 gap-1">
             {themes.map((t) => (
               <button
                 key={t.id}
                 className={cn(
-                  "flex items-center justify-between px-3 py-2 text-left rounded-md hover:bg-base-200",
-                  theme === t.id && "bg-primary text-primary-content"
+                  "flex items-center justify-between px-4 py-3 text-left rounded-xl hover:bg-base-200/80 transition-all duration-200 group",
+                  theme === t.id && "bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30 shadow-sm"
                 )}
                 onClick={() => handleThemeChange(t.id)}
               >
-                <span>{t.name}</span>
-                {theme === t.id && <Check className="h-4 w-4" />}
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-3 h-3 rounded-full shadow-sm transition-all duration-200",
+                    theme === t.id 
+                      ? "bg-gradient-to-br from-primary to-primary/60 scale-110" 
+                      : "bg-gradient-to-br from-base-300 to-base-400 group-hover:from-base-200 group-hover:to-base-300"
+                  )}></div>
+                  <span className={cn(
+                    "font-medium transition-colors duration-200",
+                    theme === t.id ? "text-primary" : "text-base-content group-hover:text-base-content/80"
+                  )}>{t.name}</span>
+                </div>
+                {theme === t.id && <Check className="h-4 w-4 text-primary" />}
               </button>
             ))}
           </div>

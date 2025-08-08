@@ -239,7 +239,7 @@ const NirvanaChannel: React.FC = () => {
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2">
                                     <span className="text-sm font-medium truncate">#{ch.name}</span>
-                                    {ch.unreadCount > 0 && <span className="text-xs bg-primary/20 text-primary font-bold rounded-full px-2 py-0.5">{ch.unreadCount}</span>}
+                                    {(ch.unreadCount ?? 0) > 0 && <span className="text-xs bg-primary/20 text-primary font-bold rounded-full px-2 py-0.5">{ch.unreadCount ?? 0}</span>}
                                   </div>
                                   {(ch as any).description && <p className="text-xs text-base-content/70 truncate mt-0.5">{(ch as any).description}</p>}
                                 </div>

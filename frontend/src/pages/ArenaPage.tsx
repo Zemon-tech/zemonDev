@@ -239,10 +239,8 @@ const ArenaPage: React.FC = () => {
     if (activeChannel.type === 'info') {
       return (
         <ParentChannelDetails
-          channelId={activeChannel._id}
           channel={activeChannel}
           subChannels={activeChannelSubChannels}
-          userChannelStatuses={userChannelStatuses}
         />
       );
     }

@@ -1,6 +1,6 @@
 import { useUser } from '@clerk/clerk-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Trophy, BookOpen, Code, Flame, Star, Quote, Users, Target, ArrowRight } from 'lucide-react';
+import { Sparkles, Trophy, BookOpen, Code, Flame, Star, Quote, Users, ArrowRight } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Aurora } from '@/components/blocks/Aurora';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';

@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { PlusCircle, Pin, Loader2, AlertCircle, Shield, Users, Plus, Image, Gift, Smile } from 'lucide-react';
+import { PlusCircle, Pin, Loader2, AlertCircle, Plus, Image, Gift, Smile } from 'lucide-react';
 import { useArenaChat, Message } from '@/hooks/useArenaChat';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useUserRole } from '@/context/UserRoleContext';
@@ -26,10 +26,7 @@ const AnnouncementsChannelComponent: React.FC<AnnouncementsChannelProps> = ({
   const { 
     messages, 
     loading, 
-    loadingMore, 
-    error, 
-    pagination, 
-    hasInitialized,
+    error,
     sendMessage 
   } = useArenaChat(channelId, userChannelStatuses);
   
@@ -245,7 +242,7 @@ const AnnouncementsChannelComponent: React.FC<AnnouncementsChannelProps> = ({
             }
             
             // Render merged groups
-            return merged.map(({ group, showDate, date }, i) => {
+            return merged.map(({ group, showDate }, i) => {
               const first = group[0];
               return (
                 <React.Fragment key={first._id + '-' + i}>

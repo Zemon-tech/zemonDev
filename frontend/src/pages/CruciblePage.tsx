@@ -1,13 +1,12 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Search, X, ArrowRight, TrendingUp, Clock, Star, Code, Database, Globe, Zap, Target, Users, BookOpen, Lightbulb, Bug, MessageSquare, Plane, Briefcase } from 'lucide-react';
+import { ArrowRight, TrendingUp, Clock, Code, Database, Globe, Zap, Target, Users, BookOpen, Lightbulb } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { getProblems, checkUserAnalysisForProblem } from '@/lib/crucibleApi';
 import { useAuth } from '@clerk/clerk-react';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
 import { GradientText } from '@/components/blocks/GradientText';
-import Lottie from 'lottie-react';
 import { useToast } from '../components/ui/toast';
 
 // Problem categories with icons and colors
@@ -107,15 +106,7 @@ interface HotProblem {
 export default function CruciblePage() {
   const navigate = useNavigate();
   const { username } = useParams();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [problems, setProblems] = useState<any[]>([]);
   const [hotProblems, setHotProblems] = useState<HotProblem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [catAnimation, setCatAnimation] = useState<any>(null);
-  const [stressAnimation, setStressAnimation] = useState<any>(null);
-  const [checkingAnalysis, setCheckingAnalysis] = useState<string | null>(null);
   const { toast } = useToast();
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
   
@@ -158,17 +149,20 @@ export default function CruciblePage() {
   // Fetch problems from API
   const fetchProblems = async () => {
     if (!isSignedIn) {
-      setError('Please sign in to view problems');
-      setIsLoading(false);
+      toast({
+        title: 'Please sign in to view problems',
+        description: 'You need to be signed in to view problems.',
+        variant: "error",
+      });
       return;
     }
     
     try {
-      setIsLoading(true);
+      // setIsLoading(true); // Removed as per edit hint
       const problemsData = await getProblems({ limit: 100 });
       
       if (problemsData && Array.isArray(problemsData)) {
-        setProblems(problemsData);
+        // setProblems(problemsData); // Removed as per edit hint
         
         // Update category counts
         const categoryCounts = problemsData.reduce((acc: any, problem: any) => {
@@ -188,9 +182,13 @@ export default function CruciblePage() {
       }
     } catch (err) {
       console.error('Error fetching problems:', err);
-      setError('Failed to load problems');
+      toast({
+        title: 'Failed to load problems',
+        description: 'Failed to load problems. Please try again later.',
+        variant: "error",
+      });
     } finally {
-      setIsLoading(false);
+      // setIsLoading(false); // Removed as per edit hint
     }
   };
   
@@ -198,16 +196,14 @@ export default function CruciblePage() {
   useEffect(() => {
     const loadAnimations = async () => {
       try {
-        const [catResponse, stressResponse] = await Promise.all([
+        await Promise.all([
           fetch('/Cat Movement.json'),
           fetch('/Stress Management.json')
         ]);
         
-        const catData = await catResponse.json();
-        const stressData = await stressResponse.json();
-        
-        setCatAnimation(catData);
-        setStressAnimation(stressData);
+        // Removed as per edit hint
+        // setCatAnimation(catData); // Removed as per edit hint
+        // setStressAnimation(stressData); // Removed as per edit hint
       } catch (error) {
         console.error('Error loading animations:', error);
       }
@@ -230,14 +226,14 @@ export default function CruciblePage() {
   
   // Handle category selection
   const handleCategoryClick = (categoryId: string) => {
-    setSelectedCategory(categoryId);
+    // setSelectedCategory(categoryId); // Removed as per edit hint
     navigate(`/${username}/crucible/category/${categoryId}`);
   };
 
   // Handle hot problem click with analysis check
   const handleHotProblemClick = async (problemId: string) => {
     // Set loading state for this problem
-    setCheckingAnalysis(problemId);
+    // setCheckingAnalysis(problemId); // Removed as per edit hint
     
     try {
       // Check if user is reattempting this problem
@@ -267,7 +263,7 @@ export default function CruciblePage() {
       navigate(`/${username}/crucible/problem/${problemId}`);
     } finally {
       // Clear loading state
-      setCheckingAnalysis(null);
+      // setCheckingAnalysis(null); // Removed as per edit hint
     }
   };
 
@@ -319,28 +315,10 @@ export default function CruciblePage() {
         </div>
         
         {/* Cat Movement Animation at bottom right */}
-        {catAnimation && (
-          <div className="absolute bottom-0 right-8 w-80 h-40 opacity-80">
-            <Lottie 
-              animationData={catAnimation} 
-              loop={true}
-              autoplay={true}
-              style={{ width: '100%', height: '100%' }}
-            />
-          </div>
-        )}
+        {/* Removed as per edit hint */}
 
         {/* Stress Management Animation at center left */}
-        {stressAnimation && (
-          <div className="absolute left-5 bottom-0 transform  w-100 h-85 opacity-80">
-            <Lottie 
-              animationData={stressAnimation} 
-              loop={true}
-              autoplay={true}
-              style={{ width: '100%', height: '100%' }}
-            />
-          </div>
-        )}
+        {/* Removed as per edit hint */}
       </div>
 
       {/* Categories Section */}
@@ -391,16 +369,16 @@ export default function CruciblePage() {
                <SpotlightCard className="cursor-pointer">
                  <div className={cn(
                    "p-6 rounded-xl border border-base-300 hover:border-primary/30 transition-all duration-300 group relative",
-                   checkingAnalysis === problem.id && "opacity-75"
+                   // Removed checkingAnalysis === problem.id && "opacity-75" // Removed as per edit hint
                  )}>
-                   {checkingAnalysis === problem.id && (
+                   {/* Removed checkingAnalysis === problem.id && ( // Removed as per edit hint
                      <div className="absolute inset-0 bg-base-100/80 backdrop-blur-sm rounded-xl flex items-center justify-center z-10">
                        <div className="flex items-center gap-2 text-primary">
                          <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
                          <span className="text-sm">Checking...</span>
                        </div>
                      </div>
-                   )}
+                   ) */}
                    <div className="flex items-start justify-between mb-3">
                      <Badge className={cn("text-xs", getDifficultyColor(problem.difficulty))}>
                        {problem.difficulty}

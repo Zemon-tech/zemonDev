@@ -3,16 +3,15 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { ThumbsUp, ThumbsDown, Share2, ExternalLink, Plus, Hash, Loader2, AlertCircle, Calendar, User, Github, Globe } from 'lucide-react';
+import { Card, CardFooter, CardHeader } from '@/components/ui/card';
+import { ThumbsUp, ThumbsDown, Plus, Hash, Loader2, AlertCircle, Calendar, Github, Globe } from 'lucide-react';
 import { useArenaShowcase } from '@/hooks/useArenaShowcase';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { ApiService } from '@/services/api.service';
 import Toaster from '@/components/ui/toast';
 
 const ShowcaseChannel: React.FC = () => {
-  const { projects, loading, error, upvoteProject, downvoteProject, removeUpvoteProject, removeDownvoteProject, refetch, toasterRef } = useArenaShowcase();
+  const { projects, loading, error, upvoteProject, downvoteProject, refetch, toasterRef } = useArenaShowcase();
   const { getToken, isSignedIn } = useAuth();
   const { user } = useUser();
   const [showModal, setShowModal] = useState(false);

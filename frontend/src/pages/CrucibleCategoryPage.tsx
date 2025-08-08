@@ -6,8 +6,6 @@ import { cn } from '@/lib/utils';
 import { getProblems, checkUserAnalysisForProblem } from '@/lib/crucibleApi';
 import { useAuth } from '@clerk/clerk-react';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
-import { GradientText } from '@/components/blocks/GradientText';
-
 // Category information mapping with SVG icons
 const categoryInfo = {
   algorithms: {

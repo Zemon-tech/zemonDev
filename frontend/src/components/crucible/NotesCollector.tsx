@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { Button } from '../ui/button';
-import { Trash2, Plus, BookOpen, Sparkles, Tag, Clock, Search, Filter } from 'lucide-react';
+import { Trash2, Plus, BookOpen, Sparkles, Clock, Search, Filter } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import { getNotes, updateNotes } from '../../lib/crucibleApi';
 import * as ScrollArea from '@radix-ui/react-scroll-area';

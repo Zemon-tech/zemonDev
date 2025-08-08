@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import Toaster, { ToasterRef } from '@/components/ui/toast';
+import { ToasterRef } from '@/components/ui/toast';
 
 type Variant = 'default' | 'success' | 'error' | 'warning';
 type Position = 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
