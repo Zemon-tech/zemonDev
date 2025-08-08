@@ -208,4 +208,48 @@ export class ApiService {
       getToken
     );
   }
+
+  // Nirvana Feed API
+  static async getNirvanaFeed(
+    getToken: () => Promise<string | null>,
+    params: { type?: 'hackathon' | 'news' | 'tool'; page?: number; limit?: number } = {}
+  ) {
+    const search = new URLSearchParams();
+    if (params.type) search.append('type', params.type);
+    if (params.page) search.append('page', String(params.page));
+    if (params.limit) search.append('limit', String(params.limit));
+    const qs = search.toString();
+    return this.makeRequest(`/api/nirvana/feed${qs ? `?${qs}` : ''}`, {}, getToken);
+  }
+
+  static async createNirvanaHackathon(
+    getToken: () => Promise<string | null>,
+    data: any
+  ) {
+    return this.makeRequest('/api/nirvana/hackathons', { method: 'POST', body: JSON.stringify(data) }, getToken);
+  }
+
+  static async createNirvanaNews(
+    getToken: () => Promise<string | null>,
+    data: any
+  ) {
+    return this.makeRequest('/api/nirvana/news', { method: 'POST', body: JSON.stringify(data) }, getToken);
+  }
+
+  static async createNirvanaTool(
+    getToken: () => Promise<string | null>,
+    data: any
+  ) {
+    return this.makeRequest('/api/nirvana/tools', { method: 'POST', body: JSON.stringify(data) }, getToken);
+  }
+
+  static async updateNirvanaReaction(
+    getToken: () => Promise<string | null>,
+    type: 'hackathon' | 'news' | 'tool',
+    id: string,
+    reactionType: 'likes' | 'shares' | 'bookmarks',
+    action: 'increment' | 'decrement'
+  ) {
+    return this.makeRequest(`/api/nirvana/${type}/${id}/reaction`, { method: 'PATCH', body: JSON.stringify({ reactionType, action }) }, getToken);
+  }
 } 

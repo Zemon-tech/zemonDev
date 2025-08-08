@@ -17,6 +17,9 @@ import WeeklyHackathon, { IWeeklyHackathon } from './weeklyHackathon.model';
 import HackathonSubmission, { IHackathonSubmission } from './hackathonSubmission.model';
 import UserChannelStatus, { IUserChannelStatus } from './userChannelStatus.model';
 import UserRole, { IUserRole } from './userRole.model';
+import NirvanaHackathon, { INirvanaHackathon } from './nirvanaHackathon.model';
+import NirvanaNews, { INirvanaNews } from './nirvanaNews.model';
+import NirvanaTool, { INirvanaTool } from './nirvanaTool.model';
 
 export {
   User,
@@ -58,5 +61,12 @@ export {
   UserChannelStatus,
   IUserChannelStatus,
   UserRole,
-  IUserRole
+  IUserRole,
+  // Nirvana models
+  NirvanaHackathon,
+  INirvanaHackathon,
+  NirvanaNews,
+  INirvanaNews,
+  NirvanaTool,
+  INirvanaTool
 }; 

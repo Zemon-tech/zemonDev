@@ -8,6 +8,7 @@ import arenaChannelsRoutes from './arena-channels.routes';
 import arenaShowcaseRoutes from './arena-showcase.routes';
 import arenaHackathonsRoutes from './arena-hackathons.routes';
 import arenaUsersRoutes from './arena-users.routes';
+import nirvanaRoutes from './nirvana.routes';
 import adminRoutes from './admin.routes';
 import profileRoutes from './profile.routes';
 
@@ -38,6 +39,9 @@ router.use('/arena/channels', arenaChannelsRoutes);
 router.use('/arena/showcase', arenaShowcaseRoutes);
 router.use('/arena/hackathons', arenaHackathonsRoutes);
 router.use('/arena/users', arenaUsersRoutes);
+
+// Nirvana routes
+router.use('/nirvana', nirvanaRoutes);
 
 // Register webhook routes
 router.use('/webhooks', webhookRoutes);

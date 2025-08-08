@@ -2,15 +2,28 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser } from '@clerk/clerk-react';
-import { ApiService } from '@/services/api.service';
 import { useArenaChannels } from '@/hooks/useArenaChannels';
+import { ApiService } from '@/services/api.service';
+import { 
+  getNirvanaFeed, 
+  updateNirvanaReaction,
+  createNirvanaHackathon,
+  createNirvanaNews,
+  createNirvanaTool,
+  type INirvanaFeedItem,
+  type INirvanaFeedResponse,
+  type INirvanaHackathonData,
+  type INirvanaNewsData,
+  type INirvanaToolData
+} from '@/lib/nirvanaApi';
 
 // UI & Components
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { CardContent, CardHeader } from '@/components/ui/card';
+// import { CardContent, CardHeader } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { Input } from '@/components/ui/input';
 
 // Icons
 import {
@@ -23,11 +36,11 @@ import {
 // Enhanced interfaces for different feed types
 interface FeedItem {
   id: string;
-  type: 'news' | 'update' | 'member' | 'hackathon' | 'tool' | 'partnership' | 'achievement' | 'showcase';
+  type: 'hackathon' | 'news' | 'tool' | 'update' | 'member' | 'partnership' | 'achievement' | 'showcase';
   title: string;
   content: string;
   timestamp: Date;
-  author?: { name: string; avatar?: string; role: string; };
+  author?: { name?: string; username?: string; avatar?: string; profilePicture?: string; role?: string };
   metadata?: {
     points?: number;
     badge?: string;
@@ -51,7 +64,7 @@ interface FeedItem {
     streak?: number;
     problemsSolved?: number;
   };
-  reactions?: { likes: number; shares: number; bookmarks: number; };
+  reactions: { likes: number; shares: number; bookmarks: number; };
   isPinned?: boolean;
   isVerified?: boolean;
   priority?: 'high' | 'medium' | 'low';
@@ -76,126 +89,26 @@ const NirvanaChannel: React.FC = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
   };
 
-  // Enhanced feed data with valuable content
-  const feedItems: FeedItem[] = [
-    {
-      id: '1',
-      type: 'hackathon',
-      title: '🚀 AI Innovation Hackathon 2024',
-      content: 'Join our biggest hackathon yet! Build AI-powered solutions and compete for $50,000 in prizes.',
-      timestamp: new Date(Date.now() - 1000 * 60 * 30),
-      metadata: {
-        hackathonName: 'AI Innovation 2024',
-        prize: '$50,000',
-        participants: 250,
-        category: 'AI/ML',
-        tags: ['AI', 'Machine Learning', 'Innovation'],
-        link: '#',
-        deadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-        status: 'active'
-      },
-      reactions: { likes: 89, shares: 23, bookmarks: 45 },
-      isPinned: true,
-      isVerified: true,
-      priority: 'high'
-    },
-    {
-      id: '2',
-      type: 'news',
-      title: '🎉 Community Milestone: 10,000 Members!',
-      content: 'We\'ve reached 10,000 active developers in our community! Thank you for being part of this amazing journey.',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1),
-      metadata: {
-        category: 'Community Milestone',
-        tags: ['Milestone', 'Community', 'Growth'],
-        progress: 100
-      },
-      reactions: { likes: 234, shares: 89, bookmarks: 67 },
-      isVerified: true,
-      priority: 'high'
-    },
-    {
-      id: '3',
-      type: 'tool',
-      title: '🛠️ New Tool: CodeGPT Assistant',
-      content: 'Introducing our AI-powered code assistant. Get instant help with debugging, refactoring, and code reviews.',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4),
-      metadata: {
-        toolName: 'CodeGPT Assistant',
-        category: 'Development Tools',
-        tags: ['AI', 'Code Assistant', 'Productivity'],
-        link: '#',
-        rating: 4.9,
-        views: 890
-      },
-      reactions: { likes: 234, shares: 89, bookmarks: 123 },
-      isVerified: true
-    },
-    {
-      id: '4',
-      type: 'member',
-      title: '🏆 Sarah Chen Achieves 100-Day Streak!',
-      content: 'Sarah Chen has maintained a 100-day learning streak! Consistency is key to mastery.',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6),
-      author: { name: 'Sarah Chen', avatar: 'https://github.com/shadcn.png', role: 'Senior Developer' },
-      metadata: {
-        streak: 100,
-        problemsSolved: 45,
-        category: 'Achievement',
-        tags: ['Streak', 'Consistency', 'Learning']
-      },
-      reactions: { likes: 89, shares: 34, bookmarks: 23 }
-    },
-    {
-      id: '5',
-      type: 'showcase',
-      title: '💡 Trending Project: EcoTracker',
-      content: 'EcoTracker is trending with 500+ upvotes! A sustainability tracking app built with React Native and Firebase.',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8),
-      author: { name: 'Maria Garcia', avatar: 'https://github.com/shadcn.png', role: 'Developer' },
-      metadata: {
-        projectName: 'EcoTracker',
-        category: 'Mobile App',
-        tags: ['React Native', 'Firebase', 'Sustainability'],
-        link: '#',
-        views: 2500
-      },
-      reactions: { likes: 67, shares: 28, bookmarks: 19 }
-    },
-    {
-      id: '6',
-      type: 'hackathon',
-      title: '⏰ Registration Deadline: Web3 Challenge',
-      content: 'Only 24 hours left to register for the Web3 Development Challenge! Don\'t miss out on $25,000 in prizes.',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 12),
-      metadata: {
-        hackathonName: 'Web3 Challenge',
-        prize: '$25,000',
-        participants: 1200,
-        category: 'Blockchain',
-        tags: ['Web3', 'Blockchain', 'Smart Contracts'],
-        link: '#',
-        deadline: new Date(Date.now() + 1000 * 60 * 60 * 24),
-        status: 'deadline'
-      },
-      reactions: { likes: 156, shares: 67, bookmarks: 89 },
-      isVerified: true,
-      priority: 'high'
-    },
-    {
-      id: '7',
-      type: 'member',
-      title: '👋 Welcome Alex Rodriguez!',
-      content: 'Alex Rodriguez joined as a System Design Expert. He has 5+ years of experience building scalable systems.',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 16),
-      author: { name: 'Alex Rodriguez', avatar: 'https://github.com/shadcn.png', role: 'System Design Expert' },
-      metadata: {
-        category: 'New Member',
-        tags: ['System Design', 'Scalability', 'Expert']
-      },
-      reactions: { likes: 45, shares: 12, bookmarks: 8 }
-    }
-  ];
+  // Live feed state from backend
+  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
+  const [feedLoading, setFeedLoading] = useState<boolean>(false);
+  const [pagination, setPagination] = useState<{ page: number; limit: number; total: number } | null>(null);
+
+  const mapBackendItemToFeedItem = (raw: any): FeedItem => {
+    return {
+      id: raw.id,
+      type: raw.type,
+      title: raw.title,
+      content: raw.content,
+      timestamp: new Date(raw.timestamp),
+      author: raw.author,
+      metadata: raw.metadata,
+      reactions: raw.reactions,
+      isPinned: raw.isPinned,
+      isVerified: raw.isVerified,
+      priority: raw.priority,
+    } as FeedItem;
+  };
 
   const trendingTopics: TrendingTopic[] = [
     { id: '1', name: 'React 19', count: 234, trend: 'up', category: 'Frontend' },
@@ -228,6 +141,145 @@ const NirvanaChannel: React.FC = () => {
   const [joinChannelsOpen, setJoinChannelsOpen] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const [feedFilter, setFeedFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [showCreatePost, setShowCreatePost] = useState(false);
+  const [createPostType, setCreatePostType] = useState<'hackathon' | 'news' | 'tool'>('hackathon');
+  const [createPostData, setCreatePostData] = useState({
+    title: '',
+    content: '',
+    description: '',
+    category: '',
+    tags: '',
+    prize: '',
+    participants: 0,
+    deadline: '',
+    toolName: '',
+    rating: 5,
+    views: 0,
+    link: '',
+  });
+  const [creatingPost, setCreatingPost] = useState(false);
+
+  // Fetch feed from backend
+  useEffect(() => {
+    const loadFeed = async () => {
+      try {
+        setFeedLoading(true);
+        const res = await getNirvanaFeed(getToken, { type: feedFilter === 'all' ? undefined : (feedFilter as 'hackathon' | 'news' | 'tool'), page, limit: 10 });
+        const items = res.items.map(mapBackendItemToFeedItem);
+        if (page === 1) setFeedItems(items); else setFeedItems(prev => [...prev, ...items]);
+        const pg = res.pagination;
+        if (pg) {
+          setPagination(pg);
+          setHasMore(items.length === 10);
+        } else {
+          setHasMore(items.length === 10);
+        }
+      } catch (e) {
+        // fail silently
+      } finally {
+        setFeedLoading(false);
+      }
+    };
+    loadFeed();
+  }, [getToken, feedFilter, page]);
+
+  const handleReact = async (item: FeedItem, reactionType: 'likes' | 'shares' | 'bookmarks') => {
+    if (!['hackathon', 'news', 'tool'].includes(item.type)) return;
+    try {
+      const result = await updateNirvanaReaction(
+        item.type as 'hackathon' | 'news' | 'tool', 
+        item.id, 
+        reactionType, 
+        'increment',
+        getToken
+      );
+      if (result.success) {
+        setFeedItems(prev => prev.map(fi => fi.id === item.id ? {
+          ...fi,
+          reactions: {
+            likes: fi.reactions?.likes || 0,
+            shares: fi.reactions?.shares || 0,
+            bookmarks: fi.reactions?.bookmarks || 0,
+            [reactionType]: result.newCount,
+          }
+        } : fi));
+      }
+    } catch {}
+  };
+
+  const handleCreatePost = async () => {
+    if (!createPostData.title || !createPostData.content) return;
+    
+    setCreatingPost(true);
+    try {
+      let newPost: FeedItem;
+      
+      if (createPostType === 'hackathon') {
+        const data: INirvanaHackathonData = {
+          title: createPostData.title,
+          content: createPostData.content,
+          description: createPostData.description,
+          prize: createPostData.prize,
+          participants: createPostData.participants,
+          category: createPostData.category,
+          tags: createPostData.tags.split(',').map(t => t.trim()).filter(t => t),
+          deadline: new Date(createPostData.deadline),
+          status: 'active',
+          hackathonName: createPostData.title,
+          link: createPostData.link || undefined,
+        };
+        const result = await createNirvanaHackathon(data, getToken);
+        newPost = mapBackendItemToFeedItem(result);
+      } else if (createPostType === 'news') {
+        const data: INirvanaNewsData = {
+          title: createPostData.title,
+          content: createPostData.content,
+          category: createPostData.category,
+          tags: createPostData.tags.split(',').map(t => t.trim()).filter(t => t),
+          link: createPostData.link || undefined,
+        };
+        const result = await createNirvanaNews(data, getToken);
+        newPost = mapBackendItemToFeedItem(result);
+      } else {
+        const data: INirvanaToolData = {
+          title: createPostData.title,
+          content: createPostData.content,
+          toolName: createPostData.toolName,
+          category: createPostData.category,
+          tags: createPostData.tags.split(',').map(t => t.trim()).filter(t => t),
+          rating: createPostData.rating,
+          views: createPostData.views,
+          link: createPostData.link || undefined,
+        };
+        const result = await createNirvanaTool(data, getToken);
+        newPost = mapBackendItemToFeedItem(result);
+      }
+      
+      // Add new post to the beginning of the feed
+      setFeedItems(prev => [newPost, ...prev]);
+      setShowCreatePost(false);
+      setCreatePostData({
+        title: '',
+        content: '',
+        description: '',
+        category: '',
+        tags: '',
+        prize: '',
+        participants: 0,
+        deadline: '',
+        toolName: '',
+        rating: 5,
+        views: 0,
+        link: '',
+      });
+    } catch (error) {
+      console.error('Failed to create post:', error);
+    } finally {
+      setCreatingPost(false);
+    }
+  };
 
   useEffect(() => {
     const fetchStatuses = async () => {
@@ -344,7 +396,7 @@ const NirvanaChannel: React.FC = () => {
 
   const filteredFeedItems = feedFilter === 'all' 
     ? feedItems 
-    : feedItems.filter(item => item.type === feedFilter);
+    : feedItems.filter(item => item.type === (feedFilter as any));
 
   return (
     <div className="flex flex-col h-full bg-base-100 text-base-content">
@@ -426,12 +478,9 @@ const NirvanaChannel: React.FC = () => {
                                   <div className="flex items-center gap-1.5">
                                     <span className="text-xs font-medium truncate">#{ch.name}</span>
                                     {(ch.unreadCount ?? 0) > 0 && (
-                                      <StatusBadge
-                                        leftLabel=""
-                                        rightLabel={(ch.unreadCount ?? 0).toString()}
-                                        status="success"
-                                        className="text-xs px-1.5 py-0.5"
-                                      />
+                                      <span className="text-xs bg-primary/20 text-primary font-medium rounded-full px-1.5 py-0.5">
+                                        {ch.unreadCount}
+                                      </span>
                                     )}
                                   </div>
                                   {(ch as any).description && <p className="text-xs text-base-content/60 truncate mt-0.5">{(ch as any).description}</p>}
@@ -465,12 +514,9 @@ const NirvanaChannel: React.FC = () => {
                 <div key={event.id} className="p-3 rounded-md border border-base-300 bg-base-200 hover:border-primary/30 transition-colors">
                   <div className="flex items-start justify-between mb-1.5">
                     <p className="font-medium text-base-content text-xs">{event.name}</p>
-                    <StatusBadge
-                      leftLabel=""
-                      rightLabel={`${event.participants} joined`}
-                      status="success"
-                      className="text-xs px-1.5 py-0.5"
-                    />
+                    <span className="text-xs bg-primary/20 text-primary font-medium rounded-full px-1.5 py-0.5">
+                      {event.participants} joined
+                    </span>
                   </div>
                   <p className="text-xs text-base-content/60 mb-1.5">{new Date(event.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</p>
                   <p className="text-xs text-base-content/80 mb-2">{event.description}</p>
@@ -514,7 +560,12 @@ const NirvanaChannel: React.FC = () => {
               <p className="text-xs text-base-content/60">Stay updated with the latest from the Zemon community</p>
             </div>
             <div className="flex items-center gap-1">
-              <Button variant="outline" size="sm" className="h-6 px-2 text-xs">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-xs"
+                onClick={() => setShowCreatePost(true)}
+              >
                 <Plus className="w-3 h-3 mr-1" />
                 Create Post
               </Button>
@@ -530,7 +581,7 @@ const NirvanaChannel: React.FC = () => {
                   ? "bg-primary text-primary-content shadow-sm" 
                   : "bg-base-200 text-base-content/70 hover:bg-base-300 hover:text-base-content"
               )}
-              onClick={() => setFeedFilter('all')}
+              onClick={() => { setFeedFilter('all'); setPage(1); }}
             >
               All
             </button>
@@ -541,7 +592,7 @@ const NirvanaChannel: React.FC = () => {
                   ? "bg-primary text-primary-content shadow-sm" 
                   : "bg-base-200 text-base-content/70 hover:bg-base-300 hover:text-base-content"
               )}
-              onClick={() => setFeedFilter('hackathon')}
+              onClick={() => { setFeedFilter('hackathon'); setPage(1); }}
             >
               Hackathons
             </button>
@@ -552,7 +603,7 @@ const NirvanaChannel: React.FC = () => {
                   ? "bg-primary text-primary-content shadow-sm" 
                   : "bg-base-200 text-base-content/70 hover:bg-base-300 hover:text-base-content"
               )}
-              onClick={() => setFeedFilter('news')}
+              onClick={() => { setFeedFilter('news'); setPage(1); }}
             >
               News
             </button>
@@ -563,7 +614,7 @@ const NirvanaChannel: React.FC = () => {
                   ? "bg-primary text-primary-content shadow-sm" 
                   : "bg-base-200 text-base-content/70 hover:bg-base-300 hover:text-base-content"
               )}
-              onClick={() => setFeedFilter('tool')}
+              onClick={() => { setFeedFilter('tool'); setPage(1); }}
             >
               Tools
             </button>
@@ -592,7 +643,7 @@ const NirvanaChannel: React.FC = () => {
           </div>
 
           {/* Feed Content */}
-          <div className="flex-1 overflow-y-auto pr-2 space-y-3">
+          <div className="flex-1 overflow-y-auto pr-2 space-y-2">
             {filteredFeedItems.map((item) => (
               <motion.div
                 key={item.id}
@@ -601,83 +652,80 @@ const NirvanaChannel: React.FC = () => {
                 transition={{ duration: 0.3 }}
               >
                 <div className={cn(
-                  "bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm transition-all duration-200",
+                  "bg-card text-card-foreground flex flex-col gap-3 rounded-lg py-3 px-4 shadow-sm transition-all duration-200",
                   item.priority === 'high' && item.id !== '1' ? "border-0" : "border border-base-300",
                   item.isPinned && "ring-1 ring-primary/30 bg-primary/5"
                 )}>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", getFeedItemColor(item.type))}>
-                          {getFeedItemIcon(item.type)}
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={cn("w-6 h-6 rounded-md flex items-center justify-center", getFeedItemColor(item.type))}>
+                        {getFeedItemIcon(item.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1 mb-0.5">
+                          <h3 className="text-sm font-semibold text-base-content line-clamp-1">
+                            {item.title}
+                          </h3>
+                          {item.isVerified && (
+                            <StatusBadge
+                              leftIcon={CheckCircle}
+                              leftLabel=""
+                              rightLabel="Verified"
+                              status="success"
+                              className="text-xs"
+                            />
+                          )}
+                          {item.isPinned && (
+                            <StatusBadge
+                              leftIcon={Bookmark}
+                              leftLabel=""
+                              rightLabel="Pinned"
+                              status="default"
+                              className="text-xs"
+                            />
+                          )}
+                          {item.priority === 'high' && (
+                            <StatusBadge
+                              leftIcon={Flame}
+                              leftLabel=""
+                              rightLabel="Hot"
+                              status="error"
+                              className="text-xs"
+                            />
+                          )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <h3 className="text-sm font-semibold text-base-content line-clamp-1">
-                              {item.title}
-                            </h3>
-                            {item.isVerified && (
-                              <StatusBadge
-                                leftIcon={CheckCircle}
-                                leftLabel=""
-                                rightLabel="Verified"
-                                status="success"
-                                className="text-xs"
-                              />
-                            )}
-                            {item.isPinned && (
-                              <StatusBadge
-                                leftIcon={Bookmark}
-                                leftLabel=""
-                                rightLabel="Pinned"
-                                status="default"
-                                className="text-xs"
-                              />
-                            )}
-                            {item.priority === 'high' && (
-                              <StatusBadge
-                                leftIcon={Flame}
-                                leftLabel=""
-                                rightLabel="Hot"
-                                status="error"
-                                className="text-xs"
-                              />
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-xs text-base-content/60">
-                            {item.author && (
-                              <>
-                                <div className="flex items-center gap-1">
-                                  <Avatar className="w-3.5 h-3.5">
-                                    <AvatarImage src={item.author.avatar} />
-                                    <AvatarFallback className="text-xs">{item.author.name.charAt(0)}</AvatarFallback>
-                                  </Avatar>
-                                  <span className="font-medium text-base-content/80">{item.author.name}</span>
-                                </div>
-                                <span>•</span>
-                              </>
-                            )}
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-2.5 h-2.5" />
-                              {item.timestamp.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                            </span>
-                          </div>
+                        <div className="flex items-center gap-1.5 text-xs text-base-content/60">
+                          {item.author && (
+                            <>
+                              <div className="flex items-center gap-1">
+                                <Avatar className="w-3 h-3">
+                                  <AvatarImage src={item.author.avatar ?? (item.author as any)?.profilePicture} />
+                                  <AvatarFallback className="text-xs">{(item.author.name ?? (item.author as any)?.username ?? 'U').charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <span className="font-medium text-base-content/80">{item.author.name ?? (item.author as any)?.username ?? 'User'}</span>
+                              </div>
+                              <span>•</span>
+                            </>
+                          )}
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" />
+                            {item.timestamp.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                          </span>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 rounded hover:bg-base-200">
-                        <Share2 className="w-3.5 h-3.5" />
-                      </Button>
                     </div>
-                  </CardHeader>
+                    <Button variant="ghost" size="icon" className="h-5 w-5 rounded hover:bg-base-200">
+                      <Share2 className="w-3 h-3" />
+                    </Button>
+                  </div>
 
-                  <CardContent className="pt-0 pb-3">
-                    <p className="text-base-content/80 text-xs leading-relaxed mb-3 line-clamp-2">{item.content}</p>
+                  <p className="text-base-content/80 text-xs leading-relaxed mb-2 line-clamp-2">{item.content}</p>
                     
                     {/* Compact Metadata Display */}
                     {item.metadata && (
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         {/* Important Metadata Badges */}
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-1">
                           {item.metadata.prize && (
                             <StatusBadge
                               leftIcon={Trophy}
@@ -753,32 +801,42 @@ const NirvanaChannel: React.FC = () => {
                     )}
 
                     {/* Compact Action Buttons */}
-                    <div className="flex items-center justify-between pt-3 mt-3 border-t border-base-300">
-                      <div className="flex items-center gap-1.5">
-                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-base-content/60 hover:text-base-content">
-                          <Heart className="w-3 h-3 mr-1" />
+                    <div className="flex items-center justify-between pt-2 mt-2 border-t border-base-300">
+                      <div className="flex items-center gap-1">
+                        <Button onClick={() => handleReact(item, 'likes')} variant="ghost" size="sm" className="h-5 px-1.5 text-xs text-base-content/60 hover:text-base-content">
+                          <Heart className="w-2.5 h-2.5 mr-0.5" />
                           {item.reactions?.likes || 0}
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-base-content/60 hover:text-base-content">
-                          <MessageSquare className="w-3 h-3 mr-1" />
+                        <Button onClick={() => handleReact(item, 'shares')} variant="ghost" size="sm" className="h-5 px-1.5 text-xs text-base-content/60 hover:text-base-content">
+                          <MessageSquare className="w-2.5 h-2.5 mr-0.5" />
                           {item.reactions?.shares || 0}
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-base-content/60 hover:text-base-content">
-                          <Bookmark className="w-3 h-3 mr-1" />
+                        <Button onClick={() => handleReact(item, 'bookmarks')} variant="ghost" size="sm" className="h-5 px-1.5 text-xs text-base-content/60 hover:text-base-content">
+                          <Bookmark className="w-2.5 h-2.5 mr-0.5" />
                           {item.reactions?.bookmarks || 0}
                         </Button>
                       </div>
                       {item.metadata?.link && (
-                        <Button variant="secondary" size="sm" className="h-6 px-2 text-xs border-none">
-                          <ExternalLink className="w-3 h-3 mr-1" />
+                        <Button variant="secondary" size="sm" className="h-5 px-1.5 text-xs border-none">
+                          <ExternalLink className="w-2.5 h-2.5 mr-0.5" />
                           Learn More
                         </Button>
                       )}
                     </div>
-                  </CardContent>
                 </div>
               </motion.div>
             ))}
+            {/* Load more */}
+            <div className="flex items-center justify-center py-2">
+              {!feedLoading && hasMore && (
+                <Button size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={() => setPage((p) => p + 1)}>
+                  Load more
+                </Button>
+              )}
+              {feedLoading && (
+                <span className="text-xs text-base-content/60">Loading...</span>
+              )}
+            </div>
           </div>
         </section>
         
@@ -850,6 +908,187 @@ const NirvanaChannel: React.FC = () => {
           </motion.div>
         </motion.aside>
       </div>
+
+      {/* Create Post Modal */}
+      {showCreatePost && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-base-100 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Create New Post</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowCreatePost(false)}
+                className="h-6 w-6 p-0"
+              >
+                ×
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Post Type Selection */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Post Type</label>
+                <div className="flex gap-2">
+                  {(['hackathon', 'news', 'tool'] as const).map((type) => (
+                    <Button
+                      key={type}
+                      variant={createPostType === type ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCreatePostType(type)}
+                      className="text-xs capitalize"
+                    >
+                      {type}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Title *</label>
+                <Input
+                  value={createPostData.title}
+                  onChange={(e) => setCreatePostData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Enter title..."
+                  className="text-sm"
+                />
+              </div>
+
+              {/* Content */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Content *</label>
+                <textarea
+                  value={createPostData.content}
+                  onChange={(e) => setCreatePostData(prev => ({ ...prev, content: e.target.value }))}
+                  placeholder="Enter content..."
+                  className="w-full p-2 border border-base-300 rounded-md text-sm min-h-[80px] resize-none bg-base-100"
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Category</label>
+                <Input
+                  value={createPostData.category}
+                  onChange={(e) => setCreatePostData(prev => ({ ...prev, category: e.target.value }))}
+                  placeholder="e.g., AI/ML, Web Development..."
+                  className="text-sm"
+                />
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Tags (comma-separated)</label>
+                <Input
+                  value={createPostData.tags}
+                  onChange={(e) => setCreatePostData(prev => ({ ...prev, tags: e.target.value }))}
+                  placeholder="e.g., React, AI, Hackathon..."
+                  className="text-sm"
+                />
+              </div>
+
+              {/* Type-specific fields */}
+              {createPostType === 'hackathon' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Prize Pool</label>
+                    <Input
+                      value={createPostData.prize}
+                      onChange={(e) => setCreatePostData(prev => ({ ...prev, prize: e.target.value }))}
+                      placeholder="e.g., $10,000"
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Participants</label>
+                    <Input
+                      type="number"
+                      value={createPostData.participants}
+                      onChange={(e) => setCreatePostData(prev => ({ ...prev, participants: parseInt(e.target.value) || 0 }))}
+                      placeholder="0"
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Deadline</label>
+                    <Input
+                      type="datetime-local"
+                      value={createPostData.deadline}
+                      onChange={(e) => setCreatePostData(prev => ({ ...prev, deadline: e.target.value }))}
+                      className="text-sm"
+                    />
+                  </div>
+                </>
+              )}
+
+              {createPostType === 'tool' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Tool Name</label>
+                    <Input
+                      value={createPostData.toolName}
+                      onChange={(e) => setCreatePostData(prev => ({ ...prev, toolName: e.target.value }))}
+                      placeholder="e.g., CodeGPT Assistant"
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Rating (1-5)</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="5"
+                      value={createPostData.rating}
+                      onChange={(e) => setCreatePostData(prev => ({ ...prev, rating: parseInt(e.target.value) || 5 }))}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Views</label>
+                    <Input
+                      type="number"
+                      value={createPostData.views}
+                      onChange={(e) => setCreatePostData(prev => ({ ...prev, views: parseInt(e.target.value) || 0 }))}
+                      placeholder="0"
+                      className="text-sm"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Link */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Link (optional)</label>
+                <Input
+                  value={createPostData.link}
+                  onChange={(e) => setCreatePostData(prev => ({ ...prev, link: e.target.value }))}
+                  placeholder="https://..."
+                  className="text-sm"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={handleCreatePost}
+                  disabled={creatingPost || !createPostData.title || !createPostData.content}
+                  className="flex-1"
+                >
+                  {creatingPost ? 'Creating...' : 'Create Post'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCreatePost(false)}
+                  disabled={creatingPost}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
