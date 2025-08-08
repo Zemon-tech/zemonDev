@@ -243,6 +243,19 @@ export async function updateNirvanaPriority(
   }, getToken);
 }
 
+// Update item (owner or admin/moderator only)
+export async function updateNirvanaItem(
+  type: 'hackathon' | 'news' | 'tool',
+  id: string,
+  data: any,
+  getToken: () => Promise<string | null>
+): Promise<any> {
+  return apiRequest<any>(`/nirvana/${type}/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }, getToken);
+}
+
 // Delete item (owner or admin/moderator only)
 export async function deleteNirvanaItem(
   type: 'hackathon' | 'news' | 'tool',

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { 
   getChannels,
+  getAllChannelsForJoin,
   getChannelMessages,
   createMessage,
   deleteMessage,
@@ -26,7 +27,10 @@ import { cacheMiddleware } from '../middleware/cache.middleware';
 const router = Router();
 
 // Get all channels grouped by category (user-specific permissions)
-router.get('/', standardLimiter, protect, cacheMiddleware(300), getChannels); // Cache for 5 minutes
+router.get('/', standardLimiter, protect, cacheMiddleware(300), getChannels);
+
+// Get all channels for join section (no filtering)
+router.get('/all', standardLimiter, protect, cacheMiddleware(300), getAllChannelsForJoin); // Cache for 5 minutes
 
 // Get all unread counts for all channels
 router.get('/unread-counts', standardLimiter, protect, getAllUnreadCounts);

@@ -46,6 +46,10 @@ export class ApiService {
     return this.makeRequest('/api/arena/channels', {}, getToken);
   }
 
+  static async getAllChannelsForJoin(getToken: () => Promise<string | null>) {
+    return this.makeRequest('/api/arena/channels/all', {}, getToken);
+  }
+
   static async getChannelMessages(
     channelId: string, 
     getToken: () => Promise<string | null>,

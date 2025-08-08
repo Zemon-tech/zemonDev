@@ -8,6 +8,7 @@ import {
   togglePin,
   toggleVerification,
   updatePriority,
+  updateItem,
   deleteItem
 } from '../controllers/nirvanaFeed.controller';
 import { protect, checkRole } from '../middleware/auth.middleware';
@@ -31,6 +32,9 @@ router.patch('/:type/:id/reaction', standardLimiter, protect, updateReaction);
 router.patch('/:type/:id/pin', standardLimiter, protect, checkRole(['admin', 'moderator']), togglePin);
 router.patch('/:type/:id/verify', standardLimiter, protect, checkRole(['admin', 'moderator']), toggleVerification);
 router.patch('/:type/:id/priority', standardLimiter, protect, checkRole(['admin', 'moderator']), updatePriority);
+
+// Update item (owner or admin/moderator)
+router.put('/:type/:id', standardLimiter, protect, updateItem);
 
 // Delete item (owner or admin/moderator)
 router.delete('/:type/:id', standardLimiter, protect, deleteItem);

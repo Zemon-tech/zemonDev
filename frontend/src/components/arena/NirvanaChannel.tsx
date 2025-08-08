@@ -2,14 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser } from '@clerk/clerk-react';
-import { useArenaChannels } from '@/hooks/useArenaChannels';
+// import { useArenaChannels } from '@/hooks/useArenaChannels';
 import { ApiService } from '@/services/api.service';
+import { useUserRole } from '@/context/UserRoleContext';
 import { 
   getNirvanaFeed, 
   updateNirvanaReaction,
   createNirvanaHackathon,
   createNirvanaNews,
   createNirvanaTool,
+  updateNirvanaItem,
+  deleteNirvanaItem,
   // type INirvanaFeedItem,
   // type INirvanaFeedResponse,
   type INirvanaHackathonData,
@@ -30,7 +33,7 @@ import {
   MessageSquare, Trophy, Users, Code, Sparkles, Star, Hash, TrendingUp, Zap, Search, Calendar, Bell, Heart, Share2,
   ExternalLink, Award, Briefcase, Globe,
   ChevronDown, ChevronRight, Plus, Eye, Bookmark, BarChart3,
-  Clock, CheckCircle, Flame, 
+  Clock, CheckCircle, Flame, Edit, Trash2, Loader2,
 } from 'lucide-react';
 
 // Enhanced interfaces for different feed types
@@ -118,11 +121,11 @@ const NirvanaChannel: React.FC = () => {
     { id: '5', name: 'DevOps', count: 87, trend: 'up', category: 'Infrastructure' }
   ];
 
-  const leaderboard = [
-    { id: '1', name: 'CodeMaster', avatar: 'https://github.com/shadcn.png', points: 1520, rank: 1 },
-    { id: '2', name: 'AlgoNinja', avatar: '', points: 1340, rank: 2 },
-    { id: '3', name: 'TechExpert', avatar: '', points: 1200, rank: 3 },
-  ];
+  // const leaderboard = [
+  //   { id: '1', name: 'CodeMaster', avatar: 'https://github.com/shadcn.png', points: 1520, rank: 1 },
+  //   { id: '2', name: 'AlgoNinja', avatar: '', points: 1340, rank: 2 },
+  //   { id: '3', name: 'TechExpert', avatar: '', points: 1200, rank: 3 },
+  // ];
   
   const upcomingEvents = [
     { id: '1', name: 'Weekly Hackathon', date: '2024-07-20T18:00:00Z', description: 'Compete in our weekly coding challenge!', participants: 45 },
@@ -130,10 +133,13 @@ const NirvanaChannel: React.FC = () => {
     { id: '3', name: 'Code Review Workshop', date: '2024-07-24T14:00:00Z', description: 'Learn best practices for code reviews.', participants: 67 },
   ];
 
-  const { channels, loading: channelsLoading } = useArenaChannels();
+  // const { channels } = useArenaChannels();
   const { getToken } = useAuth();
   const { user } = useUser();
+  const { hasAdminAccess } = useUserRole();
   const [userChannelStatuses, setUserChannelStatuses] = useState<Record<string, string>>({});
+  const [allChannelsForJoin, setAllChannelsForJoin] = useState<Record<string, any[]>>({});
+  const [joinChannelsLoading, setJoinChannelsLoading] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [requesting, setRequesting] = useState(false);
   const [requestStatus, setRequestStatus] = useState<string | null>(null);
@@ -160,6 +166,11 @@ const NirvanaChannel: React.FC = () => {
     link: '',
   });
   const [creatingPost, setCreatingPost] = useState(false);
+  
+  // Edit/Delete state
+  const [editingPost, setEditingPost] = useState<FeedItem | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [deletingPost, setDeletingPost] = useState<string | null>(null);
 
   // Fetch feed from backend
   useEffect(() => {
@@ -293,23 +304,51 @@ const NirvanaChannel: React.FC = () => {
     fetchStatuses();
   }, [getToken, refreshKey]);
 
-  const allChannels = Object.values(channels).flat();
-  const joinableChannels = allChannels.filter(c => {
+  // Fetch all channels for join section
+  useEffect(() => {
+    const fetchAllChannelsForJoin = async () => {
+      try {
+        setJoinChannelsLoading(true);
+        const res = await ApiService.getAllChannelsForJoin(getToken);
+        setAllChannelsForJoin(res.data || {});
+      } catch (err) {
+        console.error('Failed to fetch all channels for join:', err);
+        setAllChannelsForJoin({});
+      } finally {
+        setJoinChannelsLoading(false);
+      }
+    };
+    fetchAllChannelsForJoin();
+  }, [getToken, refreshKey]);
+
+  const allChannelsForJoinFlat = Object.values(allChannelsForJoin).flat();
+  
+  // Get all parent channels that the user can potentially join
+  const joinableChannels = allChannelsForJoinFlat.filter(c => {
+    // Only show parent channels (not child channels)
     if (c.parentChannelId && c.parentChannelId !== null) {
       return false;
     }
     
     const userStatus = userChannelStatuses[c._id];
     
+    // If no status record, user hasn't joined - show as joinable
     if (!userStatus) {
       return true;
     }
     
+    // If user is banned or kicked, don't show
     if (userStatus === 'banned' || userStatus === 'kicked') {
       return false;
     }
     
-    return userStatus !== 'approved';
+    // If user is approved, don't show (already joined)
+    if (userStatus === 'approved') {
+      return false;
+    }
+    
+    // Show if status is 'pending' or 'denied' (can retry)
+    return true;
   });
 
   const groupedChannels = React.useMemo(() => {
@@ -363,6 +402,134 @@ const NirvanaChannel: React.FC = () => {
       setRequestStatus('Failed to send join request.');
     } finally {
       setRequesting(false);
+    }
+  };
+
+  // Handle edit post
+  const handleEditPost = (post: FeedItem) => {
+    setEditingPost(post);
+    setCreatePostData({
+      title: post.title,
+      content: post.content,
+      description: post.metadata?.projectName || '',
+      category: post.metadata?.category || '',
+      tags: post.metadata?.tags?.join(', ') || '',
+      prize: post.metadata?.prize || '',
+      participants: post.metadata?.participants || 0,
+      deadline: post.metadata?.deadline ? new Date(post.metadata.deadline).toISOString().split('T')[0] : '',
+      toolName: post.metadata?.toolName || '',
+      rating: post.metadata?.rating || 5,
+      views: post.metadata?.views || 0,
+      link: post.metadata?.link || '',
+    });
+    setCreatePostType(post.type as 'hackathon' | 'news' | 'tool');
+    setShowEditModal(true);
+  };
+
+  // Handle update post
+  const handleUpdatePost = async () => {
+    if (!editingPost || !createPostData.title || !createPostData.content) return;
+    
+    setCreatingPost(true);
+    try {
+      // Prepare update data based on post type
+      let updateData: any = {
+        title: createPostData.title,
+        content: createPostData.content,
+        category: createPostData.category,
+        tags: createPostData.tags.split(',').map(t => t.trim()).filter(t => t),
+      };
+
+      if (createPostType === 'hackathon') {
+        updateData = {
+          ...updateData,
+          description: createPostData.description,
+          prize: createPostData.prize,
+          participants: createPostData.participants,
+          deadline: new Date(createPostData.deadline),
+          'metadata.hackathonName': createPostData.title,
+          'metadata.link': createPostData.link || undefined,
+        };
+      } else if (createPostType === 'tool') {
+        updateData = {
+          ...updateData,
+          toolName: createPostData.toolName,
+          rating: createPostData.rating,
+          views: createPostData.views,
+          'metadata.link': createPostData.link || undefined,
+        };
+      } else {
+        // news
+        updateData = {
+          ...updateData,
+          'metadata.link': createPostData.link || undefined,
+        };
+      }
+
+      // Call the update API
+      const result = await updateNirvanaItem(
+        editingPost.type as 'hackathon' | 'news' | 'tool',
+        editingPost.id,
+        updateData,
+        getToken
+      );
+
+      // Update the feed item locally
+      setFeedItems(prev => prev.map(item => 
+        item.id === editingPost.id 
+          ? mapBackendItemToFeedItem(result)
+          : item
+      ));
+
+      setShowEditModal(false);
+      setEditingPost(null);
+      setCreatePostData({
+        title: '',
+        content: '',
+        description: '',
+        category: '',
+        tags: '',
+        prize: '',
+        participants: 0,
+        deadline: '',
+        toolName: '',
+        rating: 5,
+        views: 0,
+        link: '',
+      });
+    } catch (error) {
+      console.error('Failed to update post:', error);
+    } finally {
+      setCreatingPost(false);
+    }
+  };
+
+  // Handle delete post
+  const handleDeletePost = async (postId: string) => {
+    if (!hasAdminAccess()) return;
+    
+    setDeletingPost(postId);
+    try {
+      // Find the post to get its type
+      const post = feedItems.find(item => item.id === postId);
+      if (!post) {
+        console.error('Post not found for deletion');
+        return;
+      }
+
+      // Call the delete API
+      await deleteNirvanaItem(
+        post.type as 'hackathon' | 'news' | 'tool',
+        postId,
+        getToken
+      );
+
+      // Remove from local state
+      setFeedItems(prev => prev.filter(item => item.id !== postId));
+    } catch (error) {
+      console.error('Failed to delete post:', error);
+    } finally {
+      setDeletingPost(null);
     }
   };
 
@@ -458,7 +625,7 @@ const NirvanaChannel: React.FC = () => {
                   </div>
                 )}
                 
-                {channelsLoading ? (
+                {joinChannelsLoading ? (
                   <div className="text-center text-xs text-base-content/60 py-3">Loading...</div>
                 ) : Object.keys(filteredGroups).length === 0 ? (
                   <div className="text-center text-xs text-base-content/60 p-3 bg-base-200 rounded-md">
@@ -527,26 +694,7 @@ const NirvanaChannel: React.FC = () => {
           </div>
           
           {/* Top Contributors Card */}
-          <div className="bg-base-100 border border-base-300 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-6 h-6 bg-primary rounded-md flex items-center justify-center">
-                <Trophy className="w-3.5 h-3.5 text-primary-content" />
-              </div>
-              <span className="text-sm font-semibold text-base-content">Top Contributors</span>
-            </div>
-            <div className="space-y-1.5">
-              {leaderboard.map((u) => (
-                <div key={u.id} className="flex items-center gap-2 p-1.5 rounded-md hover:bg-base-200 transition-colors">
-                  <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-primary-content text-xs font-medium">
-                    {u.rank}
-                  </div>
-                  <Avatar className="w-6 h-6"><AvatarImage src={u.avatar} /><AvatarFallback className="bg-base-300 text-base-content text-xs">{u.name.charAt(0)}</AvatarFallback></Avatar>
-                  <span className="font-medium text-base-content flex-1 truncate text-xs">{u.name}</span>
-                  <span className="text-xs text-base-content/70 font-medium flex-shrink-0">{u.points.toLocaleString()} pts</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          
         </aside>
 
         {/* Center Feed Section */}
@@ -560,15 +708,17 @@ const NirvanaChannel: React.FC = () => {
               <p className="text-xs text-base-content/60">Stay updated with the latest from the Zemon community</p>
             </div>
             <div className="flex items-center gap-1">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs"
-                onClick={() => setShowCreatePost(true)}
-              >
-                <Plus className="w-3 h-3 mr-1" />
-                Create Post
-              </Button>
+              {hasAdminAccess() && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-6 px-2 text-xs"
+                  onClick={() => setShowCreatePost(true)}
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  Create Post
+                </Button>
+              )}
             </div>
           </div>
 
@@ -816,12 +966,41 @@ const NirvanaChannel: React.FC = () => {
                           {item.reactions?.bookmarks || 0}
                         </Button>
                       </div>
-                      {item.metadata?.link && (
-                        <Button variant="secondary" size="sm" className="h-5 px-1.5 text-xs border-none">
-                          <ExternalLink className="w-2.5 h-2.5 mr-0.5" />
-                          Learn More
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {item.metadata?.link && (
+                          <Button variant="secondary" size="sm" className="h-5 px-1.5 text-xs border-none">
+                            <ExternalLink className="w-2.5 h-2.5 mr-0.5" />
+                            Learn More
+                          </Button>
+                        )}
+                        {hasAdminAccess() && (
+                          <>
+                            <Button 
+                              onClick={() => handleEditPost(item)} 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-5 px-1.5 text-xs text-base-content/60 hover:text-base-content"
+                              title="Edit post"
+                            >
+                              <Edit className="w-2.5 h-2.5" />
+                            </Button>
+                            <Button 
+                              onClick={() => handleDeletePost(item.id)} 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-5 px-1.5 text-xs text-error hover:text-error hover:bg-error/10"
+                              title="Delete post"
+                              disabled={deletingPost === item.id}
+                            >
+                              {deletingPost === item.id ? (
+                                <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-2.5 h-2.5" />
+                              )}
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                 </div>
               </motion.div>
@@ -1080,6 +1259,187 @@ const NirvanaChannel: React.FC = () => {
                 <Button
                   variant="outline"
                   onClick={() => setShowCreatePost(false)}
+                  disabled={creatingPost}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Post Modal */}
+      {showEditModal && editingPost && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-base-100 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Edit Post</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowEditModal(false)}
+                className="h-6 w-6 p-0"
+              >
+                ×
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Post Type Selection */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Post Type</label>
+                <div className="flex gap-2">
+                  {(['hackathon', 'news', 'tool'] as const).map((type) => (
+                    <Button
+                      key={type}
+                      variant={createPostType === type ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCreatePostType(type)}
+                      className="text-xs capitalize"
+                    >
+                      {type}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Title *</label>
+                <Input
+                  value={createPostData.title}
+                  onChange={(e) => setCreatePostData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Enter title..."
+                  className="text-sm"
+                />
+              </div>
+
+              {/* Content */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Content *</label>
+                <textarea
+                  value={createPostData.content}
+                  onChange={(e) => setCreatePostData(prev => ({ ...prev, content: e.target.value }))}
+                  placeholder="Enter content..."
+                  className="w-full p-2 border border-base-300 rounded-md text-sm min-h-[80px] resize-none bg-base-100"
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Category</label>
+                <Input
+                  value={createPostData.category}
+                  onChange={(e) => setCreatePostData(prev => ({ ...prev, category: e.target.value }))}
+                  placeholder="e.g., AI/ML, Web Development..."
+                  className="text-sm"
+                />
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Tags (comma-separated)</label>
+                <Input
+                  value={createPostData.tags}
+                  onChange={(e) => setCreatePostData(prev => ({ ...prev, tags: e.target.value }))}
+                  placeholder="e.g., React, AI, Hackathon..."
+                  className="text-sm"
+                />
+              </div>
+
+              {/* Type-specific fields */}
+              {createPostType === 'hackathon' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Prize Pool</label>
+                    <Input
+                      value={createPostData.prize}
+                      onChange={(e) => setCreatePostData(prev => ({ ...prev, prize: e.target.value }))}
+                      placeholder="e.g., $10,000"
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Participants</label>
+                    <Input
+                      type="number"
+                      value={createPostData.participants}
+                      onChange={(e) => setCreatePostData(prev => ({ ...prev, participants: parseInt(e.target.value) || 0 }))}
+                      placeholder="0"
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Deadline</label>
+                    <Input
+                      type="datetime-local"
+                      value={createPostData.deadline}
+                      onChange={(e) => setCreatePostData(prev => ({ ...prev, deadline: e.target.value }))}
+                      className="text-sm"
+                    />
+                  </div>
+                </>
+              )}
+
+              {createPostType === 'tool' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Tool Name</label>
+                    <Input
+                      value={createPostData.toolName}
+                      onChange={(e) => setCreatePostData(prev => ({ ...prev, toolName: e.target.value }))}
+                      placeholder="e.g., CodeGPT Assistant"
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Rating (1-5)</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="5"
+                      value={createPostData.rating}
+                      onChange={(e) => setCreatePostData(prev => ({ ...prev, rating: parseInt(e.target.value) || 5 }))}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Views</label>
+                    <Input
+                      type="number"
+                      value={createPostData.views}
+                      onChange={(e) => setCreatePostData(prev => ({ ...prev, views: parseInt(e.target.value) || 0 }))}
+                      placeholder="0"
+                      className="text-sm"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Link */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Link (optional)</label>
+                <Input
+                  value={createPostData.link}
+                  onChange={(e) => setCreatePostData(prev => ({ ...prev, link: e.target.value }))}
+                  placeholder="https://..."
+                  className="text-sm"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={handleUpdatePost}
+                  disabled={creatingPost || !createPostData.title || !createPostData.content}
+                  className="flex-1"
+                >
+                  {creatingPost ? 'Updating...' : 'Update Post'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowEditModal(false)}
                   disabled={creatingPost}
                 >
                   Cancel

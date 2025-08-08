@@ -75,6 +75,33 @@ export const getChannels = asyncHandler(
 );
 
 /**
+ * @desc    Get all channels for join section (including banned/kicked channels)
+ * @route   GET /api/arena/channels/all
+ * @access  Private
+ */
+export const getAllChannelsForJoin = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    // Fetch only active channels (no filtering by user status)
+    const channels = await ArenaChannel.find({ isActive: true }).sort({ group: 1, name: 1 });
+
+    // Group by category
+    const groupedChannels = channels.reduce((acc: Record<string, any[]>, channel) => {
+      if (!acc[channel.group]) acc[channel.group] = [];
+      acc[channel.group].push(channel);
+      return acc;
+    }, {});
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        'All channels retrieved successfully',
+        groupedChannels
+      )
+    );
+  }
+);
+
+/**
  * @desc    Get messages for a channel
  * @route   GET /api/arena/channels/:channelId/messages
  * @access  Private

@@ -3,6 +3,7 @@ import asyncHandler from '../utils/asyncHandler';
 import AppError from '../utils/AppError';
 import ApiResponse from '../utils/ApiResponse';
 import { NirvanaHackathon, NirvanaNews, NirvanaTool, INirvanaHackathon, INirvanaNews, INirvanaTool } from '../models';
+import { clearCache } from '../middleware/cache.middleware';
 
 /**
  * @desc    Get all Nirvana feed items (hackathons, news, tools)
@@ -177,6 +178,9 @@ export const createHackathon = asyncHandler(
 
     await hackathon.populate('createdBy', 'username email profilePicture');
 
+    // Clear Nirvana feed cache to reflect changes
+    await clearCache('nirvana/feed');
+
     res.status(201).json(
       new ApiResponse(
         201,
@@ -218,6 +222,9 @@ export const createNews = asyncHandler(
     });
 
     await news.populate('createdBy', 'username email profilePicture');
+
+    // Clear Nirvana feed cache to reflect changes
+    await clearCache('nirvana/feed');
 
     res.status(201).json(
       new ApiResponse(
@@ -264,6 +271,9 @@ export const createTool = asyncHandler(
     });
 
     await tool.populate('createdBy', 'username email profilePicture');
+
+    // Clear Nirvana feed cache to reflect changes
+    await clearCache('nirvana/feed');
 
     res.status(201).json(
       new ApiResponse(
@@ -457,6 +467,64 @@ export const updatePriority = asyncHandler(
 );
 
 /**
+ * @desc    Update item
+ * @route   PUT /api/nirvana/:type/:id
+ * @access  Private (Admin/Moderator or Owner)
+ */
+export const updateItem = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { type, id } = req.params;
+    const updateData = req.body;
+
+    let Model: any;
+    switch (type) {
+      case 'hackathon':
+        Model = NirvanaHackathon;
+        break;
+      case 'news':
+        Model = NirvanaNews;
+        break;
+      case 'tool':
+        Model = NirvanaTool;
+        break;
+      default:
+        return next(new AppError('Invalid type', 400));
+    }
+
+    const item = await Model.findById(id);
+    if (!item) {
+      return next(new AppError('Item not found', 404));
+    }
+
+    // Check if user is owner or admin/moderator
+    const isOwner = item.createdBy.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'moderator';
+
+    if (!isOwner && !isAdmin) {
+      return next(new AppError('Not authorized to update this item', 403));
+    }
+
+    // Update the item
+    const updatedItem = await Model.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).populate('createdBy', 'username email profilePicture');
+
+    // Clear Nirvana feed cache to reflect changes
+    await clearCache('nirvana/feed');
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        'Item updated successfully',
+        updatedItem
+      )
+    );
+  }
+);
+
+/**
  * @desc    Delete item
  * @route   DELETE /api/nirvana/:type/:id
  * @access  Private (Admin/Moderator or Owner)
@@ -494,6 +562,9 @@ export const deleteItem = asyncHandler(
     }
 
     await Model.findByIdAndDelete(id);
+
+    // Clear Nirvana feed cache to reflect changes
+    await clearCache('nirvana/feed');
 
     res.status(200).json(
       new ApiResponse(
