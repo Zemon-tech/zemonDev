@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Hash, Volume2, Trophy, ChevronDown, Sparkles, BookOpen, AlertCircle, Loader2, Settings } from 'lucide-react';
+import { Hash, Volume2, Trophy, ChevronDown, Sparkles, BookOpen, AlertCircle, Loader2, Settings, MessageSquare, Star } from 'lucide-react';
 import ArenaErrorBoundary from '@/components/arena/ArenaErrorBoundary';
 import { useArenaChannels, Channel as ArenaChannel } from '@/hooks/useArenaChannels';
 
@@ -145,10 +145,25 @@ const ArenaPage: React.FC = () => {
       setIsLeftSidebarCollapsed(prev => !prev);
     };
 
+    const handleNavChannelSelect = (event: CustomEvent) => {
+      const { channelId } = event.detail;
+      handleChannelSelect(channelId);
+    };
+
+    const handleShowNirvana = () => {
+      setShowNirvana(true);
+      setActiveChannelId(null);
+      setShowAdminPanel(false);
+    };
+
     window.addEventListener('toggle-arena-sidebar', handleSidebarToggle);
+    window.addEventListener('arena-channel-select', handleNavChannelSelect as EventListener);
+    window.addEventListener('arena-show-nirvana', handleShowNirvana);
     
     return () => {
       window.removeEventListener('toggle-arena-sidebar', handleSidebarToggle);
+      window.removeEventListener('arena-channel-select', handleNavChannelSelect as EventListener);
+      window.removeEventListener('arena-show-nirvana', handleShowNirvana);
     };
   }, []);
 
@@ -199,14 +214,25 @@ const ArenaPage: React.FC = () => {
   };
 
   const getChannelIcon = (channel: ArenaChannel) => {
-    switch (channel.name) {
-      case 'nirvana': return <Sparkles className="w-4 h-4" />;
-      case 'start-here': return <BookOpen className="w-4 h-4" />;
-      case 'rules': return <AlertCircle className="w-4 h-4" />;
-      case 'announcements': return <Volume2 className="w-4 h-4" />;
-      case 'showcase': return <Sparkles className="w-4 h-4" />;
-      case 'weekly-challenge': return <Trophy className="w-4 h-4" />;
-      default: return <Hash className="w-4 h-4" />;
+    // First check by channel type for consistent iconography
+    switch (channel.type) {
+      case 'info':
+        return <Hash className="w-4 h-4" />;
+      case 'announcement':
+        return <Volume2 className="w-4 h-4" />;
+      case 'showcase':
+        return <Star className="w-4 h-4" />;
+      case 'chat':
+        return <MessageSquare className="w-4 h-4" />;
+      default:
+        // Fallback to name-based icons for special channels
+        switch (channel.name) {
+          case 'nirvana': return <Sparkles className="w-4 h-4" />;
+          case 'start-here': return <BookOpen className="w-4 h-4" />;
+          case 'rules': return <AlertCircle className="w-4 h-4" />;
+          case 'weekly-challenge': return <Trophy className="w-4 h-4" />;
+          default: return <Hash className="w-4 h-4" />;
+        }
     }
   };
 

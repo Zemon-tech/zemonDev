@@ -5,9 +5,11 @@ import Sidebar from './Sidebar';
 import { useWorkspace } from '@/lib/WorkspaceContext';
 import { useSidebar } from '@/lib/SidebarContext';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownItem } from '@/components/ui/dropdown-menu';
+import { useArenaChannels, Channel as ArenaChannel } from '@/hooks/useArenaChannels';
 
 // Icons
-import { Search, Bell, X, MessageCircle, BookOpen, FileText, StickyNote, ArrowLeft, Send, Loader2, Sparkles } from 'lucide-react';
+import { Search, Bell, X, MessageCircle, BookOpen, FileText, StickyNote, ArrowLeft, Send, Loader2, Sparkles, Hash, Volume2, Star, MessageSquare, ChevronDown } from 'lucide-react';
 import gsap from 'gsap';
 import { useRef } from 'react';
 // [ADD] Import useHotkeys for optional keyboard shortcut
@@ -23,6 +25,53 @@ export default function AppLayout() {
   const { isLoaded, user } = useUser();
   const navigate = useNavigate();
   
+  // Arena channels data
+  const { channels: arenaChannels, loading: arenaChannelsLoading } = useArenaChannels();
+  
+  // Helper function to get channel icon
+  const getChannelIcon = (channel: ArenaChannel) => {
+    switch (channel.type) {
+      case 'info':
+        return <Hash className="w-4 h-4" />;
+      case 'announcement':
+        return <Volume2 className="w-4 h-4" />;
+      case 'showcase':
+        return <Star className="w-4 h-4" />;
+      case 'chat':
+        return <MessageSquare className="w-4 h-4" />;
+      default:
+        return <Hash className="w-4 h-4" />;
+    }
+  };
+
+  // Helper function to build channel tree
+  const buildChannelTree = (channelList: ArenaChannel[]) => {
+    const parents = channelList.filter(c => !c.parentChannelId);
+    const children = channelList.filter(c => c.parentChannelId);
+    const childMap: Record<string, ArenaChannel[]> = {};
+    children.forEach(child => {
+      if (!child.parentChannelId) return;
+      if (!childMap[child.parentChannelId]) childMap[child.parentChannelId] = [];
+      childMap[child.parentChannelId].push(child);
+    });
+    return parents.map(parent => ({
+      parent,
+      children: childMap[parent._id] || []
+    }));
+  };
+
+  // Handle arena channel navigation
+  const handleArenaChannelSelect = (channelId: string) => {
+    // Dispatch event to ArenaPage to switch to the selected channel
+    window.dispatchEvent(new CustomEvent('arena-channel-select', { detail: { channelId } }));
+  };
+
+  // Handle Nirvana navigation (special case)
+  const handleNirvanaSelect = () => {
+    // Dispatch event to ArenaPage to show Nirvana
+    window.dispatchEvent(new CustomEvent('arena-show-nirvana'));
+  };
+
   // Always call useWorkspace to maintain hook order consistency
   const workspaceContext = useWorkspace();
   
@@ -319,26 +368,60 @@ export default function AppLayout() {
             </div>
           ) : isArenaPage ? (
             <div className="hidden md:flex items-center gap-2">
+              {/* Nirvana Channel */}
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => handleNavigation('/crucible')}
+                onClick={handleNirvanaSelect}
                 className="h-9 px-3 rounded-lg text-primary hover:bg-primary/10 transition-all duration-200"
-                title="Go to Crucible"
+                title="Nirvana"
               >
-                <BookOpen className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline text-sm font-medium">Crucible</span>
+                <Sparkles className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline text-sm font-medium">Nirvana</span>
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleNavigation('/forge')}
-                className="h-9 px-3 rounded-lg text-primary hover:bg-primary/10 transition-all duration-200"
-                title="Go to Forge"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline text-sm font-medium">Forge</span>
-              </Button>
+              
+              {/* Parent Channels with Dropdowns */}
+              {!arenaChannelsLoading && Object.entries(arenaChannels).map(([, channelList]) => {
+                const channelTree = buildChannelTree(channelList);
+                return channelTree.map(({ parent, children }) => (
+                  <DropdownMenu
+                    key={parent._id}
+                    trigger={
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 px-3 rounded-lg text-primary hover:bg-primary/10 transition-all duration-200"
+                      >
+                        {getChannelIcon(parent)}
+                        <span className="hidden sm:inline text-sm font-medium ml-2">
+                          {parent.name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                        </span>
+                        <ChevronDown className="w-4 h-4 ml-1" />
+                      </Button>
+                    }
+                  >
+                    {/* Parent channel item */}
+                    <DropdownItem
+                      onClick={() => handleArenaChannelSelect(parent._id)}
+                      icon={getChannelIcon(parent)}
+                    >
+                      {parent.name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                    </DropdownItem>
+                    
+                    {/* Child channels */}
+                    {children.map(child => (
+                      <DropdownItem
+                        key={child._id}
+                        onClick={() => handleArenaChannelSelect(child._id)}
+                        icon={getChannelIcon(child)}
+                        className="pl-6"
+                      >
+                        {child.name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                      </DropdownItem>
+                    ))}
+                  </DropdownMenu>
+                ));
+              })}
             </div>
           ) : null}
 
