@@ -7,6 +7,7 @@ import clsx from 'clsx';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { updateProfile, changePassword, deleteAccount, exportUserData } from '@/lib/settingsApi';
 import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher';
+import { CustomToggle } from '@/components/ui/CustomToggle';
 
 const SECTIONS = [
   { key: 'profile', label: 'Profile & Account', icon: User },
@@ -538,39 +539,42 @@ function PreferencesSection() {
     invites: false 
   });
 
+  const [additionalPrefs, setAdditionalPrefs] = useState({
+    autoSave: true,
+    keyboardShortcuts: true
+  });
+
   return (
-    <div className="flex flex-col gap-8 w-full h-full p-6">
+    <div className="flex flex-col gap-5 w-full h-full p-4">
       {/* Theme Section */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="bg-gradient-to-br from-base-100 to-base-200/50 rounded-2xl shadow-lg border border-base-300/50 backdrop-blur-sm relative z-10"
+        className="bg-gradient-to-br from-base-100/80 to-base-200/40 rounded-xl shadow-sm border border-base-300/30 backdrop-blur-sm relative z-10 hover:shadow-md transition-all duration-300"
       >
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20">
-              <Palette className="w-6 h-6 text-primary" />
+        <div className="p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/20 shadow-sm">
+              <Palette className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-base-content">Theme & Appearance</h3>
-              <p className="text-base-content/60 text-sm">Customize your visual experience</p>
+              <h3 className="text-base font-semibold text-base-content">Theme & Appearance</h3>
+              <p className="text-xs text-base-content/60">Customize your visual experience</p>
             </div>
           </div>
           
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 rounded-xl bg-base-200/50 border border-base-300/50">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Sun className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-base-content">Theme Selection</p>
-                  <p className="text-sm text-base-content/60">Choose from our curated collection of themes</p>
-                </div>
+          <div className="flex items-center justify-between p-3 rounded-lg bg-base-200/40 border border-base-300/20 hover:bg-base-200/60 transition-all duration-200">
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 rounded-md bg-primary/10">
+                <Sun className="w-3.5 h-3.5 text-primary" />
               </div>
-              <ThemeSwitcher />
+              <div>
+                <p className="font-medium text-base-content text-sm">Theme Selection</p>
+                <p className="text-xs text-base-content/60">Choose from our curated collection</p>
+              </div>
             </div>
+            <ThemeSwitcher />
           </div>
         </div>
       </motion.div>
@@ -580,40 +584,42 @@ function PreferencesSection() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
-        className="bg-gradient-to-br from-base-100 to-base-200/50 rounded-2xl shadow-lg border border-base-300/50 backdrop-blur-sm relative z-0"
+        className="bg-gradient-to-br from-base-100/80 to-base-200/40 rounded-xl shadow-sm border border-base-300/30 backdrop-blur-sm relative z-0 hover:shadow-md transition-all duration-300"
       >
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-secondary/20 to-secondary/10 border border-secondary/20">
-              <Bell className="w-6 h-6 text-secondary" />
+        <div className="p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-secondary/15 to-secondary/5 border border-secondary/20 shadow-sm">
+              <Bell className="w-4 h-4 text-secondary" />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-base-content">Notifications</h3>
-              <p className="text-base-content/60 text-sm">Manage your notification preferences</p>
+              <h3 className="text-base font-semibold text-base-content">Notifications</h3>
+              <p className="text-xs text-base-content/60">Manage your notification preferences</p>
             </div>
           </div>
           
-          <div className="space-y-3">
+          <div className="space-y-2">
             {[
-              { key: 'upvotes', label: 'Upvotes & Reactions', description: 'Get notified when someone upvotes your content' },
-              { key: 'approvals', label: 'Project Approvals', description: 'Notifications for project approval status' },
-              { key: 'mentions', label: 'Mentions & Comments', description: 'When someone mentions you in discussions' },
-              { key: 'invites', label: 'Invite Reminders', description: 'Reminders for pending invitations' }
+              { key: 'upvotes', label: 'Upvotes & Reactions', description: 'Get notified when someone upvotes your content', icon: '👍' },
+              { key: 'approvals', label: 'Project Approvals', description: 'Notifications for project approval status', icon: '✅' },
+              { key: 'mentions', label: 'Mentions & Comments', description: 'When someone mentions you in discussions', icon: '💬' },
+              { key: 'invites', label: 'Invite Reminders', description: 'Reminders for pending invitations', icon: '📧' }
             ].map((item) => (
-              <div key={item.key} className="flex items-center justify-between p-4 rounded-xl bg-base-200/50 border border-base-300/50 hover:bg-base-200/70 transition-colors">
-                <div className="flex-1">
-                  <p className="font-medium text-base-content">{item.label}</p>
-                  <p className="text-sm text-base-content/60">{item.description}</p>
+              <div key={item.key} className="flex items-center justify-between p-3 rounded-lg bg-base-200/40 border border-base-300/20 hover:bg-base-200/60 transition-all duration-200 group">
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="w-7 h-7 rounded-lg bg-base-300/50 flex items-center justify-center text-sm group-hover:scale-110 transition-transform duration-200">
+                    {item.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-base-content text-sm truncate">{item.label}</p>
+                    <p className="text-xs text-base-content/60 truncate">{item.description}</p>
+                  </div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={notifications[item.key as keyof typeof notifications]}
-                    onChange={(e) => setNotifications(prev => ({ ...prev, [item.key]: e.target.checked }))}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-base-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                </label>
+                <CustomToggle
+                  id={`notification-${item.key}`}
+                  checked={notifications[item.key as keyof typeof notifications]}
+                  onChange={(checked) => setNotifications(prev => ({ ...prev, [item.key]: checked }))}
+                  className="toggler-compact"
+                />
               </div>
             ))}
           </div>
@@ -625,36 +631,44 @@ function PreferencesSection() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.2 }}
-        className="bg-gradient-to-br from-base-100 to-base-200/50 rounded-2xl shadow-lg border border-base-300/50 backdrop-blur-sm relative z-0"
+        className="bg-gradient-to-br from-base-100/80 to-base-200/40 rounded-xl shadow-sm border border-base-300/30 backdrop-blur-sm relative z-0 hover:shadow-md transition-all duration-300"
       >
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-accent/20 to-accent/10 border border-accent/20">
-              <Settings className="w-6 h-6 text-accent" />
+        <div className="p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-accent/15 to-accent/5 border border-accent/20 shadow-sm">
+              <Settings className="w-4 h-4 text-accent" />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-base-content">Additional Preferences</h3>
-              <p className="text-base-content/60 text-sm">Fine-tune your experience</p>
+              <h3 className="text-base font-semibold text-base-content">Additional Preferences</h3>
+              <p className="text-xs text-base-content/60">Fine-tune your experience</p>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-xl bg-base-200/50 border border-base-300/50">
-              <h4 className="font-medium text-base-content mb-2">Auto-save</h4>
-              <p className="text-sm text-base-content/60 mb-3">Automatically save your work</p>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" defaultChecked className="sr-only peer" />
-                <div className="w-11 h-6 bg-base-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-              </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="p-3 rounded-lg bg-base-200/40 border border-base-300/20 hover:bg-base-200/60 transition-all duration-200">
+              <div className="flex items-center justify-between mb-1">
+                <h4 className="font-medium text-base-content text-sm">Auto-save</h4>
+                <CustomToggle
+                  id="auto-save"
+                  checked={additionalPrefs.autoSave}
+                  onChange={(checked) => setAdditionalPrefs(prev => ({ ...prev, autoSave: checked }))}
+                  className="toggler-compact"
+                />
+              </div>
+              <p className="text-xs text-base-content/60">Automatically save your work</p>
             </div>
             
-            <div className="p-4 rounded-xl bg-base-200/50 border border-base-300/50">
-              <h4 className="font-medium text-base-content mb-2">Keyboard Shortcuts</h4>
-              <p className="text-sm text-base-content/60 mb-3">Enable keyboard shortcuts</p>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" defaultChecked className="sr-only peer" />
-                <div className="w-11 h-6 bg-base-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-              </label>
+            <div className="p-3 rounded-lg bg-base-200/40 border border-base-300/20 hover:bg-base-200/60 transition-all duration-200">
+              <div className="flex items-center justify-between mb-1">
+                <h4 className="font-medium text-base-content text-sm">Keyboard Shortcuts</h4>
+                <CustomToggle
+                  id="keyboard-shortcuts"
+                  checked={additionalPrefs.keyboardShortcuts}
+                  onChange={(checked) => setAdditionalPrefs(prev => ({ ...prev, keyboardShortcuts: checked }))}
+                  className="toggler-compact"
+                />
+              </div>
+              <p className="text-xs text-base-content/60">Enable keyboard shortcuts</p>
             </div>
           </div>
         </div>
@@ -664,6 +678,11 @@ function PreferencesSection() {
 }
 
 function WorkspaceSection() {
+  const [channelNotifications, setChannelNotifications] = useState({
+    general: true,
+    dev: false
+  });
+
   // Placeholder content for projects, bookmarks, channels
   return (
     <div className="flex flex-col gap-6 w-full h-full p-6">
@@ -698,12 +717,21 @@ function WorkspaceSection() {
       <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5">
         <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-2"><Users size={18} className="text-primary" /> Channel Memberships</div>
         <div className="flex flex-col gap-2 mt-1">
-          {[{name:'General',notify:true},{name:'Dev',notify:false}].map((ch,i) => (
-            <div key={i} className="flex items-center gap-2 bg-base-100 rounded px-2 py-1 border border-base-200 hover:bg-primary/5 transition-colors">
+          {[
+            {name: 'General', key: 'general', notify: channelNotifications.general},
+            {name: 'Dev', key: 'dev', notify: channelNotifications.dev}
+          ].map((ch) => (
+            <div key={ch.key} className="flex items-center gap-2 bg-base-100 rounded px-2 py-1 border border-base-200 hover:bg-primary/5 transition-colors">
               <span>{ch.name}</span>
-              <label className="flex items-center gap-1 ml-auto">
-                <input type="checkbox" checked={ch.notify} readOnly /> Notify
-              </label>
+              <div className="flex items-center gap-1 ml-auto">
+                <CustomToggle
+                  id={`channel-${ch.key}`}
+                  checked={ch.notify}
+                  onChange={(checked) => setChannelNotifications(prev => ({ ...prev, [ch.key]: checked }))}
+                  className="toggler-compact"
+                />
+                <span className="text-xs text-base-content/60 ml-1">Notify</span>
+              </div>
               <Button size="sm" variant="outline">Leave</Button>
             </div>
           ))}

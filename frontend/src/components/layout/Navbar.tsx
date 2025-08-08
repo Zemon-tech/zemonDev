@@ -27,12 +27,16 @@ export default function Navbar() {
           <Link to="/" className="text-text hover:text-primary transition-colors">
             Home
           </Link>
-          <Link to="/forge" className="text-text hover:text-primary transition-colors">
-            Forge
-          </Link>
-          <Link to="/crucible" className="text-text hover:text-primary transition-colors">
-            Crucible
-          </Link>
+          {!location.pathname.startsWith('/arena') && (
+            <>
+              <Link to="/forge" className="text-text hover:text-primary transition-colors">
+                Forge
+              </Link>
+              <Link to="/crucible" className="text-text hover:text-primary transition-colors">
+                Crucible
+              </Link>
+            </>
+          )}
           <Link to="/arena" className="text-text hover:text-primary transition-colors">
             Arena
           </Link>

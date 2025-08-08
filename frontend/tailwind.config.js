@@ -29,6 +29,14 @@ export default {
         "background-gradient":
           "background-gradient var(--background-gradient-speed, 15s) cubic-bezier(0.445, 0.05, 0.55, 0.95) infinite",
       },
+      borderRadius: {
+        'tremor-default': '0.5rem',
+        'tremor-small': '0.375rem',
+        'tremor-full': '9999px',
+      },
+      fontSize: {
+        'tremor-label': ['0.75rem'],
+      },
       keyframes: {
         "background-gradient": {
           "0%, 100%": {

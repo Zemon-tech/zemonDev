@@ -375,6 +375,257 @@ aside a.active {
   outline-offset: 2px;
 }
 
+/* Custom toggle switch styles - Remove focus borders and enhance aesthetics */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-switch input:focus {
+  outline: none;
+}
+
+.toggle-switch input:focus + .toggle-slider {
+  box-shadow: 0 0 0 2px rgba(var(--color-primary), 0.2);
+}
+
+.toggle-slider {
+  position: relative;
+  display: inline-block;
+  width: 2.5rem;
+  height: 1.5rem;
+  background-color: hsl(var(--bc) / 0.2);
+  border-radius: 1rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-slider:before {
+  content: '';
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  background-color: white;
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: hsl(var(--p));
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(1rem);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Compact toggle variant */
+.toggle-switch-compact .toggle-slider {
+  width: 2rem;
+  height: 1.25rem;
+}
+
+.toggle-switch-compact .toggle-slider:before {
+  width: 1rem;
+  height: 1rem;
+  top: 0.125rem;
+  left: 0.125rem;
+}
+
+.toggle-switch-compact input:checked + .toggle-slider:before {
+  transform: translateX(0.75rem);
+}
+
+/* Remove default focus styles for toggles */
+.toggle-switch input:focus-visible {
+  outline: none;
+}
+
+.toggle-switch input:focus-visible + .toggle-slider {
+  box-shadow: 0 0 0 2px rgba(var(--color-primary), 0.2);
+}
+
+/* Override for checked state */
+.toggle-slider.bg-primary,
+.toggle-slider.\!bg-primary {
+  background-color: hsl(var(--p)) !important;
+}
+
+.toggle-slider.bg-primary:before,
+.toggle-slider.\!bg-primary:before {
+  transform: translateX(1rem);
+}
+
+.toggle-switch-compact .toggle-slider.bg-primary:before,
+.toggle-switch-compact .toggle-slider.\!bg-primary:before {
+  transform: translateX(0.75rem);
+}
+
+/* Custom Toggle from Uiverse.io */
+.toggler {
+  width: 72px !important;
+  margin: 0 !important;
+  display: block !important;
+  position: relative !important;
+}
+
+.toggler input {
+  display: none !important;
+}
+
+.toggler label {
+  display: block !important;
+  position: relative !important;
+  width: 72px !important;
+  height: 36px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 36px !important;
+  background: #f3f4f6 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  box-sizing: border-box !important;
+}
+
+.toggler label:hover {
+  background: #e5e7eb !important;
+  border-color: #9ca3af !important;
+}
+
+.toggler label::after {
+  display: block !important;
+  border-radius: 100% !important;
+  background-color: #ef4444 !important;
+  content: '' !important;
+  animation-name: toggler-size !important;
+  animation-duration: 0.15s !important;
+  animation-timing-function: ease-out !important;
+  animation-direction: forwards !important;
+  animation-iteration-count: 1 !important;
+  animation-play-state: running !important;
+}
+
+.toggler label::after, .toggler label .toggler-on, .toggler label .toggler-off {
+  position: absolute !important;
+  top: 50% !important;
+  left: 25% !important;
+  width: 26px !important;
+  height: 26px !important;
+  transform: translateY(-50%) translateX(-50%) !important;
+  transition: left 0.15s ease-in-out, background-color 0.2s ease-out, width 0.15s ease-in-out, height 0.15s ease-in-out, opacity 0.15s ease-in-out !important;
+}
+
+.toggler input:checked + label::after, .toggler input:checked + label .toggler-on, .toggler input:checked + label .toggler-off {
+  left: 75% !important;
+}
+
+.toggler input:checked + label::after {
+  background-color: #22c55e !important;
+  animation-name: toggler-size2 !important;
+}
+
+.toggler input:checked + label {
+  background: #ffffff !important;
+  border-color: #22c55e !important;
+}
+
+.toggler .toggler-on, .toggler .toggler-off {
+  opacity: 1 !important;
+  z-index: 2 !important;
+}
+
+.toggler input:checked + label .toggler-off, .toggler input:not(:checked) + label .toggler-on {
+  width: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
+}
+
+.toggler .path {
+  fill: none !important;
+  stroke: #ffffff !important;
+  stroke-width: 7px !important;
+  stroke-linecap: round !important;
+  stroke-miterlimit: 10 !important;
+}
+
+@keyframes toggler-size {
+  0%, 100% {
+    width: 26px;
+    height: 26px;
+  }
+
+  50% {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@keyframes toggler-size2 {
+  0%, 100% {
+    width: 26px;
+    height: 26px;
+  }
+
+  50% {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Compact version for smaller toggles */
+.toggler.toggler-compact {
+  width: 48px !important;
+}
+
+.toggler.toggler-compact label {
+  width: 48px !important;
+  height: 24px !important;
+}
+
+.toggler.toggler-compact label::after, 
+.toggler.toggler-compact label .toggler-on, 
+.toggler.toggler-compact label .toggler-off {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.toggler.toggler-compact input:checked + label .toggler-off, 
+.toggler.toggler-compact input:not(:checked) + label .toggler-on {
+  width: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
+}
+
+/* Dark mode support */
+[data-theme="dark"] .toggler label {
+  border: 1px solid #4b5563 !important;
+  background: #374151 !important;
+}
+
+[data-theme="dark"] .toggler label:hover {
+  background: #4b5563 !important;
+  border-color: #6b7280 !important;
+}
+
+[data-theme="dark"] .toggler input:checked + label {
+  background: #1f2937 !important;
+  border-color: #22c55e !important;
+}
+
+[data-theme="dark"] .toggler .path {
+  stroke: #ffffff !important;
+}
+
 /* Custom gradient backgrounds */
 .gradient-bg-primary {
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
