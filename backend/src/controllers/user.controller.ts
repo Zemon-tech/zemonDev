@@ -22,11 +22,20 @@ export const getCurrentUser = asyncHandler(
       return next(new AppError('User not found', 404));
     }
 
+    // Compute a stable solvedCount (prefer explicit counter, fallback to array length)
+    const solvedCount =
+      (user.stats && typeof user.stats.problemsSolved === 'number')
+        ? user.stats.problemsSolved
+        : (Array.isArray((user as any).completedSolutions) ? (user as any).completedSolutions.length : 0);
+
+    // Add solvedCount to the returned user object without altering existing fields
+    const userWithSolved = { ...(user.toObject()), solvedCount };
+
     res.status(200).json(
       new ApiResponse(
         200,
         'User profile retrieved successfully',
-        user
+        userWithSolved
       )
     );
   }

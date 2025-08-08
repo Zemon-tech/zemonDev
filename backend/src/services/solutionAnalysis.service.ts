@@ -1,7 +1,9 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import env from '../config/env';
 import { ICrucibleProblem } from '../models/crucibleProblem.model';
-import { IAnalysisParameter, ISolutionAnalysisResult } from '../models/solutionAnalysis.model';
+import SolutionAnalysis, { IAnalysisParameter, ISolutionAnalysisResult } from '../models/solutionAnalysis.model';
+import mongoose, { ClientSession, Types } from 'mongoose';
+import { markProblemSolved, MarkProblemSolvedResult } from './userProgress.service';
 
 // Define the output interface for the AI response
 export interface ISolutionAnalysisResponse {
@@ -136,6 +138,8 @@ interface IAnalysisParameter {
   justification: string; // AI's reasoning for this score
 }
 
+// (wrapper definitions moved below, outside of prompt string)
+
 interface ISolutionAnalysisResult {
   overallScore: number; // Overall score out of 100
   aiConfidence: number; // A score from 0-100 on how confident you are in your assessment
@@ -199,4 +203,82 @@ Do not include any explanations, notes, or text outside the JSON object. Ensure 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     throw new GeminiServiceError(`Unexpected error: ${errorMessage}`);
   }
-} 
+}
+
+// ---- Create analysis + update progress (Phase 2 wrapper) ----
+
+export interface SolutionAnalysisCreatePayload {
+  solutionContent?: string;
+  overallScore: number;
+  aiConfidence: number;
+  summary: string;
+  evaluatedParameters: IAnalysisParameter[];
+  feedback: {
+    strengths: string[];
+    areasForImprovement: string[];
+    suggestions: string[];
+  };
+}
+
+export interface CreateSolutionAnalysisAndProgressArgs {
+  userId: string | Types.ObjectId;
+  problemId: string | Types.ObjectId;
+  payload: SolutionAnalysisCreatePayload;
+  session?: ClientSession;
+}
+
+export interface CreateSolutionAnalysisAndProgressResult {
+  analysis: ISolutionAnalysisResult;
+  progress: MarkProblemSolvedResult;
+}
+
+export async function createSolutionAnalysisAndUpdateProgress(
+  args: CreateSolutionAnalysisAndProgressArgs
+): Promise<CreateSolutionAnalysisAndProgressResult> {
+  const { userId, problemId, payload, session } = args;
+
+  const useExternalSession = Boolean(session);
+  const txnSession = session ?? (await mongoose.startSession());
+
+  try {
+    let analysisDoc: ISolutionAnalysisResult;
+    let progress: MarkProblemSolvedResult;
+
+    await txnSession.withTransaction(async () => {
+      // Check if user already has an analysis for this problem (reattempt)
+      const priorExists = await SolutionAnalysis.exists({ userId, problemId }).session(txnSession);
+
+      // 1) Create SolutionAnalysis
+      const [created] = await SolutionAnalysis.create(
+        [
+          {
+            userId,
+            problemId,
+            solutionContent: payload.solutionContent ?? '',
+            overallScore: payload.overallScore,
+            aiConfidence: payload.aiConfidence,
+            summary: payload.summary,
+            evaluatedParameters: payload.evaluatedParameters,
+            feedback: payload.feedback,
+          },
+        ],
+        { session: txnSession }
+      );
+      analysisDoc = created;
+
+      // 2) Update user progress idempotently only on first-ever analysis
+      if (!priorExists) {
+        progress = await markProblemSolved({ userId, problemId, session: txnSession });
+      } else {
+        // Preserve return shape even when skipping increment
+        progress = { newlySolved: false, solvedCount: 0 } as MarkProblemSolvedResult;
+      }
+    });
+
+    // TypeScript satisfaction: variables are set inside txn
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return { analysis: analysisDoc!, progress: progress! };
+  } finally {
+    if (!useExternalSession) txnSession.endSession();
+  }
+}

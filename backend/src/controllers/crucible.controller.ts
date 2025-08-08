@@ -6,7 +6,7 @@ import { CrucibleProblem, CrucibleSolution, User, SolutionDraft, CrucibleNote, A
 import mongoose from 'mongoose';
 import logger from '../utils/logger';
 import { redisClient } from '../config/redis';
-import { generateComprehensiveAnalysis, GeminiModelOverloadError, GeminiParsingError, GeminiServiceError } from '../services/solutionAnalysis.service';
+import { generateComprehensiveAnalysis, GeminiModelOverloadError, GeminiParsingError, GeminiServiceError, createSolutionAnalysisAndUpdateProgress } from '../services/solutionAnalysis.service';
 import { retrieveRelevantDocuments } from '../services/rag.service';
 
 // Cache TTL in seconds
@@ -729,34 +729,37 @@ export const analyzeUserSolution = asyncHandler(
         );
       }
 
-      // Create a new SolutionAnalysis document
+      // Create analysis and update user progress atomically
       try {
-        const solutionAnalysis = await SolutionAnalysis.create({
+        const { analysis, progress } = await createSolutionAnalysisAndUpdateProgress({
           userId: new mongoose.Types.ObjectId(userId),
           problemId: new mongoose.Types.ObjectId(problemId),
-          solutionContent: userSolution, // Save the solution content that was analyzed
-          overallScore: analysisResult.overallScore,
-          aiConfidence: analysisResult.aiConfidence,
-          summary: analysisResult.summary,
-          evaluatedParameters: analysisResult.evaluatedParameters,
-          feedback: {
-            strengths: analysisResult.feedback.strengths,
-            areasForImprovement: analysisResult.feedback.areasForImprovement,
-            suggestions: analysisResult.feedback.suggestions
+          payload: {
+            solutionContent: userSolution,
+            overallScore: analysisResult.overallScore,
+            aiConfidence: analysisResult.aiConfidence,
+            summary: analysisResult.summary,
+            evaluatedParameters: analysisResult.evaluatedParameters,
+            feedback: {
+              strengths: analysisResult.feedback.strengths,
+              areasForImprovement: analysisResult.feedback.areasForImprovement,
+              suggestions: analysisResult.feedback.suggestions
+            }
           }
         });
 
-        console.log(`Created solution analysis with ID: ${solutionAnalysis._id}`);
+        console.log(`Created solution analysis with ID: ${analysis._id}`);
+        // Optional: log progress.newlySolved/progress.solvedCount for observability
 
         res.status(201).json(
           new ApiResponse(
             201,
             'Solution analysis completed successfully',
-            { analysisId: solutionAnalysis._id }
+            { analysisId: analysis._id }
           )
         );
       } catch (dbError) {
-        console.error('Error saving analysis to database:', dbError);
+        console.error('Error saving analysis/progress to database:', dbError);
         return next(new AppError('Failed to save analysis results', 500));
       }
     } catch (error) {

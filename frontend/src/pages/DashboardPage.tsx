@@ -9,6 +9,8 @@ import { GradientText } from '@/components/blocks/GradientText';
 import { Confetti } from '@/components/blocks/Confetti';
 
 import { useEffect, useState } from 'react';
+import { useZemonStreak } from '@/hooks/useZemonStreak';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 // --- AnimatedCount Utility ---
 function AnimatedCount({ value, duration = 1.2, className = '' }: { value: number; duration?: number; className?: string }) {
@@ -163,10 +165,15 @@ function DashboardHeader({ user, onAchievement }: { user: any; onAchievement: (a
 
 // --- Compact Stats Row ---
 function DashboardStatsRow() {
+  const { streakInfo, loading: streakLoading } = useZemonStreak();
+  const { userProfile, loading: profileLoading } = useUserProfile();
+  const solvedCount = profileLoading
+    ? 0
+    : ((userProfile as any)?.solvedCount ?? userProfile?.stats?.problemsSolved ?? (userProfile?.completedSolutions?.length || 0));
   const stats = [
     {
       icon: <Flame className="w-5 h-5 text-orange-500" />,
-      value: 12,
+      value: streakLoading ? 0 : (streakInfo?.currentStreak || 0),
       label: "Zemon Streak",
       color: "text-orange-500",
       bgGradient: "from-orange-500/10 to-red-500/10",
@@ -175,7 +182,7 @@ function DashboardStatsRow() {
     },
     {
       icon: <Code className="w-5 h-5 text-blue-500" />,
-      value: 24,
+      value: solvedCount,
       label: "Problems Solved",
       color: "text-blue-500",
       bgGradient: "from-blue-500/10 to-cyan-500/10",

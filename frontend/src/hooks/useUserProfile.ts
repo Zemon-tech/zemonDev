@@ -66,6 +66,8 @@ export interface UserProfile {
   zemonStreak?: number;
   longestZemonStreak?: number;
   lastZemonVisit?: string;
+  // Convenience field provided by backend
+  solvedCount?: number;
   createdAt: string;
   updatedAt: string;
 }
