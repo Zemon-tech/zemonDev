@@ -378,3 +378,17 @@ export async function checkUserAnalysisForProblem(
     return null;
   }
 } 
+
+// Fetch trending problems (public, no auth needed)
+export interface ITrendingProblem {
+  problemId: string;
+  title: string;
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+  tags?: string[];
+  solvedCount: number;
+}
+
+export async function getTrendingProblems(limit = 3): Promise<ITrendingProblem[]> {
+  const response = await fetch(`${API_BASE_URL}/crucible/trending?limit=${limit}`);
+  return handleResponse<ITrendingProblem[]>(response);
+}

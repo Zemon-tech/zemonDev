@@ -5,6 +5,7 @@ import {
   submitSolution, 
   getSolutions,
   analyzeUserSolution,
+  getTrendingChallenges,
   getAnalysisResult,
   getLatestAnalysisForUserProblem,
   getAnalysisHistoryForUserProblem,
@@ -64,6 +65,7 @@ const router = express.Router();
 
 // Public routes with rate limiting and caching
 router.get('/', standardLimiter, cacheMiddleware(600), getAllChallenges);
+router.get('/trending', standardLimiter, cacheMiddleware(300), getTrendingChallenges);
 router.get('/:id', standardLimiter, cacheMiddleware(600), getChallengeById);
 router.get('/:challengeId/solutions', standardLimiter, cacheMiddleware(300), getSolutions);
 

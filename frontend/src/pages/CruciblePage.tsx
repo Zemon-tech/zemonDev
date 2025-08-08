@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { ArrowRight, TrendingUp, Clock, Code, Database, Globe, Zap, Target, Users, BookOpen, Lightbulb } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { getProblems, checkUserAnalysisForProblem } from '@/lib/crucibleApi';
+import { getProblems, checkUserAnalysisForProblem, getTrendingProblems, ITrendingProblem } from '@/lib/crucibleApi';
 import { useAuth } from '@clerk/clerk-react';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
 import { GradientText } from '@/components/blocks/GradientText';
@@ -212,9 +212,26 @@ export default function CruciblePage() {
     loadAnimations();
   }, []);
 
-  // Load hot problems
+  // Load trending problems from API
   useEffect(() => {
-    setHotProblems(mockHotProblems);
+    const loadTrending = async () => {
+      try {
+        const trending = await getTrendingProblems(3);
+        const mapped: HotProblem[] = (trending as ITrendingProblem[]).map((t) => ({
+          id: t.problemId,
+          title: t.title,
+          difficulty: t.difficulty,
+          category: (t.tags && t.tags[0]) || 'general',
+          solvedCount: t.solvedCount,
+          trending: true,
+        }));
+        setHotProblems(mapped);
+      } catch (err) {
+        console.warn('Failed to load trending problems, falling back to empty list', err);
+        setHotProblems([]);
+      }
+    };
+    loadTrending();
   }, []);
   
   // Initial load
@@ -358,9 +375,7 @@ export default function CruciblePage() {
             <h2 className="text-3xl font-bold text-base-content mb-2">Trending Challenges</h2>
             <p className="text-base-content/60">Most popular and recently solved problems</p>
           </div>
-          <button className="text-primary hover:text-primary/80 font-medium flex items-center gap-2">
-            View all <ArrowRight className="w-4 h-4" />
-          </button>
+          {/* Removed 'View all' per requirements */}
         </div>
 
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
