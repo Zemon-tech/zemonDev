@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { PlusCircle, Pin, Loader2, AlertCircle, Plus, Image, Gift, Smile } from 'lucide-react';
 import { useArenaChat, Message } from '@/hooks/useArenaChat';
-import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useUserRole } from '@/context/UserRoleContext';
 import RestrictedMessageView from './RestrictedMessageView';
 import Picker from '@emoji-mart/react';
@@ -36,14 +35,14 @@ const AnnouncementsChannelComponent: React.FC<AnnouncementsChannelProps> = ({
   const [showGifPicker, setShowGifPicker] = React.useState(false);
   const gf = React.useMemo(() => new GiphyFetch('YOUR_GIPHY_API_KEY'), []);
   
-  // Infinite scroll setup
-  const scrollContainerRef = useInfiniteScroll({
-    onLoadMore: () => {}, // Announcements typically don't need pagination, but keeping for consistency
-    hasMore: false,
-    loading: false,
-    threshold: 150,
-    enabled: false // Disable infinite scroll for announcements
-  });
+  // Infinite scroll setup - disabled for announcements
+  // const scrollContainerRef = useInfiniteScroll({
+  //   onLoadMore: () => {}, // Announcements typically don't need pagination, but keeping for consistency
+  //   hasMore: false,
+  //   loading: false,
+  //   threshold: 150,
+  //   enabled: false // Disable infinite scroll for announcements
+  // });
   
   // Check if user has admin/moderator access for this channel - MEMOIZED to prevent infinite re-renders
   const canPost = useMemo(() => {
@@ -96,30 +95,30 @@ const AnnouncementsChannelComponent: React.FC<AnnouncementsChannelProps> = ({
   };
 
   // Helper to extract title from message content
-  const getMessageTitle = (message: Message): string => {
-    const lines = message.content.split('\n');
-    if (lines.length > 1) {
-      return lines[0].replace('[PINNED]', '').trim();
-    }
-    
-    // If no line breaks, try to extract a title from the first sentence
-    const firstSentence = message.content.split('.')[0];
-    if (firstSentence.length < 50) {
-      return firstSentence.replace('[PINNED]', '').trim();
-    }
-    
-    // Fallback to a generic title
-    return 'Announcement';
-  };
+  // const getMessageTitle = (message: Message): string => {
+  //   const lines = message.content.split('\n');
+  //   if (lines.length > 1) {
+  //     return lines[0].replace('[PINNED]', '').trim();
+  //   }
+  //   
+  //   // If no line breaks, try to extract a title from the first sentence
+  //   const firstSentence = message.content.split('.')[0];
+  //   if (firstSentence.length < 50) {
+  //     return firstSentence.replace('[PINNED]', '').trim();
+  //   }
+  //   
+  //   // Fallback to a generic title
+  //   return 'Announcement';
+  // };
 
   // Helper to extract content from message
-  const getMessageContent = (message: Message): string => {
-    const lines = message.content.split('\n');
-    if (lines.length > 1) {
-      return lines.slice(1).join('\n').trim();
-    }
-    return message.content.replace('[PINNED]', '').trim();
-  };
+  // const getMessageContent = (message: Message): string => {
+  //   const lines = message.content.split('\n');
+  //   if (lines.length > 1) {
+  //     return lines.slice(1).join('\n').trim();
+  //   }
+  //   return message.content.replace('[PINNED]', '').trim();
+  // };
 
   // Show loading state while roles are being fetched
   if (roleLoading) {

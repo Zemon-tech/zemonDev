@@ -10,8 +10,8 @@ import {
   createNirvanaHackathon,
   createNirvanaNews,
   createNirvanaTool,
-  type INirvanaFeedItem,
-  type INirvanaFeedResponse,
+  // type INirvanaFeedItem,
+  // type INirvanaFeedResponse,
   type INirvanaHackathonData,
   type INirvanaNewsData,
   type INirvanaToolData
@@ -92,7 +92,7 @@ const NirvanaChannel: React.FC = () => {
   // Live feed state from backend
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState<boolean>(false);
-  const [pagination, setPagination] = useState<{ page: number; limit: number; total: number } | null>(null);
+  // const [pagination, setPagination] = useState<{ page: number; limit: number; total: number } | null>(null);
 
   const mapBackendItemToFeedItem = (raw: any): FeedItem => {
     return {
@@ -171,7 +171,7 @@ const NirvanaChannel: React.FC = () => {
         if (page === 1) setFeedItems(items); else setFeedItems(prev => [...prev, ...items]);
         const pg = res.pagination;
         if (pg) {
-          setPagination(pg);
+          // setPagination(pg);
           setHasMore(items.length === 10);
         } else {
           setHasMore(items.length === 10);
@@ -334,14 +334,14 @@ const NirvanaChannel: React.FC = () => {
 
   const trendingChannels = [...joinableChannels].sort((a, b) => (b.unreadCount || 0) - (a.unreadCount || 0)).slice(0, 2);
 
-  const onboardingSteps = [
-    { id: 'join', label: 'Join a channel' },
-    { id: 'intro', label: 'Introduce yourself' },
-    { id: 'explore', label: 'Explore projects' },
-    { id: 'profile', label: 'Complete your profile' },
-  ];
-  const joinedAny = allChannels.some(c => userChannelStatuses[c._id] === 'approved');
-  const [completed] = useState<string[]>(joinedAny ? ['join'] : []);
+  // const onboardingSteps = [
+  //   { id: 'join', label: 'Join a channel' },
+  //   { id: 'intro', label: 'Introduce yourself' },
+  //   { id: 'explore', label: 'Explore projects' },
+  //   { id: 'profile', label: 'Complete your profile' },
+  // ];
+  // const joinedAny = allChannels.some(c => userChannelStatuses[c._id] === 'approved');
+  // const [completed] = useState<string[]>(joinedAny ? ['join'] : []);
 
   const handleToggle = (id: string) => setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
 

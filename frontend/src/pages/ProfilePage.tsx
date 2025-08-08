@@ -966,7 +966,7 @@ export default function ProfilePage() {
                           <h2 className="text-xl font-bold text-base-content transition-colors duration-300">{section.title}</h2>
                           <p className="text-sm text-base-content/70">{section.subtitle}</p>
                         </div>
-                        {section.onClick ? (
+                        {typeof section.onClick === 'function' ? (
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                             <ChevronRight className="w-5 h-5 text-base-content/50 transition-colors duration-300" />
                           </div>
@@ -1027,7 +1027,7 @@ export default function ProfilePage() {
                           <motion.div
                             key={itemIndex}
                             className={`flex items-center gap-3 p-4 rounded-lg bg-base-200 transition-all duration-300 group/item ${
-                              section.onClick ? 'cursor-pointer' : ''
+                              typeof section.onClick === 'function' ? 'cursor-pointer' : ''
                             }`}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -1047,7 +1047,7 @@ export default function ProfilePage() {
                               }`} />
                               <span className="text-base-content font-medium transition-colors duration-300">{item}</span>
                             </div>
-                            {section.onClick ? (
+                            {typeof section.onClick === 'function' ? (
                               <motion.div
                                 initial={{ opacity: 0, x: -5 }}
                                 animate={{ opacity: 1, x: 0 }}

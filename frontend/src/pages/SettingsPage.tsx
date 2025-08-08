@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, MessageCircle, Star, Mail, Github, X, Eye, Linkedin, Twitter, BookOpen, Plus, Palette, Moon, Monitor } from 'lucide-react';
+import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, MessageCircle, Star, Mail, Github, X, Eye, Linkedin, Twitter, BookOpen, Plus, Palette} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import clsx from 'clsx';
