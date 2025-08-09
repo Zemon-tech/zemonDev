@@ -11,6 +11,7 @@ import arenaUsersRoutes from './arena-users.routes';
 import nirvanaRoutes from './nirvana.routes';
 import adminRoutes from './admin.routes';
 import profileRoutes from './profile.routes';
+import notificationRoutes from './notification.routes';
 
 const router = Router();
 
@@ -42,6 +43,9 @@ router.use('/arena/users', arenaUsersRoutes);
 
 // Nirvana routes
 router.use('/nirvana', nirvanaRoutes);
+
+// Notification routes
+router.use('/notifications', notificationRoutes);
 
 // Register webhook routes
 router.use('/webhooks', webhookRoutes);

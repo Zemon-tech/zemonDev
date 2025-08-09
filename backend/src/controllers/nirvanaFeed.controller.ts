@@ -4,6 +4,7 @@ import AppError from '../utils/AppError';
 import ApiResponse from '../utils/ApiResponse';
 import { NirvanaHackathon, NirvanaNews, NirvanaTool, INirvanaHackathon, INirvanaNews, INirvanaTool } from '../models';
 import { clearCache } from '../middleware/cache.middleware';
+import { createBulkNotifications } from '../services/notification.service';
 
 /**
  * @desc    Get all Nirvana feed items (hackathons, news, tools)
@@ -181,6 +182,28 @@ export const createHackathon = asyncHandler(
     // Clear Nirvana feed cache to reflect changes
     await clearCache('nirvana/feed');
 
+    // Send notification to all users about new hackathon
+    try {
+      await createBulkNotifications({
+        type: 'hackathon',
+        title: 'New Hackathon Available! 🚀',
+        message: `A new hackathon "${hackathon.title}" has been posted. Check it out and start building!`,
+        priority: 'high',
+        data: {
+          entityId: (hackathon as any)._id.toString(),
+          entityType: 'hackathon',
+          action: 'created',
+          metadata: {
+            hackathonName: (hackathon as any).metadata.hackathonName,
+            prize: (hackathon as any).prize,
+            category: (hackathon as any).category,
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Failed to send hackathon notification:', error);
+    }
+
     res.status(201).json(
       new ApiResponse(
         201,
@@ -225,6 +248,26 @@ export const createNews = asyncHandler(
 
     // Clear Nirvana feed cache to reflect changes
     await clearCache('nirvana/feed');
+
+    // Send notification to all users about new news
+    try {
+      await createBulkNotifications({
+        type: 'news',
+        title: 'Latest News Update! 📰',
+        message: `New news: "${news.title}". Stay updated with the latest developments!`,
+        priority: 'medium',
+        data: {
+          entityId: (news as any)._id.toString(),
+          entityType: 'news',
+          action: 'created',
+          metadata: {
+            category: (news as any).category,
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Failed to send news notification:', error);
+    }
 
     res.status(201).json(
       new ApiResponse(
@@ -274,6 +317,27 @@ export const createTool = asyncHandler(
 
     // Clear Nirvana feed cache to reflect changes
     await clearCache('nirvana/feed');
+
+    // Send notification to all users about new tool
+    try {
+      await createBulkNotifications({
+        type: 'resource',
+        title: 'New Tool Available! 🛠️',
+        message: `A new tool "${tool.toolName}" has been added to the collection. Check it out!`,
+        priority: 'medium',
+        data: {
+          entityId: (tool as any)._id.toString(),
+          entityType: 'tool',
+          action: 'created',
+          metadata: {
+            toolName: (tool as any).toolName,
+            category: (tool as any).category,
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Failed to send tool notification:', error);
+    }
 
     res.status(201).json(
       new ApiResponse(

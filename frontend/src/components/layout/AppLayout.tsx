@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useParams, useLocation, Navigate, useNavigate } from 'react-router-dom';
-import { UserButton, useUser } from '@clerk/clerk-react';
+import { useUser } from '@clerk/clerk-react';
 import Sidebar from './Sidebar';
 import { useWorkspace } from '@/lib/WorkspaceContext';
 import { useSidebar } from '@/lib/SidebarContext';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownItem } from '@/components/ui/dropdown-menu';
 import { useArenaChannels, Channel as ArenaChannel } from '@/hooks/useArenaChannels';
+import NotificationDropdown from '@/components/notifications/NotificationDropdown';
+import { useNotifications } from '@/hooks/useNotifications';
 
 // Icons
 import { Search, Bell, X, MessageCircle, BookOpen, FileText, StickyNote, ArrowLeft, Send, Loader2, Sparkles, Hash, Volume2, Star, MessageSquare, ChevronDown } from 'lucide-react';
@@ -20,10 +22,14 @@ import { Lock, Unlock } from 'lucide-react'; // [ADD] For nav lock button icon
 export default function AppLayout() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
   const { username: urlUsername } = useParams();
   const location = useLocation();
   const { isLoaded, user } = useUser();
   const navigate = useNavigate();
+  
+  // Notifications
+  const { unreadCount } = useNotifications();
   
   // Arena channels data
   const { channels: arenaChannels, loading: arenaChannelsLoading } = useArenaChannels();
@@ -476,14 +482,24 @@ export default function AppLayout() {
           {/* Right side - user actions */}
           <div className="flex items-center space-x-3">
             {/* Notifications */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-9 w-9 p-0 rounded-lg hover:bg-base-200/80 transition-all duration-200 relative"
-            >
-              <Bell size={18} />
-              <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-error rounded-full"></span>
-            </Button>
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsNotificationDropdownOpen(!isNotificationDropdownOpen)}
+                className="h-9 w-9 p-0 rounded-lg hover:bg-base-200/80 transition-all duration-200 relative"
+              >
+                <Bell size={18} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-error rounded-full"></span>
+                )}
+              </Button>
+              
+              <NotificationDropdown
+                isOpen={isNotificationDropdownOpen}
+                onClose={() => setIsNotificationDropdownOpen(false)}
+              />
+            </div>
             {/* [ADD] Nav lock button - only on Crucible Problem Page in focus mode */}
             {isCrucibleProblemPage && focusMode && (
               <Button
@@ -507,8 +523,8 @@ export default function AppLayout() {
                 {focusMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             )}
-            {/* User menu */}
-            <UserButton afterSignOutUrl="/" />
+            {/* User menu - Removed Clerk avatar */}
+            {/* <UserButton afterSignOutUrl="/" /> */}
           </div>
         </header>
         
