@@ -14,6 +14,11 @@ export interface INirvanaNews extends Document {
     shares: number;
     bookmarks: number;
   };
+  userReactions: {
+    likes: mongoose.Types.ObjectId[];
+    shares: mongoose.Types.ObjectId[];
+    bookmarks: mongoose.Types.ObjectId[];
+  };
   metadata: {
     progress?: number;
     link?: string;
@@ -72,6 +77,29 @@ const NirvanaNewsSchema: Schema = new Schema(
       bookmarks: {
         type: Number,
         default: 0,
+      },
+    },
+    userReactions: {
+      likes: {
+        type: [{
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+        }],
+        default: [],
+      },
+      shares: {
+        type: [{
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+        }],
+        default: [],
+      },
+      bookmarks: {
+        type: [{
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+        }],
+        default: [],
       },
     },
     metadata: {

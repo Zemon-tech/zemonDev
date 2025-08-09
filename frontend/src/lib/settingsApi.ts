@@ -48,7 +48,7 @@ export async function updateProfile(
       throw new Error('Not authenticated');
     }
 
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/users/me`, {
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/api/users/me`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -82,7 +82,7 @@ export async function changePassword(
       throw new Error('Not authenticated');
     }
 
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/users/me/password`, {
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/api/users/me/password`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -116,7 +116,7 @@ export async function updateSkills(
       throw new Error('Not authenticated');
     }
 
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/users/me/skills`, {
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/api/users/me/skills`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -149,7 +149,7 @@ export async function deleteAccount(
       throw new Error('Not authenticated');
     }
 
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/users/me`, {
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/api/users/me`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -180,7 +180,7 @@ export async function exportUserData(
       throw new Error('Not authenticated');
     }
 
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/users/me/export`, {
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/api/users/me/export`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -195,6 +195,300 @@ export async function exportUserData(
     return await response.json();
   } catch (error) {
     console.error('Error exporting user data:', error);
+    throw error;
+  }
+}
+
+// Project Management APIs
+export interface ProjectData {
+  title: string;
+  description?: string;
+  images: string[];
+  gitRepositoryUrl: string;
+  demoUrl: string;
+}
+
+/**
+ * Get user's projects
+ */
+export async function getUserProjects(
+  getToken: () => Promise<string | null>
+): Promise<any> {
+  try {
+    const token = await getToken();
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/api/users/me/projects`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to fetch projects');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching user projects:', error);
+    throw error;
+  }
+}
+
+/**
+ * Submit a new project
+ */
+export async function submitProject(
+  data: ProjectData,
+  getToken: () => Promise<string | null>
+): Promise<any> {
+  try {
+    const token = await getToken();
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/api/arena/showcase`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to submit project');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error submitting project:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a project
+ */
+export async function updateProject(
+  projectId: string,
+  data: Partial<ProjectData>,
+  getToken: () => Promise<string | null>
+): Promise<any> {
+  try {
+    const token = await getToken();
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/api/arena/showcase/${projectId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to update project');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating project:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a project
+ */
+export async function deleteProject(
+  projectId: string,
+  getToken: () => Promise<string | null>
+): Promise<any> {
+  try {
+    const token = await getToken();
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/api/arena/showcase/${projectId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to delete project');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error deleting project:', error);
+    throw error;
+  }
+}
+
+// Workspace Management APIs
+export interface WorkspacePreferences {
+  editorSettings: {
+    fontSize: number;
+    theme: string;
+    wordWrap: boolean;
+  };
+  layout: {
+    showProblemSidebar: boolean;
+    showChatSidebar: boolean;
+    sidebarWidths: {
+      problem: number;
+      chat: number;
+    };
+  };
+  notifications: {
+    channelUpdates: boolean;
+    projectApprovals: boolean;
+    mentions: boolean;
+  };
+}
+
+/**
+ * Get user's workspace preferences
+ */
+export async function getWorkspacePreferences(
+  getToken: () => Promise<string | null>
+): Promise<any> {
+  try {
+    const token = await getToken();
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/api/users/me/workspace-preferences`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to fetch workspace preferences');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching workspace preferences:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update workspace preferences
+ */
+export async function updateWorkspacePreferences(
+  data: WorkspacePreferences,
+  getToken: () => Promise<string | null>
+): Promise<any> {
+  try {
+    const token = await getToken();
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/api/users/me/workspace-preferences`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to update workspace preferences');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating workspace preferences:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get user's bookmarked resources
+ */
+export async function getBookmarkedResources(
+  getToken: () => Promise<string | null>
+): Promise<any> {
+  try {
+    const token = await getToken();
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/api/users/me/bookmarks`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to fetch bookmarks');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching bookmarks:', error);
+    throw error;
+  }
+}
+
+/**
+ * Remove bookmark
+ */
+export async function removeBookmark(
+  resourceId: string,
+  resourceType: 'forge' | 'nirvana-tool' | 'nirvana-news' | 'nirvana-hackathon',
+  getToken: () => Promise<string | null>
+): Promise<any> {
+  try {
+    const token = await getToken();
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/api/users/me/bookmarks/${resourceId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ resourceType }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to remove bookmark');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error removing bookmark:', error);
     throw error;
   }
 } 

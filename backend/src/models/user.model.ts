@@ -29,14 +29,23 @@ export interface IUser extends Document {
   activeDrafts: mongoose.Types.ObjectId[];
   archivedDrafts: mongoose.Types.ObjectId[];
   workspacePreferences: {
-    defaultEditorSettings: {
+    editorSettings: {
       fontSize: number;
       theme: string;
       wordWrap: boolean;
     };
-    defaultLayout: {
+    layout: {
       showProblemSidebar: boolean;
       showChatSidebar: boolean;
+      sidebarWidths: {
+        problem: number;
+        chat: number;
+      };
+    };
+    notifications: {
+      channelUpdates: boolean;
+      projectApprovals: boolean;
+      mentions: boolean;
     };
   };
   college?: {
@@ -177,7 +186,7 @@ const UserSchema: Schema = new Schema(
       },
     ],
     workspacePreferences: {
-      defaultEditorSettings: {
+      editorSettings: {
         fontSize: {
           type: Number,
           default: 14,
@@ -191,12 +200,36 @@ const UserSchema: Schema = new Schema(
           default: true,
         },
       },
-      defaultLayout: {
+      layout: {
         showProblemSidebar: {
           type: Boolean,
           default: true,
         },
         showChatSidebar: {
+          type: Boolean,
+          default: true,
+        },
+        sidebarWidths: {
+          problem: {
+            type: Number,
+            default: 320,
+          },
+          chat: {
+            type: Number,
+            default: 320,
+          },
+        },
+      },
+      notifications: {
+        channelUpdates: {
+          type: Boolean,
+          default: true,
+        },
+        projectApprovals: {
+          type: Boolean,
+          default: true,
+        },
+        mentions: {
           type: Boolean,
           default: true,
         },

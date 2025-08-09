@@ -17,6 +17,7 @@ export const getNirvanaFeed = asyncHandler(
     const numericLimit = Number(limit);
     const numericPage = Number(page);
     const skip = (numericPage - 1) * numericLimit;
+    const userId = req.user?._id; // Get user ID if authenticated
 
     let feedItems: any[] = [];
 
@@ -46,6 +47,11 @@ export const getNirvanaFeed = asyncHandler(
           status: h.status
         },
         reactions: h.reactions,
+        userReactions: userId ? {
+          likes: h.userReactions.likes.some((id: any) => id.toString() === userId.toString()),
+          shares: h.userReactions.shares.some((id: any) => id.toString() === userId.toString()),
+          bookmarks: h.userReactions.bookmarks.some((id: any) => id.toString() === userId.toString())
+        } : { likes: false, shares: false, bookmarks: false },
         isPinned: h.isPinned,
         isVerified: h.isVerified,
         priority: h.priority
@@ -74,6 +80,11 @@ export const getNirvanaFeed = asyncHandler(
           progress: n.metadata.progress
         },
         reactions: n.reactions,
+        userReactions: userId ? {
+          likes: n.userReactions.likes.some((id: any) => id.toString() === userId.toString()),
+          shares: n.userReactions.shares.some((id: any) => id.toString() === userId.toString()),
+          bookmarks: n.userReactions.bookmarks.some((id: any) => id.toString() === userId.toString())
+        } : { likes: false, shares: false, bookmarks: false },
         isPinned: n.isPinned,
         isVerified: n.isVerified,
         priority: n.priority
@@ -104,6 +115,11 @@ export const getNirvanaFeed = asyncHandler(
           views: t.views
         },
         reactions: t.reactions,
+        userReactions: userId ? {
+          likes: t.userReactions.likes.some((id: any) => id.toString() === userId.toString()),
+          shares: t.userReactions.shares.some((id: any) => id.toString() === userId.toString()),
+          bookmarks: t.userReactions.bookmarks.some((id: any) => id.toString() === userId.toString())
+        } : { likes: false, shares: false, bookmarks: false },
         isPinned: t.isPinned,
         isVerified: t.isVerified,
         priority: t.priority
@@ -350,14 +366,15 @@ export const createTool = asyncHandler(
 );
 
 /**
- * @desc    Update reaction (like, share, bookmark)
+ * @desc    Toggle reaction (like, share, bookmark)
  * @route   PATCH /api/nirvana/:type/:id/reaction
  * @access  Private
  */
 export const updateReaction = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { type, id } = req.params;
-    const { reactionType, action } = req.body; // action: 'increment' or 'decrement'
+    const { reactionType } = req.body; // reactionType: 'likes', 'shares', 'bookmarks'
+    const userId = req.user._id;
 
     let Model: any;
     switch (type) {
@@ -379,19 +396,51 @@ export const updateReaction = asyncHandler(
       return next(new AppError('Item not found', 404));
     }
 
-    const updateField = `reactions.${reactionType}`;
-    const currentValue = item.reactions[reactionType] || 0;
-    const newValue = action === 'increment' ? currentValue + 1 : Math.max(0, currentValue - 1);
+    // Check if user has already reacted
+    const userReactionField = `userReactions.${reactionType}`;
+    const userReactions = item.userReactions[reactionType] || [];
+    const hasReacted = userReactions.some(
+      (id: any) => id.toString() === userId.toString()
+    );
 
-    await Model.findByIdAndUpdate(id, {
-      [updateField]: newValue
-    });
+    let newCount: number;
+    let isReacted: boolean;
+
+    if (hasReacted) {
+      // Remove reaction
+      await Model.findByIdAndUpdate(id, {
+        $pull: { [userReactionField]: userId },
+        $inc: { [`reactions.${reactionType}`]: -1 }
+      });
+      newCount = Math.max(0, (item.reactions[reactionType] || 0) - 1);
+      isReacted = false;
+    } else {
+      // Add reaction
+      await Model.findByIdAndUpdate(id, {
+        $addToSet: { [userReactionField]: userId },
+        $inc: { [`reactions.${reactionType}`]: 1 }
+      });
+      newCount = (item.reactions[reactionType] || 0) + 1;
+      isReacted = true;
+    }
+
+    // Invalidate cached Nirvana feed so counts reflect immediately
+    try {
+      await clearCache('*/nirvana/feed*');
+    } catch (e) {
+      // Non-fatal cache clear failure
+      console.warn('Failed to clear nirvana feed cache:', e);
+    }
 
     res.status(200).json(
       new ApiResponse(
         200,
-        'Reaction updated successfully',
-        { [reactionType]: newValue }
+        `Reaction ${isReacted ? 'added' : 'removed'} successfully`,
+        { 
+          [reactionType]: newCount,
+          isReacted,
+          success: true
+        }
       )
     );
   }

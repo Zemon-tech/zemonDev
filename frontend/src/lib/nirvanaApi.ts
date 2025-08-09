@@ -36,6 +36,11 @@ export interface INirvanaFeedItem {
     shares: number;
     bookmarks: number;
   };
+  userReactions: {
+    likes: boolean;
+    shares: boolean;
+    bookmarks: boolean;
+  };
   isPinned: boolean;
   isVerified: boolean;
   priority: 'high' | 'medium' | 'low';
@@ -194,18 +199,40 @@ export async function createNirvanaTool(
   }, getToken);
 }
 
-// Update reaction (like, share, bookmark)
+// Update reaction (increment/decrement). Backend may or may not support toggle.
+// We accept an action to remain compatible without backend changes.
 export async function updateNirvanaReaction(
   type: 'hackathon' | 'news' | 'tool',
   id: string,
   reactionType: 'likes' | 'shares' | 'bookmarks',
   action: 'increment' | 'decrement',
   getToken: () => Promise<string | null>
-): Promise<{ success: boolean; newCount: number }> {
-  return apiRequest<{ success: boolean; newCount: number }>(`/nirvana/${type}/${id}/reaction`, {
-    method: 'PATCH',
-    body: JSON.stringify({ reactionType, action }),
-  }, getToken);
+): Promise<{ success: boolean; newCount?: number } & Record<string, any>> {
+  // Primary request with action (compatible with existing backend)
+  try {
+    return await apiRequest<{ success: boolean; newCount?: number } & Record<string, any>>(
+      `/nirvana/${type}/${id}/reaction`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ reactionType, action }),
+      },
+      getToken
+    );
+  } catch (err) {
+    // Fallback: try without action if backend expects toggle
+    try {
+      return await apiRequest<{ success: boolean; newCount?: number } & Record<string, any>>(
+        `/nirvana/${type}/${id}/reaction`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ reactionType }),
+        },
+        getToken
+      );
+    } catch (err2) {
+      throw err2;
+    }
+  }
 }
 
 // Toggle pin status (admin/moderator only)

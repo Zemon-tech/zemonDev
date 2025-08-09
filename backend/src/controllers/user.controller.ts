@@ -544,3 +544,193 @@ export const exportUserDataController = asyncHandler(
     }
   }
 );
+
+/**
+ * @desc    Get user's projects
+ * @route   GET /api/users/me/projects
+ * @access  Private
+ */
+export const getUserProjectsController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const ProjectShowcase = (await import('../models/projectShowcase.model')).default;
+      const projects = await ProjectShowcase.find({ userId: req.user._id })
+        .sort({ submittedAt: -1 })
+        .select('-__v');
+
+      res.status(200).json(new ApiResponse(200, 'User projects retrieved successfully', { projects }));
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to fetch user projects', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Get user's workspace preferences
+ * @route   GET /api/users/me/workspace-preferences
+ * @access  Private
+ */
+export const getWorkspacePreferencesController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = await User.findById(req.user._id).select('workspacePreferences');
+      
+      if (!user) {
+        return next(new AppError('User not found', 404));
+      }
+
+      // Return default preferences if none exist
+      const workspacePreferences = user.workspacePreferences || {
+        editorSettings: {
+          fontSize: 14,
+          theme: 'system',
+          wordWrap: true,
+        },
+        layout: {
+          showProblemSidebar: true,
+          showChatSidebar: true,
+          sidebarWidths: {
+            problem: 320,
+            chat: 320,
+          },
+        },
+        notifications: {
+          channelUpdates: true,
+          projectApprovals: true,
+          mentions: true,
+        },
+      };
+
+      res.status(200).json(new ApiResponse(200, 'Workspace preferences retrieved successfully', { workspacePreferences }));
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to fetch workspace preferences', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Update user's workspace preferences
+ * @route   PATCH /api/users/me/workspace-preferences
+ * @access  Private
+ */
+export const updateWorkspacePreferencesController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { workspacePreferences } = req.body;
+
+      if (!workspacePreferences) {
+        return next(new AppError('Workspace preferences are required', 400));
+      }
+
+      const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        { $set: { workspacePreferences } },
+        { new: true }
+      ).select('workspacePreferences');
+
+      if (!updatedUser) {
+        return next(new AppError('User not found', 404));
+      }
+
+      res.status(200).json(new ApiResponse(200, 'Workspace preferences updated successfully', { workspacePreferences: updatedUser.workspacePreferences }));
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to update workspace preferences', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Get user's bookmarked resources
+ * @route   GET /api/users/me/bookmarks
+ * @access  Private
+ */
+export const getBookmarkedResourcesController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = await User.findById(req.user._id)
+        .populate('bookmarkedResources', 'title description url type createdAt')
+        .select('bookmarkedResources');
+
+      if (!user) {
+        return next(new AppError('User not found', 404));
+      }
+
+      // Transform the bookmarked resources to include the type and bookmarked date
+      const bookmarks = (user.bookmarkedResources || []).map((resource: any) => ({
+        _id: resource._id,
+        title: resource.title,
+        description: resource.description,
+        url: resource.url,
+        type: resource.type || 'forge', // Default to forge if type is not specified
+        bookmarkedAt: resource.createdAt || new Date(),
+      }));
+
+      res.status(200).json(new ApiResponse(200, 'Bookmarked resources retrieved successfully', { bookmarks }));
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to fetch bookmarked resources', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Remove bookmark
+ * @route   DELETE /api/users/me/bookmarks/:resourceId
+ * @access  Private
+ */
+export const removeBookmarkController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { resourceId } = req.params;
+      const { resourceType } = req.body;
+
+      if (!resourceId) {
+        return next(new AppError('Resource ID is required', 400));
+      }
+
+      // Remove from user's bookmarked resources
+      const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        { $pull: { bookmarkedResources: resourceId } },
+        { new: true }
+      );
+
+      if (!updatedUser) {
+        return next(new AppError('User not found', 404));
+      }
+
+      // Decrement bookmark count on the resource
+      if (resourceType) {
+        try {
+          let ResourceModel: any;
+          switch (resourceType) {
+            case 'forge':
+              ResourceModel = (await import('../models/forgeResource.model')).default;
+              break;
+            case 'nirvana-tool':
+              ResourceModel = (await import('../models/nirvanaTool.model')).default;
+              break;
+            case 'nirvana-news':
+              ResourceModel = (await import('../models/nirvanaNews.model')).default;
+              break;
+            case 'nirvana-hackathon':
+              ResourceModel = (await import('../models/nirvanaHackathon.model')).default;
+              break;
+            default:
+              ResourceModel = (await import('../models/forgeResource.model')).default;
+          }
+
+          if (ResourceModel && typeof ResourceModel.findByIdAndUpdate === 'function') {
+            await ResourceModel.findByIdAndUpdate(resourceId, { $inc: { 'metrics.bookmarks': -1 } });
+          }
+        } catch (error) {
+          console.error('Error updating resource bookmark count:', error);
+          // Continue with the response even if bookmark count update fails
+        }
+      }
+
+      res.status(200).json(new ApiResponse(200, 'Bookmark removed successfully'));
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to remove bookmark', 500));
+    }
+  }
+);

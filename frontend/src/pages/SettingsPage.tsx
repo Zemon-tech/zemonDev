@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, MessageCircle, Star, Mail, Github, X, Eye, Linkedin, Twitter, BookOpen, Plus, Palette} from 'lucide-react';
+import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, MessageCircle, Star, Mail, Github, X, Eye, Linkedin, Twitter, BookOpen, Plus, Palette, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import clsx from 'clsx';
@@ -8,6 +8,9 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { updateProfile, changePassword, deleteAccount, exportUserData } from '@/lib/settingsApi';
 import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher';
 import { CustomToggle } from '@/components/ui/CustomToggle';
+import { useUserProjects } from '@/hooks/useUserProjects';
+import { useWorkspaceSettings } from '@/hooks/useWorkspaceSettings';
+import { ProjectSubmissionModal } from '@/components/settings/ProjectSubmissionModal';
 
 const SECTIONS = [
   { key: 'profile', label: 'Profile & Account', icon: User },
@@ -678,65 +681,455 @@ function PreferencesSection() {
 }
 
 function WorkspaceSection() {
-  const [channelNotifications, setChannelNotifications] = useState({
-    general: true,
-    dev: false
-  });
+  const [activeTab, setActiveTab] = useState<'projects' | 'bookmarks' | 'channels'>('projects');
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [editingProject, setEditingProject] = useState<any>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  
+  const { projects, loading: projectsLoading, error: projectsError, submitting, updating, deleting, createProject, editProject, removeProject, archiveProject } = useUserProjects();
+  const { bookmarks, channelMemberships, loading: workspaceLoading, error: workspaceError, leavingChannel, removeBookmarkItem, updateChannelNotifications, leaveChannel } = useWorkspaceSettings();
 
-  // Placeholder content for projects, bookmarks, channels
+  const handleProjectSubmit = async (data: any) => {
+    try {
+      if (editingProject) {
+        await editProject(editingProject._id, data);
+      } else {
+        await createProject(data);
+      }
+      setShowProjectModal(false);
+      setEditingProject(null);
+    } catch (error) {
+      console.error('Error handling project submission:', error);
+    }
+  };
+
+  const handleEditProject = (project: any) => {
+    setEditingProject(project);
+    setShowProjectModal(true);
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      await removeProject(projectId);
+      setShowDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error deleting project:', error);
+    }
+  };
+
+  const handleArchiveProject = async (projectId: string) => {
+    try {
+      await archiveProject(projectId);
+    } catch (error) {
+      console.error('Error archiving project:', error);
+    }
+  };
+
+  const getStatusBadge = (isApproved: boolean, isArchived?: boolean) => {
+    if (isArchived) {
+      return <span className="px-2 py-1 text-xs bg-gray-500 text-white rounded-full">Archived</span>;
+    }
+    return isApproved ? 
+      <span className="px-2 py-1 text-xs bg-green-500 text-white rounded-full">Approved</span> :
+      <span className="px-2 py-1 text-xs bg-yellow-500 text-white rounded-full">Pending</span>;
+  };
+
+  const getChannelStatusBadge = (status: string) => {
+    const statusColors = {
+      pending: 'bg-yellow-500',
+      approved: 'bg-green-500',
+      denied: 'bg-red-500',
+      banned: 'bg-red-600',
+      kicked: 'bg-gray-500'
+    };
+    return (
+      <span className={`px-2 py-1 text-xs ${statusColors[status as keyof typeof statusColors]} text-white rounded-full capitalize`}>
+        {status}
+      </span>
+    );
+  };
+
+  const getResourceTypeIcon = (type: string) => {
+    const icons = {
+      'forge': <BookOpen size={14} />,
+      'nirvana-tool': <Settings size={14} />,
+      'nirvana-news': <MessageCircle size={14} />,
+      'nirvana-hackathon': <Star size={14} />
+    };
+    return icons[type as keyof typeof icons] || <Bookmark size={14} />;
+  };
+
+  if (workspaceLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-base-content/70">Loading workspace settings...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 w-full h-full p-6">
-      <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5">
-        <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-2"><Folder size={18} className="text-primary" /> My Projects</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
-          {[1,2].map(i => (
-            <div key={i} className="bg-base-100 rounded-lg p-4 flex flex-col gap-2 border border-base-200 shadow-sm hover:shadow-md transition-shadow">
-              <div className="font-bold text-base-content/90 flex items-center gap-2"><BookOpen size={16} /> Project {i}</div>
-              <div className="text-xs text-base-content/60">Views: 123 | Bookmarks: 12</div>
-              <div className="flex gap-2 mt-1">
-                <Button size="sm" variant="outline"><Edit size={14} /> Edit</Button>
-                <Button size="sm" variant="outline"><Archive size={14} /> Archive</Button>
-                <Button size="sm" variant="destructive"><Trash size={14} /> Delete</Button>
-              </div>
-            </div>
-          ))}
+      {/* Error Display */}
+      {(projectsError || workspaceError) && (
+        <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-lg">
+          <p className="font-semibold">Error:</p>
+          <p>{projectsError || workspaceError}</p>
         </div>
+      )}
+
+      {/* Tab Navigation */}
+      <div className="flex gap-1 border-b border-base-200">
+        {[
+          { key: 'projects', label: 'My Projects', icon: Folder },
+          { key: 'bookmarks', label: 'Bookmarks', icon: Bookmark },
+          { key: 'channels', label: 'Channels', icon: Users }
+        ].map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => setActiveTab(key as any)}
+            className={`flex items-center gap-2 px-4 py-2 font-medium text-sm transition-all ${
+              activeTab === key 
+                ? 'border-b-2 border-primary text-primary' 
+                : 'text-base-content/70 hover:text-primary'
+            }`}
+          >
+            <Icon size={16} />
+            {label}
+          </button>
+        ))}
       </div>
-      <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5">
-        <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-2"><Bookmark size={18} className="text-primary" /> Bookmarks / Favorites</div>
-        <div className="flex flex-col gap-2 mt-1">
-          {[1,2,3].map(i => (
-            <div key={i} className="flex items-center gap-2 bg-base-100 rounded px-2 py-1 border border-base-200 hover:bg-primary/5 transition-colors">
-              <Star size={14} className="text-yellow-400" />
-              <span>Bookmarked Item {i}</span>
-              <Button size="sm" variant="outline" className="ml-auto"><X size={12} /></Button>
+
+      {/* Projects Tab */}
+      {activeTab === 'projects' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-base-content">My Projects</h3>
+            <Button 
+              onClick={() => setShowProjectModal(true)}
+              className="bg-primary text-primary-content hover:bg-primary/90"
+            >
+              <Plus size={16} className="mr-2" />
+              Submit New Project
+            </Button>
+          </div>
+
+          {projectsLoading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
             </div>
-          ))}
-        </div>
-      </div>
-      <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5">
-        <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-2"><Users size={18} className="text-primary" /> Channel Memberships</div>
-        <div className="flex flex-col gap-2 mt-1">
-          {[
-            {name: 'General', key: 'general', notify: channelNotifications.general},
-            {name: 'Dev', key: 'dev', notify: channelNotifications.dev}
-          ].map((ch) => (
-            <div key={ch.key} className="flex items-center gap-2 bg-base-100 rounded px-2 py-1 border border-base-200 hover:bg-primary/5 transition-colors">
-              <span>{ch.name}</span>
-              <div className="flex items-center gap-1 ml-auto">
-                <CustomToggle
-                  id={`channel-${ch.key}`}
-                  checked={ch.notify}
-                  onChange={(checked) => setChannelNotifications(prev => ({ ...prev, [ch.key]: checked }))}
-                  className="toggler-compact"
-                />
-                <span className="text-xs text-base-content/60 ml-1">Notify</span>
-              </div>
-              <Button size="sm" variant="outline">Leave</Button>
+          ) : projects.length === 0 ? (
+            <div className="text-center py-12 bg-base-100 rounded-lg border border-base-200">
+              <Folder size={48} className="mx-auto text-base-content/30 mb-4" />
+              <h4 className="text-lg font-semibold text-base-content mb-2">No projects yet</h4>
+              <p className="text-base-content/60 mb-4">Start building and share your projects with the community!</p>
+              <Button 
+                onClick={() => setShowProjectModal(true)}
+                className="bg-primary text-primary-content hover:bg-primary/90"
+              >
+                Submit Your First Project
+              </Button>
             </div>
-          ))}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {projects.map((project) => (
+                <div key={project._id} className="bg-base-100 rounded-lg p-4 border border-base-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h4 className="font-bold text-base-content flex items-center gap-2">
+                        <BookOpen size={16} />
+                        {project.title}
+                      </h4>
+                      {project.description && (
+                        <p className="text-sm text-base-content/70 mt-1 line-clamp-2">
+                          {project.description}
+                        </p>
+                      )}
+                    </div>
+                    {getStatusBadge(project.isApproved, project.isArchived)}
+                  </div>
+
+                  <div className="flex items-center gap-4 text-xs text-base-content/60 mb-3">
+                    <span>👁️ {project.views || 0} views</span>
+                    <span>⭐ {project.bookmarks || 0} bookmarks</span>
+                    <span>👍 {project.upvotes} upvotes</span>
+                    <span>👎 {project.downvotes} downvotes</span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleEditProject(project)}
+                      disabled={updating === project._id}
+                    >
+                      <Edit size={14} className="mr-1" />
+                      {updating === project._id ? 'Updating...' : 'Edit'}
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleArchiveProject(project._id)}
+                      disabled={updating === project._id}
+                    >
+                      <Archive size={14} className="mr-1" />
+                      Archive
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="destructive"
+                      onClick={() => setShowDeleteConfirm(project._id)}
+                      disabled={deleting === project._id}
+                    >
+                      <Trash size={14} className="mr-1" />
+                      {deleting === project._id ? 'Deleting...' : 'Delete'}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+      )}
+
+
+
+      {/* Bookmarks Tab */}
+      {activeTab === 'bookmarks' && (
+        <div className="space-y-6">
+          <h3 className="text-lg font-semibold text-base-content">Bookmarked Resources</h3>
+          
+          {bookmarks.length === 0 ? (
+            <div className="text-center py-12 bg-base-100 rounded-lg border border-base-200">
+              <Bookmark size={48} className="mx-auto text-base-content/30 mb-4" />
+              <h4 className="text-lg font-semibold text-base-content mb-2">No bookmarks yet</h4>
+              <p className="text-base-content/60">Start bookmarking resources from Forge, Nirvana, and other sections!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {bookmarks.map((bookmark) => (
+                <div key={bookmark._id} className="flex items-center gap-3 bg-base-100 rounded-lg p-3 border border-base-200 hover:bg-base-200/50 transition-colors">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    {getResourceTypeIcon(bookmark.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-base-content truncate">{bookmark.title}</h4>
+                    {bookmark.description && (
+                      <p className="text-sm text-base-content/60 truncate">{bookmark.description}</p>
+                    )}
+                    <p className="text-xs text-base-content/40 mt-1">
+                      Bookmarked on {new Date(bookmark.bookmarkedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {bookmark.url && (
+                      <Button size="sm" variant="outline" asChild>
+                        <a href={bookmark.url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink size={14} />
+                        </a>
+                      </Button>
+                    )}
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => removeBookmarkItem(bookmark._id, bookmark.type)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <X size={14} />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Channels Tab */}
+      {activeTab === 'channels' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-base-content">Channel Memberships</h3>
+            <div className="text-sm text-base-content/60">
+              {channelMemberships.filter(m => m.status === 'approved').length} active channels
+            </div>
+          </div>
+          
+          {channelMemberships.length === 0 ? (
+            <div className="text-center py-12 bg-base-100 rounded-lg border border-base-200">
+              <Users size={48} className="mx-auto text-base-content/30 mb-4" />
+              <h4 className="text-lg font-semibold text-base-content mb-2">No channel memberships</h4>
+              <p className="text-base-content/60">Join channels from the Arena to start collaborating!</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Active Channels */}
+              {channelMemberships.filter(m => m.status === 'approved').length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-base-content mb-3 flex items-center gap-2">
+                    <CheckCircle size={16} className="text-green-500" />
+                    Active Channels ({channelMemberships.filter(m => m.status === 'approved').length})
+                  </h4>
+                  <div className="space-y-3">
+                    {channelMemberships
+                      .filter(membership => membership.status === 'approved')
+                                             .map((membership) => (
+                         <div key={membership.channelId} className="bg-base-100 rounded-lg p-4 border border-base-200 hover:shadow-md transition-shadow">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start gap-3 flex-1">
+                              <div className="p-2 rounded-lg bg-green-100">
+                                <MessageCircle size={16} className="text-green-600" />
+                              </div>
+                                                             <div className="flex-1 min-w-0">
+                                 <h4 className="font-semibold text-base-content">{membership.name}</h4>
+                                 <p className="text-sm text-base-content/60 capitalize">{membership.type} channel</p>
+                               </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                                             <div className="flex items-center gap-1">
+                                 <CustomToggle
+                                   id={`channel-notify-${membership.channelId}`}
+                                   checked={true}
+                                   onChange={(checked) => updateChannelNotifications(membership.channelId, checked)}
+                                   className="mr-1"
+                                 />
+                                 <span className="text-xs text-base-content/60">Notify</span>
+                               </div>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => leaveChannel(membership.channelId)}
+                                disabled={leavingChannel === membership.channelId}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                {leavingChannel === membership.channelId ? 'Leaving...' : 'Leave'}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Pending Channels */}
+              {channelMemberships.filter(m => m.status === 'pending').length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-base-content mb-3 flex items-center gap-2">
+                    <AlertTriangle size={16} className="text-yellow-500" />
+                    Pending Requests ({channelMemberships.filter(m => m.status === 'pending').length})
+                  </h4>
+                  <div className="space-y-3">
+                    {channelMemberships
+                      .filter(membership => membership.status === 'pending')
+                                             .map((membership) => (
+                         <div key={membership.channelId} className="bg-base-100 rounded-lg p-4 border border-base-200">
+                           <div className="flex items-start justify-between">
+                             <div className="flex items-start gap-3 flex-1">
+                               <div className="p-2 rounded-lg bg-yellow-100">
+                                 <MessageCircle size={16} className="text-yellow-600" />
+                               </div>
+                               <div className="flex-1 min-w-0">
+                                 <h4 className="font-semibold text-base-content">{membership.name}</h4>
+                                 <p className="text-sm text-base-content/60 capitalize">{membership.type} channel</p>
+                                 <p className="text-xs text-base-content/40 mt-1">
+                                   Waiting for approval from moderators
+                                 </p>
+                               </div>
+                             </div>
+                            <div className="flex items-center gap-2">
+                              {getChannelStatusBadge(membership.status)}
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => leaveChannel(membership.channelId)}
+                                disabled={leavingChannel === membership.channelId}
+                                className="text-gray-600"
+                              >
+                                {leavingChannel === membership.channelId ? 'Canceling...' : 'Cancel Request'}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Other Status Channels */}
+              {channelMemberships.filter(m => !['approved', 'pending'].includes(m.status)).length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-base-content mb-3 flex items-center gap-2">
+                    <X size={16} className="text-red-500" />
+                    Other Status ({channelMemberships.filter(m => !['approved', 'pending'].includes(m.status)).length})
+                  </h4>
+                  <div className="space-y-3">
+                    {channelMemberships
+                      .filter(membership => !['approved', 'pending'].includes(membership.status))
+                                             .map((membership) => (
+                         <div key={membership.channelId} className="bg-base-100 rounded-lg p-4 border border-base-200">
+                           <div className="flex items-start justify-between">
+                             <div className="flex items-start gap-3 flex-1">
+                               <div className="p-2 rounded-lg bg-red-100">
+                                 <MessageCircle size={16} className="text-red-600" />
+                               </div>
+                               <div className="flex-1 min-w-0">
+                                 <h4 className="font-semibold text-base-content">{membership.name}</h4>
+                                 <p className="text-sm text-base-content/60 capitalize">{membership.type} channel</p>
+                                 <p className="text-xs text-base-content/40 mt-1">
+                                   Status: {membership.status}
+                                 </p>
+                               </div>
+                             </div>
+                            <div className="flex items-center gap-2">
+                              {getChannelStatusBadge(membership.status)}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Project Submission Modal */}
+      <ProjectSubmissionModal
+        isOpen={showProjectModal}
+        onClose={() => {
+          setShowProjectModal(false);
+          setEditingProject(null);
+        }}
+        onSubmit={handleProjectSubmit}
+        project={editingProject}
+        loading={submitting}
+      />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-base-100 rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+            <h3 className="text-lg font-bold text-base-content mb-2">Delete Project?</h3>
+            <p className="text-base-content/70 mb-4">Are you sure you want to delete this project? This action cannot be undone.</p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setShowDeleteConfirm(null)}>
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => handleDeleteProject(showDeleteConfirm)}
+                disabled={deleting === showDeleteConfirm}
+              >
+                {deleting === showDeleteConfirm ? 'Deleting...' : 'Delete'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

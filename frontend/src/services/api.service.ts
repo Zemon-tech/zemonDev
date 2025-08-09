@@ -152,6 +152,10 @@ export class ApiService {
     return this.makeRequest(endpoint, { method: 'POST' }, getToken);
   }
 
+  static async leaveChannel(channelId: string, getToken: () => Promise<string | null>) {
+    return this.makeRequest(`/api/arena/channels/${channelId}/leave`, { method: 'DELETE' }, getToken);
+  }
+
   // Channel Management API
   static async updateChannelDescription(
     channelId: string, 

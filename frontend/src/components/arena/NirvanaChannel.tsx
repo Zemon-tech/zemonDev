@@ -5,6 +5,7 @@ import { useAuth, useUser } from '@clerk/clerk-react';
 // import { useArenaChannels } from '@/hooks/useArenaChannels';
 import { ApiService } from '@/services/api.service';
 import { useUserRole } from '@/context/UserRoleContext';
+import { useNotification } from '@/hooks/useNotification';
 import { 
   getNirvanaFeed, 
   updateNirvanaReaction,
@@ -27,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 // import { CardContent, CardHeader } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Input } from '@/components/ui/input';
+import Toaster from '@/components/ui/toast';
 
 // Icons
 import {
@@ -68,6 +70,7 @@ interface FeedItem {
     problemsSolved?: number;
   };
   reactions: { likes: number; shares: number; bookmarks: number; };
+  userReactions: { likes: boolean; shares: boolean; bookmarks: boolean; };
   isPinned?: boolean;
   isVerified?: boolean;
   priority?: 'high' | 'medium' | 'low';
@@ -107,6 +110,7 @@ const NirvanaChannel: React.FC = () => {
       author: raw.author,
       metadata: raw.metadata,
       reactions: raw.reactions,
+      userReactions: raw.userReactions || { likes: false, shares: false, bookmarks: false },
       isPinned: raw.isPinned,
       isVerified: raw.isVerified,
       priority: raw.priority,
@@ -137,6 +141,7 @@ const NirvanaChannel: React.FC = () => {
   const { getToken } = useAuth();
   const { user } = useUser();
   const { hasAdminAccess } = useUserRole();
+  const { toasterRef, showSuccess, showError } = useNotification();
   const [userChannelStatuses, setUserChannelStatuses] = useState<Record<string, string>>({});
   const [allChannelsForJoin, setAllChannelsForJoin] = useState<Record<string, any[]>>({});
   const [joinChannelsLoading, setJoinChannelsLoading] = useState(false);
@@ -196,28 +201,87 @@ const NirvanaChannel: React.FC = () => {
     loadFeed();
   }, [getToken, feedFilter, page]);
 
-  const handleReact = async (item: FeedItem, reactionType: 'likes' | 'shares' | 'bookmarks') => {
+  const handleReact = async (
+    item: FeedItem,
+    reactionTypeUi: 'likes' | 'comments' | 'bookmarks'
+  ) => {
     if (!['hackathon', 'news', 'tool'].includes(item.type)) return;
+
+    // Map UI "comments" to backend/storage key "shares"
+    const key = reactionTypeUi === 'comments' ? 'shares' : reactionTypeUi; // 'likes' | 'shares' | 'bookmarks'
+
+    // Determine current state and intended action (optimistic toggle)
+    const isCurrentlyReacted = Boolean(item.userReactions?.[key as 'likes' | 'shares' | 'bookmarks']);
+    const action: 'increment' | 'decrement' = isCurrentlyReacted ? 'decrement' : 'increment';
+
+    // Optimistic update
+    setFeedItems(prev => prev.map(fi => {
+      if (fi.id !== item.id) return fi;
+      const currentCount = fi.reactions[key as 'likes' | 'shares' | 'bookmarks'] || 0;
+      return {
+        ...fi,
+        reactions: {
+          ...fi.reactions,
+          [key]: Math.max(0, currentCount + (action === 'increment' ? 1 : -1)),
+        },
+        userReactions: {
+          ...fi.userReactions,
+          [key]: action === 'increment',
+        },
+      };
+    }));
+
     try {
       const result = await updateNirvanaReaction(
-        item.type as 'hackathon' | 'news' | 'tool', 
-        item.id, 
-        reactionType, 
-        'increment',
+        item.type as 'hackathon' | 'news' | 'tool',
+        item.id,
+        key as 'likes' | 'shares' | 'bookmarks',
+        action,
         getToken
       );
-      if (result.success) {
+
+      // If backend returned an authoritative count, sync to it
+      if (result?.newCount !== undefined || typeof (result as any)[key] === 'number') {
+        const newCount = (result as any).newCount ?? (result as any)[key];
         setFeedItems(prev => prev.map(fi => fi.id === item.id ? {
           ...fi,
           reactions: {
-            likes: fi.reactions?.likes || 0,
-            shares: fi.reactions?.shares || 0,
-            bookmarks: fi.reactions?.bookmarks || 0,
-            [reactionType]: result.newCount,
-          }
+            ...fi.reactions,
+            [key]: newCount,
+          },
+          userReactions: {
+            ...fi.userReactions,
+            [key]: action === 'increment',
+          },
         } : fi));
       }
-    } catch {}
+
+      const actionText = action === 'increment' ? 'added' : 'removed';
+      const reactionText = reactionTypeUi === 'likes' ? 'like' : reactionTypeUi === 'comments' ? 'comment' : 'bookmark';
+      showSuccess(`${reactionText.charAt(0).toUpperCase() + reactionText.slice(1)} ${actionText} successfully!`);
+    } catch (error: any) {
+      // Rollback on error
+      setFeedItems(prev => prev.map(fi => {
+        if (fi.id !== item.id) return fi;
+        const currentCount = fi.reactions[key as 'likes' | 'shares' | 'bookmarks'] || 0;
+        // Revert the optimistic update
+        return {
+          ...fi,
+          reactions: {
+            ...fi.reactions,
+            [key]: Math.max(0, currentCount + (action === 'increment' ? -1 : 1)),
+          },
+          userReactions: {
+            ...fi.userReactions,
+            [key]: action !== 'increment',
+          },
+        };
+      }));
+
+      console.error('Failed to update reaction:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to update reaction';
+      showError(errorMessage);
+    }
   };
 
   const handleCreatePost = async () => {
@@ -953,16 +1017,43 @@ const NirvanaChannel: React.FC = () => {
                     {/* Compact Action Buttons */}
                     <div className="flex items-center justify-between pt-2 mt-2 border-t border-base-300">
                       <div className="flex items-center gap-1">
-                        <Button onClick={() => handleReact(item, 'likes')} variant="ghost" size="sm" className="h-5 px-1.5 text-xs text-base-content/60 hover:text-base-content">
-                          <Heart className="w-2.5 h-2.5 mr-0.5" />
+                        <Button 
+                          onClick={() => handleReact(item, 'likes')} 
+                          variant="ghost" 
+                          size="sm" 
+                          className={`h-5 px-1.5 text-xs transition-colors ${
+                            item.userReactions?.likes 
+                              ? 'text-red-500 hover:text-red-600' 
+                              : 'text-base-content/60 hover:text-base-content'
+                          }`}
+                        >
+                          <Heart className={`w-2.5 h-2.5 mr-0.5 ${item.userReactions?.likes ? 'fill-current' : ''}`} />
                           {item.reactions?.likes || 0}
                         </Button>
-                        <Button onClick={() => handleReact(item, 'shares')} variant="ghost" size="sm" className="h-5 px-1.5 text-xs text-base-content/60 hover:text-base-content">
-                          <MessageSquare className="w-2.5 h-2.5 mr-0.5" />
+                        <Button 
+                          onClick={() => handleReact(item, 'comments')} 
+                          variant="ghost" 
+                          size="sm" 
+                          className={`h-5 px-1.5 text-xs transition-colors ${
+                            item.userReactions?.shares 
+                              ? 'text-blue-500 hover:text-blue-600' 
+                              : 'text-base-content/60 hover:text-base-content'
+                          }`}
+                        >
+                          <MessageSquare className={`w-2.5 h-2.5 mr-0.5 ${item.userReactions?.shares ? 'fill-current' : ''}`} />
                           {item.reactions?.shares || 0}
                         </Button>
-                        <Button onClick={() => handleReact(item, 'bookmarks')} variant="ghost" size="sm" className="h-5 px-1.5 text-xs text-base-content/60 hover:text-base-content">
-                          <Bookmark className="w-2.5 h-2.5 mr-0.5" />
+                        <Button 
+                          onClick={() => handleReact(item, 'bookmarks')} 
+                          variant="ghost" 
+                          size="sm" 
+                          className={`h-5 px-1.5 text-xs transition-colors ${
+                            item.userReactions?.bookmarks 
+                              ? 'text-yellow-500 hover:text-yellow-600' 
+                              : 'text-base-content/60 hover:text-base-content'
+                          }`}
+                        >
+                          <Bookmark className={`w-2.5 h-2.5 mr-0.5 ${item.userReactions?.bookmarks ? 'fill-current' : ''}`} />
                           {item.reactions?.bookmarks || 0}
                         </Button>
                       </div>
@@ -1449,6 +1540,9 @@ const NirvanaChannel: React.FC = () => {
           </div>
         </div>
       )}
+      
+      {/* Notification Toaster */}
+      <Toaster ref={toasterRef} />
     </div>
   );
 };

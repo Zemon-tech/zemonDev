@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getCurrentUser, updateCurrentUser, handleClerkWebhook, getUserRole, updateProfileBackground, recordDailyVisitController, getStreakInfoController, changePasswordController, updateSkillsController, deleteAccountController, exportUserDataController, getStreakLeaderboard, getStreakPercentileController } from '../controllers/user.controller';
+import { getCurrentUser, updateCurrentUser, handleClerkWebhook, getUserRole, updateProfileBackground, recordDailyVisitController, getStreakInfoController, changePasswordController, updateSkillsController, deleteAccountController, exportUserDataController, getStreakLeaderboard, getStreakPercentileController, getUserProjectsController, getWorkspacePreferencesController, updateWorkspacePreferencesController, getBookmarkedResourcesController, removeBookmarkController } from '../controllers/user.controller';
 import { protect } from '../middleware/auth.middleware';
 import { standardLimiter } from '../middleware/rateLimiter.middleware';
 import { cacheMiddleware } from '../middleware/cache.middleware';
@@ -22,5 +22,12 @@ router.patch('/me/password', protect, changePasswordController);
 router.patch('/me/skills', protect, updateSkillsController);
 router.delete('/me', protect, deleteAccountController);
 router.get('/me/export', protect, exportUserDataController);
+
+// Project and Workspace Management
+router.get('/me/projects', protect, getUserProjectsController);
+router.get('/me/workspace-preferences', protect, getWorkspacePreferencesController);
+router.patch('/me/workspace-preferences', protect, updateWorkspacePreferencesController);
+router.get('/me/bookmarks', protect, getBookmarkedResourcesController);
+router.delete('/me/bookmarks/:resourceId', protect, removeBookmarkController);
 
 export default router;

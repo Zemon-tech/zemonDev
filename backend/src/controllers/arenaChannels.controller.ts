@@ -807,6 +807,51 @@ export const unbanUserFromParentChannel = asyncHandler(
 );
 
 /**
+ * @desc    Leave a channel
+ * @route   DELETE /api/arena/channels/:channelId/leave
+ * @access  Private
+ */
+export const leaveChannel = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { channelId } = req.params;
+    const userId = req.user._id;
+
+    // Check if channel exists
+    const channel = await ArenaChannel.findById(channelId);
+    if (!channel) {
+      return next(new AppError('Channel not found', 404));
+    }
+
+    // Check if user has a status record for this channel
+    const userStatus = await UserChannelStatus.findOne({ userId, channelId });
+    if (!userStatus) {
+      return next(new AppError('You are not a member of this channel', 404));
+    }
+
+    // Delete the user's channel status (this removes them from the channel)
+    await UserChannelStatus.findByIdAndDelete(userStatus._id);
+
+    // Emit socket event to notify user they've left the channel
+    try {
+      emitToUser(userId.toString(), 'channel_left', {
+        channelId,
+        channelName: channel.name
+      });
+    } catch (error) {
+      console.error('Failed to emit socket event:', error);
+    }
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        'Successfully left the channel',
+        { channelId, channelName: channel.name }
+      )
+    );
+  }
+);
+
+/**
  * @desc    Update channel description
  * @route   PATCH /api/arena/channels/:channelId/description
  * @access  Admin only

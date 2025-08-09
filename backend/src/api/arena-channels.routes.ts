@@ -18,7 +18,8 @@ import {
   banOrKickUserFromParentChannel,
   unbanUserFromParentChannel,
   getUserChannelStatusForAdmin,
-  updateChannelDescription
+  updateChannelDescription,
+  leaveChannel
 } from '../controllers/arenaChannels.controller';
 import { protect, checkRole } from '../middleware/auth.middleware';
 import { standardLimiter } from '../middleware/rateLimiter.middleware';
@@ -52,6 +53,9 @@ router.post('/:channelId/mark-read', standardLimiter, protect, markAllAsRead);
 
 // Add join channel request route
 router.post('/:channelId/join', standardLimiter, protect, joinChannelRequest);
+
+// Leave a channel
+router.delete('/:channelId/leave', standardLimiter, protect, leaveChannel);
 
 // Admin join request management routes
 router.get('/join-requests', standardLimiter, protect, checkRole(['admin', 'moderator']), getAllJoinRequests);
