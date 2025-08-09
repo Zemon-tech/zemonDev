@@ -5,6 +5,7 @@ import { ProjectShowcase } from '../models';
 import AppError from '../utils/AppError';
 import ApiResponse from '../utils/ApiResponse';
 import { clearCache } from '../middleware/cache.middleware';
+import { createNotification } from '../services/notification.service';
 
 /**
  * @desc    Get all users
@@ -118,6 +119,28 @@ export const approveShowcaseProject = asyncHandler(async (req: Request, res: Res
 
   // Clear showcase cache so approved projects appear instantly
   await clearCache('anonymous:/api/arena/showcase');
+
+  // Send notification to the project owner about approval
+  try {
+    await createNotification({
+      userId: project.userId.toString(),
+      type: 'project_approval',
+      title: 'Project Approved! 🎉',
+      message: `Your project "${project.title}" has been approved and is now live on the showcase!`,
+      priority: 'high',
+      data: {
+        entityId: (project as any)._id.toString(),
+        entityType: 'project_showcase',
+        action: 'approved',
+        metadata: {
+          projectTitle: project.title,
+          approvedAt: project.approvedAt,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Failed to send project approval notification:', error);
+  }
 
   res.status(200).json(
     new ApiResponse(200, 'Project approved successfully', project)

@@ -1,10 +1,10 @@
 import mongoose from 'mongoose';
-import { config } from '../config/env';
+import config from '../config/env';
 
 const addProfileBackgroundField = async () => {
   try {
     // Connect to MongoDB
-    await mongoose.connect(config.MONGODB_URI);
+    await mongoose.connect(config.MONGO_URI);
     console.log('Connected to MongoDB');
 
     // Get the User model

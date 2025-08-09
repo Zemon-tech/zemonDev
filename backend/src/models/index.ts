@@ -20,6 +20,7 @@ import UserRole, { IUserRole } from './userRole.model';
 import NirvanaHackathon, { INirvanaHackathon } from './nirvanaHackathon.model';
 import NirvanaNews, { INirvanaNews } from './nirvanaNews.model';
 import NirvanaTool, { INirvanaTool } from './nirvanaTool.model';
+import Notification, { INotification } from './notification.model';
 
 export {
   User,
@@ -68,5 +69,8 @@ export {
   NirvanaNews,
   INirvanaNews,
   NirvanaTool,
-  INirvanaTool
+  INirvanaTool,
+  // Notification models
+  Notification,
+  INotification
 }; 
