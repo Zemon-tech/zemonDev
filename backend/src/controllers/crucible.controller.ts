@@ -98,6 +98,57 @@ export const getAllChallenges = asyncHandler(
 );
 
 /**
+ * @desc    Get trending challenges by number of analyses (reattempts included)
+ * @route   GET /api/crucible/trending?limit=3
+ * @access  Public
+ */
+export const getTrendingChallenges = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const rawLimit = parseInt((req.query.limit as string) || '3', 10);
+      const limit = Math.max(1, Math.min(isNaN(rawLimit) ? 3 : rawLimit, 10));
+
+      const pipeline: mongoose.PipelineStage[] = [
+        { $group: { _id: '$problemId', solvedCount: { $sum: 1 } } },
+        { $sort: { solvedCount: -1 } },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: 'crucibleproblems',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'problem',
+            pipeline: [
+              { $project: { title: 1, difficulty: 1, tags: 1 } },
+            ],
+          },
+        },
+        { $unwind: { path: '$problem', preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            _id: 0,
+            problemId: '$_id',
+            solvedCount: 1,
+            title: '$problem.title',
+            difficulty: '$problem.difficulty',
+            tags: '$problem.tags',
+          },
+        },
+      ];
+
+      const results = await SolutionAnalysis.aggregate(pipeline);
+
+      return res.status(200).json(
+        new ApiResponse(200, 'Trending challenges fetched successfully', results)
+      );
+    } catch (error) {
+      logger.error('Error in getTrendingChallenges:', error);
+      return next(new AppError('Failed to fetch trending challenges', 500));
+    }
+  }
+);
+
+/**
  * @desc    Get a single challenge by ID
  * @route   GET /api/crucible/:id
  * @access  Public

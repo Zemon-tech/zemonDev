@@ -96,7 +96,7 @@ export async function generateComprehensiveAnalysis(
     
     // Construct the prompt
     const prompt = `
-You are a world-class AI system architect and engineering hiring manager with expertise in evaluating technical solutions. Your task is to analyze the user's submitted solution to a programming problem.
+You are a world-class AI system architect and a neutral evaluator. Perform a blind, evidence-based review of the user's solution for the given programming problem. Optimize for fairness and objectivity.
 
 ## PROBLEM DETAILS ##
 Title: ${problemDetails.title}
@@ -122,38 +122,60 @@ ${technicalParameters.length > 0
 ## RELEVANT KNOWLEDGE BASE DOCUMENTS (FOR CONTEXT) ##
 ${ragDocuments.length > 0 
   ? ragDocuments.join('\n\n---\n\n') 
-  : "No additional context documents are available. Please evaluate based on the problem details and solution provided."}
+  : "No additional context documents are available. Evaluate strictly based on the problem details and solution provided."}
 
 ## USER'S SUBMITTED SOLUTION ##
 ${userSolution}
 
-Based on all the information provided, analyze the user's solution thoroughly. Your analysis should be fair, balanced, and constructive.
+## FAIRNESS AND OBJECTIVITY POLICY ##
+- No stylistic or technology bias: Do not favor any specific language, framework, or paradigm. Judge only against stated requirements, general engineering principles, and evidence present in the solution.
+- Evidence-based reasoning: When deducting points, base the deduction on concrete observations in the solution or explicit requirements/constraints. Avoid assumptions beyond the provided context.
+- Handle unknowns neutrally: If information is missing or ambiguous, mark it as "Insufficient evidence" in justifications and do not penalize. Reflect uncertainty in aiConfidence instead.
+- Give partial credit: Award points for correctly handled portions even if the solution is incomplete.
+- Respect trade-offs: If the solution makes a reasonable trade-off (e.g., clarity over micro-optimizations) that fits the constraints, do not penalize.
+- Unconventional but valid: Do not penalize novel approaches if they satisfy the requirements and constraints.
 
-IMPORTANT: Return your analysis as a single, valid JSON object that strictly adheres to the following TypeScript interface:
+## SCORING RUBRIC (ANCHORS) ##
+- 90–100: Exceptional – Thorough, correct, robust, and well-justified relative to requirements and constraints.
+- 75–89: Solid – Correct with minor issues or reasonable trade-offs; generally production-ready with small improvements.
+- 60–74: Adequate – Meets core requirements with notable gaps; needs meaningful fixes before production.
+- 40–59: Partial – Addresses some requirements but with major issues or omissions.
+- 0–39: Poor – Largely incorrect, unsafe, or fails to meet core requirements.
 
+## ANALYSIS INSTRUCTIONS ##
+- Tie each parameter's justification to specific evidence: reference the requirement, constraint, or a brief snippet/paraphrase (≤200 characters) from the user's solution.
+- If a parameter cannot be assessed due to missing information, state "Insufficient evidence" and avoid penalization for that unknown.
+- Consider problem difficulty and constraints when judging complexity, performance, and design choices.
+- Suggestions must be specific and actionable within the problem context; avoid prescribing a particular stack unless required by constraints.
+- Keep the tone professional and constructive.
+
+## OUTPUT SCHEMA ##
 \`\`\`typescript
 interface IAnalysisParameter {
   name: string;
-  score: number; // Score out of 100
-  justification: string; // AI's reasoning for this score
+  score: number; // Score out of 100 (integers preferred)
+  justification: string; // Reasoning tied to explicit evidence or "Insufficient evidence"
 }
 
 // (wrapper definitions moved below, outside of prompt string)
 
 interface ISolutionAnalysisResult {
-  overallScore: number; // Overall score out of 100
-  aiConfidence: number; // A score from 0-100 on how confident you are in your assessment
-  summary: string; // A concise summary of the analysis (max 250 words)
-  evaluatedParameters: IAnalysisParameter[]; // Evaluation of each technical parameter
+  overallScore: number; // Overall score out of 100 (reflecting rubric anchors)
+  aiConfidence: number; // 0–100, lower when evidence is sparse or ambiguous
+  summary: string; // Concise summary (max 180–250 words)
+  evaluatedParameters: IAnalysisParameter[]; // Cover each provided parameter (deduplicate by name if needed)
   feedback: {
-    strengths: string[]; // 2-5 key strengths of the solution
-    areasForImprovement: string[]; // 2-5 areas that need improvement
-    suggestions: string[]; // 2-5 specific, actionable suggestions
+    strengths: string[]; // 2–5 key strengths grounded in evidence
+    areasForImprovement: string[]; // 2–5 improvement areas grounded in evidence
+    suggestions: string[]; // 2–5 actionable, context-aware suggestions
   };
 }
 \`\`\`
 
-Do not include any explanations, notes, or text outside the JSON object. Ensure your response is a valid, parsable JSON.
+## OUTPUT REQUIREMENTS ##
+- Return a single valid JSON object only (no backticks, no extra text).
+- Ensure numeric fields are numbers, not strings.
+- Keep justifications concise and evidence-based.
 `;
 
     // Call the AI model
