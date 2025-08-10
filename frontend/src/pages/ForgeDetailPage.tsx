@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import { registerForgeResourceView } from '../lib/forgeApi';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import HtmlContentRenderer from '../components/ui/html-content-renderer';
+import { getContentType } from '../lib/content-utils';
 
 type Resource = {
   _id: string;
@@ -12,7 +14,8 @@ type Resource = {
   type: string;
   url?: string;
   description: string;
-  content?: string; // markdown string
+  content?: string; // markdown or HTML string
+  contentType?: 'markdown' | 'html'; // New field from backend
   tags: string[];
   difficulty?: string;
   createdBy?: any;
@@ -45,6 +48,76 @@ export default function ForgeDetailPage() {
     </div>
   );
 
+  // Determine content type with fallback logic
+  const contentType = getContentType(resource.content || '', resource.contentType);
+
+  // Render content based on type
+  const renderContent = () => {
+    if (!resource.content) {
+      return <span className="italic text-base-content/60">No additional content provided.</span>;
+    }
+
+    if (contentType === 'html') {
+      return (
+        <HtmlContentRenderer 
+          content={resource.content}
+          className="w-full"
+          enableScripts={true}
+          enableStyles={true}
+        />
+      );
+    }
+
+    // Default to markdown with external link handling
+    return (
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          h1: ({...props}) => <h1 className="text-5xl font-extrabold mt-8 mb-4 text-primary" {...props} />,
+          h2: ({...props}) => <h2 className="text-3xl font-bold mt-8 mb-3 text-primary/90" {...props} />,
+          h3: ({...props}) => <h3 className="text-2xl font-semibold mt-6 mb-2 text-primary/80" {...props} />,
+          code: ({inline, className, children, ...props}: {inline?: boolean, className?: string, children: React.ReactNode} & any) =>
+            inline ? (
+              <code className="bg-base-200 text-base-content px-2 py-1 rounded text-lg font-mono" {...props}>{children}</code>
+            ) : (
+              <pre className="bg-base-200 text-base-content p-4 rounded-lg overflow-x-auto text-lg font-mono my-4" {...props}>
+                <code>{children}</code>
+              </pre>
+            ),
+          // Handle links to open directly to external sites
+          a: ({href, children, ...props}: {href?: string, children: React.ReactNode} & any) => {
+            if (href && (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//'))) {
+              return (
+                <a 
+                  href={href} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-primary hover:text-primary-focus underline decoration-primary/30 underline-offset-2 transition-colors inline-flex items-center gap-1"
+                  {...props}
+                >
+                  {children}
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              );
+            }
+            // Internal links (if any) can be handled differently
+            return (
+              <a 
+                href={href} 
+                className="text-primary hover:text-primary-focus underline decoration-primary/30 underline-offset-2 transition-colors"
+                {...props}
+              >
+                {children}
+              </a>
+            );
+          },
+        }}
+      >
+        {resource.content}
+      </ReactMarkdown>
+    );
+  };
+
   return (
     <div className="w-full min-h-screen bg-base-100 flex flex-col">
       <div className="w-full">
@@ -60,6 +133,7 @@ export default function ForgeDetailPage() {
         </div>
         <div className="flex flex-wrap gap-2 mt-4 mb-2 px-4 md:px-8">
           <span className="badge badge-outline badge-primary badge-sm capitalize">{resource.type.replace('_', ' ')}</span>
+          <span className="badge badge-outline badge-secondary badge-sm capitalize">{contentType}</span>
           <span className="text-xs text-base-content/50">{resource.metrics?.views ?? 0} views</span>
             {resource.tags.map((tag: string) => (
             <span key={tag} className="badge badge-ghost badge-md rounded capitalize text-base font-medium px-3 py-1">{tag}</span>
@@ -81,29 +155,7 @@ export default function ForgeDetailPage() {
             lineHeight: '2.1rem',
           } as React.CSSProperties}
         >
-          {!resource.isExternal && resource.content ? (
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                h1: ({...props}) => <h1 className="text-5xl font-extrabold mt-8 mb-4 text-primary" {...props} />,
-                h2: ({...props}) => <h2 className="text-3xl font-bold mt-8 mb-3 text-primary/90" {...props} />,
-                h3: ({...props}) => <h3 className="text-2xl font-semibold mt-6 mb-2 text-primary/80" {...props} />,
-                code: ({inline, className, children, ...props}: {inline?: boolean, className?: string, children: React.ReactNode} & any) =>
-                  inline ? (
-                    <code className="bg-base-200 text-base-content px-2 py-1 rounded text-lg font-mono" {...props}>{children}</code>
-                  ) : (
-                    <pre className="bg-base-200 text-base-content p-4 rounded-lg overflow-x-auto text-lg font-mono my-4" {...props}>
-                      <code>{children}</code>
-                    </pre>
-                  ),
-                // Optionally, you can add more custom renderers for icons, blockquotes, etc.
-              }}
-            >
-              {resource.content}
-            </ReactMarkdown>
-          ) : (
-            <span className="italic text-base-content/60">No additional content provided.</span>
-          )}
+          {renderContent()}
         </div>
         <div className="mt-6 text-sm text-base-content/60 flex flex-wrap gap-4 items-center px-4 md:px-8 pb-8">
           <span>Author: {resource.createdBy?.fullName || 'ZEMON'}</span>
