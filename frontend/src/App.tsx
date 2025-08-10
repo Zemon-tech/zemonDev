@@ -33,6 +33,7 @@ import AdminPage from './pages/AdminPage';
 import ProtectedAdminRoute from './components/admin/ProtectedAdminRoute';
 import { UserRoleProvider } from './context/UserRoleContext';
 import { AnalysisProvider } from './context/AnalysisContext';
+import { SocketProvider } from './context/SocketContext';
 import BlogsPage from './pages/BlogsPage';
 import PricingPage from './pages/PricingPage';
 import DevelopersPage from './pages/DevelopersPage';
@@ -62,11 +63,13 @@ function RootRoute() {
 const WorkspaceLayout = () => {
   return (
     <WorkspaceProvider>
-      <UserRoleProvider>
-        <AnalysisProvider>
-          <AppLayout />
-        </AnalysisProvider>
-      </UserRoleProvider>
+      <SocketProvider>
+        <UserRoleProvider>
+          <AnalysisProvider>
+            <AppLayout />
+          </AnalysisProvider>
+        </UserRoleProvider>
+      </SocketProvider>
     </WorkspaceProvider>
   );
 }

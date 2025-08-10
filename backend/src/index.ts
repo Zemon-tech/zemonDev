@@ -16,20 +16,13 @@ import errorMiddleware from './middleware/error.middleware';
 import AppError from './utils/AppError';
 import { initializeSocketIO } from './services/socket.service';
 
-console.log('[DEBUG] CLERK_SECRET_KEY:', process.env.CLERK_SECRET_KEY);
-console.log('[DEBUG] CLERK_JWT_KEY:', process.env.CLERK_JWT_KEY);
-console.log('[DEBUG] CLERK_ISSUER:', process.env.CLERK_ISSUER);
-
 // Initialize Express app
 const app = express();
 
 // Create HTTP server
 const server = createServer(app);
 
-// Connect to MongoDB
-connectDB();
-
-// Connect to Redis
+// Connect to Redis (non-blocking)
 connectRedis();
 
 // Middleware
@@ -86,23 +79,30 @@ const io = initializeSocketIO(server);
 // Initialize Change Streams service for real-time notifications
 import changeStreamsService from './services/changeStreams.service';
 
-// Start server
+// Start server only after MongoDB connection is established
 const PORT = process.env.PORT || 5000;
 const SOCKET_PORT = process.env.SOCKET_IO_PORT || PORT;
 
-server.listen(PORT, async () => {
-  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-  console.log(`API available at http://localhost:${PORT}/api`);
-  console.log(`Socket.IO available on port ${PORT}`);
-  
-  try {
-    // Initialize Change Streams service after server is ready
-    await changeStreamsService.initialize();
-    console.log('Change Streams service initialized');
-  } catch (error) {
-    console.error('Failed to initialize Change Streams service:', error);
-  }
-});
+connectDB()
+  .then(() => {
+    server.listen(PORT, async () => {
+      console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+      console.log(`API available at http://localhost:${PORT}/api`);
+      console.log(`Socket.IO available on port ${PORT}`);
+
+      try {
+        // Initialize Change Streams service after DB is connected and server is ready
+        await changeStreamsService.initialize();
+        console.log('Change Streams service initialized');
+      } catch (error) {
+        console.error('Failed to initialize Change Streams service:', error);
+      }
+    });
+  })
+  .catch((error) => {
+    console.error('Failed to connect to MongoDB. Server will not start.', error);
+    process.exit(1);
+  });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', async (err: Error) => {

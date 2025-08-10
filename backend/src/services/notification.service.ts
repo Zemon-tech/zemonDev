@@ -52,8 +52,8 @@ export const createNotification = async (notificationData: NotificationData): Pr
 
     const savedNotification = await notification.save();
 
-    // Emit real-time notification to user
-    emitToUser(notificationData.userId, 'notification_received', {
+    // Emit real-time notification to user (ensure room join key is string of Mongo ObjectId)
+    emitToUser(String(savedNotification.userId), 'notification_received', {
       id: savedNotification._id,
       type: savedNotification.type,
       title: savedNotification.title,

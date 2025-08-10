@@ -619,7 +619,31 @@ export const emitToUser = (userId: string, event: string, data: any) => {
     if (!io) {
       throw new Error('Socket.IO not initialized');
     }
-    io.to(`user:${userId}`).emit(event, data);
+    const roomName = `user:${userId}`;
+    const room = io.sockets.adapter.rooms.get(roomName);
+    const roomSize = room ? room.size : 0;
+    logger.info('Emitting to user room', {
+      room: roomName,
+      event,
+      roomSize,
+      timestamp: new Date().toISOString()
+    });
+    io.to(roomName).emit(event, data);
+
+    // Fallback: if room appears empty, emit directly to matching sockets (debug aid)
+    if (!roomSize) {
+      let directEmits = 0;
+      for (const [socketId, s] of io.sockets.sockets) {
+        const sUserId = (s as any).data?.user?.userId;
+        if (sUserId === userId) {
+          s.emit(event, data);
+          directEmits += 1;
+        }
+      }
+      if (directEmits > 0) {
+        logger.info('Fallback direct emit used', { userId, event, directEmits });
+      }
+    }
   } catch (error) {
     logger.error('Error emitting to user:', {
       userId,

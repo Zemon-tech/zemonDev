@@ -12,7 +12,7 @@ interface ChangeStreamConfig {
 
 interface ResumeTokenDocument {
   _id: string;
-  token: string;
+  token: any; // Change Streams resume token can be an object (e.g., {_data: ...})
   lastProcessedAt: Date;
   updatedAt: Date;
 }
@@ -35,7 +35,7 @@ class ChangeStreamsService {
       this.config.resumeTokenCollection,
       new mongoose.Schema({
         _id: String,
-        token: String,
+        token: mongoose.Schema.Types.Mixed, // allow storing the raw resume token object
         lastProcessedAt: Date,
         updatedAt: { type: Date, default: Date.now }
       })
@@ -232,7 +232,7 @@ class ChangeStreamsService {
   /**
    * Get the stored resume token
    */
-  private async getResumeToken(): Promise<string | null> {
+  private async getResumeToken(): Promise<any | null> {
     try {
       const doc = await this.resumeTokenModel.findById(this.config.resumeTokenDocumentId);
       return doc?.token || null;
