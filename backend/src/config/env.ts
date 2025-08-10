@@ -16,6 +16,7 @@ interface EnvConfig {
   GEMINI_PRO_API_KEY: string;
   CLERK_SECRET_KEY: string;
   CORS_ORIGIN: string;
+  ENABLE_CHANGE_STREAMS: boolean;
 }
 
 // Define and validate environment variables
@@ -31,6 +32,7 @@ const env: EnvConfig = {
   GEMINI_PRO_API_KEY: process.env.GEMINI_PRO_API_KEY || '',
   CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || '',
   CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  ENABLE_CHANGE_STREAMS: process.env.ENABLE_CHANGE_STREAMS === 'true',
 };
 
 // Validate required environment variables

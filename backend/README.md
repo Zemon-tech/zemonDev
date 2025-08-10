@@ -106,3 +106,40 @@ npx ts-node src/migrations/[migration-file-name].ts
 ### Available Migrations
 
 - `remove-status-visibility-crucible-notes.ts` - Removes the status and visibility fields from CrucibleNote documents 
+
+## Features
+
+- **Real-time Notifications**: MongoDB Change Streams for instant notification delivery
+- **WebSocket Support**: Socket.IO for real-time communication
+- **Authentication**: Clerk-based user authentication
+- **AI Integration**: Gemini AI assistant for user queries
+- **Caching**: Redis-based caching for improved performance
+- **Vector Search**: Upstash Vector for semantic search capabilities
+
+## Real-time Notifications
+
+The backend includes a MongoDB Change Streams service that provides real-time notifications when admin-created notifications are inserted into the database.
+
+### Configuration
+Enable real-time notifications by setting the environment variable:
+```bash
+export ENABLE_CHANGE_STREAMS=true
+```
+
+### Requirements
+- MongoDB must be running as a replica set
+- Database user must have `changeStream` capability
+
+### Testing
+Use the provided test script to verify the implementation:
+```bash
+node test-change-streams.js
+```
+
+### Monitoring
+Check the service status via the health endpoint:
+```bash
+curl http://localhost:5000/api/health/change-streams
+```
+
+For detailed documentation, see [docs/CHANGE_STREAMS_IMPLEMENTATION.md](../docs/CHANGE_STREAMS_IMPLEMENTATION.md). 

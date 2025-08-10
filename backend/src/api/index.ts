@@ -12,18 +12,12 @@ import nirvanaRoutes from './nirvana.routes';
 import adminRoutes from './admin.routes';
 import profileRoutes from './profile.routes';
 import notificationRoutes from './notification.routes';
+import healthRoutes from './health.routes';
 
 const router = Router();
 
-// Health check endpoint
-router.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'success',
-    message: 'API is healthy',
-    time: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
+// Health check routes
+router.use('/health', healthRoutes);
 
 // API Routes
 router.use('/users', userRoutes);

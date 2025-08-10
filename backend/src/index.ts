@@ -83,6 +83,9 @@ app.use(errorMiddleware);
 // Initialize Socket.IO
 const io = initializeSocketIO(server);
 
+// Initialize Change Streams service for real-time notifications
+import changeStreamsService from './services/changeStreams.service';
+
 // Start server
 const PORT = process.env.PORT || 5000;
 const SOCKET_PORT = process.env.SOCKET_IO_PORT || PORT;
@@ -91,12 +94,28 @@ server.listen(PORT, async () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   console.log(`API available at http://localhost:${PORT}/api`);
   console.log(`Socket.IO available on port ${PORT}`);
+  
+  try {
+    // Initialize Change Streams service after server is ready
+    await changeStreamsService.initialize();
+    console.log('Change Streams service initialized');
+  } catch (error) {
+    console.error('Failed to initialize Change Streams service:', error);
+  }
 });
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (err: Error) => {
+process.on('uncaughtException', async (err: Error) => {
   console.error('UNCAUGHT EXCEPTION! 💥 Shutting down...');
   console.error(err.name, err.message);
+  
+  // Stop Change Streams service
+  try {
+    await changeStreamsService.stop();
+  } catch (error) {
+    console.error('Error stopping Change Streams service:', error);
+  }
+  
   // Gracefully close server and exit
   server.close(() => {
     process.exit(1);
@@ -104,12 +123,37 @@ process.on('uncaughtException', (err: Error) => {
 });
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (err: Error) => {
+process.on('unhandledRejection', async (err: Error) => {
   console.error('UNHANDLED REJECTION! 💥 Shutting down...');
   console.error(err.name, err.message);
+  
+  // Stop Change Streams service
+  try {
+    await changeStreamsService.stop();
+  } catch (error) {
+    console.error('Error stopping Change Streams service:', error);
+  }
+  
   // Gracefully close server and exit
   server.close(() => {
     process.exit(1);
+  });
+});
+
+// Graceful shutdown on SIGTERM
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  
+  // Stop Change Streams service
+  try {
+    await changeStreamsService.stop();
+  } catch (error) {
+    console.error('Error stopping Change Streams service:', error);
+  }
+  
+  server.close(() => {
+    console.log('Process terminated');
+    process.exit(0);
   });
 });
 

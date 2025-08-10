@@ -23,7 +23,7 @@ This document summarizes problems found across the Quild notification system spa
     - User: `backend/src/models/notification.model.ts` and service/type unions omit `'system'`.
   - Impact: Admin-created `system` notifications will exist in DB but are not recognized consistently by user code/types. UI filtering in user app won’t offer `system` and TS unions diverge from stored data.
 
-- **TTL policy inconsistency**
+✅ **TTL policy inconsistency**
   - User backend applies a TTL index on `createdAt` (30 days) and also has a simple (non-TTL) index on `expiresAt`.
     - `backend/src/models/notification.model.ts` adds `createdAt` TTL via `expireAfterSeconds: 30d`.
   - Admin backend attaches TTL to `expiresAt` with `{ expireAfterSeconds: 0 }` (per-doc expiration) and no `createdAt` TTL.
@@ -35,7 +35,7 @@ This document summarizes problems found across the Quild notification system spa
   - Impact: Indexes may differ between services; at startup both may attempt to build different index sets on the same collection. This can cause performance variability and potential index build churn.
 
 ### Real-time Delivery Gaps
-- **No real-time bridge from admin writes to user sockets**
+✅ **No real-time bridge from admin writes to user sockets**
   - Admin create/bulk endpoints in `backend-admin` only insert into MongoDB; they do not emit real-time events to users (and are a separate service/process from user backend’s Socket.IO server).
   - Impact: Users do not receive real-time notifications for admin-created items; they only see them on next fetch.
 
