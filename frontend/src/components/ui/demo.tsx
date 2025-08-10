@@ -1,11 +1,11 @@
-import { Case } from "@/components/ui/cases-with-infinite-scroll";
+import { Feature } from "@/components/ui/feature"
 
-function CaseDemo() {
+function FeatureDemo() {
   return (
     <div className="block">
-      <Case />
+      <Feature />
     </div>
   );
 }
 
-export { CaseDemo }; 
+export { FeatureDemo }; 

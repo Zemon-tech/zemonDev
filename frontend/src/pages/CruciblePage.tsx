@@ -110,41 +110,7 @@ export default function CruciblePage() {
   const { toast } = useToast();
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
   
-  // Real hot problems data with actual problem IDs
-  const mockHotProblems: HotProblem[] = [
-    {
-      id: '507f1f77bcf86cd799439011', // Design a URL Shortener
-      title: 'Design a URL Shortener',
-      difficulty: 'medium',
-      category: 'system-design',
-      solvedCount: 156,
-      trending: true
-    },
-    {
-      id: '507f1f77bcf86cd799439012', // Implement LRU Cache
-      title: 'Implement LRU Cache',
-      difficulty: 'hard',
-      category: 'algorithms',
-      solvedCount: 89,
-      trending: true
-    },
-    {
-      id: '507f1f77bcf86cd799439013', // Build a Real-time Chat App
-      title: 'Build a Real-time Chat App',
-      difficulty: 'medium',
-      category: 'web-development',
-      solvedCount: 234,
-      trending: false
-    },
-    {
-      id: '507f1f77bcf86cd799439014', // Design a Rate Limiter
-      title: 'Design a Rate Limiter',
-      difficulty: 'hard',
-      category: 'system-design',
-      solvedCount: 67,
-      trending: true
-    }
-  ];
+
   
   // Fetch problems from API
   const fetchProblems = async () => {
@@ -164,14 +130,11 @@ export default function CruciblePage() {
       if (problemsData && Array.isArray(problemsData)) {
         // setProblems(problemsData); // Removed as per edit hint
         
-        // Update category counts
+        // Update category counts using the new category field
         const categoryCounts = problemsData.reduce((acc: any, problem: any) => {
-          problem.tags.forEach((tag: string) => {
-            const category = problemCategories.find(cat => cat.id === tag);
-            if (category) {
-              acc[category.id] = (acc[category.id] || 0) + 1;
-            }
-          });
+          if (problem.category) {
+            acc[problem.category] = (acc[problem.category] || 0) + 1;
+          }
           return acc;
         }, {});
         
@@ -221,7 +184,7 @@ export default function CruciblePage() {
           id: t.problemId,
           title: t.title,
           difficulty: t.difficulty,
-          category: (t.tags && t.tags[0]) || 'general',
+          category: t.category || 'general',
           solvedCount: t.solvedCount,
           trending: true,
         }));

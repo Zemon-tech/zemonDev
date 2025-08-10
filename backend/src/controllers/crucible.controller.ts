@@ -119,7 +119,7 @@ export const getTrendingChallenges = asyncHandler(
             foreignField: '_id',
             as: 'problem',
             pipeline: [
-              { $project: { title: 1, difficulty: 1, tags: 1 } },
+              { $project: { title: 1, difficulty: 1, category: 1, tags: 1 } },
             ],
           },
         },
@@ -131,6 +131,7 @@ export const getTrendingChallenges = asyncHandler(
             solvedCount: 1,
             title: '$problem.title',
             difficulty: '$problem.difficulty',
+            category: '$problem.category',
             tags: '$problem.tags',
           },
         },

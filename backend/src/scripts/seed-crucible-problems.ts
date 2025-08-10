@@ -46,6 +46,7 @@ const dummyProblems = [
       'Plan for database sharding'
     ],
     difficulty: 'easy',
+    category: 'system-design',
     tags: ['database', 'api', 'scaling', 'backend'],
     createdBy: DUMMY_USER_ID,
     metrics: {
@@ -87,6 +88,7 @@ const dummyProblems = [
       'Plan for message persistence'
     ],
     difficulty: 'medium',
+    category: 'web-development',
     tags: ['realtime', 'api', 'scaling', 'frontend', 'backend'],
     createdBy: DUMMY_USER_ID,
     metrics: {
@@ -128,6 +130,7 @@ const dummyProblems = [
       'Plan for clock synchronization issues'
     ],
     difficulty: 'hard',
+    category: 'backend',
     tags: ['api', 'scaling', 'backend', 'security'],
     createdBy: DUMMY_USER_ID,
     metrics: {

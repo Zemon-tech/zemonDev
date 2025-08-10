@@ -19,6 +19,7 @@ export interface ICrucibleProblem extends Document {
   title: string;
   description: string;
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+  category: 'algorithms' | 'system-design' | 'web-development' | 'mobile-development' | 'data-science' | 'devops' | 'frontend' | 'backend';
   tags: string[];
   requirements: {
     functional: string[];
@@ -68,6 +69,12 @@ const CrucibleProblemSchema: Schema = new Schema(
       type: String,
       enum: ['easy', 'medium', 'hard', 'expert'],
       default: 'medium',
+      index: true,
+    },
+    category: {
+      type: String,
+      enum: ['algorithms', 'system-design', 'web-development', 'mobile-development', 'data-science', 'devops', 'frontend', 'backend'],
+      default: 'algorithms',
       index: true,
     },
     tags: {

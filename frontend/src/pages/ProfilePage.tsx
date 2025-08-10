@@ -3,6 +3,7 @@ import { useUser, useAuth } from '@clerk/clerk-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import BackgroundSelector, { BackgroundOption, gradientOptions } from '@/components/ui/background-selector';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -194,56 +195,40 @@ export default function ProfilePage() {
     }
   }, [userProfile]);
 
-  // Fetch Crucible data when tab is active
+  // Fetch Crucible and Forge data when combined tab is active
   useEffect(() => {
-    const fetchCrucibleData = async () => {
-      if (activeTab === 'crucible' && getToken && !crucibleLoading) {
+    const fetchCombinedData = async () => {
+      if (activeTab === 'crucible-forge' && getToken && (!crucibleLoading && !forgeLoading)) {
         setCrucibleLoading(true);
+        setForgeLoading(true);
         setCrucibleError(null);
+        setForgeError(null);
         
         try {
-          const [analyses, drafts] = await Promise.all([
+          const [analyses, drafts, bookmarked] = await Promise.all([
             getUserAnalysisHistory(getToken),
-            getUserActiveDrafts(getToken)
+            getUserActiveDrafts(getToken),
+            getBookmarkedResources(getToken)
           ]);
           
           setAnalysisHistory(analyses);
           setActiveDrafts(drafts);
-        } catch (error) {
-          console.error('Error fetching Crucible data:', error);
-          setCrucibleError('Failed to load Crucible data');
-          setAnalysisHistory([]);
-          setActiveDrafts([]);
-        } finally {
-          setCrucibleLoading(false);
-        }
-      }
-    };
-
-    fetchCrucibleData();
-  }, [activeTab, getToken]);
-
-  // Fetch Forge data when tab is active
-  useEffect(() => {
-    const fetchForgeData = async () => {
-      if (activeTab === 'forge' && getToken && !forgeLoading) {
-        setForgeLoading(true);
-        setForgeError(null);
-        
-        try {
-          const bookmarked = await getBookmarkedResources(getToken);
           setBookmarkedResources(bookmarked);
         } catch (error) {
-          console.error('Error fetching Forge data:', error);
+          console.error('Error fetching combined data:', error);
+          setCrucibleError('Failed to load Crucible data');
           setForgeError('Failed to load Forge data');
+          setAnalysisHistory([]);
+          setActiveDrafts([]);
           setBookmarkedResources([]);
         } finally {
+          setCrucibleLoading(false);
           setForgeLoading(false);
         }
       }
     };
 
-    fetchForgeData();
+    fetchCombinedData();
   }, [activeTab, getToken]);
 
   // Function to save background to backend
@@ -350,9 +335,8 @@ export default function ProfilePage() {
   // Tab definitions
   const tabs = [
     { id: 'overview', label: 'Overview' },
-    { id: 'crucible', label: 'Crucible' },
+    { id: 'crucible-forge', label: 'Crucible & Forge' },
     // { id: 'arena', label: 'Arena' }, // HIDDEN
-    { id: 'forge', label: 'Forge' },
     { id: 'achievements', label: 'Achievements & Skills' },
     // { id: 'innovation', label: 'Innovation & Workspace' }, // HIDDEN
   ];
@@ -1160,140 +1144,343 @@ export default function ProfilePage() {
             </div>
           </motion.div>
         )}
-        {activeTab === 'forge' && (
+        {/* Forge tab content removed - now integrated into crucible-forge tab */}
+        {activeTab === 'crucible-forge' && (
           <motion.div 
-            key="forge"
+            key="crucible-forge"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.5 }}
-            className="w-full"
+            className="w-full mb-10"
           >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[
-                // { 
-                //   title: "Created Resources", 
-                //   items: mockUserData.forge?.createdResources || [], 
-                //   icon: Hammer, 
-                //   color: "from-orange-500 to-red-600",
-                //   bg: "from-orange-50 to-red-50",
-                //   description: "Resources you've contributed"
-                // },
-                { 
-                  title: "Bookmarked Resources", 
-                  items: bookmarkedResources.map((resource: any) => resource.title || resource.name || 'Untitled Resource'), 
-                  icon: Bookmark, 
-                  color: "from-blue-500 to-indigo-600",
-                  bg: "from-blue-50 to-indigo-50",
-                  description: "Saved for later reference",
-                  loading: forgeLoading,
-                  error: forgeError
-                },
-                // { 
-                //   title: "Community Reviews", 
-                //   items: mockUserData.forge?.reviews || [], 
-                //   icon: Star, 
-                //   color: "from-emerald-500 to-teal-600",
-                //   bg: "from-emerald-50 to-teal-50",
-                //   description: "Reviews you've provided"
-                // }
-              ].map((section, index) => (
-                <motion.div
-                  key={section.title}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                >
-                  <Card className="overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 rounded-xl border border-base-300 bg-base-100 group cursor-pointer h-full">
-                    <CardContent className="p-6 h-full flex flex-col">
+            {/* Beautiful Header Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="mb-8"
+            >
+              <div className="text-center">
+                <h2 className="text-3xl font-bold text-base-content mb-3 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                  Crucible & Forge Workspace
+                </h2>
+                <p className="text-lg text-base-content/70 max-w-2xl mx-auto">
+                  Your coding challenges, solution journeys, and curated learning resources
+                </p>
+                <div className="flex items-center justify-center gap-4 mt-4">
+                  {(crucibleLoading || forgeLoading) && (
+                    <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
+                      <span className="text-sm font-medium">Loading workspace...</span>
+                    </div>
+                  )}
+                  {(crucibleError || forgeError) && (
+                    <div className="flex items-center gap-2 px-4 py-2 bg-error/10 text-error rounded-full">
+                      <span className="text-sm font-medium">Some data failed to load</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Left Column - Crucible */}
+              <motion.div
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="space-y-6"
+              >
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <Target className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-base-content mb-2">Crucible Challenges</h3>
+                  <p className="text-base-content/70">Your coding journey and problem-solving adventures</p>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Solution Journeys */}
+                  <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl border border-base-300 bg-base-100 group">
+                    <CardContent className="p-6">
                       <div className="flex items-center gap-3 mb-4">
-                        <div className={`w-10 h-10 ${
-                          index % 3 === 0 ? 'bg-primary' : 
-                          index % 3 === 1 ? 'bg-secondary' : 'bg-accent'
-                        } rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
-                          <section.icon className="w-5 h-5 text-primary-content" />
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+                          <Target className="w-5 h-5 text-white" />
                         </div>
-                        <div>
-                          <h2 className="text-xl font-semibold text-base-content">{section.title}</h2>
-                          <p className="text-sm text-base-content/70">{section.description}</p>
+                        <div className="flex-1">
+                          <h4 className="text-lg font-semibold text-base-content">Solution Journeys</h4>
+                          <p className="text-sm text-base-content/70">Completed analyses</p>
                         </div>
+                        <Badge variant="outline" className="text-xs">Completed</Badge>
                       </div>
                       
-                      <div className="space-y-3 flex-1">
-                        {/* Loading State */}
-                        {section.loading && (
-                          <motion.div 
-                            className="flex flex-col items-center justify-center py-8"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <div className="relative">
-                              <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
-                              <div className="absolute inset-0 rounded-full border-2 border-primary/20"></div>
-                            </div>
-                            <span className="mt-3 text-sm text-base-content/70 font-medium">Loading {section.title.toLowerCase()}...</span>
-                          </motion.div>
+                      <div className="space-y-3">
+                        {crucibleLoading ? (
+                          <div className="flex items-center justify-center py-6">
+                            <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent"></div>
+                          </div>
+                        ) : crucibleError ? (
+                          <div className="text-center py-6 text-error text-sm">
+                            Failed to load solutions
+                          </div>
+                        ) : analysisHistory.length === 0 ? (
+                          <div className="text-center py-6 text-base-content/50 text-sm">
+                            <Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p>No solutions yet</p>
+                            <p className="text-xs">Complete your first challenge!</p>
+                          </div>
+                        ) : (
+                          analysisHistory.slice(0, 3).map((analysis, index) => (
+                            <motion.div
+                              key={index}
+                              className="flex items-center gap-3 p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 cursor-pointer group/item"
+                              whileHover={{ scale: 1.02, x: 5 }}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
+                              onClick={() => handleAnalysisClick(analysis)}
+                            >
+                              <div className="w-2 h-2 bg-blue-500 rounded-full group-hover/item:scale-125 transition-transform duration-300" />
+                              <span className="text-base-content font-medium flex-1">{analysis.problemId.title}</span>
+                              <ChevronRight className="w-4 h-4 text-base-content/50 transition-all duration-300" />
+                            </motion.div>
+                          ))
                         )}
-                        
-                        {/* Error State */}
-                        {section.error && !section.loading && (
-                          <motion.div 
-                            className="flex flex-col items-center justify-center py-8 text-center"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <div className="w-12 h-12 bg-error/10 rounded-full flex items-center justify-center mb-3">
-                              <span className="text-error text-xl">⚠️</span>
-                            </div>
-                            <span className="text-sm font-medium text-error mb-1">Failed to load</span>
-                            <span className="text-xs text-base-content/50">{section.error}</span>
-                          </motion.div>
+                        {analysisHistory.length > 3 && (
+                          <div className="text-center pt-2">
+                            <Badge variant="outline" className="text-xs cursor-pointer hover:bg-base-200">
+                              +{analysisHistory.length - 3} more
+                            </Badge>
+                          </div>
                         )}
-                        
-                        {/* Empty State */}
-                        {!section.loading && !section.error && section.items.length === 0 && (
-                          <motion.div 
-                            className="flex flex-col items-center justify-center py-8 text-center"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <div className="w-12 h-12 bg-base-300 rounded-full flex items-center justify-center mb-3">
-                              <section.icon className="w-6 h-6 text-base-content/50" />
-                            </div>
-                            <span className="text-sm font-medium text-base-content/70 mb-1">No {section.title.toLowerCase()} yet</span>
-                            <span className="text-xs text-base-content/50">Start bookmarking resources to see them here</span>
-                          </motion.div>
-                        )}
-                        
-                        {/* Items */}
-                        {!section.loading && !section.error && section.items.map((item, itemIndex) => (
-                          <motion.div
-                            key={itemIndex}
-                            className="flex items-center gap-3 p-4 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 group/item"
-                            whileHover={{ scale: 1.02, x: 5 }}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.4, delay: 0.2 + itemIndex * 0.1 }}
-                          >
-                            <div className="flex items-center gap-3 flex-1">
-                              <div className="w-3 h-3 bg-primary rounded-full group-hover/item:scale-125 transition-transform duration-300" />
-                              <span className="text-base-content font-medium">{item}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-base-content/50">
-                              <Eye className="w-4 h-4" />
-                              <span className="text-sm">{Math.floor(Math.random() * 200) + 50}</span>
-                            </div>
-                          </motion.div>
-                        ))}
                       </div>
                     </CardContent>
                   </Card>
-                </motion.div>
-              ))}
+
+                  {/* Active Drafts */}
+                  <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl border border-base-300 bg-base-100 group">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-md">
+                          <BookOpen className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-lg font-semibold text-base-content">Active Drafts</h4>
+                          <p className="text-sm text-base-content/70">Work in progress</p>
+                        </div>
+                        <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
+                          In Progress
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {crucibleLoading ? (
+                          <div className="flex items-center justify-center py-6">
+                            <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent"></div>
+                          </div>
+                        ) : crucibleError ? (
+                          <div className="text-center py-6 text-error text-sm">
+                            Failed to load drafts
+                          </div>
+                        ) : activeDrafts.length === 0 ? (
+                          <div className="text-center py-6 text-base-content/50 text-sm">
+                            <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p>No active drafts</p>
+                            <p className="text-xs">Start a new problem!</p>
+                          </div>
+                        ) : (
+                          activeDrafts.slice(0, 3).map((draft, index) => (
+                            <motion.div
+                              key={index}
+                              className="flex items-center gap-3 p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 cursor-pointer group/item"
+                              whileHover={{ scale: 1.02, x: 5 }}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
+                              onClick={() => handleDraftClick(draft)}
+                            >
+                              <div className="w-2 h-2 bg-emerald-500 rounded-full group-hover/item:scale-125 transition-transform duration-300" />
+                              <span className="text-base-content font-medium flex-1">{draft.problemId.title}</span>
+                              <ChevronRight className="w-4 h-4 text-base-content/50 transition-all duration-300" />
+                            </motion.div>
+                          ))
+                        )}
+                        {activeDrafts.length > 3 && (
+                          <div className="text-center pt-2">
+                            <Badge variant="outline" className="text-xs cursor-pointer hover:bg-base-200 bg-emerald-50 text-emerald-700 border-emerald-200">
+                              +{activeDrafts.length - 3} more
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </motion.div>
+
+              {/* Right Column - Forge */}
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="space-y-6"
+              >
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <Hammer className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-base-content mb-2">Forge Resources</h3>
+                  <p className="text-base-content/70">Curated learning materials and knowledge base</p>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Bookmarked Resources */}
+                  <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl border border-base-300 bg-base-100 group">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center shadow-md">
+                          <Bookmark className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-lg font-semibold text-base-content">Bookmarked Resources</h4>
+                          <p className="text-sm text-base-content/70">Saved for later reference</p>
+                        </div>
+                        <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                          Saved
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {forgeLoading ? (
+                          <div className="flex items-center justify-center py-6">
+                            <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent"></div>
+                          </div>
+                        ) : forgeError ? (
+                          <div className="text-center py-6 text-error text-sm">
+                            Failed to load resources
+                          </div>
+                        ) : bookmarkedResources.length === 0 ? (
+                          <div className="text-center py-6 text-base-content/50 text-sm">
+                            <Bookmark className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p>No bookmarks yet</p>
+                            <p className="text-xs">Start saving resources!</p>
+                          </div>
+                        ) : (
+                          bookmarkedResources.slice(0, 3).map((resource: any, index) => (
+                            <motion.div
+                              key={index}
+                              className="flex items-center gap-3 p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 cursor-pointer group/item"
+                              whileHover={{ scale: 1.02, x: 5 }}
+                              initial={{ opacity: 0, x: 20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.4, delay: 0.5 + index * 0.1 }}
+                            >
+                              <div className="w-2 h-2 bg-orange-500 rounded-full group-hover/item:scale-125 transition-transform duration-300" />
+                              <span className="text-base-content font-medium flex-1">
+                                {resource.title || resource.name || 'Untitled Resource'}
+                              </span>
+                              <div className="flex items-center gap-2 text-base-content/50">
+                                <Eye className="w-4 h-4" />
+                                <span className="text-xs">{Math.floor(Math.random() * 200) + 50}</span>
+                              </div>
+                            </motion.div>
+                          ))
+                        )}
+                        {bookmarkedResources.length > 3 && (
+                          <div className="text-center pt-2">
+                            <Badge variant="outline" className="text-xs cursor-pointer hover:bg-base-200 bg-orange-50 text-orange-700 border-orange-200">
+                              +{bookmarkedResources.length - 3} more
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Quick Stats */}
+                  <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl border border-base-300 bg-base-100">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md">
+                          <TrendingUp className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-lg font-semibold text-base-content">Workspace Stats</h4>
+                          <p className="text-sm text-base-content/70">Your progress overview</p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="text-center p-3 rounded-lg bg-base-200">
+                          <div className="text-2xl font-bold text-primary mb-1">
+                            {analysisHistory.length}
+                          </div>
+                          <div className="text-xs text-base-content/70">Solutions</div>
+                        </div>
+                        <div className="text-center p-3 rounded-lg bg-base-200">
+                          <div className="text-2xl font-bold text-secondary mb-1">
+                            {activeDrafts.length}
+                          </div>
+                          <div className="text-xs text-base-content/70">Drafts</div>
+                        </div>
+                        <div className="text-center p-3 rounded-lg bg-base-200">
+                          <div className="text-2xl font-bold text-accent mb-1">
+                            {bookmarkedResources.length}
+                          </div>
+                          <div className="text-xs text-base-content/70">Resources</div>
+                        </div>
+                        <div className="text-center p-3 rounded-lg bg-base-200">
+                          <div className="text-2xl font-bold text-info mb-1">
+                            {Math.floor((analysisHistory.length + activeDrafts.length + bookmarkedResources.length) / 3)}
+                          </div>
+                          <div className="text-xs text-base-content/70">Avg. Score</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </motion.div>
             </div>
+
+            {/* Bottom CTA Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="mt-12 text-center"
+            >
+              <Card className="overflow-hidden shadow-lg border border-base-300 bg-gradient-to-r from-base-100 to-base-200">
+                <CardContent className="p-8">
+                  <div className="flex items-center justify-center gap-3 mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+                      <Rocket className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-base-content">Ready to Level Up?</h3>
+                  </div>
+                  <p className="text-base-content/70 mb-6 max-w-md mx-auto">
+                    Continue your coding journey with new challenges and expand your knowledge with curated resources.
+                  </p>
+                  <div className="flex flex-wrap gap-3 justify-center">
+                    <Button 
+                      variant="default" 
+                      className="gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90"
+                    >
+                      <Target className="w-4 h-4" />
+                      Start New Challenge
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="gap-2 border-base-300 hover:bg-base-200"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      Explore Resources
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           </motion.div>
         )}
         {activeTab === 'achievements' && (

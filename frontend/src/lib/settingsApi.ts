@@ -206,6 +206,7 @@ export interface ProjectData {
   images: string[];
   gitRepositoryUrl: string;
   demoUrl: string;
+  isArchived?: boolean;
 }
 
 /**

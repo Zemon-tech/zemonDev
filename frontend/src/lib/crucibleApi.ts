@@ -9,6 +9,7 @@ export interface ICrucibleProblem {
   title: string;
   description: string;
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+  category: 'algorithms' | 'system-design' | 'web-development' | 'mobile-development' | 'data-science' | 'devops' | 'frontend' | 'backend';
   tags: string[];
   requirements: {
     functional: string[];
@@ -384,6 +385,7 @@ export interface ITrendingProblem {
   problemId: string;
   title: string;
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+  category?: 'algorithms' | 'system-design' | 'web-development' | 'mobile-development' | 'data-science' | 'devops' | 'frontend' | 'backend';
   tags?: string[];
   solvedCount: number;
 }
