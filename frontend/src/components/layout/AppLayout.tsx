@@ -7,11 +7,12 @@ import { useSidebar } from '@/lib/SidebarContext';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownItem } from '@/components/ui/dropdown-menu';
 import { useArenaChannels, Channel as ArenaChannel } from '@/hooks/useArenaChannels';
-import NotificationDropdown from '@/components/notifications/NotificationDropdown';
-import { useNotifications } from '@/hooks/useNotifications';
+import { NotificationPopover } from '@/components/notifications/NotificationPopover';
+import { useNotification } from '@/hooks/useNotification';
+import Toaster from '@/components/ui/toast';
 
 // Icons
-import { Search, Bell, X, MessageCircle, BookOpen, FileText, StickyNote, ArrowLeft, Send, Loader2, Sparkles, Hash, Volume2, Star, MessageSquare, ChevronDown } from 'lucide-react';
+import { Search, X, MessageCircle, BookOpen, FileText, StickyNote, ArrowLeft, Send, Loader2, Sparkles, Hash, Volume2, Star, MessageSquare, ChevronDown } from 'lucide-react';
 import gsap from 'gsap';
 import { useRef } from 'react';
 // [ADD] Import useHotkeys for optional keyboard shortcut
@@ -22,14 +23,13 @@ import { Lock, Unlock } from 'lucide-react'; // [ADD] For nav lock button icon
 export default function AppLayout() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
   const { username: urlUsername } = useParams();
   const location = useLocation();
   const { isLoaded, user } = useUser();
   const navigate = useNavigate();
   
   // Notifications
-  const { unreadCount } = useNotifications();
+  const { toasterRef } = useNotification();
   
   // Arena channels data
   const { channels: arenaChannels, loading: arenaChannelsLoading } = useArenaChannels();
@@ -251,13 +251,15 @@ export default function AppLayout() {
         )}
         {/* Top Navigation - now fixed with sidebar offset */}
         <header
-          className={`fixed top-0 left-0 w-full h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between px-3 shrink-0 z-50 transition-all duration-300`}
+          className={`fixed top-0 left-0 w-full h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between shrink-0 z-50 transition-all duration-300`}
           style={{
             transform: shouldShowNav ? 'translateY(0)' : 'translateY(-100%)',
             left: `${sidebarWidth}px`,
             width: `calc(100vw - ${sidebarWidth}px)`,
             opacity: shouldShowNav ? 1 : 0,
             pointerEvents: shouldShowNav ? 'auto' : 'none',
+            paddingLeft: '12px',
+            paddingRight: '20px',
           }}
           onMouseEnter={() => focusMode && setNavHovered(true)}
           onMouseLeave={() => focusMode && !navLockedOpen && setNavHovered(false)}
@@ -480,26 +482,9 @@ export default function AppLayout() {
           </div>
           
           {/* Right side - user actions */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 mr-4">
             {/* Notifications */}
-            <div className="relative">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsNotificationDropdownOpen(!isNotificationDropdownOpen)}
-                className="h-9 w-9 p-0 rounded-lg hover:bg-base-200/80 transition-all duration-200 relative"
-              >
-                <Bell size={18} />
-                {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-error rounded-full"></span>
-                )}
-              </Button>
-              
-              <NotificationDropdown
-                isOpen={isNotificationDropdownOpen}
-                onClose={() => setIsNotificationDropdownOpen(false)}
-              />
-            </div>
+            <NotificationPopover className="h-9 w-9" toasterRef={toasterRef} />
             {/* [ADD] Nav lock button - only on Crucible Problem Page in focus mode */}
             {isCrucibleProblemPage && focusMode && (
               <Button
@@ -541,6 +526,9 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+      
+      {/* Toast notifications */}
+      <Toaster ref={toasterRef} />
     </div>
   );
 }

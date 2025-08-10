@@ -72,36 +72,36 @@ export const useToast = () => {
           exit={{ opacity: 0, y: 50, scale: 0.95 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
           className={cn(
-            'flex items-center justify-between w-full max-w-xs p-3 rounded-xl border shadow-md',
+            'flex items-center justify-between w-full max-w-xs p-3 rounded-xl border shadow-lg dark:shadow-gray-900/50',
             variantStyles[variant]
           )}
         >
           <div className="flex items-start gap-2">
             <Icon className={cn('h-4 w-4 mt-0.5 flex-shrink-0', 
-              variant === 'default' ? 'text-muted-foreground' :
-              variant === 'success' ? 'text-green-600 dark:text-green-500' :
-              variant === 'error' ? 'text-red-600 dark:text-red-500' :
-              'text-yellow-600 dark:text-yellow-500'
+              variant === 'default' ? 'text-gray-600 dark:text-gray-400' :
+              variant === 'success' ? 'text-green-600 dark:text-green-400' :
+              variant === 'error' ? 'text-red-600 dark:text-red-400' :
+              'text-yellow-600 dark:text-yellow-400'
             )} />
             <div className="space-y-0.5">
               {title && (
                 <h3 className={cn(
                   'text-xs font-medium leading-none',
-                  variant === 'default' ? 'text-foreground' :
-                  variant === 'success' ? 'text-green-700' :
-                  variant === 'error' ? 'text-red-700' :
-                  'text-yellow-700'
+                  variant === 'default' ? 'text-gray-900 dark:text-gray-100' :
+                  variant === 'success' ? 'text-green-700 dark:text-green-300' :
+                  variant === 'error' ? 'text-red-700 dark:text-red-300' :
+                  'text-yellow-700 dark:text-yellow-300'
                 )}>
                   {title}
                 </h3>
               )}
-              <p className="text-xs text-muted-foreground">{description}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{description}</p>
             </div>
           </div>
 
           <button
             onClick={() => sonnerToast.dismiss(toastId)}
-            className="rounded-full p-1 hover:bg-gray-200 dark:hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+            className="rounded-full p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
             aria-label="Dismiss notification"
           >
             <X className="h-3 w-3 text-muted-foreground" />
@@ -116,10 +116,10 @@ export const useToast = () => {
 };
 
 const variantStyles: Record<Variant, string> = {
-  default: 'bg-white border-gray-200 text-foreground',
-  success: 'bg-green-100 border-green-400 text-green-900',
-  error: 'bg-red-100 border-red-400 text-red-900',
-  warning: 'bg-yellow-100 border-yellow-400 text-yellow-900',
+  default: 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100',
+  success: 'bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800 text-green-900 dark:text-green-100',
+  error: 'bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800 text-red-900 dark:text-red-100',
+  warning: 'bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800 text-yellow-900 dark:text-yellow-100',
 };
 
 const titleColor: Record<Variant, string> = {
@@ -175,7 +175,7 @@ const Toaster = forwardRef<ToasterRef, { defaultPosition?: Position }>(
               exit="exit"
               transition={{ duration: 0.3, ease: 'easeOut' }}
               className={cn(
-                'flex items-center justify-between w-full max-w-xs p-3 rounded-xl border shadow-md',
+                'flex items-center justify-between w-full max-w-xs p-3 rounded-xl border shadow-lg dark:shadow-gray-900/50',
                 variantStyles[variant]
               )}
             >
