@@ -52,6 +52,8 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ isOpen, onC
         return '✅';
       case 'custom':
         return '📢';
+      case 'system':
+        return '⚙️';
       default:
         return '🔔';
     }

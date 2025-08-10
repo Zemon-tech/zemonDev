@@ -1,5 +1,7 @@
 # Node.js
 node_modules/
+frontend-admin/
+backend-admin/
 
 # Logs
 logs

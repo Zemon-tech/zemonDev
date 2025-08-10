@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 
 export interface NotificationData {
   userId: string;
-  type: 'hackathon' | 'news' | 'channel' | 'problem' | 'resource' | 'project_approval' | 'custom';
+  type: 'hackathon' | 'news' | 'channel' | 'problem' | 'resource' | 'project_approval' | 'custom' | 'system';
   title: string;
   message: string;
   priority?: 'low' | 'medium' | 'high' | 'urgent';
@@ -21,7 +21,7 @@ export interface NotificationData {
 }
 
 export interface BulkNotificationData {
-  type: 'hackathon' | 'news' | 'channel' | 'problem' | 'resource' | 'project_approval' | 'custom';
+  type: 'hackathon' | 'news' | 'channel' | 'problem' | 'resource' | 'project_approval' | 'custom' | 'system';
   title: string;
   message: string;
   priority?: 'low' | 'medium' | 'high' | 'urgent';

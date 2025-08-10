@@ -51,7 +51,7 @@ async function apiRequest<T>(
 export interface Notification {
   _id: string;
   userId: string;
-  type: 'hackathon' | 'news' | 'channel' | 'problem' | 'resource' | 'project_approval' | 'custom';
+  type: 'hackathon' | 'news' | 'channel' | 'problem' | 'resource' | 'project_approval' | 'custom' | 'system';
   title: string;
   message: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
@@ -81,6 +81,7 @@ export interface NotificationStats {
     resource: number;
     project_approval: number;
     custom: number;
+    system: number;
   };
   byPriority: {
     low: number;
@@ -115,7 +116,7 @@ export interface NotificationFilters {
 
 export interface CreateNotificationData {
   userId?: string; // Required for custom notifications
-  type: 'hackathon' | 'news' | 'channel' | 'problem' | 'resource' | 'project_approval' | 'custom';
+  type: 'hackathon' | 'news' | 'channel' | 'problem' | 'resource' | 'project_approval' | 'custom' | 'system';
   title: string;
   message: string;
   priority?: 'low' | 'medium' | 'high' | 'urgent';
@@ -129,7 +130,7 @@ export interface CreateNotificationData {
 }
 
 export interface BulkNotificationData {
-  type: 'hackathon' | 'news' | 'channel' | 'problem' | 'resource' | 'project_approval' | 'custom';
+  type: 'hackathon' | 'news' | 'channel' | 'problem' | 'resource' | 'project_approval' | 'custom' | 'system';
   title: string;
   message: string;
   priority?: 'low' | 'medium' | 'high' | 'urgent';

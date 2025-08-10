@@ -87,7 +87,7 @@ const io = initializeSocketIO(server);
 const PORT = process.env.PORT || 5000;
 const SOCKET_PORT = process.env.SOCKET_IO_PORT || PORT;
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   console.log(`API available at http://localhost:${PORT}/api`);
   console.log(`Socket.IO available on port ${PORT}`);
