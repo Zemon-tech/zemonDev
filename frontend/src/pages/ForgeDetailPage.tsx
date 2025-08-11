@@ -62,8 +62,8 @@ export default function ForgeDetailPage() {
         <HtmlContentRenderer 
           content={resource.content}
           className="w-full"
-          enableScripts={true}
-          enableStyles={true}
+          allowScripts={true}
+          allowStyles={true}
         />
       );
     }

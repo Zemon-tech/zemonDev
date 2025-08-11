@@ -1,6 +1,7 @@
 /**
  * Content Type Detection and Handling Utilities
  * Provides functions to detect content type and handle both markdown and HTML content
+ * Note: HTML content is now rendered without restrictions since it's created by admin team
  */
 
 /**
@@ -103,68 +104,6 @@ export function getContentType(
     default:
       return 'markdown';
   }
-}
-
-/**
- * Validates HTML content for security
- * @param html - HTML content to validate
- * @returns true if HTML appears safe, false otherwise
- */
-export function validateHtmlContent(html: string): boolean {
-  if (!html || typeof html !== 'string') return false;
-  
-  // Check for dangerous patterns
-  const dangerousPatterns = [
-    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,  // Script tags
-    /javascript:/gi,                                            // JavaScript protocol
-    /on\w+\s*=/gi,                                             // Event handlers
-    /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,    // Iframe tags (if not allowed)
-    /<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi,    // Object tags
-    /<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/gi,       // Embed tags
-  ];
-  
-  // Check if any dangerous patterns are found
-  return !dangerousPatterns.some(pattern => pattern.test(html));
-}
-
-/**
- * Sanitizes HTML content using DOMPurify
- * @param html - Raw HTML content
- * @returns Sanitized HTML content
- */
-export function sanitizeHtmlContent(html: string): string {
-  if (!html || typeof html !== 'string') return '';
-  
-  // Import DOMPurify dynamically to avoid SSR issues
-  if (typeof window !== 'undefined') {
-    const DOMPurify = require('dompurify');
-    return DOMPurify.sanitize(html, {
-      ALLOWED_TAGS: [
-        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'p', 'div', 'span', 'br', 'hr',
-        'ul', 'ol', 'li',
-        'strong', 'em', 'b', 'i', 'u', 's',
-        'blockquote', 'pre', 'code',
-        'a', 'img', 'video', 'audio', 'iframe',
-        'table', 'thead', 'tbody', 'tr', 'th', 'td',
-        'canvas', 'svg'
-      ],
-      ALLOWED_ATTR: [
-        'href', 'src', 'alt', 'title', 'class', 'id', 'style',
-        'width', 'height', 'target', 'rel', 'type', 'value',
-        'placeholder', 'required', 'disabled', 'readonly',
-        'maxlength', 'minlength', 'pattern', 'autocomplete',
-        'autofocus', 'name', 'size', 'step', 'min', 'max'
-      ],
-      ALLOW_DATA_ATTR: false,
-      ALLOW_UNKNOWN_PROTOCOLS: false,
-      FORBID_TAGS: ['script', 'object', 'embed', 'applet'],
-      FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
-    });
-  }
-  
-  // Fallback for SSR - return empty string
-  return '';
 }
 
 /**

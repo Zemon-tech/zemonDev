@@ -1,277 +1,512 @@
-import React, { useEffect, useRef } from 'react';
-import DOMPurify from 'dompurify';
+import React, { useEffect, useRef, useCallback } from 'react';
 
 interface HtmlContentRendererProps {
   content: string;
   className?: string;
-  allowedTags?: string[];
-  allowedAttributes?: string[];
-  enableScripts?: boolean;
-  enableStyles?: boolean;
+  allowScripts?: boolean;
+  allowStyles?: boolean;
 }
 
 /**
- * Secure HTML Content Renderer with CSS and JavaScript Support
- * Safely renders HTML content with DOMPurify sanitization and working script execution
+ * Full HTML Content Renderer
+ * Renders HTML content with full CSS and JavaScript support
+ * No security restrictions since content is created by admin team
+ * 
+ * This implementation properly handles:
+ * - Inline and external scripts
+ * - Event handlers (onclick, onload, etc.)
+ * - Interactive components (accordions, tabs, carousels, charts)
+ * - CSS styles and external stylesheets
+ * - DOM manipulation and dynamic content
  */
 export const HtmlContentRenderer: React.FC<HtmlContentRendererProps> = ({
   content,
   className = '',
-  allowedTags = [
-    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'p', 'div', 'span', 'br', 'hr',
-    'ul', 'ol', 'li',
-    'strong', 'em', 'b', 'i', 'u', 's',
-    'blockquote', 'pre', 'code',
-    'a', 'img', 'video', 'audio', 'iframe',
-    'table', 'thead', 'tbody', 'tr', 'th', 'td',
-    'form', 'input', 'button', 'textarea', 'select', 'option',
-    'canvas', 'svg', 'style', 'script'
-  ],
-  allowedAttributes = [
-    'href', 'src', 'alt', 'title', 'class', 'id', 'style',
-    'width', 'height', 'target', 'rel', 'type', 'value',
-    'placeholder', 'required', 'disabled', 'readonly',
-    'maxlength', 'minlength', 'pattern', 'autocomplete',
-    'autofocus', 'form', 'name', 'size', 'step', 'min', 'max',
-    'defer', 'async', 'crossorigin', 'integrity'
-  ],
-  enableScripts = true,
-  enableStyles = true
+  allowScripts = true,
+  allowStyles = true
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const processedRef = useRef<Set<string>>(new Set());
+  const styleIdRef = useRef<string>('');
+  const scriptIdRef = useRef<string>('');
+  const executedScriptsRef = useRef<Set<string>>(new Set());
+  const initializedComponentsRef = useRef<Set<string>>(new Set());
 
-  // Configure DOMPurify with allowed tags and attributes
-  const sanitizeConfig = {
-    ALLOWED_TAGS: allowedTags,
-    ALLOWED_ATTR: allowedAttributes,
-    ALLOW_DATA_ATTR: false,
-    ALLOW_UNKNOWN_PROTOCOLS: false,
-    FORBID_TAGS: ['object', 'embed', 'applet'],
-    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
-    KEEP_CONTENT: true,
-    RETURN_DOM: false,
-    RETURN_DOM_FRAGMENT: false,
-    RETURN_DOM_IMPORT: false,
-    RETURN_TRUSTED_TYPE: false,
-    SANITIZE_DOM: true,
-    WHOLE_DOCUMENT: false,
-  };
+  // Generate unique IDs for this component instance
+  useEffect(() => {
+    if (!styleIdRef.current) {
+      styleIdRef.current = `html-content-styles-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+    if (!scriptIdRef.current) {
+      scriptIdRef.current = `html-content-scripts-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+  }, []);
 
-  // Sanitize the HTML content
-  let sanitizedContent = DOMPurify.sanitize(content, sanitizeConfig);
+  // Function to execute scripts properly
+  const executeScripts = useCallback(async () => {
+    if (!containerRef.current || !allowScripts) return;
 
-  // Post-process HTML to enhance external links and extract styles/scripts
-  if (typeof window !== 'undefined') {
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = sanitizedContent;
-    
-    // Find all external links and add target="_blank" and rel="noopener noreferrer"
-    const links = tempDiv.querySelectorAll('a[href]');
-    links.forEach(link => {
-      const href = link.getAttribute('href');
-      if (href && (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//'))) {
-        link.setAttribute('target', '_blank');
-        link.setAttribute('rel', 'noopener noreferrer');
-        // Add external link indicator class
-        link.classList.add('external-link');
-      }
-    });
-    
-    sanitizedContent = tempDiv.innerHTML;
-  }
+    try {
+      const container = containerRef.current;
 
-  // Function to safely execute scripts
-  const executeScripts = (container: HTMLElement) => {
-    if (!enableScripts) return;
+      // Step 1: Handle external scripts first
+      const externalScripts = container.querySelectorAll('script[src]');
+      const externalScriptPromises: Promise<void>[] = [];
 
-    const scripts = container.querySelectorAll('script');
-    console.log(`Found ${scripts.length} scripts to execute`);
-    
-    scripts.forEach((script, index) => {
-      // Create a unique ID for this script to avoid duplicate execution
-      const scriptId = `script-${Date.now()}-${index}`;
-      if (processedRef.current.has(scriptId)) return;
-      
-      try {
-        if (script.src) {
-          // External script
-          console.log(`Loading external script: ${script.src}`);
-          const newScript = document.createElement('script');
-          newScript.src = script.src;
-          newScript.async = script.async;
-          newScript.defer = script.defer;
-          newScript.type = script.type || 'text/javascript';
-          newScript.crossOrigin = script.crossOrigin;
-          newScript.integrity = script.integrity;
+      externalScripts.forEach((script) => {
+        const scriptSrc = script.getAttribute('src');
+        if (scriptSrc) {
+          const scriptKey = `external-${scriptSrc}`;
           
-          // Add error handling
-          newScript.onerror = () => console.warn('Failed to load external script:', script.src);
-          newScript.onload = () => console.log('External script loaded:', script.src);
+          // Skip if already executed
+          if (executedScriptsRef.current.has(scriptKey)) {
+            return;
+          }
+
+          const promise = new Promise<void>((resolve, reject) => {
+            // Check if script is already loaded globally
+            const existingScript = document.querySelector(`script[src="${scriptSrc}"]`);
+            if (existingScript) {
+              executedScriptsRef.current.add(scriptKey);
+              resolve();
+              return;
+            }
+
+            const newScript = document.createElement('script');
+            newScript.src = scriptSrc;
+            newScript.async = script.hasAttribute('async');
+            newScript.defer = script.hasAttribute('defer');
+            newScript.type = script.getAttribute('type') || 'text/javascript';
+            
+            // Copy all other attributes
+            Array.from(script.attributes).forEach(attr => {
+              if (!['src', 'async', 'defer', 'type'].includes(attr.name)) {
+                newScript.setAttribute(attr.name, attr.value);
+              }
+            });
+
+            newScript.onload = () => {
+              executedScriptsRef.current.add(scriptKey);
+              resolve();
+            };
+            newScript.onerror = () => reject(new Error(`Failed to load script: ${scriptSrc}`));
+            
+            document.head.appendChild(newScript);
+          });
           
-          container.appendChild(newScript);
-        } else if (script.textContent) {
-          // Inline script - execute by creating a new script element
-          console.log(`Executing inline script ${index}:`, script.textContent.substring(0, 100) + '...');
-          try {
+          externalScriptPromises.push(promise);
+          script.remove();
+        }
+      });
+
+      // Step 2: Wait for external scripts to load, then execute inline scripts
+      await Promise.all(externalScriptPromises);
+
+      // Step 3: Execute inline scripts
+      const inlineScripts = container.querySelectorAll('script:not([src])');
+      inlineScripts.forEach((script, index) => {
+        try {
+          const scriptContent = script.textContent || script.innerHTML;
+          if (scriptContent) {
+            const scriptKey = `inline-${index}-${scriptContent.slice(0, 50)}`;
+            
+            // Skip if already executed
+            if (executedScriptsRef.current.has(scriptKey)) {
+              script.remove();
+              return;
+            }
+
             // Create a new script element
             const newScript = document.createElement('script');
-            newScript.textContent = script.textContent;
-            newScript.type = script.type || 'text/javascript';
+            newScript.type = script.getAttribute('type') || 'text/javascript';
+            newScript.id = `${scriptIdRef.current}-inline-${Date.now()}-${index}`;
             
-            // Append to document head to execute
+            // Copy all attributes
+            Array.from(script.attributes).forEach(attr => {
+              if (attr.name !== 'type') {
+                newScript.setAttribute(attr.name, attr.value);
+              }
+            });
+
+            // Set the script content
+            newScript.textContent = scriptContent;
+            
+            // Append to document head and execute
             document.head.appendChild(newScript);
             
-            // Remove after execution to keep DOM clean
-            setTimeout(() => {
-              if (newScript.parentNode) {
-                newScript.parentNode.removeChild(newScript);
+            // Execute the script content
+            try {
+              // Use Function constructor for better scope isolation
+              const scriptFunction = new Function(scriptContent);
+              scriptFunction();
+              executedScriptsRef.current.add(scriptKey);
+            } catch (error) {
+              console.warn('Inline script execution error:', error);
+              // Fallback to eval for complex scripts
+              try {
+                eval(scriptContent);
+                executedScriptsRef.current.add(scriptKey);
+              } catch (evalError) {
+                console.warn('Script eval fallback error:', evalError);
               }
-            }, 100);
+            }
             
-            console.log('Inline script executed successfully');
-          } catch (error) {
-            console.warn('Failed to execute inline script:', error);
+            script.remove();
           }
+        } catch (error) {
+          console.warn('Inline script processing error:', error);
         }
-        
-        processedRef.current.add(scriptId);
-      } catch (error) {
-        console.warn('Error processing script:', error);
+      });
+
+      // Step 4: Initialize interactive components
+      initializeInteractiveComponents();
+
+    } catch (error) {
+      console.warn('Script execution setup error:', error);
+    }
+  }, [allowScripts]);
+
+  // Function to initialize interactive components
+  const initializeInteractiveComponents = useCallback(() => {
+    try {
+      const container = containerRef.current;
+      if (!container) return;
+
+      const containerId = container.innerHTML.slice(0, 100); // Use content hash as ID
+      
+      // Skip if already initialized
+      if (initializedComponentsRef.current.has(containerId)) {
+        return;
       }
-    });
-  };
 
-  // Function to apply styles
-  const applyStyles = (container: HTMLElement) => {
-    if (!enableStyles) return;
+      // Initialize accordions
+      initializeAccordions(container);
+      
+      // Initialize tabs
+      initializeTabs(container);
+      
+      // Initialize carousels
+      initializeCarousels(container);
+      
+      // Initialize charts
+      initializeCharts(container);
+      
+      // Initialize other interactive elements
+      initializeOtherComponents(container);
 
-    const styles = container.querySelectorAll('style');
-    styles.forEach((style, index) => {
-      const styleId = `style-${Date.now()}-${index}`;
-      if (processedRef.current.has(styleId)) return;
+      // Mark as initialized
+      initializedComponentsRef.current.add(containerId);
 
-      try {
-        // Create a new style element
-        const newStyle = document.createElement('style');
-        newStyle.textContent = style.textContent || '';
-        newStyle.setAttribute('data-html-content', 'true');
-        
-        // Add to document head
-        document.head.appendChild(newStyle);
-        processedRef.current.add(styleId);
-      } catch (error) {
-        console.warn('Error applying style:', error);
-      }
-    });
-  };
+    } catch (error) {
+      console.warn('Interactive components initialization error:', error);
+    }
+  }, []);
 
-  // Effect to process content after render
+  // Execute scripts when content changes
   useEffect(() => {
-    console.log('HtmlContentRenderer: Content changed, processing...');
-    console.log('Container ref:', containerRef.current);
-    console.log('Enable scripts:', enableScripts);
-    console.log('Enable styles:', enableStyles);
-    
-    if (containerRef.current) {
-      // Apply styles first
-      if (enableStyles) {
-        console.log('Applying styles...');
-        applyStyles(containerRef.current);
+    if (!containerRef.current) return;
+
+    // Clear previous execution tracking
+    executedScriptsRef.current.clear();
+    initializedComponentsRef.current.clear();
+
+    // Execute scripts after DOM is ready
+    const timer = setTimeout(() => {
+      executeScripts();
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [content, executeScripts]);
+
+  // Extract and inject CSS styles
+  useEffect(() => {
+    if (!containerRef.current || !allowStyles) return;
+
+    // Remove any existing styles from this component
+    const existingStyle = document.getElementById(styleIdRef.current);
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+
+    // Find all style tags and inject them into the document head
+    const styleTags = containerRef.current.querySelectorAll('style');
+    if (styleTags.length > 0) {
+      const combinedStyles = Array.from(styleTags)
+        .map(styleTag => styleTag.textContent)
+        .join('\n');
+
+      if (combinedStyles) {
+        const newStyle = document.createElement('style');
+        newStyle.id = styleIdRef.current;
+        newStyle.textContent = combinedStyles;
+        document.head.appendChild(newStyle);
+      }
+    }
+
+    // Find all link tags for external CSS and inject them
+    const linkTags = containerRef.current.querySelectorAll('link[rel="stylesheet"]');
+    linkTags.forEach((linkTag) => {
+      const href = linkTag.getAttribute('href');
+      if (href) {
+        const existingLink = document.querySelector(`link[href="${href}"]`);
+        if (!existingLink) {
+          const newLink = document.createElement('link');
+          newLink.rel = 'stylesheet';
+          newLink.href = href;
+          document.head.appendChild(newLink);
+        }
+      }
+    });
+  }, [content, allowStyles]);
+
+  // Cleanup function to remove injected resources when component unmounts
+  useEffect(() => {
+    return () => {
+      if (allowStyles && styleIdRef.current) {
+        // Remove styles injected by this component
+        const injectedStyle = document.getElementById(styleIdRef.current);
+        if (injectedStyle) {
+          injectedStyle.remove();
+        }
       }
       
-      // Execute scripts after styles are applied
-      if (enableScripts) {
-        console.log('Executing scripts...');
-        // Small delay to ensure styles are applied and DOM is ready
-        setTimeout(() => {
-          console.log('Executing scripts after delay...');
-          executeScripts(containerRef.current!);
-        }, 200);
+      if (allowScripts && scriptIdRef.current) {
+        // Remove scripts injected by this component
+        const injectedScripts = document.querySelectorAll(`script[id^="${scriptIdRef.current}"]`);
+        injectedScripts.forEach(script => script.remove());
       }
-    } else {
-      console.log('Container ref not available yet');
-    }
-
-    // Cleanup function to remove added styles when component unmounts
-    return () => {
-      console.log('Cleaning up HtmlContentRenderer...');
-      if (enableStyles) {
-        const addedStyles = document.querySelectorAll('style[data-html-content="true"]');
-        addedStyles.forEach(style => {
-          document.head.removeChild(style);
-        });
-      }
-      processedRef.current.clear();
     };
-  }, [content, enableScripts, enableStyles]);
-
-  // Custom CSS for enhanced styling
-  const customStyles = `
-    .html-content h1 { @apply text-4xl font-bold text-primary mb-4 mt-8; }
-    .html-content h2 { @apply text-3xl font-bold text-primary/90 mb-3 mt-6; }
-    .html-content h3 { @apply text-2xl font-semibold text-primary/80 mb-2 mt-4; }
-    .html-content h4 { @apply text-xl font-semibold text-base-content mb-2 mt-4; }
-    .html-content h5 { @apply text-lg font-medium text-base-content mb-2 mt-3; }
-    .html-content h6 { @apply text-base font-medium text-base-content mb-2 mt-3; }
-    
-    .html-content p { @apply text-base text-base-content/90 leading-relaxed mb-4; }
-    .html-content ul { @apply list-disc list-inside space-y-2 mb-4; }
-    .html-content ol { @apply list-decimal list-inside space-y-2 mb-4; }
-    .html-content li { @apply text-base-content/90; }
-    
-    .html-content blockquote { @apply border-l-4 border-primary/30 pl-4 italic text-base-content/80 bg-base-200/30 py-2 rounded-r-lg mb-4; }
-    .html-content pre { @apply bg-base-200 text-base-content p-4 rounded-lg overflow-x-auto text-sm font-mono my-4; }
-    .html-content code { @apply bg-base-200 text-base-content px-2 py-1 rounded text-sm font-mono; }
-    
-    .html-content a { @apply text-primary hover:text-primary-focus underline decoration-primary/30 underline-offset-2 transition-colors; }
-    .html-content a.external-link { @apply inline-flex items-center gap-1; }
-    .html-content a.external-link::after { 
-      content: "↗"; 
-      @apply text-xs ml-1 opacity-70; 
-    }
-    .html-content img { @apply max-w-full h-auto rounded-lg shadow-md my-4; }
-    .html-content video { @apply max-w-full h-auto rounded-lg shadow-md my-4; }
-    .html-content audio { @apply w-full my-4; }
-    
-    .html-content table { @apply w-full border-collapse bg-base-100 rounded-lg overflow-hidden shadow-lg border border-base-300 my-6; }
-    .html-content thead { @apply bg-gradient-to-r from-primary/10 to-primary/5; }
-    .html-content th { @apply px-4 py-3 text-left text-sm font-semibold text-base-content/90 border-b border-base-200; }
-    .html-content td { @apply px-4 py-3 text-sm text-base-content/80 border-b border-base-200; }
-    .html-content tr:hover { @apply bg-base-50 transition-colors duration-150; }
-    
-    .html-content form { @apply space-y-4 my-6; }
-    .html-content input, .html-content textarea, .html-content select { @apply w-full px-3 py-2 border border-base-300 rounded-md bg-base-100 text-base-content focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent; }
-    .html-content button { @apply px-4 py-2 bg-primary text-primary-content rounded-md hover:bg-primary-focus transition-colors; }
-    
-    .html-content canvas { @apply max-w-full h-auto rounded-lg shadow-md my-4; }
-    .html-content svg { @apply max-w-full h-auto; }
-    
-    .html-content iframe { @apply w-full aspect-video rounded-lg shadow-md my-4; }
-    
-    /* Dark mode adjustments */
-    .dark .html-content blockquote { @apply bg-base-800/30 border-primary/20; }
-    .dark .html-content pre { @apply bg-base-800 text-base-content; }
-    .dark .html-content code { @apply bg-base-800 text-base-content; }
-    .dark .html-content table { @apply bg-base-800 border-base-600; }
-    .dark .html-content thead { @apply from-primary/20 to-primary/10; }
-    .dark .html-content th { @apply border-base-600; }
-    .dark .html-content td { @apply border-base-600; }
-    .dark .html-content tr:hover { @apply bg-base-700; }
-    .dark .html-content input, .dark .html-content textarea, .dark .html-content select { @apply bg-base-800 border-base-600; }
-  `;
+  }, [allowStyles, allowScripts]);
 
   return (
-    <>
-      <style>{customStyles}</style>
-      <div 
-        ref={containerRef}
-        className={`html-content ${className}`}
-        dangerouslySetInnerHTML={{ __html: sanitizedContent }}
-      />
-    </>
+    <div 
+      ref={containerRef}
+      className={`full-html-content ${className}`}
+      dangerouslySetInnerHTML={{ __html: content }}
+    />
   );
 };
+
+// Helper functions for initializing interactive components
+function initializeAccordions(container: Element) {
+  const accordions = container.querySelectorAll('.accordion, [data-accordion]');
+  accordions.forEach((accordion) => {
+    const triggers = accordion.querySelectorAll('.accordion-trigger, [data-accordion-trigger]');
+    const panels = accordion.querySelectorAll('.accordion-panel, [data-accordion-panel]');
+    
+    triggers.forEach((trigger, index) => {
+      const panel = panels[index];
+      if (trigger && panel) {
+        // Remove existing event listeners to prevent duplicates
+        const newTrigger = trigger.cloneNode(true) as HTMLElement;
+        trigger.parentNode?.replaceChild(newTrigger, trigger);
+        
+        newTrigger.addEventListener('click', () => {
+          const panelElement = panel as HTMLElement;
+          const isOpen = panel.classList.contains('active') || panelElement.style.display === 'block';
+          
+          // Close all panels
+          panels.forEach(p => {
+            const pElement = p as HTMLElement;
+            p.classList.remove('active');
+            pElement.style.display = 'none';
+          });
+          
+          // Open clicked panel if it was closed
+          if (!isOpen) {
+            panel.classList.add('active');
+            panelElement.style.display = 'block';
+          }
+        });
+      }
+    });
+  });
+}
+
+function initializeTabs(container: Element) {
+  const tabContainers = container.querySelectorAll('.tabs, [data-tabs]');
+  tabContainers.forEach((tabContainer) => {
+    const tabButtons = tabContainer.querySelectorAll('.tab-button, [data-tab]');
+    const tabContents = tabContainer.querySelectorAll('.tab-content, [data-tab-content]');
+    
+    tabButtons.forEach((button, index) => {
+      const content = tabContents[index];
+      if (button && content) {
+        // Remove existing event listeners to prevent duplicates
+        const newButton = button.cloneNode(true) as HTMLElement;
+        button.parentNode?.replaceChild(newButton, button);
+        
+        newButton.addEventListener('click', () => {
+          // Remove active class from all buttons and contents
+          tabButtons.forEach(btn => btn.classList.remove('active'));
+          tabContents.forEach(cont => cont.classList.remove('active'));
+          
+          // Add active class to clicked button and corresponding content
+          newButton.classList.add('active');
+          content.classList.add('active');
+        });
+      }
+    });
+  });
+}
+
+function initializeCarousels(container: Element) {
+  const carousels = container.querySelectorAll('.carousel, [data-carousel]');
+  carousels.forEach((carousel) => {
+    const slides = carousel.querySelectorAll('.carousel-slide, [data-slide]');
+    const prevButton = carousel.querySelector('.carousel-prev, [data-carousel-prev]');
+    const nextButton = carousel.querySelector('.carousel-next, [data-carousel-next]');
+    const indicators = carousel.querySelectorAll('.carousel-indicator, [data-carousel-indicator]');
+    
+    // Use unique variable names to prevent conflicts
+    const carouselState = {
+      currentSlide: 0
+    };
+    
+    const showSlide = (index: number) => {
+      slides.forEach((slide, i) => {
+        const slideElement = slide as HTMLElement;
+        slideElement.style.display = i === index ? 'block' : 'none';
+      });
+      
+      indicators.forEach((indicator, i) => {
+        indicator.classList.toggle('active', i === index);
+      });
+    };
+    
+    if (prevButton) {
+      // Remove existing event listeners
+      const newPrevButton = prevButton.cloneNode(true) as HTMLElement;
+      prevButton.parentNode?.replaceChild(newPrevButton, prevButton);
+      
+      newPrevButton.addEventListener('click', () => {
+        carouselState.currentSlide = carouselState.currentSlide > 0 ? carouselState.currentSlide - 1 : slides.length - 1;
+        showSlide(carouselState.currentSlide);
+      });
+    }
+    
+    if (nextButton) {
+      // Remove existing event listeners
+      const newNextButton = nextButton.cloneNode(true) as HTMLElement;
+      nextButton.parentNode?.replaceChild(newNextButton, nextButton);
+      
+      newNextButton.addEventListener('click', () => {
+        carouselState.currentSlide = carouselState.currentSlide < slides.length - 1 ? carouselState.currentSlide + 1 : 0;
+        showSlide(carouselState.currentSlide);
+      });
+    }
+    
+    indicators.forEach((indicator, index) => {
+      // Remove existing event listeners
+      const newIndicator = indicator.cloneNode(true) as HTMLElement;
+      indicator.parentNode?.replaceChild(newIndicator, indicator);
+      
+      newIndicator.addEventListener('click', () => {
+        carouselState.currentSlide = index;
+        showSlide(carouselState.currentSlide);
+      });
+    });
+    
+    // Show first slide
+    if (slides.length > 0) {
+      showSlide(0);
+    }
+  });
+}
+
+function initializeCharts(container: Element) {
+  const charts = container.querySelectorAll('canvas[data-chart], .chart');
+  charts.forEach((chart) => {
+    // Check if Chart.js is available
+    if (typeof (window as any).Chart !== 'undefined') {
+      const ctx = (chart as HTMLCanvasElement).getContext('2d');
+      if (ctx) {
+        // Try to initialize chart based on data attributes or surrounding elements
+        const chartType = chart.getAttribute('data-chart-type') || 'bar';
+        const chartData = chart.getAttribute('data-chart-data');
+        
+        if (chartData) {
+          try {
+            const data = JSON.parse(chartData);
+            new (window as any).Chart(ctx, {
+              type: chartType,
+              data: data,
+              options: {
+                responsive: true,
+                maintainAspectRatio: false
+              }
+            });
+          } catch (error) {
+            console.warn('Chart initialization error:', error);
+          }
+        }
+      }
+    }
+  });
+}
+
+function initializeOtherComponents(container: Element) {
+  // Initialize modals
+  const modals = container.querySelectorAll('.modal, [data-modal]');
+  modals.forEach((modal, modalIndex) => {
+    const modalId = modal.getAttribute('data-modal') || `modal-${modalIndex}`;
+    const triggers = container.querySelectorAll(`[data-modal-trigger="${modalId}"]`);
+    const closeButtons = modal.querySelectorAll('.modal-close, [data-modal-close]');
+    
+    triggers.forEach((trigger) => {
+      // Remove existing event listeners
+      const newTrigger = trigger.cloneNode(true) as HTMLElement;
+      trigger.parentNode?.replaceChild(newTrigger, trigger);
+      
+      newTrigger.addEventListener('click', () => {
+        const modalElement = modal as HTMLElement;
+        modal.classList.add('active');
+        modalElement.style.display = 'block';
+      });
+    });
+    
+    closeButtons.forEach((closeBtn) => {
+      // Remove existing event listeners
+      const newCloseBtn = closeBtn.cloneNode(true) as HTMLElement;
+      closeBtn.parentNode?.replaceChild(newCloseBtn, closeBtn);
+      
+      newCloseBtn.addEventListener('click', () => {
+        const modalElement = modal as HTMLElement;
+        modal.classList.remove('active');
+        modalElement.style.display = 'none';
+      });
+    });
+  });
+  
+  // Initialize tooltips
+  const tooltips = container.querySelectorAll('[data-tooltip]');
+  tooltips.forEach((element) => {
+    // Remove existing event listeners
+    const newElement = element.cloneNode(true) as HTMLElement;
+    element.parentNode?.replaceChild(newElement, element);
+    
+    newElement.addEventListener('mouseenter', (e) => {
+      const tooltip = document.createElement('div');
+      tooltip.className = 'tooltip';
+      tooltip.textContent = newElement.getAttribute('data-tooltip') || '';
+      tooltip.style.position = 'absolute';
+      tooltip.style.backgroundColor = '#333';
+      tooltip.style.color = 'white';
+      tooltip.style.padding = '5px 10px';
+      tooltip.style.borderRadius = '4px';
+      tooltip.style.fontSize = '12px';
+      tooltip.style.zIndex = '1000';
+      
+      document.body.appendChild(tooltip);
+      
+      const rect = (e.target as Element).getBoundingClientRect();
+      tooltip.style.left = rect.left + 'px';
+      tooltip.style.top = (rect.top - tooltip.offsetHeight - 5) + 'px';
+      
+      newElement.addEventListener('mouseleave', () => {
+        tooltip.remove();
+      }, { once: true });
+    });
+  });
+}
 
 export default HtmlContentRenderer;
