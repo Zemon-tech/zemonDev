@@ -5,6 +5,8 @@ interface HtmlContentRendererProps {
   className?: string;
   allowScripts?: boolean;
   allowStyles?: boolean;
+  initializationMode?: 'auto' | 'content-scripts' | 'renderer';
+  renderInIframe?: boolean;
 }
 
 /**
@@ -23,9 +25,12 @@ export const HtmlContentRenderer: React.FC<HtmlContentRendererProps> = ({
   content,
   className = '',
   allowScripts = true,
-  allowStyles = true
+  allowStyles = true,
+  initializationMode = 'auto',
+  renderInIframe = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const styleIdRef = useRef<string>('');
   const scriptIdRef = useRef<string>('');
   const executedScriptsRef = useRef<Set<string>>(new Set());
@@ -41,9 +46,13 @@ export const HtmlContentRenderer: React.FC<HtmlContentRendererProps> = ({
     }
   }, []);
 
+  // Renderer runs idempotent init after executing content scripts (if any)
+
   // Function to execute scripts properly
   const executeScripts = useCallback(async () => {
     if (!containerRef.current || !allowScripts) return;
+    // In 'renderer' mode we intentionally do not execute content scripts
+    if (initializationMode === 'renderer') return;
 
     try {
       const container = containerRef.current;
@@ -130,25 +139,9 @@ export const HtmlContentRenderer: React.FC<HtmlContentRendererProps> = ({
             // Set the script content
             newScript.textContent = scriptContent;
             
-            // Append to document head and execute
+            // Append to document head; browser will execute in global scope
             document.head.appendChild(newScript);
-            
-            // Execute the script content
-            try {
-              // Use Function constructor for better scope isolation
-              const scriptFunction = new Function(scriptContent);
-              scriptFunction();
-              executedScriptsRef.current.add(scriptKey);
-            } catch (error) {
-              console.warn('Inline script execution error:', error);
-              // Fallback to eval for complex scripts
-              try {
-                eval(scriptContent);
-                executedScriptsRef.current.add(scriptKey);
-              } catch (evalError) {
-                console.warn('Script eval fallback error:', evalError);
-              }
-            }
+            executedScriptsRef.current.add(scriptKey);
             
             script.remove();
           }
@@ -157,13 +150,10 @@ export const HtmlContentRenderer: React.FC<HtmlContentRendererProps> = ({
         }
       });
 
-      // Step 4: Initialize interactive components
-      initializeInteractiveComponents();
-
     } catch (error) {
       console.warn('Script execution setup error:', error);
     }
-  }, [allowScripts]);
+  }, [allowScripts, initializationMode]);
 
   // Function to initialize interactive components
   const initializeInteractiveComponents = useCallback(() => {
@@ -201,24 +191,32 @@ export const HtmlContentRenderer: React.FC<HtmlContentRendererProps> = ({
     }
   }, []);
 
-  // Execute scripts when content changes
+  // Execute scripts and initialize components when content changes
   useEffect(() => {
+    if (renderInIframe) return; // handled separately
     if (!containerRef.current) return;
 
-    // Clear previous execution tracking
     executedScriptsRef.current.clear();
     initializedComponentsRef.current.clear();
 
-    // Execute scripts after DOM is ready
-    const timer = setTimeout(() => {
-      executeScripts();
-    }, 100);
+    // Execute content scripts first, then run renderer init (idempotent)
+    const run = async () => {
+      try {
+        await executeScripts();
+      } finally {
+        initializeInteractiveComponents();
+      }
+    };
+    run();
 
-    return () => clearTimeout(timer);
-  }, [content, executeScripts]);
+    return () => {
+      // no-op cleanup; listeners are idempotent on next render due to data-initialized
+    };
+  }, [content, executeScripts, initializeInteractiveComponents, renderInIframe]);
 
   // Extract and inject CSS styles
   useEffect(() => {
+    if (renderInIframe) return;
     if (!containerRef.current || !allowStyles) return;
 
     // Remove any existing styles from this component
@@ -256,7 +254,7 @@ export const HtmlContentRenderer: React.FC<HtmlContentRendererProps> = ({
         }
       }
     });
-  }, [content, allowStyles]);
+  }, [content, allowStyles, renderInIframe]);
 
   // Cleanup function to remove injected resources when component unmounts
   useEffect(() => {
@@ -277,8 +275,76 @@ export const HtmlContentRenderer: React.FC<HtmlContentRendererProps> = ({
     };
   }, [allowStyles, allowScripts]);
 
+  // Iframe rendering (opt-in)
+  useEffect(() => {
+    if (!renderInIframe || !iframeRef.current) return;
+    const iframe = iframeRef.current;
+
+    // Set content using srcdoc to avoid repeated document.write and variable re-declarations
+    if (iframe.srcdoc !== (content || '')) {
+      iframe.srcdoc = content || '';
+    }
+
+    let cleanup: (() => void) | undefined;
+
+    const onLoad = () => {
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!doc) return;
+
+      // Auto-resize height to fit content
+      const updateHeight = () => {
+        try {
+          const body = doc.body;
+          const html = doc.documentElement;
+          const height = Math.max(
+            body?.scrollHeight || 0,
+            body?.offsetHeight || 0,
+            html?.clientHeight || 0,
+            html?.scrollHeight || 0,
+            html?.offsetHeight || 0
+          );
+          iframe.style.height = `${height}px`;
+        } catch {
+          /* noop */
+        }
+      };
+
+      let resizeObserver: ResizeObserver | undefined;
+      const ResizeObserverCtor = (window as any).ResizeObserver as typeof ResizeObserver | undefined;
+      if (ResizeObserverCtor) {
+        resizeObserver = new ResizeObserverCtor(updateHeight);
+        resizeObserver.observe(doc.documentElement);
+      }
+      const interval = window.setInterval(updateHeight, 300);
+      updateHeight();
+
+      cleanup = () => {
+        if (resizeObserver) resizeObserver.disconnect();
+        window.clearInterval(interval);
+      };
+    };
+
+    iframe.addEventListener('load', onLoad, { once: true });
+
+    return () => {
+      iframe.removeEventListener('load', onLoad);
+      if (cleanup) cleanup();
+    };
+  }, [content, renderInIframe]);
+
+  if (renderInIframe) {
+    return (
+      <iframe
+        ref={iframeRef}
+        className={className}
+        style={{ width: '100%', border: 'none' }}
+        title="html-content"
+      />
+    );
+  }
+
   return (
-    <div 
+    <div
       ref={containerRef}
       className={`full-html-content ${className}`}
       dangerouslySetInnerHTML={{ __html: content }}
@@ -288,36 +354,50 @@ export const HtmlContentRenderer: React.FC<HtmlContentRendererProps> = ({
 
 // Helper functions for initializing interactive components
 function initializeAccordions(container: Element) {
+  // Pattern 1: Container-based accordions with triggers/panels
   const accordions = container.querySelectorAll('.accordion, [data-accordion]');
   accordions.forEach((accordion) => {
     const triggers = accordion.querySelectorAll('.accordion-trigger, [data-accordion-trigger]');
     const panels = accordion.querySelectorAll('.accordion-panel, [data-accordion-panel]');
-    
+
     triggers.forEach((trigger, index) => {
       const panel = panels[index];
+      const el = trigger as HTMLElement & { dataset: DOMStringMap };
+      if (el.dataset.initialized === 'true') return;
       if (trigger && panel) {
-        // Remove existing event listeners to prevent duplicates
-        const newTrigger = trigger.cloneNode(true) as HTMLElement;
-        trigger.parentNode?.replaceChild(newTrigger, trigger);
-        
-        newTrigger.addEventListener('click', () => {
+        el.dataset.initialized = 'true';
+        el.addEventListener('click', () => {
           const panelElement = panel as HTMLElement;
           const isOpen = panel.classList.contains('active') || panelElement.style.display === 'block';
-          
-          // Close all panels
+
           panels.forEach(p => {
             const pElement = p as HTMLElement;
             p.classList.remove('active');
             pElement.style.display = 'none';
           });
-          
-          // Open clicked panel if it was closed
+
           if (!isOpen) {
             panel.classList.add('active');
             panelElement.style.display = 'block';
           }
         });
       }
+    });
+  });
+
+  // Pattern 2: Header-content siblings (.accordion-header + .accordion-content)
+  const headers = container.querySelectorAll('.accordion-header');
+  headers.forEach((header) => {
+    const el = header as HTMLElement & { dataset: DOMStringMap };
+    if (el.dataset.initialized === 'true') return;
+    const contentSibling = header.nextElementSibling;
+    if (!contentSibling || !contentSibling.classList.contains('accordion-content')) return;
+    el.dataset.initialized = 'true';
+    el.addEventListener('click', () => {
+      header.classList.toggle('active');
+      contentSibling.classList.toggle('active');
+      const contentEl = contentSibling as HTMLElement;
+      contentEl.style.display = contentSibling.classList.contains('active') ? 'block' : 'none';
     });
   });
 }
@@ -327,21 +407,18 @@ function initializeTabs(container: Element) {
   tabContainers.forEach((tabContainer) => {
     const tabButtons = tabContainer.querySelectorAll('.tab-button, [data-tab]');
     const tabContents = tabContainer.querySelectorAll('.tab-content, [data-tab-content]');
-    
+
     tabButtons.forEach((button, index) => {
       const content = tabContents[index];
+      const btn = button as HTMLElement & { dataset: DOMStringMap };
+      if (btn.dataset.initialized === 'true') return;
       if (button && content) {
-        // Remove existing event listeners to prevent duplicates
-        const newButton = button.cloneNode(true) as HTMLElement;
-        button.parentNode?.replaceChild(newButton, button);
-        
-        newButton.addEventListener('click', () => {
-          // Remove active class from all buttons and contents
-          tabButtons.forEach(btn => btn.classList.remove('active'));
-          tabContents.forEach(cont => cont.classList.remove('active'));
-          
-          // Add active class to clicked button and corresponding content
-          newButton.classList.add('active');
+        btn.dataset.initialized = 'true';
+        btn.addEventListener('click', () => {
+          tabButtons.forEach(b => (b as HTMLElement).classList.remove('active'));
+          tabContents.forEach(c => (c as HTMLElement).classList.remove('active'));
+
+          btn.classList.add('active');
           content.classList.add('active');
         });
       }
@@ -374,33 +451,32 @@ function initializeCarousels(container: Element) {
     };
     
     if (prevButton) {
-      // Remove existing event listeners
-      const newPrevButton = prevButton.cloneNode(true) as HTMLElement;
-      prevButton.parentNode?.replaceChild(newPrevButton, prevButton);
-      
-      newPrevButton.addEventListener('click', () => {
-        carouselState.currentSlide = carouselState.currentSlide > 0 ? carouselState.currentSlide - 1 : slides.length - 1;
-        showSlide(carouselState.currentSlide);
-      });
+      const prev = prevButton as HTMLElement & { dataset: DOMStringMap };
+      if (prev.dataset.initialized !== 'true') {
+        prev.dataset.initialized = 'true';
+        prev.addEventListener('click', () => {
+          carouselState.currentSlide = carouselState.currentSlide > 0 ? carouselState.currentSlide - 1 : slides.length - 1;
+          showSlide(carouselState.currentSlide);
+        });
+      }
     }
     
     if (nextButton) {
-      // Remove existing event listeners
-      const newNextButton = nextButton.cloneNode(true) as HTMLElement;
-      nextButton.parentNode?.replaceChild(newNextButton, nextButton);
-      
-      newNextButton.addEventListener('click', () => {
-        carouselState.currentSlide = carouselState.currentSlide < slides.length - 1 ? carouselState.currentSlide + 1 : 0;
-        showSlide(carouselState.currentSlide);
-      });
+      const next = nextButton as HTMLElement & { dataset: DOMStringMap };
+      if (next.dataset.initialized !== 'true') {
+        next.dataset.initialized = 'true';
+        next.addEventListener('click', () => {
+          carouselState.currentSlide = carouselState.currentSlide < slides.length - 1 ? carouselState.currentSlide + 1 : 0;
+          showSlide(carouselState.currentSlide);
+        });
+      }
     }
     
     indicators.forEach((indicator, index) => {
-      // Remove existing event listeners
-      const newIndicator = indicator.cloneNode(true) as HTMLElement;
-      indicator.parentNode?.replaceChild(newIndicator, indicator);
-      
-      newIndicator.addEventListener('click', () => {
+      const ind = indicator as HTMLElement & { dataset: DOMStringMap };
+      if (ind.dataset.initialized === 'true') return;
+      ind.dataset.initialized = 'true';
+      ind.addEventListener('click', () => {
         carouselState.currentSlide = index;
         showSlide(carouselState.currentSlide);
       });
@@ -453,11 +529,10 @@ function initializeOtherComponents(container: Element) {
     const closeButtons = modal.querySelectorAll('.modal-close, [data-modal-close]');
     
     triggers.forEach((trigger) => {
-      // Remove existing event listeners
-      const newTrigger = trigger.cloneNode(true) as HTMLElement;
-      trigger.parentNode?.replaceChild(newTrigger, trigger);
-      
-      newTrigger.addEventListener('click', () => {
+      const trg = trigger as HTMLElement & { dataset: DOMStringMap };
+      if (trg.dataset.initialized === 'true') return;
+      trg.dataset.initialized = 'true';
+      trg.addEventListener('click', () => {
         const modalElement = modal as HTMLElement;
         modal.classList.add('active');
         modalElement.style.display = 'block';
@@ -465,11 +540,10 @@ function initializeOtherComponents(container: Element) {
     });
     
     closeButtons.forEach((closeBtn) => {
-      // Remove existing event listeners
-      const newCloseBtn = closeBtn.cloneNode(true) as HTMLElement;
-      closeBtn.parentNode?.replaceChild(newCloseBtn, closeBtn);
-      
-      newCloseBtn.addEventListener('click', () => {
+      const btn = closeBtn as HTMLElement & { dataset: DOMStringMap };
+      if (btn.dataset.initialized === 'true') return;
+      btn.dataset.initialized = 'true';
+      btn.addEventListener('click', () => {
         const modalElement = modal as HTMLElement;
         modal.classList.remove('active');
         modalElement.style.display = 'none';
@@ -480,14 +554,13 @@ function initializeOtherComponents(container: Element) {
   // Initialize tooltips
   const tooltips = container.querySelectorAll('[data-tooltip]');
   tooltips.forEach((element) => {
-    // Remove existing event listeners
-    const newElement = element.cloneNode(true) as HTMLElement;
-    element.parentNode?.replaceChild(newElement, element);
-    
-    newElement.addEventListener('mouseenter', (e) => {
+    const el = element as HTMLElement & { dataset: DOMStringMap };
+    if (el.dataset.initialized === 'true') return;
+    el.dataset.initialized = 'true';
+    el.addEventListener('mouseenter', (e) => {
       const tooltip = document.createElement('div');
       tooltip.className = 'tooltip';
-      tooltip.textContent = newElement.getAttribute('data-tooltip') || '';
+      tooltip.textContent = el.getAttribute('data-tooltip') || '';
       tooltip.style.position = 'absolute';
       tooltip.style.backgroundColor = '#333';
       tooltip.style.color = 'white';
@@ -501,8 +574,7 @@ function initializeOtherComponents(container: Element) {
       const rect = (e.target as Element).getBoundingClientRect();
       tooltip.style.left = rect.left + 'px';
       tooltip.style.top = (rect.top - tooltip.offsetHeight - 5) + 'px';
-      
-      newElement.addEventListener('mouseleave', () => {
+      el.addEventListener('mouseleave', () => {
         tooltip.remove();
       }, { once: true });
     });

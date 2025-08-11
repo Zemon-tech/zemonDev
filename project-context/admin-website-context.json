@@ -1,0 +1,303 @@
+{
+  "meta": {
+    "name": "Quild Admin Website Context",
+    "generatedAt": "2025-08-11T00:00:00Z",
+    "projects": {
+      "frontend-admin": "frontend-admin/",
+      "backend-admin": "backend-admin/"
+    },
+    "notes": "This JSON gives an LLM a full understanding of the admin website's backend and frontend: routes, schemas, middleware, services, data fetching, auth, and admin flows."
+  },
+  "backend": {
+    "overview": {
+      "entryFile": "backend-admin/src/index.ts",
+      "baseApiPaths": ["/api", "/api/admin/knowledge-base/documents"],
+      "tech": ["Node.js", "Express", "TypeScript", "MongoDB (Mongoose)", "Clerk (Auth)"]
+    },
+    "server": {
+      "cors": {
+        "enabled": true,
+        "notes": "No custom origin list; relies on default CORS()"
+      },
+      "parsers": {
+        "json": true
+      },
+      "authLayer": {
+        "library": "@clerk/clerk-sdk-node",
+        "perRoute": "ClerkExpressRequireAuth via protect array middleware",
+        "roleChecks": "checkRole(['admin'] or ['admin','moderator']) where applicable"
+      },
+      "http": {
+        "listenPortEnv": "PORT",
+        "defaultPort": 5001
+      },
+      "connections": {
+        "mongo": "backend-admin/src/config/database.ts",
+        "vector": {
+          "provider": "Upstash Vector",
+          "file": "backend-admin/src/config/upstashVector.ts",
+          "usage": "Knowledge base document embeddings/indexing"
+        }
+      }
+    },
+    "auth": {
+      "requestProtection": {
+        "middleware": "protect (array)",
+        "file": "backend-admin/src/middleware/auth.middleware.ts",
+        "flow": [
+          "ClerkExpressRequireAuth validates session and attaches req.auth",
+          "Find local admin user by req.auth.userId -> User.findOne({ clerkId })",
+          "Attach user document to req.user"
+        ]
+      },
+      "roleChecks": {
+        "function": "checkRole(roles: ['admin'|'moderator'])",
+        "source": "backend-admin/src/middleware/auth.middleware.ts",
+        "behavior": "Queries UserRole for required roles; 403 if missing"
+      },
+      "errorHandling": {
+        "file": "backend-admin/src/middleware/error.middleware.ts"
+      }
+    },
+    "routes": {
+      "mounts": {
+        "/api/users": "backend-admin/src/api/user.routes.ts",
+        "/api/forge": "backend-admin/src/api/forge.routes.ts",
+        "/api/crucible": "backend-admin/src/api/crucible.routes.ts",
+        "/api": "backend-admin/src/api/arenaChannel.routes.ts (exposes /channels under /api)",
+        "/api/notifications": "backend-admin/src/api/notification.routes.ts",
+        "/api/admin/knowledge-base/documents": "backend-admin/src/api/knowledgeBase.routes.ts"
+      },
+      "endpoints": {
+        "/api/users": [
+          {"method": "GET", "path": "/", "controller": "getUsers", "middleware": ["protect"]},
+          {"method": "GET", "path": "/me", "controller": "getCurrentUser", "middleware": ["protect"]},
+          {"method": "GET", "path": "/:id", "controller": "getUserById", "middleware": ["protect"]},
+          {"method": "PUT", "path": "/:id", "controller": "updateUser", "middleware": ["protect"]},
+          {"method": "DELETE", "path": "/:id", "controller": "deleteUser", "middleware": ["protect"]}
+        ],
+        "/api/forge": [
+          {"method": "(all)", "path": "*", "middleware": ["protect", "checkRole(admin)"]},
+          {"method": "GET", "path": "/", "controller": "getResources"},
+          {"method": "POST", "path": "/", "controller": "createResource"},
+          {"method": "GET", "path": "/:id", "controller": "getResourceById"},
+          {"method": "PUT", "path": "/:id", "controller": "updateResource"},
+          {"method": "DELETE", "path": "/:id", "controller": "deleteResource"}
+        ],
+        "/api/crucible": [
+          {"method": "(all)", "path": "*", "middleware": ["protect", "checkRole(admin)"]},
+          {"method": "GET", "path": "/dashboard", "controller": "getDashboardStats"},
+          {"method": "GET", "path": "/problems", "controller": "getProblems"},
+          {"method": "POST", "path": "/problems", "controller": "createProblem"},
+          {"method": "GET", "path": "/problems/:id", "controller": "getProblemById"},
+          {"method": "PUT", "path": "/problems/:id", "controller": "updateProblem"},
+          {"method": "DELETE", "path": "/problems/:id", "controller": "deleteProblem"},
+          {"method": "GET", "path": "/problems/:problemId/solutions", "controller": "getSolutions"},
+          {"method": "GET", "path": "/solutions/:id", "controller": "getSolutionById"},
+          {"method": "PUT", "path": "/solutions/:id", "controller": "updateSolution"},
+          {"method": "GET", "path": "/problems/:problemId/drafts", "controller": "getDrafts"},
+          {"method": "GET", "path": "/drafts/:id", "controller": "getDraftById"},
+          {"method": "PUT", "path": "/drafts/:id", "controller": "updateDraftStatus"},
+          {"method": "GET", "path": "/problems/:problemId/notes", "controller": "getNotes"},
+          {"method": "GET", "path": "/notes/:id", "controller": "getNoteById"},
+          {"method": "GET", "path": "/problems/:problemId/chats", "controller": "getChatSessions"},
+          {"method": "GET", "path": "/chats/:id", "controller": "getChatSessionById"},
+          {"method": "PUT", "path": "/chats/:id", "controller": "updateChatSessionStatus"},
+          {"method": "GET", "path": "/problems/:problemId/workspace", "controller": "getWorkspaceStates"},
+          {"method": "GET", "path": "/workspace/:id", "controller": "getWorkspaceStateById"},
+          {"method": "GET", "path": "/problems/:problemId/diagrams", "controller": "getDiagrams"},
+          {"method": "GET", "path": "/diagrams/:id", "controller": "getDiagramById"},
+          {"method": "DELETE", "path": "/diagrams/:id", "controller": "deleteDiagram"},
+          {"method": "GET", "path": "/problems/:problemId/progress", "controller": "getProgressEntries"},
+          {"method": "GET", "path": "/progress/:id", "controller": "getProgressEntryById"},
+          {"method": "GET", "path": "/problems/:problemId/research", "controller": "getResearchItems"},
+          {"method": "GET", "path": "/research/:id", "controller": "getResearchItemById"},
+          {"method": "DELETE", "path": "/research/:id", "controller": "deleteResearchItem"}
+        ],
+        "/api/channels": [
+          {"method": "GET", "path": "/channels", "controller": "getChannels", "middleware": ["protect"]},
+          {"method": "POST", "path": "/channels", "controller": "createChannel", "middleware": ["protect"]},
+          {"method": "PUT", "path": "/channels/:id", "controller": "updateChannel", "middleware": ["protect"]},
+          {"method": "DELETE", "path": "/channels/:id", "controller": "deleteChannel", "middleware": ["protect"]}
+        ],
+        "/api/notifications": [
+          {"method": "GET", "path": "/", "controller": "getUserNotifications", "middleware": ["protect"]},
+          {"method": "GET", "path": "/stats", "controller": "getNotificationStats", "middleware": ["protect"]},
+          {"method": "GET", "path": "/preferences", "controller": "getNotificationPreferences", "middleware": ["protect"]},
+          {"method": "PUT", "path": "/preferences", "controller": "updateNotificationPreferences", "middleware": ["protect"]},
+          {"method": "PUT", "path": "/:id/read", "controller": "markNotificationAsRead", "middleware": ["protect"]},
+          {"method": "PUT", "path": "/read-all", "controller": "markAllNotificationsAsRead", "middleware": ["protect"]},
+          {"method": "PUT", "path": "/:id/archive", "controller": "archiveNotification", "middleware": ["protect"]},
+          {"method": "DELETE", "path": "/:id", "controller": "deleteNotification", "middleware": ["protect"]},
+          {"method": "GET", "path": "/all", "controller": "getAllNotifications", "middleware": ["protect", "checkRole(admin)"]},
+          {"method": "POST", "path": "/custom", "controller": "createCustomNotification", "middleware": ["protect", "checkRole(admin)"]},
+          {"method": "POST", "path": "/bulk", "controller": "createBulkNotifications", "middleware": ["protect", "checkRole(admin)"]},
+          {"method": "DELETE", "path": "/cleanup", "controller": "cleanupExpiredNotifications", "middleware": ["protect", "checkRole(admin)"]}
+        ],
+        "/api/admin/knowledge-base/documents": [
+          {"method": "(all)", "path": "*", "middleware": ["protect", "checkRole(admin)"]},
+          {"method": "GET", "path": "/", "controller": "getDocuments"},
+          {"method": "POST", "path": "/", "controller": "createDocument"},
+          {"method": "GET", "path": "/:id", "controller": "getDocumentById"},
+          {"method": "PUT", "path": "/:id", "controller": "updateDocument"},
+          {"method": "DELETE", "path": "/:id", "controller": "deleteDocument"}
+        ]
+      }
+    },
+    "controllers": {
+      "files": [
+        "arenaChannel.controller.ts", "crucible.controller.ts", "forge.controller.ts", "knowledgeBase.controller.ts", "notification.controller.ts", "user.controller.ts"
+      ],
+      "notes": "Routes above reference controller methods by name."
+    },
+    "models": {
+      "files": [
+        "user.model.ts", "crucibleProblem.model.ts", "crucibleSolution.model.ts", "solutionDraft.model.ts", "crucibleNote.model.ts", "aiChatHistory.model.ts", "workspaceState.model.ts", "crucibleDiagram.model.ts", "progressTracking.model.ts", "researchItem.model.ts", "knowledgeBaseDocument.model.ts", "notification.model.ts", "arenaChannel.model.ts", "arenaMessage.model.ts", "projectShowcase.model.ts", "userChannelStatus.model.ts", "userRole.model.ts", "weeklyHackathon.model.ts", "forgeResource.model.ts"
+      ],
+      "highLevel": {
+        "knowledgeBaseDocument": "Stores admin-authored documents/articles with metadata and possible embedding usage via Upstash Vector",
+        "forgeResource": "Admin-managed resource catalog entries with CRUD",
+        "userRole": "Admin/moderator/global-role mapping for admin checks"
+      }
+    },
+    "services": {
+      "knowledgeBase": {
+        "file": "backend-admin/src/services/knowledgeBase.service.ts",
+        "purpose": "CRUD + embedding/vector operations for documents"
+      },
+      "notifications": {
+        "file": "backend-admin/src/services/notification.service.ts",
+        "purpose": "Create/read/update/delete notifications; stats; preferences; cleanup"
+      },
+      "notificationTriggers": {
+        "file": "backend-admin/src/services/notificationTriggers.service.ts",
+        "purpose": "Helpers to trigger notifications for admin actions"
+      }
+    }
+  },
+  "frontend": {
+    "overview": {
+      "entryFile": "frontend-admin/src/App.tsx",
+      "router": "react-router-dom (BrowserRouter)",
+      "auth": "@clerk/clerk-react",
+      "ui": "Tailwind + custom components"
+    },
+    "routing": {
+      "publicRoutes": ["/sign-in/*"],
+      "protected": {
+        "prefix": "/admin",
+        "pages": [
+          "/admin/dashboard (DashboardPage)",
+          "/admin/users (UserListPage)",
+          "/admin/users/edit/:id (UserEditPage)",
+          "/admin/forge (ForgeListPage)",
+          "/admin/forge/create (ForgeCreatePage)",
+          "/admin/forge/edit/:id (ForgeEditPage)",
+          "/admin/crucible (CrucibleListPage)",
+          "/admin/crucible/create (CrucibleCreatePage)",
+          "/admin/crucible/edit/:id (CrucibleEditPage)",
+          "/admin/knowledge-base (KnowledgeBasePage)",
+          "/admin/knowledge-base/new (KnowledgeBaseNewPage)",
+          "/admin/knowledge-base/edit/:id (KnowledgeBaseEditPage)",
+          "/admin/channels (ChannelsPage)",
+          "/admin/notifications (NotificationsPage)"
+        ],
+        "defaultRedirect": "/admin/dashboard"
+      }
+    },
+    "dataFetching": {
+      "baseUrl": "import.meta.env.VITE_API_URL || 'http://localhost:5001/api'",
+      "libs": {
+        "api.ts": {
+          "hook": "useApi()",
+          "auth": "Clerk getToken() -> Authorization: Bearer {token}",
+          "errorHandling": "throws Error(response.message) on non-OK",
+          "usage": "pages call apiFetch('/path', { method, body })"
+        },
+        "notificationApi.ts": {
+          "exports": [
+            "getNotifications(filters)",
+            "getNotificationStats()",
+            "markNotificationAsRead(id)",
+            "markAllNotificationsAsRead()",
+            "archiveNotification(id)",
+            "deleteNotification(id)",
+            "createCustomNotification(data)",
+            "createBulkNotifications(data)",
+            "cleanupExpiredNotifications()",
+            "getAllNotifications(filters)",
+            "getNotificationPreferences()",
+            "updateNotificationPreferences(preferences)"
+          ],
+          "endpoints": {
+            "user": [
+              "GET /notifications",
+              "GET /notifications/stats",
+              "GET /notifications/preferences",
+              "PUT /notifications/preferences",
+              "PUT /notifications/:id/read",
+              "PUT /notifications/read-all",
+              "PUT /notifications/:id/archive",
+              "DELETE /notifications/:id"
+            ],
+            "admin": [
+              "GET /notifications/all",
+              "POST /notifications/custom",
+              "POST /notifications/bulk",
+              "DELETE /notifications/cleanup"
+            ]
+          }
+        }
+      }
+    },
+    "pagesToBackend": {
+      "UserListPage": ["GET /api/users"],
+      "UserEditPage": ["GET /api/users/:id", "PUT /api/users/:id", "DELETE /api/users/:id"],
+      "ForgeListPage": ["GET /api/forge"],
+      "ForgeCreatePage": ["POST /api/forge"],
+      "ForgeEditPage": ["GET /api/forge/:id", "PUT /api/forge/:id", "DELETE /api/forge/:id"],
+      "CrucibleListPage": ["GET /api/crucible/proble ms"],
+      "CrucibleCreatePage": ["POST /api/crucible/problems"],
+      "CrucibleEditPage": ["GET/PUT/DELETE /api/crucible/problems/:id"],
+      "KnowledgeBasePage": ["GET /api/admin/knowledge-base/documents"],
+      "KnowledgeBaseNewPage": ["POST /api/admin/knowledge-base/documents"],
+      "KnowledgeBaseEditPage": ["GET/PUT/DELETE /api/admin/knowledge-base/documents/:id"],
+      "ChannelsPage": ["GET/POST /api/channels", "PUT/DELETE /api/channels/:id"],
+      "NotificationsPage": ["GET /api/notifications", "GET /api/notifications/stats", "Admin: GET /api/notifications/all"]
+    }
+  },
+  "env": {
+    "backend": [
+      "PORT", "MONGODB_URI", "CLERK_JWT_KEY", "CLERK_SECRET_KEY", "CLERK_ISSUER", "UPSTASH_VECTOR_URL", "UPSTASH_VECTOR_TOKEN"
+    ],
+    "frontend": [
+      "VITE_API_URL", "VITE_CLERK_PUBLISHABLE_KEY"
+    ]
+  },
+  "adminFlows": {
+    "auth": {
+      "signIn": "Admins sign in via Clerk at /sign-in; protected routes require a valid session",
+      "role": "Server enforces admin role via checkRole where needed (Forge, Crucible, Knowledge Base, some Notification routes)"
+    },
+    "resourcesManagement": [
+      "List resources -> GET /api/forge",
+      "Create resource -> POST /api/forge",
+      "Edit resource -> GET/PUT /api/forge/:id",
+      "Delete resource -> DELETE /api/forge/:id"
+    ],
+    "crucibleManagement": [
+      "Dashboard stats -> GET /api/crucible/dashboard",
+      "CRUD problems -> /api/crucible/problems",
+      "Moderate solutions/drafts/chats/notes/diagrams/progress/research via specific endpoints"
+    ],
+    "channels": [
+      "View/Create/Update/Delete channels via /api/channels (all protected)"
+    ],
+    "notifications": [
+      "Admin can list all notifications, send custom/bulk, and cleanup expired entries"
+    ],
+    "knowledgeBase": [
+      "Admin manages documents via /api/admin/knowledge-base/documents with CRUD; vector service may be used for search/embeddings"
+    ]
+  }
+}

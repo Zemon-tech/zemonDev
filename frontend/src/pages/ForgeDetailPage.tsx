@@ -64,6 +64,7 @@ export default function ForgeDetailPage() {
           className="w-full"
           allowScripts={true}
           allowStyles={true}
+          renderInIframe={true}
         />
       );
     }
