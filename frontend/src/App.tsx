@@ -9,14 +9,12 @@ import { ToastProvider } from './components/ui/toast';
 import PublicLayout from './components/layout/PublicLayout';
 import AppLayout from './components/layout/AppLayout';
 
-// Public Pages
-import LandingPage from './pages/LandingPage';
+// Public Pages (auth only: sign-in/sign-up)
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
 
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
-import AboutPage from './pages/AboutPage';
 
 // App Pages
 import DashboardPage from './pages/DashboardPage';
@@ -34,9 +32,7 @@ import ProtectedAdminRoute from './components/admin/ProtectedAdminRoute';
 import { UserRoleProvider } from './context/UserRoleContext';
 import { AnalysisProvider } from './context/AnalysisContext';
 import { SocketProvider } from './context/SocketContext';
-import BlogsPage from './pages/BlogsPage';
-import PricingPage from './pages/PricingPage';
-import DevelopersPage from './pages/DevelopersPage';
+// Removed public pages: Landing, About, Blogs, Pricing, Developers
 
 // Root route component to handle authenticated users
 function RootRoute() {
@@ -55,8 +51,8 @@ function RootRoute() {
     return <Navigate to={`/${username}/dashboard`} replace />;
   }
   
-  // Otherwise, show the landing page
-  return <LandingPage />;
+  // Otherwise, redirect to sign-in
+  return <Navigate to="/signin" replace />;
 }
 
 // Wrap AppLayout with WorkspaceProvider, UserRoleProvider, and AnalysisProvider
@@ -90,16 +86,12 @@ function App() {
           <ToastProvider>
             <Router>
               <Routes>
-                {/* Public Routes */}
+                {/* Public Routes (auth only) */}
                 <Route element={<PublicLayout />}>
                   {/* Root Route - Redirects to dashboard if authenticated */}
                   <Route path="/" element={<RootRoute />} />
                   <Route path="/signin" element={<SignInPage />} />
                   <Route path="/signup" element={<SignUpPage />} />
-                  <Route path="/about" element={<AboutPage />} />
-                  <Route path="/blogs" element={<BlogsPage />} />
-                  <Route path="/pricing" element={<PricingPage />} />
-                  <Route path="/developers" element={<DevelopersPage />} />
                 </Route>
                 
                 {/* Protected Routes - Username based */}

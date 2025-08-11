@@ -267,8 +267,19 @@ function ProfileAccountSection() {
 
   // Logout handler
   const handleLogout = async () => {
+    const getLandingRedirectUrl = () => {
+      try {
+        const { hostname } = window.location;
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          return 'http://localhost:3000/';
+        }
+        return '/';
+      } catch {
+        return '/';
+      }
+    };
     try {
-      await signOut({ redirectUrl: '/' } as any);
+      await signOut({ redirectUrl: getLandingRedirectUrl() } as any);
     } catch (err) {
       console.error('Error during sign out:', err);
     }

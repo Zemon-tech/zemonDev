@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Settings, User, Hammer, Beaker, Swords, X, PanelLeftClose } from 'lucide-react';
+import { Home, Settings, User, Hammer, Beaker, Swords, X, PanelLeftClose, LogOut } from 'lucide-react';
 import React from 'react';
 import SubjectIcon from '@/components/ui/SubjectIcon';
+import { useClerk } from '@clerk/clerk-react';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -13,6 +14,20 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, currentUsername, focusMode }) => {
   const location = useLocation();
   const [hovered, setHovered] = React.useState(false);
+  const { signOut } = useClerk();
+
+  const getLandingRedirectUrl = () => {
+    try {
+      const { hostname } = window.location;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:3000/';
+      }
+      // In production behind nginx, '/' will be routed to landing when logged out
+      return '/';
+    } catch {
+      return '/';
+    }
+  };
 
   // [ADD] Show sidebar if hovered in focus mode
   const shouldShow = focusMode ? hovered : isOpen;
@@ -191,6 +206,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, current
             </li>
           </ul>
         </nav>
+
+        {/* Sidebar Footer - Logout */}
+        <div className="border-t border-base-300 p-3">
+          <button
+            onClick={() => signOut({ redirectUrl: getLandingRedirectUrl() })}
+            className={`w-full flex items-center py-3 text-base rounded-lg transition-colors text-base-content/70 hover:bg-base-100 hover:text-error ${isOpen ? 'px-4 justify-start' : 'justify-center'} `}
+            title="Sign out"
+            type="button"
+          >
+            <LogOut className={isOpen ? 'mr-3' : ''} size={20} />
+            {isOpen && <span>Logout</span>}
+          </button>
+        </div>
       </aside>
     </>
   );
