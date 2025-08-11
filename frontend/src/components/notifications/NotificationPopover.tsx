@@ -98,7 +98,7 @@ export function NotificationPopover({ className, toasterRef }: NotificationPopov
     }
   };
 
-  const getNotificationVariant = (type: string, priority: string) => {
+  const getNotificationVariant = (type: string, _priority: string) => {
     // Map notification types to toast variants based on backend types
     switch (type) {
       case 'hackathon':

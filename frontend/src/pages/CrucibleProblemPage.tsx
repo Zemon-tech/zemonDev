@@ -4,8 +4,8 @@ import CrucibleWorkspaceView from '../components/crucible/CrucibleWorkspaceView'
 import ProblemSkeleton from '../components/crucible/ProblemSkeleton';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { WorkspaceProvider } from '@/lib/WorkspaceContext';
-import { useEffect, useState } from 'react';
-import { getProblem, getDraft, getNotes, updateDraft, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft } from '@/lib/crucibleApi';
+import { useEffect, useRef, useState } from 'react';
+import { getProblem, getDraft, getNotes, updateDraft, getProblemProgress, updateProblemProgress, type ICrucibleProblem, type ICrucibleNote, type ISolutionDraft } from '@/lib/crucibleApi';
 import { logger } from '@/lib/utils';
 import { useAnalysis } from '@/context/AnalysisContext';
 
@@ -22,6 +22,9 @@ function CrucibleProblemPage() {
   const [notes, setNotes] = useState<ICrucibleNote[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [progressTimeBase, setProgressTimeBase] = useState<number>(0);
+  const localCounterRef = useRef<number>(0);
+  const syncTimerRef = useRef<number | null>(null);
   
   useEffect(() => {
     if (!problemId) {
@@ -137,6 +140,55 @@ function CrucibleProblemPage() {
     fetchData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [problemId, isLoaded, isSignedIn, getToken, navigate]);
+
+  // Progress: fetch existing and start time tracking
+  useEffect(() => {
+    if (!problemId || !isLoaded || !isSignedIn) return;
+    let canceled = false;
+    (async () => {
+      try {
+        const p = await getProblemProgress(problemId, getToken);
+        if (!canceled) setProgressTimeBase(p.timeSpent || 0);
+      } catch {
+        // ignore
+      }
+    })();
+
+    // increment local counter every second
+    const secTimer = window.setInterval(() => {
+      localCounterRef.current += 1;
+    }, 1000) as unknown as number;
+
+    // sync every 20s
+    syncTimerRef.current = window.setInterval(async () => {
+      try {
+        const delta = localCounterRef.current;
+        if (delta <= 0) return;
+        await updateProblemProgress(problemId, { status: 'in-progress', timeSpent: progressTimeBase + delta }, getToken);
+        setProgressTimeBase(prev => prev + delta);
+        localCounterRef.current = 0;
+      } catch {
+        // ignore
+      }
+    }, 20000) as unknown as number;
+
+    return () => {
+      window.clearInterval(secTimer);
+      if (syncTimerRef.current) window.clearInterval(syncTimerRef.current);
+      (async () => {
+        try {
+          const delta = localCounterRef.current;
+          if (delta > 0) {
+            await updateProblemProgress(problemId, { status: 'in-progress', timeSpent: progressTimeBase + delta }, getToken);
+            localCounterRef.current = 0;
+          }
+        } catch {
+          // ignore
+        }
+      })();
+      canceled = true;
+    };
+  }, [problemId, isLoaded, isSignedIn, getToken, progressTimeBase]);
 
   // Track if a redirect has been initiated
   const [redirectInitiated, setRedirectInitiated] = useState<boolean>(false);

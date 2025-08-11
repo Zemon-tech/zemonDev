@@ -89,6 +89,17 @@ export interface ISolutionAnalysisResult {
   updatedAt: Date;
 }
 
+export type ProblemProgress = {
+  _id: string;
+  userId: string;
+  problemId: string;
+  status: 'not-started' | 'in-progress' | 'completed' | 'abandoned';
+  timeSpent: number;
+  milestones?: Array<{ id: string; description: string; completed: boolean; completedAt?: string }>;
+  lastActive: string;
+  updatedAt?: string;
+};
+
 // A helper function to get the authorization header
 // It uses the getToken function passed from a component with access to Clerk's auth context
 const getAuthHeader = async (getToken: () => Promise<string | null>) => {
@@ -172,6 +183,26 @@ export async function getProblem(id: string): Promise<ICrucibleProblem> {
     // This is a public endpoint, so we don't need a real getToken.
     const response = await fetch(`${API_BASE_URL}/crucible/${id}`);
     return handleResponse<ICrucibleProblem>(response);
+}
+
+// Progress APIs (auth required)
+export async function getProblemProgress(
+  problemId: string,
+  getToken: () => Promise<string | null>
+): Promise<ProblemProgress> {
+  return apiRequest<ProblemProgress>(`/crucible/${problemId}/progress`, {}, getToken);
+}
+
+export async function updateProblemProgress(
+  problemId: string,
+  payload: Partial<Pick<ProblemProgress, 'status' | 'timeSpent'>>,
+  getToken: () => Promise<string | null>
+): Promise<ProblemProgress> {
+  return apiRequest<ProblemProgress>(
+    `/crucible/${problemId}/progress`,
+    { method: 'PUT', body: JSON.stringify(payload) },
+    getToken
+  );
 }
 
 // Fetch solution draft for a problem (auth required)

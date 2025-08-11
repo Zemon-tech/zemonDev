@@ -30,6 +30,46 @@ export async function getForgeResource(id: string): Promise<any> {
   return handleResponse<any>(response);
 }
 
+export type ForgeProgress = {
+  _id: string;
+  userId: string;
+  resourceId: string;
+  status: 'not-started' | 'in-progress' | 'completed' | 'abandoned';
+  timeSpent: number;
+  lastActive: string;
+  updatedAt?: string;
+};
+
+export async function getForgeProgress(
+  id: string,
+  getToken: () => Promise<string | null>
+): Promise<ForgeProgress> {
+  const token = await getToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE_URL}/forge/${id}/progress`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse<ForgeProgress>(res);
+}
+
+export async function updateForgeProgress(
+  id: string,
+  payload: Partial<Pick<ForgeProgress, 'status' | 'timeSpent'>>,
+  getToken: () => Promise<string | null>
+): Promise<ForgeProgress> {
+  const token = await getToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE_URL}/forge/${id}/progress`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<ForgeProgress>(res);
+}
+
 /**
  * Registers a "view" for a resource.
  * This is a side-effecting call that returns the updated resource.

@@ -112,6 +112,13 @@ const gradientOptions: BackgroundOption[] = [
 
 const imageOptions: BackgroundOption[] = [
   {
+    id: 'linkedin-cover',
+    name: 'LinkedIn Cover',
+    type: 'image',
+    value: 'https://media.licdn.com/dms/image/v2/D4E16AQGVp77U8PUqXA/profile-displaybackgroundimage-shrink_350_1400/B4EZiYGj1MGUAY-/0/1754898515411?e=1757548800&v=beta&t=F3GxYwZk7YYaPj6nHeSrMio719REAU6lYoFOEfNenrQ',
+    preview: 'https://media.licdn.com/dms/image/v2/D4E16AQGVp77U8PUqXA/profile-displaybackgroundimage-shrink_350_1400/B4EZiYGj1MGUAY-/0/1754898515411?e=1757548800&v=beta&t=F3GxYwZk7YYaPj6nHeSrMio719REAU6lYoFOEfNenrQ'
+  },
+  {
     id: 'abstract-1',
     name: 'Abstract Waves',
     type: 'image',

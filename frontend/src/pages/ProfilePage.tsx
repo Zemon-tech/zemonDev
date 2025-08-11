@@ -167,6 +167,7 @@ export default function ProfilePage() {
   const [currentBackground, setCurrentBackground] = useState<BackgroundOption>(gradientOptions[0]);
   const [isBackgroundSelectorOpen, setIsBackgroundSelectorOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bannerRef = useRef<HTMLDivElement>(null);
 
   // Zemon streak functionality
   const { streakInfo, loading: streakLoading } = useZemonStreak();
@@ -381,13 +382,25 @@ export default function ProfilePage() {
       </div>
       {/* Hero Section with Dynamic Background */}
       <section 
-        className="relative w-full h-[200px] overflow-hidden"
+        ref={bannerRef}
+        className="relative w-full overflow-hidden"
         style={{ 
+          aspectRatio: '9 / 1',
+          minHeight: '240px',
           background: currentBackground.type === 'gradient' 
             ? currentBackground.value 
-            : `url(${currentBackground.value}) center/cover`
+            : undefined
         }}
       >
+        {currentBackground.type === 'image' && (
+          <img
+            src={currentBackground.value}
+            alt="Profile cover"
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="eager"
+            style={{ imageRendering: 'auto' }}
+          />
+        )}
         {/* Background overlay for better text readability */}
         <div className="absolute inset-0 bg-black/10" />
         
@@ -433,14 +446,15 @@ export default function ProfilePage() {
               }}
             />
             
-            {/* LinkedIn-style white border */}
+            {/* Theme-adaptive subtle ring around avatar (light: grey, dark: white) */}
+            {/* Removed previous always-white overlay in favor of ring on image */}
             <div className="absolute inset-0 rounded-full p-[5px] bg-white"></div>
             
             {/* Avatar Image */}
             <motion.img
               src={user?.imageUrl || 'https://via.placeholder.com/200'}
               alt="Profile"
-              className="w-[160px] h-[160px] rounded-full relative z-10 object-cover"
+              className="w-[160px] h-[160px] rounded-full relative z-10 object-cover ring-2 ring-gray-300 dark:ring-white/80"
               transition={{ duration: 0.3 }}
             />
             

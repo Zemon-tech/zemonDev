@@ -4,7 +4,9 @@ import {
   getResourceById, 
   bookmarkResource,
   reviewResource,
-  incrementResourceView
+  incrementResourceView,
+  getForgeProgress,
+  updateForgeProgress
 } from '../controllers/forge.controller';
 import { protect } from '../middleware/auth.middleware';
 import { standardLimiter } from '../middleware/rateLimiter.middleware';
@@ -20,5 +22,7 @@ router.get('/:id', standardLimiter, cacheMiddleware(300), getResourceById); // C
 router.post('/:id/view', protect, incrementResourceView);
 router.post('/:id/bookmark', protect, bookmarkResource);
 router.post('/:id/review', protect, reviewResource);
+router.get('/:id/progress', protect, getForgeProgress);
+router.put('/:id/progress', protect, updateForgeProgress);
 
 export default router; 

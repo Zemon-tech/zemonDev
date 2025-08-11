@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import asyncHandler from '../utils/asyncHandler';
 import AppError from '../utils/AppError';
 import ApiResponse from '../utils/ApiResponse';
-import { ForgeResource, User } from '../models/index';
+import { ForgeResource, User, ForgeProgress } from '../models/index';
 
 /**
  * @desc    Get all resources with filters
@@ -238,3 +238,52 @@ export const incrementResourceView = asyncHandler(
     );
   }
 ); 
+
+/**
+ * @desc    Get or create progress for a forge resource
+ * @route   GET /api/forge/:id/progress
+ * @access  Private
+ */
+export const getForgeProgress = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const resourceId = req.params.id;
+    const userId = req.user._id;
+
+    const resource = await ForgeResource.findById(resourceId).select('_id');
+    if (!resource) {
+      return next(new AppError('Resource not found', 404));
+    }
+
+    let progress = await ForgeProgress.findOne({ userId, resourceId });
+    if (!progress) {
+      progress = await ForgeProgress.create({ userId, resourceId, status: 'not-started', timeSpent: 0, lastActive: new Date() });
+    }
+
+    res.status(200).json(new ApiResponse(200, 'Forge progress fetched', progress));
+  }
+);
+
+/**
+ * @desc    Update progress for a forge resource
+ * @route   PUT /api/forge/:id/progress
+ * @access  Private
+ */
+export const updateForgeProgress = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const resourceId = req.params.id;
+    const userId = req.user._id;
+    const { status, timeSpent } = req.body as { status?: 'not-started' | 'in-progress' | 'completed' | 'abandoned'; timeSpent?: number };
+
+    const progress = await ForgeProgress.findOne({ userId, resourceId });
+    if (!progress) {
+      return next(new AppError('Progress not found', 404));
+    }
+
+    if (typeof status !== 'undefined') progress.status = status;
+    if (typeof timeSpent === 'number' && Number.isFinite(timeSpent) && timeSpent >= 0) progress.timeSpent = timeSpent;
+    progress.lastActive = new Date();
+
+    await progress.save();
+    res.status(200).json(new ApiResponse(200, 'Forge progress updated', progress));
+  }
+);

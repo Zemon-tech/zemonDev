@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, MessageCircle, Star, Mail, Github, X, Eye, Linkedin, Twitter, BookOpen, Plus, Palette, ExternalLink } from 'lucide-react';
+import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, MessageCircle, Star, Mail, Github, X, Eye, Linkedin, Twitter, BookOpen, Plus, Palette, ExternalLink, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import clsx from 'clsx';
@@ -53,7 +53,7 @@ function SectionSidebar({ active, setActive }: { active: string, setActive: (k: 
 function ProfileAccountSection() {
   const [tab, setTab] = useState<'profile' | 'account'>('profile');
   const { user } = useUser();
-  const { getToken } = useAuth();
+  const { getToken, signOut } = useAuth();
   const { userProfile, loading: profileLoading, refetch: refetchProfile } = useUserProfile();
   
   // Editable fields - initialize with user profile data
@@ -263,6 +263,15 @@ function ProfileAccountSection() {
       setShowToast({ type: 'error', message: error instanceof Error ? error.message : 'Failed to delete account' });
     }
     setShowDeleteModal(false);
+  };
+
+  // Logout handler
+  const handleLogout = async () => {
+    try {
+      await signOut({ redirectUrl: '/' } as any);
+    } catch (err) {
+      console.error('Error during sign out:', err);
+    }
   };
 
   // Toast auto-hide
@@ -510,7 +519,11 @@ function ProfileAccountSection() {
               <Shield size={16} className="text-primary" /> Use a strong password, enable 2FA, and review your sessions regularly.
             </div>
             {/* Account Actions */}
-            <div className="flex gap-2 mt-2">
+            <div className="flex gap-2 mt-2 flex-wrap">
+              <Button variant="outline" onClick={handleLogout} className="flex items-center gap-2">
+                <LogOut size={16} />
+                Logout
+              </Button>
               <Button variant="outline" onClick={handleExportData}>Export Data</Button>
               <Button variant="destructive" onClick={() => setShowDeleteModal(true)}>Deactivate / Delete Account</Button>
             </div>

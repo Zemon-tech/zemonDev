@@ -8,6 +8,7 @@ import AIChatHistory, { IAIChatHistory } from './aiChatHistory.model';
 import WorkspaceState, { IWorkspaceState } from './workspaceState.model';
 import CrucibleDiagram, { ICrucibleDiagram } from './crucibleDiagram.model';
 import ProgressTracking, { IProgressTracking } from './progressTracking.model';
+import ForgeProgress, { IForgeProgress } from './forgeProgress.model';
 import ResearchItem, { IResearchItem } from './researchItem.model';
 import SolutionAnalysis, { ISolutionAnalysisResult, IAnalysisParameter } from './solutionAnalysis.model';
 import ArenaChannel, { IArenaChannel } from './arenaChannel.model';
@@ -43,6 +44,8 @@ export {
   ICrucibleDiagram,
   ProgressTracking,
   IProgressTracking,
+  ForgeProgress,
+  IForgeProgress,
   ResearchItem,
   IResearchItem,
   SolutionAnalysis,

@@ -1,8 +1,8 @@
 import { useParams } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import { ExternalLink } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { registerForgeResourceView } from '../lib/forgeApi';
+import { useEffect, useRef, useState } from 'react';
+import { registerForgeResourceView, getForgeProgress, updateForgeProgress, type ForgeProgress } from '../lib/forgeApi';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import HtmlContentRenderer from '../components/ui/html-content-renderer';
@@ -31,6 +31,9 @@ export default function ForgeDetailPage() {
   const [resource, setResource] = useState<Resource | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [progress, setProgress] = useState<ForgeProgress | null>(null);
+  const timeCounterRef = useRef<number>(0);
+  const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -40,6 +43,63 @@ export default function ForgeDetailPage() {
       .catch(e => setError(e.message || 'Resource not found'))
       .finally(() => setLoading(false));
   }, [id, getToken]);
+
+  // Fetch or create progress
+  useEffect(() => {
+    if (!id) return;
+    let canceled = false;
+    (async () => {
+      try {
+        const p = await getForgeProgress(id, getToken);
+        if (!canceled) setProgress(p);
+      } catch (e) {
+        // ignore if not authenticated or error
+      }
+    })();
+    return () => {
+      canceled = true;
+    };
+  }, [id, getToken]);
+
+  // Track time spent locally and periodically sync
+  useEffect(() => {
+    if (!id) return;
+    // Start counting seconds in view
+    intervalRef.current = window.setInterval(() => {
+      timeCounterRef.current += 1;
+    }, 1000) as unknown as number;
+
+    // Every 15s, push an update if signed in
+    const syncInterval = window.setInterval(async () => {
+      try {
+        const seconds = timeCounterRef.current;
+        if (seconds <= 0) return;
+        const updated = await updateForgeProgress(id, { status: 'in-progress', timeSpent: (progress?.timeSpent || 0) + seconds }, getToken);
+        setProgress(updated);
+        timeCounterRef.current = 0; // reset local counter after sync
+      } catch {
+        // ignore errors (e.g., not authenticated)
+      }
+    }, 15000);
+
+    // On unmount, flush remaining seconds once
+    return () => {
+      if (intervalRef.current) window.clearInterval(intervalRef.current);
+      window.clearInterval(syncInterval);
+      (async () => {
+        try {
+          const seconds = timeCounterRef.current;
+          if (seconds > 0) {
+            const updated = await updateForgeProgress(id, { status: 'in-progress', timeSpent: (progress?.timeSpent || 0) + seconds }, getToken);
+            setProgress(updated);
+            timeCounterRef.current = 0;
+          }
+        } catch {
+          // ignore
+        }
+      })();
+    };
+  }, [id, getToken, progress?.timeSpent]);
 
   if (loading) return <div className="flex items-center justify-center h-full py-16 text-center">Loading...</div>;
   if (error || !resource) return (
