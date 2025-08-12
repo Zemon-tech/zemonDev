@@ -369,14 +369,13 @@ export const HtmlContentRenderer: React.FC<HtmlContentRendererProps> = ({
     return (
       <iframe
         ref={iframeRef}
-        className={`${className} forge-html-content`}
+        className={`${className}`}
         style={{ 
-          width: '100vw', 
+          width: '100%', 
           border: 'none',
-          maxWidth: '100vw',
+          maxWidth: '100%',
           padding: '0',
-          margin: '0',
-          minWidth: '100vw'
+          margin: '0'
         }}
         title="html-content"
       />
