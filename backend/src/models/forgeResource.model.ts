@@ -14,6 +14,7 @@ export interface IForgeResource extends Document {
   description: string;
   content?: string;
   contentType?: 'markdown' | 'html'; // New field to distinguish content type
+  thumbnail?: string; // URL to thumbnail image
   tags: string[];
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   createdBy: mongoose.Types.ObjectId;
@@ -58,6 +59,10 @@ const ForgeResourceSchema: Schema = new Schema(
       type: String,
       enum: ['markdown', 'html'],
       default: 'markdown', // Default to markdown for backward compatibility
+    },
+    thumbnail: {
+      type: String,
+      trim: true,
     },
     tags: {
       type: [String],

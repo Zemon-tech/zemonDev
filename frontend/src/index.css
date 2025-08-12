@@ -1003,3 +1003,84 @@ aside a.active {
     transform: translateY(0);
   }
 }
+
+/* Ensure responsive design works properly */
+@media (max-width: 768px) {
+  .forge-html-content {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+
+/* Resource Card Thumbnail Styles */
+.resource-card-thumbnail {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, hsl(var(--b2)) 0%, hsl(var(--b3)) 100%);
+}
+
+.resource-card-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.resource-card-thumbnail:hover img {
+  transform: scale(1.05);
+}
+
+.resource-card-thumbnail .fallback-placeholder {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: linear-gradient(135deg, hsl(var(--b2)) 0%, hsl(var(--b3)) 100%);
+}
+
+.resource-card-thumbnail .fallback-placeholder:not(.hidden) {
+  display: flex;
+}
+
+/* Gradient overlay for thumbnails */
+.resource-card-thumbnail::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.3) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+/* Enhanced hover effects for cards with thumbnails */
+.resource-card-with-thumbnail {
+  transition: all 0.3s ease;
+}
+
+.resource-card-with-thumbnail:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Responsive adjustments for resource cards */
+@media (max-width: 640px) {
+  .resource-card-thumbnail {
+    height: 160px; /* Smaller height on mobile */
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .resource-card-thumbnail {
+    height: 180px; /* Medium height on tablet */
+  }
+}
+
+@media (min-width: 1025px) {
+  .resource-card-thumbnail {
+    height: 192px; /* Full height on desktop */
+  }
+}

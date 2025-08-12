@@ -275,6 +275,39 @@ export const HtmlContentRenderer: React.FC<HtmlContentRendererProps> = ({
     };
   }, [allowStyles, allowScripts]);
 
+  // Override any CSS width constraints in the HTML content
+  useEffect(() => {
+    if (!containerRef.current || renderInIframe) return;
+    
+    const container = containerRef.current;
+    const overrideWidthConstraints = () => {
+      const elements = container.querySelectorAll('*');
+      elements.forEach((element) => {
+        const el = element as HTMLElement;
+        if (el.style.width && el.style.width !== '100%') {
+          el.style.width = '100%';
+        }
+        if (el.style.maxWidth && el.style.maxWidth !== '100%') {
+          el.style.maxWidth = '100%';
+        }
+      });
+    };
+
+    // Override constraints after content is rendered
+    const observer = new MutationObserver(overrideWidthConstraints);
+    observer.observe(container, { 
+      childList: true, 
+      subtree: true, 
+      attributes: true,
+      attributeFilter: ['style']
+    });
+
+    // Initial override
+    overrideWidthConstraints();
+
+    return () => observer.disconnect();
+  }, [content, renderInIframe]);
+
   // Iframe rendering (opt-in)
   useEffect(() => {
     if (!renderInIframe || !iframeRef.current) return;
@@ -336,8 +369,15 @@ export const HtmlContentRenderer: React.FC<HtmlContentRendererProps> = ({
     return (
       <iframe
         ref={iframeRef}
-        className={className}
-        style={{ width: '100%', border: 'none' }}
+        className={`${className} forge-html-content`}
+        style={{ 
+          width: '100vw', 
+          border: 'none',
+          maxWidth: '100vw',
+          padding: '0',
+          margin: '0',
+          minWidth: '100vw'
+        }}
         title="html-content"
       />
     );
@@ -346,7 +386,14 @@ export const HtmlContentRenderer: React.FC<HtmlContentRendererProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`full-html-content ${className}`}
+      className={`full-html-content w-full ${className}`}
+      style={{ 
+        width: '100%',
+        maxWidth: '100%',
+        padding: '0',
+        margin: '0',
+        minWidth: '100%'
+      }}
       dangerouslySetInnerHTML={{ __html: content }}
     />
   );

@@ -16,6 +16,7 @@ type Resource = {
   description: string;
   content?: string; // markdown or HTML string
   contentType?: 'markdown' | 'html'; // New field from backend
+  thumbnail?: string; // URL to thumbnail image
   tags: string[];
   difficulty?: string;
   createdBy?: any;
@@ -203,21 +204,29 @@ export default function ForgeDetailPage() {
         <p className="text-lg text-base-content/70 mb-2 px-4 md:px-8">{resource.summary}</p>
       </div>
       <div className="flex-1 w-full flex flex-col">
-        <div className="prose prose-lg prose-zinc max-w-none w-full bg-base-50/80 rounded-none p-0 md:p-0 border-0 shadow-none px-4 md:px-8"
-          style={{
-            '--tw-prose-headings': '#1e293b',
-            '--tw-prose-h1': '2.8rem',
-            '--tw-prose-h2': '2.2rem',
-            '--tw-prose-h3': '1.6rem',
-            '--tw-prose-code': '1.1em',
-            '--tw-prose-pre-bg': '#f3f4f6',
-            '--tw-prose-pre': '1.1em',
-            fontSize: '1.25rem',
-            lineHeight: '2.1rem',
-          } as React.CSSProperties}
-        >
-          {renderContent()}
-        </div>
+        {contentType === 'html' ? (
+          // Full-width layout for HTML content
+          <div className="forge-html-content w-full bg-base-50/80">
+            {renderContent()}
+          </div>
+        ) : (
+          // Standard layout for markdown and other content types
+          <div className="prose prose-lg prose-zinc max-w-none w-full bg-base-50/80 rounded-none p-0 md:p-0 border-0 shadow-none px-4 md:px-8"
+            style={{
+              '--tw-prose-headings': '#1e293b',
+              '--tw-prose-h1': '2.8rem',
+              '--tw-prose-h2': '2.2rem',
+              '--tw-prose-h3': '1.6rem',
+              '--tw-prose-code': '1.1em',
+              '--tw-prose-pre-bg': '#f3f4f6',
+              '--tw-prose-pre': '1.1em',
+              fontSize: '1.25rem',
+              lineHeight: '2.1rem',
+            } as React.CSSProperties}
+          >
+            {renderContent()}
+          </div>
+        )}
         <div className="mt-6 text-sm text-base-content/60 flex flex-wrap gap-4 items-center px-4 md:px-8 pb-8">
           <span>Author: {resource.createdBy?.fullName || 'ZEMON'}</span>
           <span>|</span>
