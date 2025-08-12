@@ -17,12 +17,49 @@ export interface IUser extends Document {
     location?: string;
     skills?: string[];
     toolsAndTech?: string[];
+    skillProgress?: Array<{
+      skill: string;
+      level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+      progress: number; // 0-100
+      lastUpdated: Date;
+    }>;
   };
   interests: string[];
+  achievements?: {
+    badges: Array<{
+      id: string;
+      name: string;
+      description: string;
+      icon: string;
+      category: 'crucible' | 'forge' | 'arena' | 'streak' | 'special';
+      earnedAt: Date;
+      metadata?: Record<string, any>;
+    }>;
+    certificates: Array<{
+      id: string;
+      name: string;
+      issuer: string;
+      issueDate: Date;
+      expiryDate?: Date;
+      credentialUrl?: string;
+      category: 'technical' | 'academic' | 'professional' | 'platform';
+    }>;
+    milestones: Array<{
+      id: string;
+      name: string;
+      description: string;
+      achievedAt: Date;
+      category: 'problems' | 'resources' | 'collaboration' | 'streak';
+      value: number;
+    }>;
+  };
   stats: {
     problemsSolved: number;
     resourcesCreated: number;
     reputation: number;
+    totalBadges: number;
+    totalCertificates: number;
+    skillMastery: number; // Average skill progress
   };
   bookmarkedResources: mongoose.Types.ObjectId[];
   completedSolutions: mongoose.Types.ObjectId[];
@@ -142,10 +179,129 @@ const UserSchema: Schema = new Schema(
         type: [String],
         default: [],
       },
+      skillProgress: [{
+        skill: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        level: {
+          type: String,
+          enum: ['beginner', 'intermediate', 'advanced', 'expert'],
+          default: 'beginner',
+        },
+        progress: {
+          type: Number,
+          min: 0,
+          max: 100,
+          default: 0,
+        },
+        lastUpdated: {
+          type: Date,
+          default: Date.now,
+        },
+      }],
     },
     interests: {
       type: [String],
       default: [],
+    },
+    achievements: {
+      badges: [{
+        id: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        name: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        description: {
+          type: String,
+          trim: true,
+        },
+        icon: {
+          type: String,
+          trim: true,
+        },
+        category: {
+          type: String,
+          enum: ['crucible', 'forge', 'arena', 'streak', 'special'],
+          default: 'special',
+        },
+        earnedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        metadata: {
+          type: Schema.Types.Mixed,
+          default: {},
+        },
+      }],
+      certificates: [{
+        id: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        name: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        issuer: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        issueDate: {
+          type: Date,
+          required: true,
+        },
+        expiryDate: {
+          type: Date,
+        },
+        credentialUrl: {
+          type: String,
+          trim: true,
+        },
+        category: {
+          type: String,
+          enum: ['technical', 'academic', 'professional', 'platform'],
+          default: 'technical',
+        },
+      }],
+      milestones: [{
+        id: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        name: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        description: {
+          type: String,
+          trim: true,
+        },
+        achievedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        category: {
+          type: String,
+          enum: ['problems', 'resources', 'collaboration', 'streak'],
+          default: 'problems',
+        },
+        value: {
+          type: Number,
+          default: 0,
+        },
+      }],
     },
     stats: {
       problemsSolved: {
@@ -158,6 +314,20 @@ const UserSchema: Schema = new Schema(
       },
       reputation: {
         type: Number,
+        default: 0,
+      },
+      totalBadges: {
+        type: Number,
+        default: 0,
+      },
+      totalCertificates: {
+        type: Number,
+        default: 0,
+      },
+      skillMastery: {
+        type: Number,
+        min: 0,
+        max: 100,
         default: 0,
       },
     },

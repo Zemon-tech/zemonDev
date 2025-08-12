@@ -21,12 +21,49 @@ export interface UserProfile {
     location?: string;
     skills?: string[];
     toolsAndTech?: string[];
+    skillProgress?: Array<{
+      skill: string;
+      level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+      progress: number;
+      lastUpdated: string;
+    }>;
   };
   interests: string[];
+  achievements?: {
+    badges: Array<{
+      id: string;
+      name: string;
+      description: string;
+      icon: string;
+      category: 'crucible' | 'forge' | 'arena' | 'streak' | 'special';
+      earnedAt: string;
+      metadata?: Record<string, any>;
+    }>;
+    certificates: Array<{
+      id: string;
+      name: string;
+      issuer: string;
+      issueDate: string;
+      expiryDate?: string;
+      credentialUrl?: string;
+      category: 'technical' | 'academic' | 'professional' | 'platform';
+    }>;
+    milestones: Array<{
+      id: string;
+      name: string;
+      description: string;
+      achievedAt: string;
+      category: 'problems' | 'resources' | 'collaboration' | 'streak';
+      value: number;
+    }>;
+  };
   stats: {
     problemsSolved: number;
     resourcesCreated: number;
     reputation: number;
+    totalBadges: number;
+    totalCertificates: number;
+    skillMastery: number;
   };
   bookmarkedResources: string[];
   completedSolutions: string[];

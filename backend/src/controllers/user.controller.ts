@@ -154,7 +154,7 @@ export const getStreakLeaderboard = asyncHandler(
  */
 export const updateCurrentUser = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { collegeDetails, profile, interests, profileBackground, college, socialLinks } = req.body;
+    const { collegeDetails, profile, interests, profileBackground, college, socialLinks, achievements } = req.body;
 
     // Filter out unwanted fields
     const updateData: any = {};
@@ -164,6 +164,24 @@ export const updateCurrentUser = asyncHandler(
     if (profileBackground) updateData.profileBackground = profileBackground;
     if (college) updateData.college = college;
     if (socialLinks) updateData.socialLinks = socialLinks;
+    if (achievements) updateData.achievements = achievements;
+
+    // Calculate skill mastery if skillProgress is provided
+    if (profile?.skillProgress && Array.isArray(profile.skillProgress)) {
+      const totalProgress = profile.skillProgress.reduce((sum: number, skill: any) => sum + (skill.progress || 0), 0);
+      const averageProgress = profile.skillProgress.length > 0 ? totalProgress / profile.skillProgress.length : 0;
+      updateData['stats.skillMastery'] = Math.round(averageProgress);
+    }
+
+    // Calculate total badges and certificates if achievements are provided
+    if (achievements) {
+      if (achievements.badges && Array.isArray(achievements.badges)) {
+        updateData['stats.totalBadges'] = achievements.badges.length;
+      }
+      if (achievements.certificates && Array.isArray(achievements.certificates)) {
+        updateData['stats.totalCertificates'] = achievements.certificates.length;
+      }
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user._id,

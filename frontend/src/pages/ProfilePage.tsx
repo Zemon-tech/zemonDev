@@ -172,6 +172,12 @@ export default function ProfilePage() {
   // Zemon streak functionality
   const { streakInfo, loading: streakLoading } = useZemonStreak();
 
+  // Derived profile data for new fields
+  const skillProgressData = userProfile?.profile?.skillProgress || [];
+  const profileBadges = userProfile?.achievements?.badges || [];
+  const profileCertificates = userProfile?.achievements?.certificates || [];
+  const profileMilestones = userProfile?.achievements?.milestones || [];
+
   // State for Crucible data
   const [analysisHistory, setAnalysisHistory] = useState<IUserAnalysisHistory[]>([]);
   const [activeDrafts, setActiveDrafts] = useState<IUserActiveDraft[]>([]);
@@ -1529,54 +1535,66 @@ export default function ProfilePage() {
                         Badges Earned
                       </h3>
                       <div className="space-y-3">
-                        {(mockUserData.achievements?.badges || []).map((badge, index) => (
-                          <motion.div
-                            key={index}
-                            className="flex items-center gap-3 p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 cursor-pointer group"
-                            whileHover={{ scale: 1.02, x: 5 }}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.4, delay: 0.2 + index * 0.1 }}
-                          >
-                            <div className="w-8 h-8 bg-warning rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                              <Star className="w-4 h-4 text-warning-content" />
-                            </div>
-                            <span className="text-base-content font-medium">{badge}</span>
-                          </motion.div>
-                        ))}
+                        {profileBadges.length === 0 ? (
+                          <div className="text-sm text-base-content/60">No badges yet</div>
+                        ) : (
+                          profileBadges.map((badge, index) => (
+                            <motion.div
+                              key={badge.id || index}
+                              className="flex items-center gap-3 p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 cursor-pointer group"
+                              whileHover={{ scale: 1.02, x: 5 }}
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ duration: 0.4, delay: 0.2 + index * 0.1 }}
+                            >
+                              <div className="w-8 h-8 bg-warning rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 text-warning-content text-base">
+                                <span aria-hidden>{badge.icon || '⭐'}</span>
+                              </div>
+                              <div>
+                                <div className="text-base-content font-medium leading-tight">{badge.name}</div>
+                                {badge.description && (
+                                  <div className="text-xs text-base-content/60">{badge.description}</div>
+                                )}
+                              </div>
+                            </motion.div>
+                          ))
+                        )}
                       </div>
                     </div>
 
-                    {/* Testimonials */}
+                    {/* Milestones */}
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-base-content flex items-center gap-2">
-                        <MessageCircle className="w-5 h-5 text-info" />
-                        Testimonials
+                        <Target className="w-5 h-5 text-info" />
+                        Milestones
                       </h3>
                       <div className="space-y-3">
-                        {mockUserData.testimonials.map((testimonial, index) => (
-                          <motion.div
-                            key={index}
-                            className="p-4 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 cursor-pointer group"
-                            whileHover={{ scale: 1.02 }}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
-                          >
-                            <div className="flex items-center gap-3 mb-2">
-                              <img 
-                                src={testimonial.photo || 'https://via.placeholder.com/32'} 
-                                alt={testimonial.name}
-                                className="w-8 h-8 rounded-full border-2 border-base-100 shadow-sm"
-                              />
-                              <div>
-                                <p className="font-semibold text-base-content text-sm">{testimonial.name}</p>
-                                <p className="text-xs text-base-content/70">{testimonial.role}</p>
+                        {profileMilestones.length === 0 ? (
+                          <div className="text-sm text-base-content/60">No milestones yet</div>
+                        ) : (
+                          profileMilestones.map((m, index) => (
+                            <motion.div
+                              key={m.id || index}
+                              className="p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 cursor-pointer group"
+                              whileHover={{ scale: 1.02 }}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="font-semibold text-base-content text-sm">{m.name}</p>
+                                  {m.description && (
+                                    <p className="text-xs text-base-content/70">{m.description}</p>
+                                  )}
+                                </div>
+                                <Badge variant="outline" className="text-xs">
+                                  {m.category}
+                                </Badge>
                               </div>
-                            </div>
-                            <p className="text-sm text-base-content/80 italic">"{testimonial.quote}"</p>
-                          </motion.div>
-                        ))}
+                            </motion.div>
+                          ))
+                        )}
                       </div>
                     </div>
 
@@ -1587,24 +1605,32 @@ export default function ProfilePage() {
                         Certifications
                       </h3>
                       <div className="space-y-3">
-                        {mockUserData.certifications.map((cert, index) => (
-                          <motion.div
-                            key={index}
-                            className="p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 cursor-pointer group"
-                            whileHover={{ scale: 1.02, x: 5 }}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-semibold text-base-content text-sm">{cert.title}</p>
-                                <p className="text-xs text-base-content/70">{cert.year}</p>
+                        {profileCertificates.length === 0 ? (
+                          <div className="text-sm text-base-content/60">No certificates yet</div>
+                        ) : (
+                          profileCertificates.map((cert, index) => (
+                            <motion.div
+                              key={cert.id || index}
+                              className="p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 cursor-pointer group"
+                              whileHover={{ scale: 1.02, x: 5 }}
+                              initial={{ opacity: 0, x: 20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="font-semibold text-base-content text-sm">{cert.name}</p>
+                                  <p className="text-xs text-base-content/70">{cert.issuer}</p>
+                                </div>
+                                {cert.credentialUrl && (
+                                  <a href={cert.credentialUrl} target="_blank" rel="noopener noreferrer" title="Verify credential">
+                                    <ExternalLink className="w-4 h-4 text-base-content/50 group-hover:text-base-content transition-colors duration-300" />
+                                  </a>
+                                )}
                               </div>
-                              <ExternalLink className="w-4 h-4 text-base-content/50 group-hover:text-base-content transition-colors duration-300" />
-                            </div>
-                          </motion.div>
-                        ))}
+                            </motion.div>
+                          ))
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1632,18 +1658,22 @@ export default function ProfilePage() {
                     <div>
                       <h3 className="text-lg font-semibold text-base-content mb-4">Currently Learning</h3>
                       <div className="flex flex-wrap gap-3">
-                        {(mockUserData.skillsInProgress?.activeTags || []).map((skill, index) => (
-                          <motion.span
-                            key={index}
-                            className="px-3 py-1.5 bg-primary/10 text-primary-content rounded-lg text-sm font-medium border border-primary/20 hover:bg-primary/20 transition-all duration-300 cursor-pointer"
-                            whileHover={{ scale: 1.05, y: -2 }}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.3, delay: 0.3 + index * 0.1 }}
-                          >
-                            {skill}
-                          </motion.span>
-                        ))}
+                        {skillProgressData.length === 0 ? (
+                          <span className="text-sm text-base-content/60">No skills added yet</span>
+                        ) : (
+                          skillProgressData.map((sp, index) => (
+                            <motion.span
+                              key={sp.skill || index}
+                              className="px-3 py-1.5 bg-primary/10 text-primary-content rounded-lg text-sm font-medium border border-primary/20 hover:bg-primary/20 transition-all duration-300 cursor-pointer"
+                              whileHover={{ scale: 1.05, y: -2 }}
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ duration: 0.3, delay: 0.3 + index * 0.1 }}
+                            >
+                              {sp.skill}
+                            </motion.span>
+                          ))
+                        )}
                       </div>
                     </div>
 
@@ -1651,29 +1681,33 @@ export default function ProfilePage() {
                     <div>
                       <h3 className="text-lg font-semibold text-base-content mb-4">Skill Progress</h3>
                       <div className="space-y-4">
-                        {(mockUserData.skillsInProgress?.progressBars || []).map((bar, index) => (
-                          <motion.div
-                            key={index}
-                            className="space-y-2"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
-                          >
-                            <div className="flex justify-between items-center">
-                              <span className="font-medium text-base-content">{bar.skill}</span>
-                              <span className="text-sm font-semibold text-primary">{bar.percent}%</span>
-                            </div>
-                            <div className="w-full h-3 bg-base-300 rounded-full overflow-hidden">
-                              <motion.div 
-                                className="h-full bg-primary rounded-full"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${bar.percent}%` }}
-                                transition={{ duration: 1, delay: 0.5 + index * 0.2, ease: "easeOut" }}
-                                style={{ width: `${bar.percent}%` }}
-                              />
-                            </div>
-                          </motion.div>
-                        ))}
+                        {skillProgressData.length === 0 ? (
+                          <span className="text-sm text-base-content/60">No progress to show</span>
+                        ) : (
+                          skillProgressData.map((sp, index) => (
+                            <motion.div
+                              key={sp.skill || index}
+                              className="space-y-2"
+                              initial={{ opacity: 0, x: 20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
+                            >
+                              <div className="flex justify-between items-center">
+                                <span className="font-medium text-base-content">{sp.skill} <span className="text-xs text-base-content/50">({sp.level})</span></span>
+                                <span className="text-sm font-semibold text-primary">{sp.progress}%</span>
+                              </div>
+                              <div className="w-full h-3 bg-base-300 rounded-full overflow-hidden">
+                                <motion.div 
+                                  className="h-full bg-primary rounded-full"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${sp.progress}%` }}
+                                  transition={{ duration: 1, delay: 0.5 + index * 0.2, ease: 'easeOut' }}
+                                  style={{ width: `${sp.progress}%` }}
+                                />
+                              </div>
+                            </motion.div>
+                          ))
+                        )}
                       </div>
                     </div>
                   </div>

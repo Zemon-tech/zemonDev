@@ -70,6 +70,66 @@ function ProfileAccountSection() {
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState('');
   
+  // Enhanced skills management
+  const [skillProgress, setSkillProgress] = useState<Array<{
+    skill: string;
+    level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+    progress: number;
+  }>>([]);
+  const [newSkillProgress, setNewSkillProgress] = useState({
+    skill: '',
+    level: 'beginner' as const,
+    progress: 0
+  });
+  
+  // Achievements management
+  const [badges, setBadges] = useState<Array<{
+    id: string;
+    name: string;
+    description: string;
+    icon: string;
+    category: 'crucible' | 'forge' | 'arena' | 'streak' | 'special';
+    metadata?: Record<string, any>;
+  }>>([]);
+  const [newBadge, setNewBadge] = useState({
+    name: '',
+    description: '',
+    icon: '🏆',
+    category: 'special' as const
+  });
+  
+  const [certificates, setCertificates] = useState<Array<{
+    id: string;
+    name: string;
+    issuer: string;
+    issueDate: string;
+    expiryDate?: string;
+    credentialUrl?: string;
+    category: 'technical' | 'academic' | 'professional' | 'platform';
+  }>>([]);
+  const [newCertificate, setNewCertificate] = useState({
+    name: '',
+    issuer: '',
+    issueDate: '',
+    expiryDate: '',
+    credentialUrl: '',
+    category: 'technical' as const
+  });
+  
+  const [milestones, setMilestones] = useState<Array<{
+    id: string;
+    name: string;
+    description: string;
+    category: 'problems' | 'resources' | 'collaboration' | 'streak';
+    value: number;
+  }>>([]);
+  const [newMilestone, setNewMilestone] = useState({
+    name: '',
+    description: '',
+    category: 'problems' as const,
+    value: 0
+  });
+  
   // College details
   const [collegeName, setCollegeName] = useState('');
   const [course, setCourse] = useState('');
@@ -105,6 +165,14 @@ function ProfileAccountSection() {
       setWebsite(userProfile.socialLinks?.portfolio || '');
       setSkills(userProfile.profile?.skills || []);
       
+      // Enhanced skills
+      setSkillProgress(userProfile.profile?.skillProgress || []);
+      
+      // Achievements
+      setBadges(userProfile.achievements?.badges || []);
+      setCertificates(userProfile.achievements?.certificates || []);
+      setMilestones(userProfile.achievements?.milestones || []);
+      
       // College details
       setCollegeName(userProfile.college?.collegeName || '');
       setCourse(userProfile.college?.course || '');
@@ -117,7 +185,8 @@ function ProfileAccountSection() {
   
   // Profile completion calculation
   const profileFields = [fullName, username, bio, location, github, linkedin, twitter, website, about, collegeName, course, branch];
-  const completion = Math.round((profileFields.filter(Boolean).length / profileFields.length) * 100);
+  const achievementFields = [badges.length > 0, certificates.length > 0, milestones.length > 0, skillProgress.length > 0];
+  const completion = Math.round(((profileFields.filter(Boolean).length + achievementFields.filter(Boolean).length) / (profileFields.length + achievementFields.length)) * 100);
 
   // Password strength calculation
   function calcStrength(pw: string) {
@@ -142,6 +211,83 @@ function ProfileAccountSection() {
     setSkills(skills.filter(skill => skill !== skillToRemove));
   };
 
+  // Add skill progress
+  const handleAddSkillProgress = () => {
+    if (newSkillProgress.skill.trim() && !skillProgress.find(sp => sp.skill === newSkillProgress.skill.trim())) {
+      setSkillProgress([...skillProgress, { ...newSkillProgress, skill: newSkillProgress.skill.trim() }]);
+      setNewSkillProgress({ skill: '', level: 'beginner', progress: 0 });
+    }
+  };
+
+  // Remove skill progress
+  const handleRemoveSkillProgress = (skillToRemove: string) => {
+    setSkillProgress(skillProgress.filter(sp => sp.skill !== skillToRemove));
+  };
+
+  // Update skill progress
+  const handleUpdateSkillProgress = (skill: string, field: 'level' | 'progress', value: any) => {
+    setSkillProgress(skillProgress.map(sp => 
+      sp.skill === skill ? { ...sp, [field]: value, lastUpdated: new Date() } : sp
+    ));
+  };
+
+  // Add badge
+  const handleAddBadge = () => {
+    if (newBadge.name.trim() && newBadge.description.trim()) {
+      const badge = {
+        id: `badge-${Date.now()}`,
+        ...newBadge,
+        name: newBadge.name.trim(),
+        description: newBadge.description.trim()
+      };
+      setBadges([...badges, badge]);
+      setNewBadge({ name: '', description: '', icon: '🏆', category: 'special' });
+    }
+  };
+
+  // Remove badge
+  const handleRemoveBadge = (badgeId: string) => {
+    setBadges(badges.filter(badge => badge.id !== badgeId));
+  };
+
+  // Add certificate
+  const handleAddCertificate = () => {
+    if (newCertificate.name.trim() && newCertificate.issuer.trim() && newCertificate.issueDate) {
+      const certificate = {
+        id: `cert-${Date.now()}`,
+        ...newCertificate,
+        name: newCertificate.name.trim(),
+        issuer: newCertificate.issuer.trim()
+      };
+      setCertificates([...certificates, certificate]);
+      setNewCertificate({ name: '', issuer: '', issueDate: '', expiryDate: '', credentialUrl: '', category: 'technical' });
+    }
+  };
+
+  // Remove certificate
+  const handleRemoveCertificate = (certId: string) => {
+    setCertificates(certificates.filter(cert => cert.id !== certId));
+  };
+
+  // Add milestone
+  const handleAddMilestone = () => {
+    if (newMilestone.name.trim() && newMilestone.description.trim()) {
+      const milestone = {
+        id: `milestone-${Date.now()}`,
+        ...newMilestone,
+        name: newMilestone.name.trim(),
+        description: newMilestone.description.trim()
+      };
+      setMilestones([...milestones, milestone]);
+      setNewMilestone({ name: '', description: '', category: 'problems', value: 0 });
+    }
+  };
+
+  // Remove milestone
+  const handleRemoveMilestone = (milestoneId: string) => {
+    setMilestones(milestones.filter(milestone => milestone.id !== milestoneId));
+  };
+
   // Save profile to database
   const handleSave = async () => {
     setSaving(true);
@@ -154,6 +300,12 @@ function ProfileAccountSection() {
           aboutMe: about,
           location,
           skills,
+          skillProgress,
+        },
+        achievements: {
+          badges,
+          certificates,
+          milestones,
         },
         socialLinks: {
           github,
@@ -197,6 +349,14 @@ function ProfileAccountSection() {
       setTwitter(userProfile.socialLinks?.twitter || '');
       setWebsite(userProfile.socialLinks?.portfolio || '');
       setSkills(userProfile.profile?.skills || []);
+      
+      // Enhanced skills
+      setSkillProgress(userProfile.profile?.skillProgress || []);
+      
+      // Achievements
+      setBadges(userProfile.achievements?.badges || []);
+      setCertificates(userProfile.achievements?.certificates || []);
+      setMilestones(userProfile.achievements?.milestones || []);
       
       // College details
       setCollegeName(userProfile.college?.collegeName || '');
@@ -405,6 +565,265 @@ function ProfileAccountSection() {
                   ))}
                   {skills.length === 0 && (
                     <span className="text-base-content/50 text-sm">No skills added yet</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Enhanced Skills Progress */}
+            <div className="bg-base-100 border border-base-200 rounded-lg p-4">
+              <h3 className="font-semibold mb-3 text-base-content/90 flex items-center gap-2">
+                <Star size={16} className="text-primary" />
+                Enhanced Skills Progress
+              </h3>
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    value={newSkillProgress.skill}
+                    onChange={e => setNewSkillProgress(prev => ({ ...prev, skill: e.target.value }))}
+                    onKeyPress={e => e.key === 'Enter' && handleAddSkillProgress()}
+                    placeholder="Add a skill (e.g., React, Python, UI/UX)"
+                    className="flex-1 border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                  />
+                  <Button onClick={handleAddSkillProgress} disabled={!newSkillProgress.skill.trim()} size="sm" className="bg-primary text-primary-content hover:bg-primary/90">
+                    <Plus size={16} />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {skillProgress.map((sp, index) => (
+                    <div key={index} className="flex items-center gap-2 bg-base-200 rounded-full px-3 py-1 text-sm">
+                      <span>{sp.skill}</span>
+                      <div className="flex items-center gap-1">
+                        <select
+                          value={sp.level}
+                          onChange={e => handleUpdateSkillProgress(sp.skill, 'level', e.target.value as 'beginner' | 'intermediate' | 'advanced' | 'expert')}
+                          className="border border-base-200 rounded px-1 py-0.5 text-xs"
+                        >
+                          <option value="beginner">Beginner</option>
+                          <option value="intermediate">Intermediate</option>
+                          <option value="advanced">Advanced</option>
+                          <option value="expert">Expert</option>
+                        </select>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={sp.progress}
+                          onChange={e => handleUpdateSkillProgress(sp.skill, 'progress', Number(e.target.value))}
+                          className="w-16 border border-base-200 rounded px-1 py-0.5 text-xs text-center"
+                        />
+                        <button
+                          onClick={() => handleRemoveSkillProgress(sp.skill)}
+                          className="hover:bg-red-200 rounded-full p-0.5 transition-colors"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {skillProgress.length === 0 && (
+                    <span className="text-base-content/50 text-sm">No enhanced skills added yet</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Achievements */}
+            <div className="bg-base-100 border border-base-200 rounded-lg p-4">
+              <h3 className="font-semibold mb-3 text-base-content/90 flex items-center gap-2">
+                <Bookmark size={16} className="text-primary" />
+                Achievements
+              </h3>
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <input
+                    value={newBadge.name}
+                    onChange={e => setNewBadge(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Achievement Name"
+                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                  />
+                  <input
+                    value={newBadge.description}
+                    onChange={e => setNewBadge(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Achievement Description"
+                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    value={newBadge.category}
+                    onChange={e => setNewBadge(prev => ({ ...prev, category: e.target.value as any }))}
+                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                  >
+                    <option value="crucible">Crucible</option>
+                    <option value="forge">Forge</option>
+                    <option value="arena">Arena</option>
+                    <option value="streak">Streak</option>
+                    <option value="special">Special</option>
+                  </select>
+                  <input
+                    value={newBadge.icon}
+                    onChange={e => setNewBadge(prev => ({ ...prev, icon: e.target.value }))}
+                    placeholder="🏆"
+                    className="w-20 border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all text-center"
+                  />
+                  <Button onClick={handleAddBadge} disabled={!newBadge.name.trim() || !newBadge.description.trim()} size="sm" className="bg-primary text-primary-content hover:bg-primary/90">
+                    <Plus size={16} />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {badges.map((badge) => (
+                    <div key={badge.id} className="flex items-center gap-2 bg-base-200 rounded-full px-3 py-1 text-sm">
+                      <span>{badge.icon} {badge.name}</span>
+                      <button
+                        onClick={() => handleRemoveBadge(badge.id)}
+                        className="hover:bg-red-200 rounded-full p-0.5 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  {badges.length === 0 && (
+                    <span className="text-base-content/50 text-sm">No achievements added yet</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Certificates */}
+            <div className="bg-base-100 border border-base-200 rounded-lg p-4">
+              <h3 className="font-semibold mb-3 text-base-content/90 flex items-center gap-2">
+                <Star size={16} className="text-primary" />
+                Certificates
+              </h3>
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <input
+                    value={newCertificate.name}
+                    onChange={e => setNewCertificate(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Certificate Name"
+                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                  />
+                  <input
+                    value={newCertificate.issuer}
+                    onChange={e => setNewCertificate(prev => ({ ...prev, issuer: e.target.value }))}
+                    placeholder="Issuing Organization"
+                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <input
+                    type="date"
+                    value={newCertificate.issueDate}
+                    onChange={e => setNewCertificate(prev => ({ ...prev, issueDate: e.target.value }))}
+                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                  />
+                  <input
+                    type="date"
+                    value={newCertificate.expiryDate}
+                    onChange={e => setNewCertificate(prev => ({ ...prev, expiryDate: e.target.value }))}
+                    placeholder="Expiry Date (Optional)"
+                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                  />
+                  <select
+                    value={newCertificate.category}
+                    onChange={e => setNewCertificate(prev => ({ ...prev, category: e.target.value as any }))}
+                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                  >
+                    <option value="technical">Technical</option>
+                    <option value="academic">Academic</option>
+                    <option value="professional">Professional</option>
+                    <option value="platform">Platform</option>
+                  </select>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    value={newCertificate.credentialUrl}
+                    onChange={e => setNewCertificate(prev => ({ ...prev, credentialUrl: e.target.value }))}
+                    placeholder="Credential URL (Optional)"
+                    className="flex-1 border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                  />
+                  <Button onClick={handleAddCertificate} disabled={!newCertificate.name.trim() || !newCertificate.issuer.trim() || !newCertificate.issueDate} size="sm" className="bg-primary text-primary-content hover:bg-primary/90">
+                    <Plus size={16} />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {certificates.map((cert) => (
+                    <div key={cert.id} className="flex items-center gap-2 bg-base-200 rounded-full px-3 py-1 text-sm">
+                      <span>{cert.name} - {cert.issuer}</span>
+                      <button
+                        onClick={() => handleRemoveCertificate(cert.id)}
+                        className="hover:bg-red-200 rounded-full p-0.5 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  {certificates.length === 0 && (
+                    <span className="text-base-content/50 text-sm">No certificates added yet</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Milestones */}
+            <div className="bg-base-100 border border-base-200 rounded-lg p-4">
+              <h3 className="font-semibold mb-3 text-base-content/90 flex items-center gap-2">
+                <Star size={16} className="text-primary" />
+                Milestones
+              </h3>
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <input
+                    value={newMilestone.name}
+                    onChange={e => setNewMilestone(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Milestone Name"
+                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                  />
+                  <input
+                    value={newMilestone.description}
+                    onChange={e => setNewMilestone(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Milestone Description"
+                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    value={newMilestone.category}
+                    onChange={e => setNewMilestone(prev => ({ ...prev, category: e.target.value as any }))}
+                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                  >
+                    <option value="problems">Problems</option>
+                    <option value="resources">Resources</option>
+                    <option value="collaboration">Collaboration</option>
+                    <option value="streak">Streak</option>
+                  </select>
+                  <input
+                    type="number"
+                    min="0"
+                    value={newMilestone.value}
+                    onChange={e => setNewMilestone(prev => ({ ...prev, value: Number(e.target.value) }))}
+                    placeholder="Value"
+                    className="w-24 border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                  />
+                  <Button onClick={handleAddMilestone} disabled={!newMilestone.name.trim() || !newMilestone.description.trim()} size="sm" className="bg-primary text-primary-content hover:bg-primary/90">
+                    <Plus size={16} />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {milestones.map((milestone) => (
+                    <div key={milestone.id} className="flex items-center gap-2 bg-base-200 rounded-full px-3 py-1 text-sm">
+                      <span>{milestone.name} ({milestone.value})</span>
+                      <button
+                        onClick={() => handleRemoveMilestone(milestone.id)}
+                        className="hover:bg-red-200 rounded-full p-0.5 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  {milestones.length === 0 && (
+                    <span className="text-base-content/50 text-sm">No milestones added yet</span>
                   )}
                 </div>
               </div>

@@ -9,6 +9,37 @@ export interface ProfileUpdateData {
     location?: string;
     skills?: string[];
     toolsAndTech?: string[];
+    skillProgress?: Array<{
+      skill: string;
+      level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+      progress: number;
+    }>;
+  };
+  achievements?: {
+    badges?: Array<{
+      id: string;
+      name: string;
+      description: string;
+      icon: string;
+      category: 'crucible' | 'forge' | 'arena' | 'streak' | 'special';
+      metadata?: Record<string, any>;
+    }>;
+    certificates?: Array<{
+      id: string;
+      name: string;
+      issuer: string;
+      issueDate: string;
+      expiryDate?: string;
+      credentialUrl?: string;
+      category: 'technical' | 'academic' | 'professional' | 'platform';
+    }>;
+    milestones?: Array<{
+      id: string;
+      name: string;
+      description: string;
+      category: 'problems' | 'resources' | 'collaboration' | 'streak';
+      value: number;
+    }>;
   };
   socialLinks?: {
     portfolio?: string;
