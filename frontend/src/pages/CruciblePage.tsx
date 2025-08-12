@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ArrowRight, TrendingUp, Clock, Code, Database, Globe, Zap, Target, Users, BookOpen, Lightbulb } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -8,6 +8,7 @@ import { useAuth } from '@clerk/clerk-react';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
 import { GradientText } from '@/components/blocks/GradientText';
 import { useToast } from '../components/ui/toast';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '@/components/ui/carousel';
 
 // Problem categories with icons and colors
 const problemCategories = [
@@ -109,6 +110,8 @@ export default function CruciblePage() {
   const [hotProblems, setHotProblems] = useState<HotProblem[]>([]);
   const { toast } = useToast();
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
+  const [categoriesCarouselApi, setCategoriesCarouselApi] = useState<CarouselApi | null>(null);
+  const autoPlayRef = useRef<number | null>(null);
   
 
   
@@ -203,6 +206,21 @@ export default function CruciblePage() {
       fetchProblems();
     }
   }, [authLoaded, isSignedIn]);
+
+  // Autoplay for categories carousel
+  useEffect(() => {
+    if (!categoriesCarouselApi) return;
+    // Clear any existing timer
+    if (autoPlayRef.current) window.clearInterval(autoPlayRef.current);
+    autoPlayRef.current = window.setInterval(() => {
+      if (!categoriesCarouselApi) return;
+      if (categoriesCarouselApi.canScrollNext()) categoriesCarouselApi.scrollNext();
+      else categoriesCarouselApi.scrollTo(0);
+    }, 4000);
+    return () => {
+      if (autoPlayRef.current) window.clearInterval(autoPlayRef.current);
+    };
+  }, [categoriesCarouselApi]);
   
   // Handle category selection
   const handleCategoryClick = (categoryId: string) => {
@@ -260,75 +278,41 @@ export default function CruciblePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-base-100 via-base-50 to-base-100">
-            {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="relative z-10 max-w-7xl mx-auto px-4 py-8">
-          <div className="text-center">
-            <div className="mb-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-base-100/80 backdrop-blur-sm border border-base-300 rounded-full text-xs text-base-content/70 mb-2">
-                <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></span>
-                Join 10,000+ developers mastering their skills
-              </div>
-            </div>
-            
-            <GradientText text="Master Your Skills" className="text-4xl md:text-5xl font-bold mb-3" />
-            <p className="text-lg md:text-xl text-base-content/80 mb-6 max-w-2xl mx-auto leading-relaxed">
-              Solve real-world programming challenges, design scalable systems, and build your portfolio with our curated collection of problems.
-            </p>
-
-            {/* Stats */}
-            <div className="flex justify-center gap-6 mb-6">
-              <div className="text-center group">
-                <div className="text-2xl font-bold text-primary mb-1 group-hover:scale-110 transition-transform">500+</div>
-                <div className="text-sm text-base-content/70">Challenges</div>
-              </div>
-              <div className="text-center group">
-                <div className="text-2xl font-bold text-primary mb-1 group-hover:scale-110 transition-transform">10k+</div>
-                <div className="text-sm text-base-content/70">Solutions</div>
-              </div>
-              <div className="text-center group">
-                <div className="text-2xl font-bold text-primary mb-1 group-hover:scale-110 transition-transform">95%</div>
-                <div className="text-sm text-base-content/70">Success Rate</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Cat Movement Animation at bottom right */}
-        {/* Removed as per edit hint */}
-
-        {/* Stress Management Animation at center left */}
-        {/* Removed as per edit hint */}
-      </div>
-
       {/* Categories Section */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-base-content mb-4">Choose Your Challenge</h2>
+      <div className="max-w-7xl mx-auto px-4 py-10">
+        <div className="text-center mb-6 md:mb-8">
+          <h2 className="text-3xl font-bold text-base-content mb-3">Choose Your Challenge</h2>
           <p className="text-base-content/60 text-lg">Explore problems by category and find your next challenge</p>
         </div>
-
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-           {problemCategories.map((category) => (
-             <div key={category.id} onClick={() => handleCategoryClick(category.id)}>
-               <SpotlightCard className="group cursor-pointer">
-                 <div className={`p-6 rounded-xl border-2 transition-all duration-300 ${category.bgColor} ${category.borderColor} hover:border-opacity-40 group-hover:scale-105`}>
-                   <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                     <category.icon className="w-6 h-6 text-white" />
-                   </div>
-                   <h3 className="text-lg font-semibold text-base-content mb-2">{category.name}</h3>
-                   <p className="text-sm text-base-content/70 mb-4 line-clamp-2">{category.description}</p>
-                   <div className="flex items-center justify-between">
-                     <Badge variant="secondary" className="text-xs">
-                       {category.count} problems
-                     </Badge>
-                     <ArrowRight className="w-4 h-4 text-base-content/40 group-hover:text-primary transition-colors" />
-                   </div>
-                 </div>
-               </SpotlightCard>
-             </div>
-           ))}
-          </div>
+        <div className="relative">
+          <Carousel setApi={setCategoriesCarouselApi} className="w-full">
+            <CarouselContent>
+              {problemCategories.map((category) => (
+                <CarouselItem key={category.id} className="basis-1/1 sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
+                  <div onClick={() => handleCategoryClick(category.id)}>
+                    <SpotlightCard className="group cursor-pointer h-full">
+                      <div className={`p-6 rounded-xl border-2 transition-all duration-300 ${category.bgColor} ${category.borderColor} hover:border-opacity-40 h-full`}> 
+                        <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                          <category.icon className="w-6 h-6 text-white" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-base-content mb-2">{category.name}</h3>
+                        <p className="text-sm text-base-content/70 mb-4 line-clamp-2">{category.description}</p>
+                        <div className="flex items-center justify-between">
+                          <Badge variant="secondary" className="text-xs">
+                            {category.count} problems
+                          </Badge>
+                          <ArrowRight className="w-4 h-4 text-base-content/40 group-hover:text-primary transition-colors" />
+                        </div>
+                      </div>
+                    </SpotlightCard>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="-left-6 md:-left-8" />
+            <CarouselNext className="-right-6 md:-right-8" />
+          </Carousel>
+        </div>
       </div>
 
       {/* Hot & Latest Problems */}
