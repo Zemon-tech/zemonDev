@@ -598,43 +598,47 @@ export default function ProfilePage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.1 }}
                 >
-                  <Card className="overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 rounded-xl border border-base-300 bg-base-100">
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
-                          <User className="w-4 h-4 text-primary-content" />
+                  <Card className="overflow-hidden shadow-[0_6px_24px_-6px_rgba(0,0,0,0.15)] rounded-2xl border border-base-300/70 bg-gradient-to-b from-base-100 to-base-200/40 backdrop-blur">
+                    <CardContent className="p-6 md:p-7">
+                      <div className="flex items-center justify-between mb-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary text-primary-content flex items-center justify-center shadow-sm ring-1 ring-white/10">
+                            <User className="w-4.5 h-4.5" />
+                          </div>
+                          <h2 className="text-xl md:text-[1.35rem] font-semibold tracking-tight">About</h2>
                         </div>
-                        <h2 className="text-xl font-semibold text-base-content">About Me</h2>
+                        <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Profile</Badge>
                       </div>
-                      <p className="mb-8 text-lg leading-relaxed font-medium text-base-content/80">{userProfile?.profile?.aboutMe || getDisplayBio(userProfile)}</p>
-                      
-                      {/* Enhanced Skills */}
-                      <div className="space-y-4">
-                        <h3 className="text-lg font-semibold flex items-center gap-2 text-base-content">
+
+                      <p className="mb-6 text-[0.975rem] leading-7 text-base-content/80">{userProfile?.profile?.aboutMe || getDisplayBio(userProfile)}</p>
+
+                      {/* Skills */}
+                      <div className="space-y-3">
+                        <h3 className="text-base font-semibold flex items-center gap-2 text-base-content">
                           <Zap className="w-5 h-5 text-warning" />
                           Skills & Technologies
                         </h3>
-                        <div className="flex flex-wrap gap-3">
+                        <div className="flex flex-wrap gap-2.5">
                           {getSkills(userProfile).map((skill, index) => (
                             <motion.span
                               key={index}
-                              className="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer bg-primary/10 text-primary-content border border-primary/20 hover:bg-primary/20"
-                              initial={{ opacity: 0, scale: 0.9 }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-100/70 backdrop-blur ring-1 ring-base-300/60 hover:ring-primary/30 transition-colors shadow-sm"
+                              initial={{ opacity: 0, scale: 0.95 }}
                               animate={{ opacity: 1, scale: 1 }}
-                              transition={{ duration: 0.3, delay: 0.3 + index * 0.05 }}
+                              transition={{ duration: 0.25, delay: 0.15 + index * 0.03 }}
                             >
-                              {skill}
+                              <span className="i-lucide-sparkles w-3.5 h-3.5" />{skill}
                             </motion.span>
                           ))}
                           {getToolsAndTech(userProfile).map((tech, index) => (
                             <motion.span
                               key={`tech-${index}`}
-                              className="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer bg-secondary/10 text-secondary-content border border-secondary/20 hover:bg-secondary/20"
-                              initial={{ opacity: 0, scale: 0.9 }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-100/70 backdrop-blur ring-1 ring-base-300/60 hover:ring-secondary/30 transition-colors shadow-sm"
+                              initial={{ opacity: 0, scale: 0.95 }}
                               animate={{ opacity: 1, scale: 1 }}
-                              transition={{ duration: 0.3, delay: 0.3 + (getSkills(userProfile).length + index) * 0.05 }}
+                              transition={{ duration: 0.25, delay: 0.2 + (getSkills(userProfile).length + index) * 0.03 }}
                             >
-                              {tech}
+                              <span className="i-lucide-cpu w-3.5 h-3.5" />{tech}
                             </motion.span>
                           ))}
                         </div>
@@ -642,7 +646,8 @@ export default function ProfilePage() {
                     </CardContent>
                   </Card>
                 </motion.div>
-                {/* Enhanced Stats Section */}
+
+                {/* Premium Stats Section */}
                 <motion.div 
                   ref={statsRef}
                   className="grid grid-cols-2 md:grid-cols-4 gap-4"
@@ -651,90 +656,31 @@ export default function ProfilePage() {
                   transition={{ duration: 0.6, delay: 0.2 }}
                 >
                   {[
-                    { icon: Flame, value: streakLoading ? '...' : (streakInfo?.currentStreak || 0), label: "Zemon Streak", color: "bg-indigo-600" },
-                    { icon: Code, value: 15, label: "GitHub Streak", color: "bg-blue-600" },
-                    { icon: BookOpen, value: 8, label: "Crucible Solutions", color: "bg-indigo-600" },
-                    { icon: Hammer, value: 5, label: "Forge Contributions", color: "bg-blue-600" }
+                    { icon: Flame, value: streakLoading ? '...' : (streakInfo?.currentStreak || 0), label: 'Zemon Streak' },
+                    { icon: Code, value: 15, label: 'GitHub Streak' },
+                    { icon: BookOpen, value: 8, label: 'Crucible Solutions' },
+                    { icon: Hammer, value: 5, label: 'Forge Contributions' }
                   ].map((stat, index) => (
                     <motion.div
                       key={index}
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={{ opacity: 0, y: 18 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
-                      className="cursor-pointer"
+                      transition={{ duration: 0.45, delay: 0.15 + index * 0.08 }}
                     >
-                      <Card className="overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 rounded-lg border border-base-300 bg-base-100">
-                        <CardContent className="p-5 flex flex-col items-center justify-center">
-                          <div
-                            className={`w-10 h-10 ${
-                              index % 2 === 0 ? 'bg-primary' : 'bg-secondary'
-                            } rounded-md flex items-center justify-center mb-3`}
-                          >
-                            <stat.icon className="w-5 h-5 text-primary-content" />
+                      <Card className="overflow-hidden rounded-xl border border-base-300/70 bg-base-100/70 backdrop-blur shadow-[0_4px_18px_-6px_rgba(0,0,0,0.12)] hover:shadow-[0_10px_28px_-8px_rgba(0,0,0,0.18)] transition-shadow">
+                        <CardContent className="p-4 flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/90 to-secondary/90 flex items-center justify-center text-primary-content ring-1 ring-white/10">
+                            <stat.icon className="w-5 h-5" />
                           </div>
-                          <span className="text-2xl font-bold mb-1 text-base-content">
-                            {stat.value}
-                          </span>
-                          <span className="text-xs font-medium text-center text-base-content/70">{stat.label}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xl font-bold leading-6 truncate">{stat.value}</div>
+                            <div className="text-[11px] tracking-wide text-base-content/60 uppercase">{stat.label}</div>
+                          </div>
                         </CardContent>
                       </Card>
                     </motion.div>
                   ))}
                 </motion.div>
-
-                {/* Featured Projects Section - HIDDEN */}
-                {/* <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.4 }}
-                >
-                  <Card className="overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 rounded-xl border border-base-300 bg-base-100">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-secondary rounded-md flex items-center justify-center">
-                            <Rocket className="w-4 h-4 text-secondary-content" />
-                          </div>
-                          <h2 className="text-xl font-semibold text-base-content">Featured Projects</h2>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="gap-2 border-base-300 text-base-content hover:bg-base-200"
-                        >
-                          View All <ArrowUpRight className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {mockUserData.projects.slice(0, 2).map((project, index) => (
-                          <motion.div
-                            key={index}
-                            className="rounded-lg p-5 transition-all duration-300 cursor-pointer bg-base-200 border border-base-300 hover:border-secondary/30 hover:shadow-md"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }}
-                          >
-                            <div className="relative z-10">
-                              <h3 className="font-bold mb-2 transition-colors duration-300 text-base-content group-hover:text-secondary">{project.title}</h3>
-                              <p className="text-sm mb-4 leading-relaxed text-base-content/70">{project.description}</p>
-                              <div className="flex flex-wrap gap-2">
-                                {project.tech.map((tech, techIndex) => (
-                                  <span 
-                                    key={techIndex} 
-                                    className="px-2 py-1 rounded-lg text-xs font-medium bg-base-300 text-base-content/80"
-                                  >
-                                    {tech}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div> */}
               </div>
               
               {/* Enhanced Sidebar - 1/3 width on desktop */}
@@ -1164,7 +1110,6 @@ export default function ProfilePage() {
             </div>
           </motion.div>
         )}
-        {/* Forge tab content removed - now integrated into crucible-forge tab */}
         {activeTab === 'crucible-forge' && (
           <motion.div 
             key="crucible-forge"
@@ -1174,333 +1119,180 @@ export default function ProfilePage() {
             transition={{ duration: 0.5 }}
             className="w-full mb-10"
           >
-            {/* Beautiful Header Section */}
+            {/* Header */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="mb-8"
+              transition={{ duration: 0.45, delay: 0.05 }}
+              className="mb-6"
             >
-              <div className="text-center">
-                <h2 className="text-3xl font-bold text-base-content mb-3 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  Crucible & Forge Workspace
-                </h2>
-                <p className="text-lg text-base-content/70 max-w-2xl mx-auto">
-                  Your coding challenges, solution journeys, and curated learning resources
-                </p>
-                <div className="flex items-center justify-center gap-4 mt-4">
-                  {(crucibleLoading || forgeLoading) && (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full">
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
-                      <span className="text-sm font-medium">Loading workspace...</span>
-                    </div>
-                  )}
-                  {(crucibleError || forgeError) && (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-error/10 text-error rounded-full">
-                      <span className="text-sm font-medium">Some data failed to load</span>
-                    </div>
-                  )}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-[1.6rem] font-semibold tracking-tight">Workspace</h2>
+                  <p className="text-base-content/70 text-sm">Your coding activity and saved resources</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Solutions {analysisHistory.length}</Badge>
+                  <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Drafts {activeDrafts.length}</Badge>
+                  <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Bookmarks {bookmarkedResources.length}</Badge>
                 </div>
               </div>
             </motion.div>
 
             {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Left Column - Crucible */}
               <motion.div
-                initial={{ opacity: 0, x: -30 }}
+                initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
+                transition={{ duration: 0.45, delay: 0.1 }}
                 className="space-y-6"
               >
-                <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                    <Target className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-base-content mb-2">Crucible Challenges</h3>
-                  <p className="text-base-content/70">Your coding journey and problem-solving adventures</p>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Solution Journeys */}
-                  <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl border border-base-300 bg-base-100 group">
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
-                          <Target className="w-5 h-5 text-white" />
+                <Card className="overflow-hidden shadow-[0_6px_24px_-6px_rgba(0,0,0,0.12)] rounded-2xl border border-base-300/70 bg-base-100/80 backdrop-blur">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center ring-1 ring-white/10">
+                          <Target className="w-5 h-5" />
                         </div>
-                        <div className="flex-1">
-                          <h4 className="text-lg font-semibold text-base-content">Solution Journeys</h4>
-                          <p className="text-sm text-base-content/70">Completed analyses</p>
-                        </div>
-                        <Badge variant="outline" className="text-xs">Completed</Badge>
+                        <h3 className="text-lg font-semibold">Crucible</h3>
                       </div>
-                      
-                      <div className="space-y-3">
-                        {crucibleLoading ? (
-                          <div className="flex items-center justify-center py-6">
-                            <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent"></div>
-                          </div>
-                        ) : crucibleError ? (
-                          <div className="text-center py-6 text-error text-sm">
-                            Failed to load solutions
-                          </div>
-                        ) : analysisHistory.length === 0 ? (
-                          <div className="text-center py-6 text-base-content/50 text-sm">
-                            <Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <p>No solutions yet</p>
-                            <p className="text-xs">Complete your first challenge!</p>
-                          </div>
-                        ) : (
-                          analysisHistory.slice(0, 3).map((analysis, index) => (
-                            <motion.div
-                              key={index}
-                              className="flex items-center gap-3 p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 cursor-pointer group/item"
-                              whileHover={{ scale: 1.02, x: 5 }}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
+                      {(crucibleLoading) && (
+                        <div className="flex items-center gap-2 px-2.5 py-1 text-xs rounded-full bg-base-200">
+                          <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-primary border-t-transparent" />
+                          Loading
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Solutions */}
+                    <div className="mb-4">
+                      <div className="text-xs uppercase tracking-wide text-base-content/50 mb-2">Solution Journeys</div>
+                      {crucibleError ? (
+                        <div className="text-sm text-error/90 rounded-lg border border-error/20 bg-error/5 p-3">Failed to load solutions</div>
+                      ) : analysisHistory.length === 0 ? (
+                        <div className="text-sm text-base-content/60 rounded-lg border border-base-300/60 bg-base-100/70 p-3">No solutions yet</div>
+                      ) : (
+                        <div className="divide-y divide-base-300/60 rounded-xl border border-base-300/60 bg-base-100/70">
+                          {analysisHistory.slice(0, 5).map((analysis, index) => (
+                            <button
+                              key={analysis._id || index}
+                              className="w-full text-left px-4 py-3 hover:bg-base-200/60 transition-colors flex items-center gap-3"
                               onClick={() => handleAnalysisClick(analysis)}
                             >
-                              <div className="w-2 h-2 bg-blue-500 rounded-full group-hover/item:scale-125 transition-transform duration-300" />
-                              <span className="text-base-content font-medium flex-1">{analysis.problemId.title}</span>
-                              <ChevronRight className="w-4 h-4 text-base-content/50 transition-all duration-300" />
-                            </motion.div>
-                          ))
-                        )}
-                        {analysisHistory.length > 3 && (
-                          <div className="text-center pt-2">
-                            <Badge variant="outline" className="text-xs cursor-pointer hover:bg-base-200">
-                              +{analysisHistory.length - 3} more
-                            </Badge>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                              <span className="w-1.5 h-1.5 rounded-full bg-primary/80" />
+                              <span className="flex-1 truncate text-sm font-medium">{analysis.problemId.title}</span>
+                              <ChevronRight className="w-4 h-4 text-base-content/50" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Active Drafts */}
-                  <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl border border-base-300 bg-base-100 group">
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-md">
-                          <BookOpen className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="text-lg font-semibold text-base-content">Active Drafts</h4>
-                          <p className="text-sm text-base-content/70">Work in progress</p>
-                        </div>
-                        <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
-                          In Progress
-                        </Badge>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        {crucibleLoading ? (
-                          <div className="flex items-center justify-center py-6">
-                            <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent"></div>
-                          </div>
-                        ) : crucibleError ? (
-                          <div className="text-center py-6 text-error text-sm">
-                            Failed to load drafts
-                          </div>
-                        ) : activeDrafts.length === 0 ? (
-                          <div className="text-center py-6 text-base-content/50 text-sm">
-                            <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <p>No active drafts</p>
-                            <p className="text-xs">Start a new problem!</p>
-                          </div>
-                        ) : (
-                          activeDrafts.slice(0, 3).map((draft, index) => (
-                            <motion.div
-                              key={index}
-                              className="flex items-center gap-3 p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 cursor-pointer group/item"
-                              whileHover={{ scale: 1.02, x: 5 }}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
+                    {/* Drafts */}
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-base-content/50 mb-2">Active Drafts</div>
+                      {crucibleError ? (
+                        <div className="text-sm text-error/90 rounded-lg border border-error/20 bg-error/5 p-3">Failed to load drafts</div>
+                      ) : activeDrafts.length === 0 ? (
+                        <div className="text-sm text-base-content/60 rounded-lg border border-base-300/60 bg-base-100/70 p-3">No active drafts</div>
+                      ) : (
+                        <div className="divide-y divide-base-300/60 rounded-xl border border-base-300/60 bg-base-100/70">
+                          {activeDrafts.slice(0, 5).map((draft, index) => (
+                            <button
+                              key={draft._id || index}
+                              className="w-full text-left px-4 py-3 hover:bg-base-200/60 transition-colors flex items-center gap-3"
                               onClick={() => handleDraftClick(draft)}
                             >
-                              <div className="w-2 h-2 bg-emerald-500 rounded-full group-hover/item:scale-125 transition-transform duration-300" />
-                              <span className="text-base-content font-medium flex-1">{draft.problemId.title}</span>
-                              <ChevronRight className="w-4 h-4 text-base-content/50 transition-all duration-300" />
-                            </motion.div>
-                          ))
-                        )}
-                        {activeDrafts.length > 3 && (
-                          <div className="text-center pt-2">
-                            <Badge variant="outline" className="text-xs cursor-pointer hover:bg-base-200 bg-emerald-50 text-emerald-700 border-emerald-200">
-                              +{activeDrafts.length - 3} more
-                            </Badge>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                              <span className="w-1.5 h-1.5 rounded-full bg-secondary/80" />
+                              <span className="flex-1 truncate text-sm font-medium">{draft.problemId.title}</span>
+                              <ChevronRight className="w-4 h-4 text-base-content/50" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               </motion.div>
 
               {/* Right Column - Forge */}
               <motion.div
-                initial={{ opacity: 0, x: 30 }}
+                initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
+                transition={{ duration: 0.45, delay: 0.15 }}
                 className="space-y-6"
               >
-                <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                    <Hammer className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-base-content mb-2">Forge Resources</h3>
-                  <p className="text-base-content/70">Curated learning materials and knowledge base</p>
-                </div>
+                {/* Bookmarked Resources */}
+                <Card className="overflow-hidden shadow-[0_6px_24px_-6px_rgba(0,0,0,0.12)] rounded-2xl border border-base-300/70 bg-base-100/80 backdrop-blur">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 text-white flex items-center justify-center ring-1 ring-white/10">
+                          <Bookmark className="w-5 h-5" />
+                        </div>
+                        <h3 className="text-lg font-semibold">Bookmarked Resources</h3>
+                      </div>
+                      {(forgeLoading) && (
+                        <div className="flex items-center gap-2 px-2.5 py-1 text-xs rounded-full bg-base-200">
+                          <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-primary border-t-transparent" />
+                          Loading
+                        </div>
+                      )}
+                    </div>
 
-                <div className="space-y-4">
-                  {/* Bookmarked Resources */}
-                  <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl border border-base-300 bg-base-100 group">
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center shadow-md">
-                          <Bookmark className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="text-lg font-semibold text-base-content">Bookmarked Resources</h4>
-                          <p className="text-sm text-base-content/70">Saved for later reference</p>
-                        </div>
-                        <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
-                          Saved
-                        </Badge>
+                    {forgeError ? (
+                      <div className="text-sm text-error/90 rounded-lg border border-error/20 bg-error/5 p-3">Failed to load resources</div>
+                    ) : bookmarkedResources.length === 0 ? (
+                      <div className="text-sm text-base-content/60 rounded-lg border border-base-300/60 bg-base-100/70 p-3">No bookmarks yet</div>
+                    ) : (
+                      <div className="divide-y divide-base-300/60 rounded-xl border border-base-300/60 bg-base-100/70">
+                        {bookmarkedResources.slice(0, 6).map((resource: any, index) => (
+                          <div key={resource._id || index} className="px-4 py-3 flex items-center gap-3">
+                            <span className="w-1.5 h-1.5 rounded-full bg-orange-500/80" />
+                            <span className="flex-1 truncate text-sm font-medium">{resource.title || resource.name || 'Untitled Resource'}</span>
+                            <div className="flex items-center gap-2 text-base-content/50">
+                              <Eye className="w-4 h-4" />
+                              <span className="text-xs">{Math.floor(Math.random() * 200) + 50}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      
-                      <div className="space-y-3">
-                        {forgeLoading ? (
-                          <div className="flex items-center justify-center py-6">
-                            <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent"></div>
-                          </div>
-                        ) : forgeError ? (
-                          <div className="text-center py-6 text-error text-sm">
-                            Failed to load resources
-                          </div>
-                        ) : bookmarkedResources.length === 0 ? (
-                          <div className="text-center py-6 text-base-content/50 text-sm">
-                            <Bookmark className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <p>No bookmarks yet</p>
-                            <p className="text-xs">Start saving resources!</p>
-                          </div>
-                        ) : (
-                          bookmarkedResources.slice(0, 3).map((resource: any, index) => (
-                            <motion.div
-                              key={index}
-                              className="flex items-center gap-3 p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 cursor-pointer group/item"
-                              whileHover={{ scale: 1.02, x: 5 }}
-                              initial={{ opacity: 0, x: 20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.4, delay: 0.5 + index * 0.1 }}
-                            >
-                              <div className="w-2 h-2 bg-orange-500 rounded-full group-hover/item:scale-125 transition-transform duration-300" />
-                              <span className="text-base-content font-medium flex-1">
-                                {resource.title || resource.name || 'Untitled Resource'}
-                              </span>
-                              <div className="flex items-center gap-2 text-base-content/50">
-                                <Eye className="w-4 h-4" />
-                                <span className="text-xs">{Math.floor(Math.random() * 200) + 50}</span>
-                              </div>
-                            </motion.div>
-                          ))
-                        )}
-                        {bookmarkedResources.length > 3 && (
-                          <div className="text-center pt-2">
-                            <Badge variant="outline" className="text-xs cursor-pointer hover:bg-base-200 bg-orange-50 text-orange-700 border-orange-200">
-                              +{bookmarkedResources.length - 3} more
-                            </Badge>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                    )}
+                  </CardContent>
+                </Card>
 
-                  {/* Quick Stats */}
-                  <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl border border-base-300 bg-base-100">
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md">
-                          <TrendingUp className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="text-lg font-semibold text-base-content">Workspace Stats</h4>
-                          <p className="text-sm text-base-content/70">Your progress overview</p>
-                        </div>
+                {/* Compact Workspace Stats */}
+                <Card className="overflow-hidden shadow-[0_6px_24px_-6px_rgba(0,0,0,0.12)] rounded-2xl border border-base-300/70 bg-base-100/80 backdrop-blur">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 text-white flex items-center justify-center ring-1 ring-white/10">
+                        <TrendingUp className="w-5 h-5" />
                       </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center p-3 rounded-lg bg-base-200">
-                          <div className="text-2xl font-bold text-primary mb-1">
-                            {analysisHistory.length}
-                          </div>
-                          <div className="text-xs text-base-content/70">Solutions</div>
-                        </div>
-                        <div className="text-center p-3 rounded-lg bg-base-200">
-                          <div className="text-2xl font-bold text-secondary mb-1">
-                            {activeDrafts.length}
-                          </div>
-                          <div className="text-xs text-base-content/70">Drafts</div>
-                        </div>
-                        <div className="text-center p-3 rounded-lg bg-base-200">
-                          <div className="text-2xl font-bold text-accent mb-1">
-                            {bookmarkedResources.length}
-                          </div>
-                          <div className="text-xs text-base-content/70">Resources</div>
-                        </div>
-                        <div className="text-center p-3 rounded-lg bg-base-200">
-                          <div className="text-2xl font-bold text-info mb-1">
-                            {Math.floor((analysisHistory.length + activeDrafts.length + bookmarkedResources.length) / 3)}
-                          </div>
-                          <div className="text-xs text-base-content/70">Avg. Score</div>
-                        </div>
+                      <h3 className="text-lg font-semibold">Workspace Stats</h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 text-center">
+                        <div className="text-xl font-bold">{analysisHistory.length}</div>
+                        <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Solutions</div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                      <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 text-center">
+                        <div className="text-xl font-bold">{activeDrafts.length}</div>
+                        <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Drafts</div>
+                      </div>
+                      <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 text-center">
+                        <div className="text-xl font-bold">{bookmarkedResources.length}</div>
+                        <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Resources</div>
+                      </div>
+                      <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 text-center">
+                        <div className="text-xl font-bold">{Math.floor((analysisHistory.length + activeDrafts.length + bookmarkedResources.length) / 3)}</div>
+                        <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Avg</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </motion.div>
             </div>
-
-            {/* Bottom CTA Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-              className="mt-12 text-center"
-            >
-              <Card className="overflow-hidden shadow-lg border border-base-300 bg-gradient-to-r from-base-100 to-base-200">
-                <CardContent className="p-8">
-                  <div className="flex items-center justify-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
-                      <Rocket className="w-6 h-6 text-white" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-base-content">Ready to Level Up?</h3>
-                  </div>
-                  <p className="text-base-content/70 mb-6 max-w-md mx-auto">
-                    Continue your coding journey with new challenges and expand your knowledge with curated resources.
-                  </p>
-                  <div className="flex flex-wrap gap-3 justify-center">
-                    <Button 
-                      variant="default" 
-                      className="gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90"
-                    >
-                      <Target className="w-4 h-4" />
-                      Start New Challenge
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="gap-2 border-base-300 hover:bg-base-200"
-                    >
-                      <BookOpen className="w-4 h-4" />
-                      Explore Resources
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
           </motion.div>
         )}
         {activeTab === 'achievements' && (
@@ -1518,120 +1310,154 @@ export default function ProfilePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
             >
-              <Card className="overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 rounded-xl border border-base-300 bg-base-100">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-warning rounded-lg flex items-center justify-center">
-                      <Trophy className="w-5 h-5 text-warning-content" />
+              <Card className="overflow-hidden shadow-[0_6px_24px_-6px_rgba(0,0,0,0.15)] rounded-2xl border border-base-300/70 bg-gradient-to-b from-base-100 to-base-200/40 backdrop-blur">
+                <CardContent className="p-6 md:p-7">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-warning rounded-xl flex items-center justify-center text-warning-content ring-1 ring-white/10">
+                        <Trophy className="w-5 h-5" />
+                      </div>
+                      <h2 className="text-2xl font-semibold tracking-tight">Achievements & Recognition</h2>
                     </div>
-                    <h2 className="text-2xl font-semibold text-base-content">Achievements & Recognition</h2>
+                    <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Live</Badge>
+                  </div>
+
+                  {/* Summary strip */}
+                  <div className="grid grid-cols-3 gap-3 mb-6">
+                    <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 flex items-center gap-3 shadow-sm">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-warning to-amber-500 text-white flex items-center justify-center">
+                        <Award className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold leading-5">{profileBadges.length}</div>
+                        <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Badges</div>
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 flex items-center gap-3 shadow-sm">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center">
+                        <GraduationCap className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold leading-5">{profileCertificates.length}</div>
+                        <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Certificates</div>
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 flex items-center gap-3 shadow-sm">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold leading-5">{userProfile?.stats?.skillMastery ?? 0}%</div>
+                        <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Skill Mastery</div>
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Badges */}
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-base-content flex items-center gap-2">
+                      <h3 className="text-lg font-semibold flex items-center gap-2 text-base-content">
                         <Award className="w-5 h-5 text-warning" />
-                        Badges Earned
+                        Badges
                       </h3>
-                      <div className="space-y-3">
-                        {profileBadges.length === 0 ? (
-                          <div className="text-sm text-base-content/60">No badges yet</div>
-                        ) : (
-                          profileBadges.map((badge, index) => (
+                      {profileBadges.length === 0 ? (
+                        <div className="text-sm text-base-content/60">No badges yet</div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {profileBadges.map((badge, index) => (
                             <motion.div
                               key={badge.id || index}
-                              className="flex items-center gap-3 p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 cursor-pointer group"
-                              whileHover={{ scale: 1.02, x: 5 }}
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ duration: 0.4, delay: 0.2 + index * 0.1 }}
+                              className="flex items-center gap-3 rounded-xl border border-base-300/60 bg-base-100/70 p-3 shadow-sm hover:border-warning/40 transition-colors"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.35, delay: 0.08 + index * 0.04 }}
                             >
-                              <div className="w-8 h-8 bg-warning rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 text-warning-content text-base">
+                              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center text-base">
                                 <span aria-hidden>{badge.icon || '⭐'}</span>
                               </div>
-                              <div>
-                                <div className="text-base-content font-medium leading-tight">{badge.name}</div>
+                              <div className="min-w-0">
+                                <div className="font-medium leading-tight truncate">{badge.name}</div>
                                 {badge.description && (
-                                  <div className="text-xs text-base-content/60">{badge.description}</div>
+                                  <div className="text-xs text-base-content/60 truncate">{badge.description}</div>
                                 )}
                               </div>
                             </motion.div>
-                          ))
-                        )}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Milestones */}
+                    {/* Milestones timeline */}
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-base-content flex items-center gap-2">
+                      <h3 className="text-lg font-semibold flex items-center gap-2 text-base-content">
                         <Target className="w-5 h-5 text-info" />
                         Milestones
                       </h3>
-                      <div className="space-y-3">
-                        {profileMilestones.length === 0 ? (
-                          <div className="text-sm text-base-content/60">No milestones yet</div>
-                        ) : (
-                          profileMilestones.map((m, index) => (
-                            <motion.div
-                              key={m.id || index}
-                              className="p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 cursor-pointer group"
-                              whileHover={{ scale: 1.02 }}
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <p className="font-semibold text-base-content text-sm">{m.name}</p>
-                                  {m.description && (
-                                    <p className="text-xs text-base-content/70">{m.description}</p>
-                                  )}
+                      {profileMilestones.length === 0 ? (
+                        <div className="text-sm text-base-content/60">No milestones yet</div>
+                      ) : (
+                        <div className="relative pl-4">
+                          <div className="absolute left-1 top-0 bottom-0 w-px bg-base-300/70" />
+                          <div className="space-y-3">
+                            {profileMilestones.map((m, index) => (
+                              <motion.div
+                                key={m.id || index}
+                                className="relative rounded-xl border border-base-300/60 bg-base-100/70 p-3 shadow-sm"
+                                initial={{ opacity: 0, x: 10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.35, delay: 0.1 + index * 0.05 }}
+                              >
+                                <div className="absolute -left-[9px] top-4 w-2.5 h-2.5 rounded-full bg-info ring-4 ring-info/15" />
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <div className="font-medium leading-tight truncate">{m.name}</div>
+                                    {m.description && (
+                                      <div className="text-xs text-base-content/60 truncate">{m.description}</div>
+                                    )}
+                                  </div>
+                                  <Badge variant="outline" className="text-[10px] rounded-full capitalize">{m.category}</Badge>
                                 </div>
-                                <Badge variant="outline" className="text-xs">
-                                  {m.category}
-                                </Badge>
-                              </div>
-                            </motion.div>
-                          ))
-                        )}
-                      </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Certifications */}
+                    {/* Certificates */}
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-base-content flex items-center gap-2">
+                      <h3 className="text-lg font-semibold flex items-center gap-2 text-base-content">
                         <GraduationCap className="w-5 h-5 text-success" />
-                        Certifications
+                        Certificates
                       </h3>
-                      <div className="space-y-3">
-                        {profileCertificates.length === 0 ? (
-                          <div className="text-sm text-base-content/60">No certificates yet</div>
-                        ) : (
-                          profileCertificates.map((cert, index) => (
-                            <motion.div
+                      {profileCertificates.length === 0 ? (
+                        <div className="text-sm text-base-content/60">No certificates yet</div>
+                      ) : (
+                        <div className="space-y-2">
+                          {profileCertificates.map((cert, index) => (
+                            <motion.a
                               key={cert.id || index}
-                              className="p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300 cursor-pointer group"
-                              whileHover={{ scale: 1.02, x: 5 }}
-                              initial={{ opacity: 0, x: 20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
+                              href={cert.credentialUrl || undefined}
+                              target={cert.credentialUrl ? '_blank' : undefined}
+                              rel={cert.credentialUrl ? 'noopener noreferrer' : undefined}
+                              className="group block rounded-xl border border-base-300/60 bg-base-100/70 p-3 shadow-sm hover:border-success/40 transition-colors"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.35, delay: 0.08 + index * 0.04 }}
                             >
                               <div className="flex items-center justify-between">
-                                <div>
-                                  <p className="font-semibold text-base-content text-sm">{cert.name}</p>
-                                  <p className="text-xs text-base-content/70">{cert.issuer}</p>
+                                <div className="min-w-0">
+                                  <div className="font-medium leading-tight truncate">{cert.name}</div>
+                                  <div className="text-xs text-base-content/60 truncate">{cert.issuer}</div>
                                 </div>
                                 {cert.credentialUrl && (
-                                  <a href={cert.credentialUrl} target="_blank" rel="noopener noreferrer" title="Verify credential">
-                                    <ExternalLink className="w-4 h-4 text-base-content/50 group-hover:text-base-content transition-colors duration-300" />
-                                  </a>
+                                  <ExternalLink className="w-4 h-4 text-base-content/50 group-hover:text-success transition-colors" />
                                 )}
                               </div>
-                            </motion.div>
-                          ))
-                        )}
-                      </div>
+                            </motion.a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -1644,33 +1470,37 @@ export default function ProfilePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <Card className="overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 rounded-xl border border-base-300 bg-base-100">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 text-primary-content" />
+              <Card className="overflow-hidden shadow-[0_6px_24px_-6px_rgba(0,0,0,0.15)] rounded-2xl border border-base-300/70 bg-gradient-to-b from-base-100 to-base-200/40 backdrop-blur">
+                <CardContent className="p-6 md:p-7">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-content ring-1 ring-white/10">
+                        <TrendingUp className="w-5 h-5" />
+                      </div>
+                      <h2 className="text-2xl font-semibold tracking-tight">Skills in Progress</h2>
                     </div>
-                    <h2 className="text-2xl font-semibold text-base-content">Skills in Progress</h2>
+                    <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">{(userProfile?.stats?.skillMastery ?? 0)}% avg</Badge>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Active Skills */}
                     <div>
-                      <h3 className="text-lg font-semibold text-base-content mb-4">Currently Learning</h3>
-                      <div className="flex flex-wrap gap-3">
+                      <h3 className="text-base font-semibold text-base-content mb-3">Currently Learning</h3>
+                      <div className="flex flex-wrap gap-2.5">
                         {skillProgressData.length === 0 ? (
                           <span className="text-sm text-base-content/60">No skills added yet</span>
                         ) : (
                           skillProgressData.map((sp, index) => (
                             <motion.span
                               key={sp.skill || index}
-                              className="px-3 py-1.5 bg-primary/10 text-primary-content rounded-lg text-sm font-medium border border-primary/20 hover:bg-primary/20 transition-all duration-300 cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-100/70 backdrop-blur ring-1 ring-base-300/60 shadow-sm"
                               whileHover={{ scale: 1.05, y: -2 }}
-                              initial={{ opacity: 0, scale: 0.8 }}
+                              initial={{ opacity: 0, scale: 0.95 }}
                               animate={{ opacity: 1, scale: 1 }}
-                              transition={{ duration: 0.3, delay: 0.3 + index * 0.1 }}
+                              transition={{ duration: 0.25, delay: 0.15 + index * 0.05 }}
                             >
                               {sp.skill}
+                              <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] bg-base-200/80 border border-base-300/60 capitalize">{sp.level}</span>
                             </motion.span>
                           ))
                         )}
@@ -1679,7 +1509,7 @@ export default function ProfilePage() {
 
                     {/* Progress Bars */}
                     <div>
-                      <h3 className="text-lg font-semibold text-base-content mb-4">Skill Progress</h3>
+                      <h3 className="text-base font-semibold text-base-content mb-3">Progress</h3>
                       <div className="space-y-4">
                         {skillProgressData.length === 0 ? (
                           <span className="text-sm text-base-content/60">No progress to show</span>
@@ -1690,18 +1520,18 @@ export default function ProfilePage() {
                               className="space-y-2"
                               initial={{ opacity: 0, x: 20 }}
                               animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
+                              transition={{ duration: 0.5, delay: 0.2 + index * 0.08 }}
                             >
                               <div className="flex justify-between items-center">
-                                <span className="font-medium text-base-content">{sp.skill} <span className="text-xs text-base-content/50">({sp.level})</span></span>
+                                <span className="font-medium text-base-content">{sp.skill}</span>
                                 <span className="text-sm font-semibold text-primary">{sp.progress}%</span>
                               </div>
-                              <div className="w-full h-3 bg-base-300 rounded-full overflow-hidden">
-                                <motion.div 
-                                  className="h-full bg-primary rounded-full"
+                              <div className="w-full h-3 rounded-full bg-gradient-to-r from-base-300 to-base-200 overflow-hidden">
+                                <motion.div
+                                  className="h-full rounded-full bg-gradient-to-r from-primary to-secondary"
                                   initial={{ width: 0 }}
                                   animate={{ width: `${sp.progress}%` }}
-                                  transition={{ duration: 1, delay: 0.5 + index * 0.2, ease: 'easeOut' }}
+                                  transition={{ duration: 0.9, delay: 0.3 + index * 0.1, ease: 'easeOut' }}
                                   style={{ width: `${sp.progress}%` }}
                                 />
                               </div>
