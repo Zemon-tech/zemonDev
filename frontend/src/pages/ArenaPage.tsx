@@ -46,7 +46,7 @@ function buildChannelTree(channelList: ArenaChannel[]) {
 
 const ArenaPage: React.FC = () => {
   const { channels, loading, error } = useArenaChannels();
-  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(true);
   const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [showNirvana, setShowNirvana] = useState(true); // Show Nirvana by default
