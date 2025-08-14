@@ -140,7 +140,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ isOpen, onC
 
             {/* Filters */}
             {showFilters && (
-              <div className="p-4 border-b border-base-300 bg-base-200/50">
+              <div className="p-4 border-b border-base-300 bg-base-200">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-medium text-base-content/70 mb-1 block">
@@ -181,7 +181,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ isOpen, onC
 
             {/* Actions */}
             {unreadCount > 0 && (
-              <div className="p-3 border-b border-base-300 bg-base-200/30">
+              <div className="p-3 border-b border-base-300 bg-base-200">
                 <button
                   onClick={markAllAsRead}
                   className="btn btn-sm btn-primary w-full"

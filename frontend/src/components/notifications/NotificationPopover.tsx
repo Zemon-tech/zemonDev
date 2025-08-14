@@ -426,7 +426,7 @@ export function NotificationPopover({ className, toasterRef }: NotificationPopov
             {transformedNotifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`px-3 py-2.5 text-sm transition-all duration-200 hover:bg-opacity-80 border-b last:border-b-0 ${
+                className={`px-3 py-2.5 text-sm transition-all duration-200 border-b last:border-b-0 ${
                   theme === 'dark' 
                     ? 'hover:bg-gray-800 border-gray-700' 
                     : 'hover:bg-gray-50 border-gray-100'
@@ -475,7 +475,7 @@ export function NotificationPopover({ className, toasterRef }: NotificationPopov
                             e.stopPropagation();
                             handleNotificationClick(notification.id);
                           }}
-                          className={`p-1 rounded hover:bg-opacity-80 transition-colors ${
+                          className={`p-1 rounded transition-colors ${
                             theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
                           }`}
                           title={notification.unread ? 'Mark as read' : 'Mark as unread'}
@@ -494,7 +494,7 @@ export function NotificationPopover({ className, toasterRef }: NotificationPopov
                               e.stopPropagation();
                               toggleNotificationExpanded(notification.id);
                             }}
-                            className={`p-1 rounded hover:bg-opacity-80 transition-colors ${
+                            className={`p-1 rounded transition-colors ${
                               theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
                             }`}
                             title="More actions"
@@ -519,7 +519,7 @@ export function NotificationPopover({ className, toasterRef }: NotificationPopov
                                     return newSet;
                                   });
                                 }}
-                                className={`w-full px-3 py-1.5 text-xs text-left hover:bg-opacity-80 transition-colors flex items-center gap-2 ${
+                                className={`w-full px-3 py-1.5 text-xs text-left transition-colors flex items-center gap-2 ${
                                   theme === 'dark' 
                                     ? 'text-gray-300 hover:bg-gray-700' 
                                     : 'text-gray-700 hover:bg-gray-100'
@@ -538,7 +538,7 @@ export function NotificationPopover({ className, toasterRef }: NotificationPopov
                                     return newSet;
                                   });
                                 }}
-                                className={`w-full px-3 py-1.5 text-xs text-left hover:bg-opacity-80 transition-colors flex items-center gap-2 ${
+                                className={`w-full px-3 py-1.5 text-xs text-left transition-colors flex items-center gap-2 ${
                                   theme === 'dark' 
                                     ? 'text-gray-300 hover:bg-gray-700' 
                                     : 'text-gray-700 hover:bg-gray-100'

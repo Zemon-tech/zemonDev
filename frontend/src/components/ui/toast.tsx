@@ -72,7 +72,7 @@ export const useToast = () => {
           exit={{ opacity: 0, y: 50, scale: 0.95 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
           className={cn(
-            'flex items-center justify-between w-full max-w-xs p-3 rounded-xl border shadow-lg dark:shadow-gray-900/50',
+            'flex items-center justify-between w-full max-w-xs p-3 rounded-xl border shadow-lg dark:shadow-gray-900',
             variantStyles[variant]
           )}
         >
@@ -117,9 +117,9 @@ export const useToast = () => {
 
 const variantStyles: Record<Variant, string> = {
   default: 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100',
-  success: 'bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800 text-green-900 dark:text-green-100',
-  error: 'bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800 text-red-900 dark:text-red-100',
-  warning: 'bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800 text-yellow-900 dark:text-yellow-100',
+  success: 'bg-green-100 dark:bg-green-900 border-green-200 dark:border-green-800 text-green-900 dark:text-green-100',
+  error: 'bg-red-100 dark:bg-red-900 border-red-200 dark:border-red-800 text-red-900 dark:text-red-100',
+  warning: 'bg-yellow-100 dark:bg-yellow-900 border-yellow-200 dark:border-yellow-800 text-yellow-900 dark:text-yellow-100',
 };
 
 const titleColor: Record<Variant, string> = {
@@ -175,7 +175,7 @@ const Toaster = forwardRef<ToasterRef, { defaultPosition?: Position }>(
               exit="exit"
               transition={{ duration: 0.3, ease: 'easeOut' }}
               className={cn(
-                'flex items-center justify-between w-full max-w-xs p-3 rounded-xl border shadow-lg dark:shadow-gray-900/50',
+                'flex items-center justify-between w-full max-w-xs p-3 rounded-xl border shadow-lg dark:shadow-gray-900',
                 variantStyles[variant]
               )}
             >
@@ -209,12 +209,12 @@ const Toaster = forwardRef<ToasterRef, { defaultPosition?: Position }>(
                     className={cn(
                       'cursor-pointer',
                       variant === 'success'
-                        ? 'text-green-600 border-green-600 hover:bg-green-600/10 dark:hover:bg-green-400/20'
+                        ? 'text-green-600 border-green-600 hover:bg-green-100 dark:hover:bg-green-800'
                         : variant === 'error'
-                        ? 'text-destructive border-destructive hover:bg-destructive/10 dark:hover:bg-destructive/20'
+                        ? 'text-destructive border-destructive hover:bg-red-100 dark:hover:bg-red-800'
                         : variant === 'warning'
-                        ? 'text-amber-600 border-amber-600 hover:bg-amber-600/10 dark:hover:bg-amber-400/20'
-                        : 'text-foreground border-border hover:bg-muted/10 dark:hover:bg-muted/20'
+                        ? 'text-amber-600 border-amber-600 hover:bg-yellow-100 dark:hover:bg-yellow-800'
+                        : 'text-foreground border-border hover:bg-gray-100 dark:hover:bg-gray-800'
                     )}
                   >
                     {actions.label}
@@ -226,7 +226,7 @@ const Toaster = forwardRef<ToasterRef, { defaultPosition?: Position }>(
                     sonnerToast.dismiss(toastId);
                     onDismiss?.();
                   }}
-                  className="rounded-full p-1 hover:bg-muted/50 dark:hover:bg-muted/30 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="rounded-full p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
                   aria-label="Dismiss notification"
                 >
                   <X className="h-3 w-3 text-muted-foreground" />

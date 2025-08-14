@@ -31,3 +31,5 @@ router.get('/me/bookmarks', protect, getBookmarkedResourcesController);
 router.delete('/me/bookmarks/:resourceId', protect, removeBookmarkController);
 
 export default router;
+
+
