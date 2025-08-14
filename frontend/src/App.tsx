@@ -32,6 +32,7 @@ import ProtectedAdminRoute from './components/admin/ProtectedAdminRoute';
 import { UserRoleProvider } from './context/UserRoleContext';
 import { AnalysisProvider } from './context/AnalysisContext';
 import { SocketProvider } from './context/SocketContext';
+import { ForgeProvider } from './context/ForgeContext';
 // Removed public pages: Landing, About, Blogs, Pricing, Developers
 
 // Root route component to handle authenticated users
@@ -62,7 +63,9 @@ const WorkspaceLayout = () => {
       <SocketProvider>
         <UserRoleProvider>
           <AnalysisProvider>
-            <AppLayout />
+            <ForgeProvider>
+              <AppLayout />
+            </ForgeProvider>
           </AnalysisProvider>
         </UserRoleProvider>
       </SocketProvider>

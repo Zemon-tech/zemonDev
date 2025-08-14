@@ -225,7 +225,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ isOpen, onC
 
             {/* Footer */}
             {notifications.length > 0 && (
-              <div className="p-3 border-t border-base-300 bg-base-200/30">
+              <div className="p-3 border-t border-base-300 bg-base-200">
                 <div className="flex items-center justify-between text-xs text-base-content/70">
                   <span>
                     {stats?.total || 0} total • {unreadCount} unread

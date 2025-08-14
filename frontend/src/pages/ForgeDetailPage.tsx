@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import HtmlContentRenderer from '../components/ui/html-content-renderer';
 import { getContentType } from '../lib/content-utils';
+import { useForge } from '../context/ForgeContext';
 
 type Resource = {
   _id: string;
@@ -29,6 +30,7 @@ type Resource = {
 export default function ForgeDetailPage() {
   const { id } = useParams();
   const { getToken } = useAuth();
+  const { setCurrentForgeTitle } = useForge();
   const [resource, setResource] = useState<Resource | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -44,6 +46,18 @@ export default function ForgeDetailPage() {
       .catch(e => setError(e.message || 'Resource not found'))
       .finally(() => setLoading(false));
   }, [id, getToken]);
+
+  // Set forge title in context when resource loads
+  useEffect(() => {
+    if (resource?.title) {
+      setCurrentForgeTitle(resource.title);
+    }
+    
+    // Cleanup: clear title when component unmounts
+    return () => {
+      setCurrentForgeTitle(null);
+    };
+  }, [resource?.title, setCurrentForgeTitle]);
 
   // Fetch or create progress
   useEffect(() => {
@@ -181,37 +195,31 @@ export default function ForgeDetailPage() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-base-100 flex flex-col">
+    <div className="w-full bg-base-100 flex flex-col">
       <div className="w-full">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 pt-8 px-0 md:px-0">
-          <h1 className="text-4xl md:text-5xl font-bold font-heading text-primary leading-tight mb-2 md:mb-0 px-4 md:px-8">
-            {resource.title}
-          </h1>
-          {resource.isExternal && resource.url && (
-            <a href={resource.url} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-lg h-12 px-6 inline-flex items-center gap-2 shadow-md mx-4 md:mx-8">
+        {/* External Resource Button */}
+        {resource.isExternal && resource.url && (
+          <div className="flex justify-end px-4 md:px-8">
+            <a href={resource.url} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-lg h-12 px-6 inline-flex items-center gap-2 shadow-md">
               Visit Resource <ExternalLink className="w-5 h-5" />
             </a>
-          )}
+          </div>
+        )}
+        
+        {/* Summary */}
+        <div className="px-4 md:px-8">
+          <p className="text-lg text-base-content/70 mb-4">{resource.summary}</p>
         </div>
-        <div className="flex flex-wrap gap-2 mt-4 mb-2 px-4 md:px-8">
-          <span className="badge badge-outline badge-primary badge-sm capitalize">{resource.type.replace('_', ' ')}</span>
-          <span className="badge badge-outline badge-secondary badge-sm capitalize">{contentType}</span>
-          <span className="text-xs text-base-content/50">{resource.metrics?.views ?? 0} views</span>
-            {resource.tags.map((tag: string) => (
-            <span key={tag} className="badge badge-ghost badge-md rounded capitalize text-base font-medium px-3 py-1">{tag}</span>
-            ))}
-        </div>
-        <p className="text-lg text-base-content/70 mb-2 px-4 md:px-8">{resource.summary}</p>
       </div>
-      <div className="flex-1 w-full flex flex-col">
+      <div className="w-full flex flex-col">
         {contentType === 'html' ? (
           // Full-width layout for HTML content
-          <div className="forge-html-content w-full bg-base-50/80">
+          <div className="forge-html-content w-full bg-base-50 -mt-4">
             {renderContent()}
           </div>
         ) : (
           // Standard layout for markdown and other content types
-          <div className="prose prose-lg prose-zinc max-w-none w-full bg-base-50/80 rounded-none p-0 md:p-0 border-0 shadow-none px-4 md:px-8"
+          <div className="prose prose-lg prose-zinc max-w-none w-full bg-base-50 rounded-none p-0 md:p-0 border-0 shadow-none px-4 md:px-8 -mt-4"
             style={{
               '--tw-prose-headings': '#1e293b',
               '--tw-prose-h1': '2.8rem',
@@ -227,10 +235,70 @@ export default function ForgeDetailPage() {
             {renderContent()}
           </div>
         )}
-        <div className="mt-6 text-sm text-base-content/60 flex flex-wrap gap-4 items-center px-4 md:px-8 pb-8">
-          <span>Author: {resource.createdBy?.fullName || 'ZEMON'}</span>
-          <span>|</span>
-          <span>Created: {resource.createdAt ? new Date(resource.createdAt).toLocaleDateString() : ''}</span>
+        <div className="mt-4 px-4 md:px-8 pb-6">
+          {/* Compact Single-Line Footer */}
+          <div className="bg-gradient-to-r from-base-200/40 to-base-300/40 backdrop-blur-sm border border-base-300/50 rounded-lg px-4 py-3">
+            <div className="flex items-center justify-between gap-4">
+              {/* Left Side - Author, Date, Views */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-sm text-base-content/70">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
+                  <span className="font-medium">Author:</span>
+                  <span className="text-base-content">{resource.createdBy?.fullName || 'ZEMON'}</span>
+                </div>
+                <div className="w-px h-3 bg-base-300/50"></div>
+                <div className="flex items-center gap-2 text-sm text-base-content/70">
+                  <div className="w-1.5 h-1.5 bg-secondary rounded-full"></div>
+                  <span className="font-medium">Created:</span>
+                  <span className="text-base-content">
+                    {resource.createdAt ? new Date(resource.createdAt).toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'short', 
+                      day: 'numeric' 
+                    }) : ''}
+                  </span>
+                </div>
+                <div className="w-px h-3 bg-base-300/50"></div>
+                <div className="flex items-center gap-2 text-sm text-base-content/70">
+                  <div className="w-1.5 h-1.5 bg-accent rounded-full"></div>
+                  <span className="font-medium">{resource.metrics?.views ?? 0} views</span>
+                </div>
+              </div>
+              
+              {/* Right Side - Categories and Tags */}
+              <div className="flex items-center gap-3">
+                {/* Category Badge */}
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 border border-primary/20 rounded-md">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
+                  <span className="text-xs font-semibold text-primary capitalize">
+                    {resource.type.replace('_', ' ')}
+                  </span>
+                </div>
+                
+                {/* Content Type Badge */}
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-secondary/10 border border-secondary/20 rounded-md">
+                  <div className="w-1.5 h-1.5 bg-secondary rounded-full"></div>
+                  <span className="text-xs font-semibold text-secondary capitalize">
+                    {contentType}
+                  </span>
+                </div>
+                
+                {/* Tags */}
+                <div className="flex items-center gap-1.5">
+                  {resource.tags.slice(0, 2).map((tag: string) => (
+                    <span key={tag} className="px-2 py-1 bg-base-100/80 border border-base-300/40 rounded-md text-xs font-medium text-base-content/70 hover:text-base-content transition-colors">
+                      #{tag}
+                    </span>
+                  ))}
+                  {resource.tags.length > 2 && (
+                    <span className="px-2 py-1 bg-base-100/80 border border-base-300/40 rounded-md text-xs font-medium text-base-content/50">
+                      +{resource.tags.length - 2}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

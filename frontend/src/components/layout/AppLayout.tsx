@@ -10,6 +10,7 @@ import { useArenaChannels, Channel as ArenaChannel } from '@/hooks/useArenaChann
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
 import { useNotification } from '@/hooks/useNotification';
 import Toaster from '@/components/ui/toast';
+import { useForge } from '@/context/ForgeContext';
 
 // Icons
 import { Search, X, MessageCircle, BookOpen, FileText, StickyNote, ArrowLeft, Send, Loader2, Sparkles, Hash, Volume2, Star, MessageSquare, ChevronDown } from 'lucide-react';
@@ -30,6 +31,9 @@ export default function AppLayout() {
   
   // Notifications
   const { toasterRef } = useNotification();
+  
+  // Forge context
+  const { currentForgeTitle } = useForge();
   
   // Arena channels data
   const { channels: arenaChannels, loading: arenaChannelsLoading } = useArenaChannels();
@@ -271,7 +275,7 @@ export default function AppLayout() {
               variant="ghost"
               size="sm"
               onClick={toggleSidebar}
-              className="h-9 w-9 p-0 rounded-lg hover:bg-base-200/80 transition-all duration-200"
+              className="h-9 w-9 p-0 rounded-lg hover:bg-base-200 transition-all duration-200"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </Button>
@@ -294,7 +298,7 @@ export default function AppLayout() {
                 variant="ghost"
                 size="sm"
                 onClick={handleToggleProblemSidebar}
-                className="h-9 px-3 rounded-lg hover:bg-base-200/80 transition-all duration-200"
+                className="h-9 px-3 rounded-lg hover:bg-base-200 transition-all duration-200"
                 title="Show/Hide Problem Details"
               >
                 <BookOpen className="w-4 h-4 mr-2" />
@@ -304,17 +308,17 @@ export default function AppLayout() {
                 variant="ghost"
                 size="sm"
                 onClick={handleToggleChatSidebar}
-                className="h-9 px-3 rounded-lg hover:bg-base-200/80 transition-all duration-200"
+                className="h-9 px-3 rounded-lg hover:bg-base-200 transition-all duration-200"
                 title="Show/Hide AI Chat"
               >
                 <MessageCircle className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline text-sm font-medium">AI Chat</span>
+                <span className="text-sm font-medium">AI Chat</span>
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleSwitchContent}
-                className="h-9 px-3 rounded-lg hover:bg-base-200/80 transition-all duration-200"
+                className="h-9 px-3 rounded-lg hover:bg-base-200 transition-all duration-200"
                 title="Switch between Solution and Notes"
               >
                 {activeContent === 'solution' ? (
@@ -437,15 +441,26 @@ export default function AppLayout() {
 
           {/* Back to Forge button (only on Forge detail page) */}
           {isForgeDetailPage && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleNavigation('/forge')}
-              className="h-9 px-3 rounded-lg text-primary hover:bg-primary/10 transition-all duration-200"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              <span className="text-sm font-medium">Back to Forge</span>
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleNavigation('/forge')}
+                className="h-9 px-3 rounded-lg text-primary hover:bg-primary/10 transition-all duration-200"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                <span className="text-sm font-medium">Back to Forge</span>
+              </Button>
+              
+              {/* Forge Title */}
+              {currentForgeTitle && (
+                <div className="flex items-center ml-4">
+                  <span className="text-lg font-semibold text-base-content truncate max-w-md">
+                    {currentForgeTitle}
+                  </span>
+                </div>
+              )}
+            </>
           )}
           
           {/* Search icon and input inline in navbar */}
@@ -455,7 +470,7 @@ export default function AppLayout() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsSearchOpen(true)}
-                className="h-9 w-9 p-0 rounded-lg hover:bg-base-200/80 transition-all duration-200"
+                className="h-9 w-9 p-0 rounded-lg hover:bg-base-200 transition-all duration-200"
               >
                 <Search size={18} />
               </Button>
@@ -473,7 +488,7 @@ export default function AppLayout() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsSearchOpen(false)}
-                  className="h-6 w-6 p-0 absolute right-1.5 hover:bg-base-200/80"
+                  className="h-6 w-6 p-0 absolute right-1.5 hover:bg-base-200"
                 >
                   <X size={16} />
                 </Button>
@@ -491,7 +506,7 @@ export default function AppLayout() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setNavLockedOpen((prev) => !prev)}
-                className="h-9 w-9 p-0 rounded-lg hover:bg-base-200/80 transition-all duration-200"
+                className="h-9 w-9 p-0 rounded-lg hover:bg-base-200 transition-all duration-200"
                 title={navLockedOpen ? 'Unlock Navigation Bar (auto-hide)' : 'Lock Navigation Bar Open'}
               >
                 {navLockedOpen ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
