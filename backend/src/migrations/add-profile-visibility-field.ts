@@ -14,6 +14,10 @@ async function addProfileVisibilityField() {
 
     // Get the User collection
     const db = mongoose.connection.db;
+    if (!db) {
+      throw new Error('Database connection not established');
+    }
+    
     const userCollection = db.collection('users');
 
     // Update all existing users to add profileVisibility field with default values
