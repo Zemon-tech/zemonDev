@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, User, Globe, X } from 'lucide-react';
+import { Search, Globe, X } from 'lucide-react';
 import { Button } from './button';
 import { Input } from './input';
 import { motion, AnimatePresence } from 'framer-motion';

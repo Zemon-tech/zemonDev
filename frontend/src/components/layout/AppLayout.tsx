@@ -14,7 +14,7 @@ import { useForge } from '@/context/ForgeContext';
 import UserSearch from '@/components/ui/UserSearch';
 
 // Icons
-import { Search, X, MessageCircle, BookOpen, FileText, StickyNote, ArrowLeft, Send, Loader2, Sparkles, Hash, Volume2, Star, MessageSquare, ChevronDown } from 'lucide-react';
+import { MessageCircle, BookOpen, FileText, StickyNote, ArrowLeft, Send, Loader2, Sparkles, Hash, Volume2, Star, MessageSquare, ChevronDown } from 'lucide-react';
 import gsap from 'gsap';
 import { useRef } from 'react';
 // [ADD] Import useHotkeys for optional keyboard shortcut

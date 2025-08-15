@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { useTheme } from './ThemeProvider';
+import { useTheme } from '@/lib/ThemeContext';
 
 interface CircularProgressProps {
   value: number;
@@ -46,7 +46,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
           initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: offset }}
           transition={{ duration: 1.5, ease: "easeOut" }}
-          style={{ strokeDasharray: circumference }}
+          style={{ strokeDashoffset: circumference }}
         />
         {/* Gradient definition */}
         <defs>

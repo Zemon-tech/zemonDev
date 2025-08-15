@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { getProblems, checkUserAnalysisForProblem, getTrendingProblems, ITrendingProblem } from '@/lib/crucibleApi';
 import { useAuth } from '@clerk/clerk-react';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
-import { GradientText } from '@/components/blocks/GradientText';
 import { useToast } from '../components/ui/toast';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '@/components/ui/carousel';
 

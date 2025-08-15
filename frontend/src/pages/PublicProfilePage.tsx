@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import { 
   Github, 
   Linkedin, 
-  Twitter, 
-  ExternalLink,
+  Twitter,
   Flame,
   Code,
   BookOpen,
@@ -16,31 +15,18 @@ import {
   MapPin,
   Mail,
   School,
-  Coffee,
-  GraduationCap,
   Award,
   Star,
-  TrendingUp,
   Zap,
-  Target,
   Brain,
-  Lightbulb,
-  Rocket,
   Trophy,
-  Clock,
   Users,
-  Heart,
-  Eye,
-  MessageCircle,
-  Bookmark,
-  ChevronRight,
   Sparkles,
   Globe,
   User,
-  Palette,
   Lock
 } from 'lucide-react';
-import { formatEducation, formatCollegeLocation, getDisplayName, getDisplayBio, getDisplayLocation, getSkills, getToolsAndTech, getSocialLinks } from '@/hooks/useUserProfile';
+
 
 interface PublicProfile {
   fullName: string;
@@ -589,7 +575,7 @@ const PublicProfilePage = () => {
                       
                       <div className="space-y-3 flex-1">
                         {profile.achievements?.badges && profile.achievements.badges.length > 0 ? (
-                          profile.achievements.badges.slice(0, 3).map((badge, index) => (
+                          profile.achievements.badges.slice(0, 3).map((badge) => (
                             <div key={badge.id} className="flex items-center gap-3 p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300">
                               <div className="w-8 h-8 bg-warning/20 rounded-lg flex items-center justify-center">
                                 <span className="text-lg">{badge.icon}</span>
@@ -632,7 +618,7 @@ const PublicProfilePage = () => {
                       
                       <div className="space-y-3 flex-1">
                         {profile.achievements?.certificates && profile.achievements.certificates.length > 0 ? (
-                          profile.achievements.certificates.slice(0, 3).map((cert, index) => (
+                          profile.achievements.certificates.slice(0, 3).map((cert) => (
                             <div key={cert.id} className="flex items-center gap-3 p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300">
                               <div className="w-8 h-8 bg-secondary/20 rounded-lg flex items-center justify-center">
                                 <Award className="w-4 h-4 text-secondary" />

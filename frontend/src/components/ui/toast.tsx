@@ -1,11 +1,8 @@
 'use client'
 
-import { forwardRef, useImperativeHandle, useRef } from 'react';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { motion } from 'framer-motion';
-import {
-  Toaster as SonnerToaster,
-  toast as sonnerToast,
-} from 'sonner';
+import { toast as sonnerToast, Toaster as SonnerToaster } from 'sonner';
 import {
   CheckCircle,
   AlertCircle,
@@ -17,14 +14,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+// Define Position type locally since it's not exported from sonner
+type Position = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center';
+
 type Variant = 'default' | 'success' | 'error' | 'warning';
-type Position =
-  | 'top-left'
-  | 'top-center'
-  | 'top-right'
-  | 'bottom-left'
-  | 'bottom-center'
-  | 'bottom-right';
 
 interface ActionButton {
   label: string;
@@ -65,7 +58,7 @@ export const useToast = () => {
     const Icon = iconMap[variant];
     
     sonnerToast.custom(
-      (toastId) => (
+      (toastId: string | number) => (
         <motion.div
           initial={{ opacity: 0, y: 50, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -167,7 +160,7 @@ const Toaster = forwardRef<ToasterRef, { defaultPosition?: Position }>(
         const Icon = variantIcons[variant];
 
         toastReference.current = sonnerToast.custom(
-          (toastId) => (
+          (toastId: string | number) => (
             <motion.div
               variants={toastAnimation}
               initial="initial"
