@@ -71,4 +71,17 @@ export const aiLimiter = isDevelopment
       windowMs: 60 * 1000, // 1 minute
       max: 5,
       message: 'Too many AI requests, please try again after 1 minute',
+    });
+
+// Feedback submission limiter - 5 submissions per day
+export const feedbackLimiter = isDevelopment
+  ? devLimiter // Use dev limiter in development
+  : createRateLimiter({
+      windowMs: 24 * 60 * 60 * 1000, // 24 hours (1 day)
+      max: 5,
+      message: 'You can only submit 5 feedback messages per day. Please try again tomorrow.',
+      keyGenerator: (req) => {
+        // Use user ID from auth token as the key to track per-user limits
+        return req.auth?.userId || req.ip;
+      },
     }); 

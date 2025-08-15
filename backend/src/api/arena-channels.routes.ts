@@ -15,6 +15,7 @@ import {
   acceptAllJoinRequests,
   rejectAllJoinRequests,
   getUserChannelStatus,
+  getDetailedUserChannelStatus,
   banOrKickUserFromParentChannel,
   unbanUserFromParentChannel,
   getUserChannelStatusForAdmin,
@@ -70,8 +71,9 @@ router.post('/:parentChannelId/ban', standardLimiter, protect, checkRole(['admin
 // Unban a user from a parent channel (and all its children)
 router.post('/:parentChannelId/unban', standardLimiter, protect, checkRole(['admin', 'moderator']), unbanUserFromParentChannel);
 
-// User channel status route
+// User channel status routes
 router.get('/user-channel-status', protect, getUserChannelStatus);
+router.get('/user-channel-status/detailed', protect, getDetailedUserChannelStatus);
 
 // Admin: Get channel statuses for any user
 router.get('/user-channel-status/:userId', protect, checkRole(['admin', 'moderator']), getUserChannelStatusForAdmin);

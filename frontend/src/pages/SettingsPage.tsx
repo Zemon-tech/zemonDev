@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, MessageCircle, Star, Mail, Github, X, Eye, Linkedin, Twitter, BookOpen, Plus, Palette, ExternalLink, LogOut, Lock, Unlock, TrendingUp, Trophy, Brain, School } from 'lucide-react';
+import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, Star, Mail, Github, X, Eye, Linkedin, Twitter, BookOpen, Plus, Palette, ExternalLink, LogOut, Lock, Unlock, TrendingUp, Trophy, Brain, School, RefreshCw, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import clsx from 'clsx';
@@ -11,6 +11,10 @@ import { CustomToggle } from '@/components/ui/CustomToggle';
 import { useUserProjects } from '@/hooks/useUserProjects';
 import { useWorkspaceSettings } from '@/hooks/useWorkspaceSettings';
 import { ProjectSubmissionModal } from '@/components/settings/ProjectSubmissionModal';
+import { useArenaChannels } from '@/hooks/useArenaChannels';
+import { useUserRole } from '@/context/UserRoleContext';
+import { RolesAndPermissionsCard } from '@/components/settings/RolesAndPermissionsCard';
+import { ApiService } from '@/services/api.service';
 
 const SECTIONS = [
   { key: 'profile', label: 'Profile & Account', icon: User },
@@ -1743,42 +1747,302 @@ function WorkspaceSection() {
 }
 
 function CollaborationSection() {
-  // Placeholder content for invites, roles, moderation
+  // Phase 1: Data fetching and computation
+  const { channelMemberships, loading: membershipsLoading, error: membershipsError, refetch: refetchMemberships } = useWorkspaceSettings();
+  const { channels, loading: channelsLoading, error: channelsError, refetch: refetchChannels } = useArenaChannels();
+  const { channelRoles, getUserChannelRole, isLoading: rolesLoading, globalRole, allRoles } = useUserRole();
+  const { getToken } = useAuth();
+  
+  // State for banned/kicked channels
+  const [bannedChannels, setBannedChannels] = React.useState<any[]>([]);
+  const [loadingBanned, setLoadingBanned] = React.useState<boolean>(false);
+  const [errorBanned, setErrorBanned] = React.useState<string | null>(null);
+
+  // Fetch detailed channel status information including bans
+  const fetchDetailedChannelStatus = React.useCallback(async () => {
+    try {
+      setLoadingBanned(true);
+      setErrorBanned(null);
+      const response = await ApiService.getDetailedUserChannelStatuses(getToken);
+      
+      // Filter for banned and kicked channels that are parent channels (no parentChannelId)
+      const bannedOrKicked = response.data.filter((status: any) => 
+        (status.status === 'banned' || status.status === 'kicked') && 
+        !status.parentChannelId
+      );
+      
+      console.log('Banned or kicked parent channels:', bannedOrKicked);
+      setBannedChannels(bannedOrKicked);
+    } catch (err) {
+      console.error('Error fetching detailed channel status:', err);
+      setErrorBanned('Failed to fetch moderation information');
+    } finally {
+      setLoadingBanned(false);
+    }
+  }, [getToken]);
+
+  // Fetch detailed channel status on component mount
+  React.useEffect(() => {
+    fetchDetailedChannelStatus();
+  }, [fetchDetailedChannelStatus]);
+
+  // Debug logging for Phase 2 troubleshooting
+  React.useEffect(() => {
+    console.log('=== PHASE 2 DEBUGGING ===');
+    console.log('Raw channelMemberships:', channelMemberships);
+    console.log('Raw channels:', channels);
+    console.log('Raw channelRoles:', channelRoles);
+    console.log('Raw globalRole:', globalRole);
+    console.log('Raw allRoles:', allRoles);
+    console.log('Loading states:', { channelsLoading, membershipsLoading, rolesLoading });
+    
+    // Additional debugging for role resolution
+    if (channelMemberships.length > 0 && Object.keys(channels).length > 0) {
+      console.log('=== ROLE RESOLUTION DEBUG ===');
+      channelMemberships.forEach(membership => {
+        const channelId = String(membership.channelId);
+        const channelRole = channelRoles[channelId];
+        const resolvedRole = getUserChannelRole(channelId);
+        console.log(`Channel ${membership.name}:`, {
+          channelId,
+          channelRole,
+          globalRole,
+          resolvedRole,
+          finalRole: resolvedRole ?? 'member'
+        });
+      });
+    }
+  }, [channelMemberships, channels, channelRoles, globalRole, allRoles, channelsLoading, membershipsLoading, rolesLoading, getUserChannelRole]);
+
+  // Compute view model for approved parent channel memberships
+  const approvedParentMemberships = React.useMemo(() => {
+    if (channelsLoading || membershipsLoading) {
+      return [];
+    }
+
+    // Flatten all channels and create a map for quick lookup
+    const allChannels = Object.values(channels).flat();
+    const idToChannel = new Map(allChannels.map(c => [String(c._id), c]));
+
+    // Filter for approved memberships in parent channels only
+    const approvedParentMemberships = channelMemberships.filter(membership => {
+      const channel = idToChannel.get(String(membership.channelId));
+      return membership.status === 'approved' && channel && !channel.parentChannelId;
+    });
+
+    // Add computed role information with detailed debugging
+    const enrichedMemberships = approvedParentMemberships.map(membership => {
+      const channelId = String(membership.channelId);
+      const role = getUserChannelRole(channelId);
+      const fallbackRole = 'member';
+      const finalRole = role ?? fallbackRole;
+      
+      console.log(`Role computation for channel ${membership.name} (${channelId}):`, {
+        channelId,
+        membershipName: membership.name,
+        getUserChannelRoleResult: role,
+        fallbackRole,
+        finalRole,
+        channelRolesForThisChannel: channelRoles[channelId],
+        globalRole
+      });
+      
+      return {
+        ...membership,
+        computedRole: finalRole,
+        channel: idToChannel.get(channelId)
+      };
+    });
+
+    // Log for Phase 1 verification
+    console.log('Phase 2 - Computed approved parent memberships:', {
+      totalMemberships: channelMemberships.length,
+      approvedParentCount: enrichedMemberships.length,
+      memberships: enrichedMemberships,
+      channelsLoading,
+      membershipsLoading,
+      rolesLoading
+    });
+
+    return enrichedMemberships;
+  }, [channels, channelMemberships, channelsLoading, membershipsLoading, rolesLoading, getUserChannelRole, channelRoles, globalRole]);
+
+  // Handle retry for both data sources
+  const handleRetry = React.useCallback(() => {
+    refetchMemberships();
+    refetchChannels();
+    fetchDetailedChannelStatus();
+  }, [refetchMemberships, refetchChannels, fetchDetailedChannelStatus]);
+
+  // Determine overall loading and error states
+  const isLoading = channelsLoading || membershipsLoading || rolesLoading;
+  const hasError = membershipsError || channelsError;
+
+  // Format date for display
+  const formatDate = (date: string | Date) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleString();
+  };
+
   return (
     <div className="flex flex-col gap-6 w-full h-full p-6">
+      {/* Phase 2: Replace placeholder with new component */}
+      <RolesAndPermissionsCard
+        memberships={approvedParentMemberships}
+        loading={isLoading}
+        error={hasError}
+        onRetry={handleRetry}
+      />
+      
       <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5">
-        <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-2"><MessageCircle size={18} className="text-primary" /> Invitations</div>
-        <div className="flex flex-col gap-2 mt-1">
-          {[{id:1,from:'Alice'},{id:2,from:'Bob'}].map(invite => (
-            <div key={invite.id} className="flex items-center gap-2 bg-base-100 rounded px-2 py-1 border border-base-200 hover:bg-primary/5 transition-colors">
-              <span>Invite from {invite.from}</span>
-              <Button size="sm" variant="outline">Accept</Button>
-              <Button size="sm" variant="destructive">Decline</Button>
+        <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-2">
+          <AlertTriangle size={18} className="text-primary" /> Moderation Flags
+        </div>
+        
+        {loadingBanned ? (
+          <div className="space-y-3">
+            {[1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-4 p-3 bg-base-100 rounded-lg border border-base-200">
+                <div className="skeleton h-4 w-32"></div>
+                <div className="skeleton h-4 w-20"></div>
+                <div className="skeleton h-4 w-16"></div>
+              </div>
+            ))}
+          </div>
+        ) : errorBanned ? (
+          <div className="alert alert-error">
+            <AlertTriangle size={20} />
+            <div>
+              <h3 className="font-semibold">Error loading moderation information</h3>
+              <p className="text-xs">{errorBanned}</p>
             </div>
-          ))}
-        </div>
-      </div>
-      <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5">
-        <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-2"><Shield size={18} className="text-primary" /> Roles & Permissions</div>
-        <div className="flex flex-col gap-2 mt-1">
-          {[{role:'Member',group:'General'},{role:'Moderator',group:'Dev'}].map((r,i) => (
-            <div key={i} className="flex items-center gap-2 bg-base-100 rounded px-2 py-1 border border-base-200">
-              <span>{r.role} in {r.group}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5">
-        <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-2"><AlertTriangle size={18} className="text-primary" /> Moderation Tools</div>
-        <div className="flex flex-col gap-2 mt-1">
-          <div className="bg-base-100 rounded px-2 py-1 border border-base-200">No flagged content.</div>
-        </div>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={fetchDetailedChannelStatus}
+              className="ml-auto"
+            >
+              <RefreshCw size={16} className="mr-2" />
+              Retry
+            </Button>
+          </div>
+        ) : bannedChannels.length === 0 ? (
+          <div className="bg-base-100 rounded px-4 py-3 border border-base-200">
+            No moderation flags found. You are not banned or kicked from any channels.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {bannedChannels.map((channel) => (
+              <div key={channel.channelId} className="bg-base-100 rounded-lg p-4 border border-base-200">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <span className="badge badge-error">{channel.status === 'banned' ? 'Banned' : 'Kicked'}</span>
+                      {channel.name}
+                    </h3>
+                    {channel.parentChannelName && (
+                      <p className="text-xs text-base-content/60">
+                        Parent channel: {channel.parentChannelName}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="text-sm space-y-1">
+                  {channel.status === 'banned' && (
+                    <>
+                      <p>
+                        <span className="font-medium">Banned by:</span>{' '}
+                        {channel.bannedBy ? channel.bannedBy.fullName || channel.bannedBy.username : 'Unknown'}
+                      </p>
+                      {channel.banReason && (
+                        <p>
+                          <span className="font-medium">Reason:</span> {channel.banReason}
+                        </p>
+                      )}
+                      {channel.banExpiresAt && (
+                        <p>
+                          <span className="font-medium">Expires:</span> {formatDate(channel.banExpiresAt)}
+                        </p>
+                      )}
+                    </>
+                  )}
+                  
+                  {channel.status === 'kicked' && (
+                    <>
+                      <p>
+                        <span className="font-medium">Kicked by:</span>{' '}
+                        {channel.kickedBy ? channel.kickedBy.fullName || channel.kickedBy.username : 'Unknown'}
+                      </p>
+                      {channel.kickedAt && (
+                        <p>
+                          <span className="font-medium">Kicked on:</span> {formatDate(channel.kickedAt)}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 function SupportSection() {
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'feature' | 'improvement' | 'question' | 'other'>('other');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
+  const { getToken } = useAuth();
+
+  const handleSubmitFeedback = async () => {
+    if (!feedbackMessage.trim()) {
+      setSubmitStatus({
+        type: 'error',
+        message: 'Please enter your feedback message'
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitStatus(null);
+
+    try {
+      await ApiService.submitFeedback(
+        { 
+          message: feedbackMessage, 
+          category: feedbackCategory 
+        },
+        getToken
+      );
+
+      setSubmitStatus({
+        type: 'success',
+        message: 'Thank you for your feedback!'
+      });
+      setFeedbackMessage('');
+      
+      // Reset success message after 5 seconds
+      setTimeout(() => {
+        setSubmitStatus(null);
+      }, 5000);
+    } catch (error: any) {
+      console.error('Error submitting feedback:', error);
+      setSubmitStatus({
+        type: 'error',
+        message: error.message || 'Failed to submit feedback. Please try again later.'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 w-full h-full p-6">
       <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5">
@@ -1795,8 +2059,56 @@ function SupportSection() {
       </div>
       <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5">
         <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-2"><Star size={18} className="text-primary" /> Feedback</div>
-        <textarea className="w-full border border-base-200 rounded px-3 py-2 min-h-[48px] text-base focus:ring-1 focus:ring-primary/30 transition-all" placeholder="Your suggestions or bug reports..." />
-        <Button className="mt-2">Submit Feedback</Button>
+        
+        {submitStatus && (
+          <div className={`p-3 mb-3 rounded text-sm ${
+            submitStatus.type === 'success' 
+              ? 'bg-green-100 text-green-800 border border-green-200' 
+              : 'bg-red-100 text-red-800 border border-red-200'
+          }`}>
+            {submitStatus.message}
+          </div>
+        )}
+        
+        <div className="mb-3">
+          <label className="text-sm text-base-content/70 block mb-1">Category</label>
+          <select 
+            className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+            value={feedbackCategory}
+            onChange={(e) => setFeedbackCategory(e.target.value as any)}
+          >
+            <option value="bug">Bug Report</option>
+            <option value="feature">Feature Request</option>
+            <option value="improvement">Improvement Suggestion</option>
+            <option value="question">Question</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        
+        <textarea 
+          className="w-full border border-base-200 rounded px-3 py-2 min-h-[120px] text-base focus:ring-1 focus:ring-primary/30 transition-all" 
+          placeholder="Your suggestions or bug reports..."
+          value={feedbackMessage}
+          onChange={(e) => setFeedbackMessage(e.target.value)}
+        />
+        
+        <div className="mt-2 flex items-center justify-between">
+          <div className="text-xs text-base-content/60">
+            Limited to 5 submissions per day
+          </div>
+          <Button 
+            onClick={handleSubmitFeedback} 
+            disabled={isSubmitting || !feedbackMessage.trim()}
+            className="relative"
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+            {isSubmitting && (
+              <span className="absolute inset-0 flex items-center justify-center">
+                <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+              </span>
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );

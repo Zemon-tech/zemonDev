@@ -1,5 +1,10 @@
 const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
+export interface FeedbackSubmission {
+  message: string;
+  category?: 'bug' | 'feature' | 'improvement' | 'question' | 'other';
+}
+
 export class ApiService {
   private static async makeRequest(
     endpoint: string, 
@@ -138,6 +143,11 @@ export class ApiService {
   static async getUserChannelStatuses(getToken: () => Promise<string | null>) {
     return this.makeRequest('/api/arena/channels/user-channel-status', {}, getToken);
   }
+  
+  // Fetch detailed channel membership statuses with ban information
+  static async getDetailedUserChannelStatuses(getToken: () => Promise<string | null>) {
+    return this.makeRequest('/api/arena/channels/user-channel-status/detailed', {}, getToken);
+  }
 
   // Fetch any user's channel membership statuses (admin only)
   static async getUserChannelStatusesForAdmin(userId: string, getToken: () => Promise<string | null>) {
@@ -259,5 +269,18 @@ export class ApiService {
     action: 'increment' | 'decrement'
   ) {
     return this.makeRequest(`/api/nirvana/${type}/${id}/reaction`, { method: 'PATCH', body: JSON.stringify({ reactionType, action }) }, getToken);
+  }
+
+  // Feedback API
+  static async submitFeedback(data: FeedbackSubmission, getToken: () => Promise<string | null>) {
+    return this.makeRequest(
+      '/api/feedback',
+      { method: 'POST', body: JSON.stringify(data) },
+      getToken
+    );
+  }
+
+  static async getUserFeedback(getToken: () => Promise<string | null>) {
+    return this.makeRequest('/api/feedback', {}, getToken);
   }
 } 

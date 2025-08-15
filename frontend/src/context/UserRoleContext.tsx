@@ -240,9 +240,20 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
   }, [globalRole, channelRoles]);
 
   const getUserChannelRole = useCallback((channelId: string): string | null => {
+    // First check for channel-specific role
     const channelRole = channelRoles[channelId];
-    return channelRole?.role || null;
-  }, [channelRoles]);
+    if (channelRole?.role) {
+      return channelRole.role;
+    }
+    
+    // If no channel-specific role, check global role
+    if (globalRole === 'admin' || globalRole === 'moderator') {
+      return globalRole;
+    }
+    
+    // Default to null (will be handled by caller)
+    return null;
+  }, [channelRoles, globalRole]);
 
   const refetchRole = useCallback(async (forceRefresh = false): Promise<void> => {
     await fetchUserRole(forceRefresh);

@@ -13,6 +13,8 @@ import adminRoutes from './admin.routes';
 import profileRoutes from './profile.routes';
 import notificationRoutes from './notification.routes';
 import healthRoutes from './health.routes';
+import feedbackRoutes from './feedback.routes';
+import adminFeedbackRoutes from './admin-feedback.routes';
 
 const router = Router();
 
@@ -44,6 +46,9 @@ router.use('/notifications', notificationRoutes);
 // Register webhook routes
 router.use('/webhooks', webhookRoutes);
 
+// Feedback routes
+router.use('/feedback', feedbackRoutes);
+router.use('/admin/feedback', adminFeedbackRoutes);
 
 
 export default router; 

@@ -82,6 +82,54 @@ export const protect = [
  * @param roles Array of roles that are allowed to access the route
  * @param checkChannel Whether to check for channel-specific role (requires channelId in request body or params)
  */
+/**
+ * Middleware to require authentication
+ */
+export const requireAuth = [
+  ClerkExpressRequireAuth({
+    onError: (err) => {
+      console.error('[DEBUG] Clerk authentication error:', err);
+    }
+  })
+];
+
+/**
+ * Middleware to check if user is an admin
+ */
+export const isAdmin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  // User must be authenticated first
+  if (!req.auth || !req.auth.userId) {
+    return next(new AppError('Unauthorized', 401));
+  }
+
+  try {
+    // Find the user in our local database using the Clerk user ID
+    const user = await User.findOne({ clerkId: req.auth.userId });
+    
+    // If the user doesn't exist in our database, it's an error
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+
+    // Check if user has admin role
+    const userRole = await UserRole.findOne({
+      userId: user._id,
+      role: 'admin'
+    });
+
+    if (!userRole) {
+      return next(new AppError('Access denied. Admin role required', 403));
+    }
+
+    // Attach the user object to the request for use in subsequent controllers
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error('Error checking admin role:', error);
+    next(new AppError('An error occurred while checking permissions', 500));
+  }
+});
+
 export const checkRole = (roles: ('admin' | 'moderator')[], checkChannel = false) => {
   return asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     // User must be authenticated first

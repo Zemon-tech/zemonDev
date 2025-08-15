@@ -618,6 +618,70 @@ export const getUserChannelStatus = asyncHandler(
 ); 
 
 /**
+ * @desc    Get detailed channel membership statuses for the current user
+ * @route   GET /api/arena/channels/user-channel-status/detailed
+ * @access  Private
+ */
+export const getDetailedUserChannelStatus = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user._id;
+    // Find all UserChannelStatus for this user
+    const statuses = await UserChannelStatus.find({ userId })
+      .populate('channelId', 'isActive name type parentChannelId')
+      .populate('bannedBy', 'username fullName')
+      .populate('kickedBy', 'username fullName');
+    
+    // Only include channels where isActive: true
+    const filtered = statuses.filter(s => s.channelId && (s.channelId as any).isActive);
+    
+    // Get all parent channel IDs for lookup
+    const parentChannelIds = filtered
+      .map(s => (s.channelId as any).parentChannelId)
+      .filter(id => id); // Filter out nulls
+    
+    // Fetch parent channels for lookup
+    const parentChannels = await ArenaChannel.find({
+      _id: { $in: parentChannelIds }
+    }).select('_id name type');
+    
+    // Create a map of parent channel IDs to parent channel objects
+    const parentChannelMap = parentChannels.reduce((map: Record<string, any>, channel: any) => {
+      map[channel._id.toString()] = channel;
+      return map;
+    }, {});
+    
+    // Return detailed information including ban/kick details
+    const result = filtered.map(s => ({
+      userId: s.userId,
+      channelId: s.channelId._id,
+      status: s.status,
+      name: (s.channelId as any).name,
+      type: (s.channelId as any).type,
+      parentChannelId: (s.channelId as any).parentChannelId,
+      parentChannelName: (s.channelId as any).parentChannelId ? 
+        parentChannelMap[(s.channelId as any).parentChannelId.toString()]?.name : null,
+      isBanned: s.isBanned,
+      banExpiresAt: s.banExpiresAt,
+      banReason: s.banReason,
+      bannedBy: s.bannedBy ? {
+        _id: (s.bannedBy as any)._id,
+        username: (s.bannedBy as any).username,
+        fullName: (s.bannedBy as any).fullName
+      } : null,
+      isKicked: s.isKicked,
+      kickedAt: s.kickedAt,
+      kickedBy: s.kickedBy ? {
+        _id: (s.kickedBy as any)._id,
+        username: (s.kickedBy as any).username,
+        fullName: (s.kickedBy as any).fullName
+      } : null
+    }));
+    
+    res.status(200).json({ data: result });
+  }
+);
+
+/**
  * @desc    Admin: Get all channel membership statuses for any user
  * @route   GET /api/arena/channels/user-channel-status/:userId
  * @access  Admin/Mod only

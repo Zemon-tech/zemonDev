@@ -22,6 +22,7 @@ import NirvanaHackathon, { INirvanaHackathon } from './nirvanaHackathon.model';
 import NirvanaNews, { INirvanaNews } from './nirvanaNews.model';
 import NirvanaTool, { INirvanaTool } from './nirvanaTool.model';
 import Notification, { INotification } from './notification.model';
+import Feedback, { IFeedback } from './feedback.model';
 
 export {
   User,
@@ -75,5 +76,8 @@ export {
   INirvanaTool,
   // Notification models
   Notification,
-  INotification
+  INotification,
+  // Feedback models
+  Feedback,
+  IFeedback
 }; 
