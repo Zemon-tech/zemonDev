@@ -11,6 +11,7 @@ import { NotificationPopover } from '@/components/notifications/NotificationPopo
 import { useNotification } from '@/hooks/useNotification';
 import Toaster from '@/components/ui/toast';
 import { useForge } from '@/context/ForgeContext';
+import UserSearch from '@/components/ui/UserSearch';
 
 // Icons
 import { Search, X, MessageCircle, BookOpen, FileText, StickyNote, ArrowLeft, Send, Loader2, Sparkles, Hash, Volume2, Star, MessageSquare, ChevronDown } from 'lucide-react';
@@ -22,7 +23,6 @@ import { Eye, EyeOff } from 'lucide-react'; // [ADD] For toggle icon
 import { Lock, Unlock } from 'lucide-react'; // [ADD] For nav lock button icon
 
 export default function AppLayout() {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { username: urlUsername } = useParams();
   const location = useLocation();
@@ -463,37 +463,12 @@ export default function AppLayout() {
             </>
           )}
           
-          {/* Search icon and input inline in navbar */}
+          {/* User Search */}
           <div className="flex-1 flex justify-end items-center gap-2">
-            {!isSearchOpen && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsSearchOpen(true)}
-                className="h-9 w-9 p-0 rounded-lg hover:bg-base-200 transition-all duration-200"
-              >
-                <Search size={18} />
-              </Button>
-            )}
-            {isSearchOpen && (
-              <div className="relative flex items-center w-full max-w-xs">
-                <Search className="w-4 h-4 absolute left-3 text-base-content/60" />
-                <input
-                  autoFocus
-                  type="text"
-                  className="input input-sm input-bordered w-full pl-9 pr-8"
-                  placeholder="Search..."
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsSearchOpen(false)}
-                  className="h-6 w-6 p-0 absolute right-1.5 hover:bg-base-200"
-                >
-                  <X size={16} />
-                </Button>
-              </div>
-            )}
+            <UserSearch 
+              placeholder="Search users..."
+              className="max-w-xs"
+            />
           </div>
           
           {/* Right side - user actions */}

@@ -752,3 +752,144 @@ export const removeBookmarkController = asyncHandler(
     }
   }
 );
+
+/**
+ * @desc    Get public user profile by username
+ * @route   GET /api/users/public/:username
+ * @access  Public
+ */
+export const getPublicUserProfileController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { username } = req.params;
+
+      if (!username) {
+        return next(new AppError('Username is required', 400));
+      }
+
+      const user = await User.findOne({ username })
+        .select('fullName username profile socialLinks college stats achievements profileVisibility profileBackground')
+        .lean();
+
+      if (!user) {
+        return next(new AppError('User not found', 404));
+      }
+
+      // Check if profile is public
+      if (!user.profileVisibility?.isPublic) {
+        return next(new AppError('Profile is private', 403));
+      }
+
+      // Filter data based on visibility settings
+      const publicProfile = {
+        fullName: user.fullName,
+        username: user.username,
+        profile: {
+          headline: user.profile?.headline,
+          bio: user.profile?.bio,
+          aboutMe: user.profileVisibility?.showSkills ? user.profile?.aboutMe : undefined,
+          location: user.profile?.location,
+          skills: user.profileVisibility?.showSkills ? user.profile?.skills : undefined,
+          toolsAndTech: user.profileVisibility?.showSkills ? user.profile?.toolsAndTech : undefined,
+        },
+        socialLinks: user.profileVisibility?.showSocialLinks ? user.socialLinks : undefined,
+        college: user.profileVisibility?.showCollegeDetails ? user.college : undefined,
+        stats: user.profileVisibility?.showStats ? user.stats : undefined,
+        achievements: user.profileVisibility?.showAchievements ? user.achievements : undefined,
+        profileBackground: user.profileBackground,
+      };
+
+      res.status(200).json(
+        new ApiResponse(200, 'Public profile retrieved successfully', {
+          profile: publicProfile,
+        })
+      );
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to fetch public profile', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Update user profile visibility settings
+ * @route   PATCH /api/users/me/visibility
+ * @access  Private
+ */
+export const updateProfileVisibilityController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { profileVisibility } = req.body;
+
+      if (!profileVisibility || typeof profileVisibility !== 'object') {
+        return next(new AppError('Profile visibility settings are required', 400));
+      }
+
+      const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        { $set: { profileVisibility } },
+        { new: true, runValidators: true }
+      ).select('profileVisibility');
+
+      if (!updatedUser) {
+        return next(new AppError('User not found', 404));
+      }
+
+      res.status(200).json(
+        new ApiResponse(200, 'Profile visibility updated successfully', {
+          profileVisibility: updatedUser.profileVisibility,
+        })
+      );
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to update profile visibility', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Search users by username (for public profile discovery)
+ * @route   GET /api/users/search?q=username
+ * @access  Public
+ */
+export const searchUsersController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { q } = req.query;
+      
+      if (!q || typeof q !== 'string') {
+        return next(new AppError('Search query is required', 400));
+      }
+
+      if (q.length < 2) {
+        return next(new AppError('Search query must be at least 2 characters long', 400));
+      }
+
+      // Search for users with public profiles
+      const users = await User.find({
+        username: { $regex: q, $options: 'i' },
+        'profileVisibility.isPublic': true
+      })
+      .select('username fullName profile.headline profile.bio profileBackground')
+      .limit(10)
+      .lean();
+
+      const results = users.map(user => ({
+        username: user.username,
+        fullName: user.fullName,
+        headline: user.profile?.headline,
+        bio: user.profile?.bio,
+        profileBackground: user.profileBackground,
+        publicUrl: `/profile/${user.username}`
+      }));
+
+      res.status(200).json(
+        new ApiResponse(200, 'Users found successfully', {
+          results,
+          total: results.length,
+          query: q
+        })
+      );
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to search users', 500));
+    }
+  }
+);

@@ -1,6 +1,7 @@
-import { SignIn } from '@clerk/clerk-react';
+import { SignInButton } from '@clerk/clerk-react';
 import { Navigate } from 'react-router-dom';
 import { useAuth, useUser } from '@clerk/clerk-react';
+import { Button } from '../components/ui/button';
 
 export default function SignInPage() {
   const { isSignedIn } = useAuth();
@@ -21,12 +22,23 @@ export default function SignInPage() {
           <p className="mt-2 text-text-secondary">Welcome back to Zemon Community</p>
         </div>
         
-        <SignIn 
-          routing="path" 
-          path="/sign-in"
-          redirectUrl="/dashboard"
-          signUpUrl="/sign-up"
-        />
+        <div className="space-y-4">
+          <SignInButton mode="modal">
+            <Button 
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+              size="lg"
+            >
+              Sign In
+            </Button>
+          </SignInButton>
+          
+          <p className="text-center text-sm text-text-secondary">
+            Don't have an account?{' '}
+            <a href="/sign-up" className="text-primary hover:underline">
+              Sign up here
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );

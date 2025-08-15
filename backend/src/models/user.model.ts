@@ -99,6 +99,15 @@ export interface IUser extends Document {
     linkedin?: string;
     twitter?: string;
   };
+  profileVisibility?: {
+    isPublic: boolean;
+    showEmail: boolean;
+    showStats: boolean;
+    showAchievements: boolean;
+    showSkills: boolean;
+    showSocialLinks: boolean;
+    showCollegeDetails: boolean;
+  };
   profileBackground?: {
     type: 'gradient' | 'image';
     value: string;
@@ -457,6 +466,36 @@ const UserSchema: Schema = new Schema(
         type: String,
         trim: true,
         default: '',
+      },
+    },
+    profileVisibility: {
+      isPublic: {
+        type: Boolean,
+        default: true,
+      },
+      showEmail: {
+        type: Boolean,
+        default: false,
+      },
+      showStats: {
+        type: Boolean,
+        default: true,
+      },
+      showAchievements: {
+        type: Boolean,
+        default: true,
+      },
+      showSkills: {
+        type: Boolean,
+        default: true,
+      },
+      showSocialLinks: {
+        type: Boolean,
+        default: true,
+      },
+      showCollegeDetails: {
+        type: Boolean,
+        default: true,
       },
     },
     profileBackground: {

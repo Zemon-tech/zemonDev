@@ -13,6 +13,7 @@ import { useUserProfile, formatEducation, formatCollegeLocation, getDisplayName,
 import { getUserAnalysisHistory, getUserActiveDrafts, IUserAnalysisHistory, IUserActiveDraft } from '@/lib/profileApi';
 import { getBookmarkedResources } from '@/lib/forgeApi';
 import { useZemonStreak } from '@/hooks/useZemonStreak';
+import { useToast } from '@/components/ui/toast';
 import { 
   Github, 
   Linkedin, 
@@ -46,7 +47,8 @@ import {
   Sparkles,
   Globe,
   User,
-  Palette
+  Palette,
+  Copy
 } from 'lucide-react';
 
 // Register GSAP plugins
@@ -168,6 +170,7 @@ export default function ProfilePage() {
   const [isBackgroundSelectorOpen, setIsBackgroundSelectorOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   // Zemon streak functionality
   const { streakInfo, loading: streakLoading } = useZemonStreak();
@@ -490,6 +493,57 @@ export default function ProfilePage() {
                 👋
               </span>
             </motion.h1>
+            
+            {/* Public Profile Link */}
+            <motion.div 
+              className="space-y-3 mb-3"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+            >
+              <div className="text-xs text-white/60">
+                💡 This is your public profile link that others can view without logging in
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`/profile/${userProfile?.username}`, '_blank')}
+                  className="text-xs bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-all duration-300"
+                >
+                  <Globe className="w-3 h-3 mr-1" />
+                  View Public Profile
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(`${window.location.origin}/profile/${userProfile?.username}`);
+                      toast({
+                        title: "Link copied!",
+                        description: "Public profile link copied to clipboard",
+                        variant: "success"
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "Failed to copy",
+                        description: "Could not copy link to clipboard",
+                        variant: "error"
+                      });
+                    }
+                  }}
+                  className="text-xs bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-all duration-300"
+                  title="Copy public profile link to clipboard"
+                >
+                  <Copy className="w-3 h-3 mr-1" />
+                  Copy Link
+                </Button>
+              </div>
+              <div className="text-xs text-white/70">
+                Share this link: <code className="bg-white/20 px-1 rounded text-white">{window.location.origin}/profile/{userProfile?.username}</code>
+              </div>
+            </motion.div>
             
             <motion.div 
               ref={taglineRef} 

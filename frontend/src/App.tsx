@@ -15,6 +15,7 @@ import SignUpPage from './pages/SignUpPage';
 
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
+import PublicProfilePage from './pages/PublicProfilePage';
 
 // App Pages
 import DashboardPage from './pages/DashboardPage';
@@ -117,6 +118,9 @@ function App() {
                   } />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>
+                
+                {/* Public Profile Routes - Accessible without authentication */}
+                <Route path="/profile/:username" element={<PublicProfilePage />} />
                 
                 {/* Catch-all route */}
                 <Route path="*" element={<Navigate to="/" replace />} />

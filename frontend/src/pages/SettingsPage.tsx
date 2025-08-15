@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, MessageCircle, Star, Mail, Github, X, Eye, Linkedin, Twitter, BookOpen, Plus, Palette, ExternalLink, LogOut } from 'lucide-react';
+import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, MessageCircle, Star, Mail, Github, X, Eye, Linkedin, Twitter, BookOpen, Plus, Palette, ExternalLink, LogOut, Lock, Unlock, TrendingUp, Trophy, Brain, School } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import clsx from 'clsx';
@@ -128,6 +128,17 @@ function ProfileAccountSection() {
     description: '',
     category: 'problems' as const,
     value: 0
+  });
+
+  // Profile visibility settings
+  const [profileVisibility, setProfileVisibility] = useState({
+    isPublic: true,
+    showEmail: false,
+    showStats: true,
+    showAchievements: true,
+    showSkills: true,
+    showSocialLinks: true,
+    showCollegeDetails: true,
   });
   
   // College details
@@ -332,6 +343,32 @@ function ProfileAccountSection() {
       setShowToast({ type: 'error', message: error instanceof Error ? error.message : 'Failed to update profile' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Save profile visibility settings
+  const handleSaveVisibility = async () => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/api/users/me/visibility`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ profileVisibility }),
+      });
+      
+      if (response.ok) {
+        setShowToast({ type: 'success', message: 'Profile visibility updated successfully!' });
+        console.log('Profile visibility updated successfully');
+      } else {
+        setShowToast({ type: 'error', message: 'Failed to update profile visibility' });
+        console.error('Failed to update profile visibility');
+      }
+    } catch (error) {
+      console.error('Error updating profile visibility:', error);
+      setShowToast({ type: 'error', message: 'Failed to update profile visibility' });
     }
   };
 
@@ -957,6 +994,134 @@ function ProfileAccountSection() {
               <Button variant="outline" onClick={handleExportData}>Export Data</Button>
               <Button variant="destructive" onClick={() => setShowDeleteModal(true)}>Deactivate / Delete Account</Button>
             </div>
+
+            {/* Profile Visibility Settings */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.4 }}
+              className="bg-gradient-to-br from-base-100/80 to-base-200/40 rounded-xl shadow-sm border border-base-300/30 backdrop-blur-sm relative z-0 hover:shadow-md transition-all duration-300"
+            >
+              <div className="p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-info/15 to-info/5 border border-info/20 shadow-sm">
+                    <Eye className="w-4 h-4 text-info" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-base-content">Profile Visibility</h3>
+                    <p className="text-xs text-base-content/60">Control who can see your profile information</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-base-200/40 border border-base-300/20 hover:bg-base-200/60 transition-all duration-200">
+                    <div className="flex items-center gap-3">
+                      <div className="p-1.5 rounded-md bg-info/10">
+                        {profileVisibility.isPublic ? <Unlock className="w-3.5 h-3.5 text-info" /> : <Lock className="w-3.5 h-3.5 text-info" />}
+                      </div>
+                      <div>
+                        <p className="font-medium text-base-content text-sm">Public Profile</p>
+                        <p className="text-xs text-base-content/60">
+                          Allow others to view your profile at /profile/{username}
+                        </p>
+                      </div>
+                    </div>
+                    <CustomToggle
+                      id="profile-public"
+                      checked={profileVisibility.isPublic}
+                      onChange={(checked) => setProfileVisibility(prev => ({ ...prev, isPublic: checked }))}
+                      className="toggler-compact"
+                    />
+                  </div>
+
+                  {profileVisibility.isPublic && (
+                    <div className="space-y-3 p-3 bg-base-200/30 rounded-lg border border-base-300/20">
+                      <div className="text-sm font-medium text-base-content/80 mb-3">What to show on public profile:</div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4 text-base-content/60" />
+                          <span className="text-sm">Performance Stats</span>
+                        </div>
+                        <CustomToggle
+                          id="show-stats"
+                          checked={profileVisibility.showStats}
+                          onChange={(checked) => setProfileVisibility(prev => ({ ...prev, showStats: checked }))}
+                          className="toggler-compact"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Trophy className="w-4 h-4 text-base-content/60" />
+                          <span className="text-sm">Achievements & Badges</span>
+                        </div>
+                        <CustomToggle
+                          id="show-achievements"
+                          checked={profileVisibility.showAchievements}
+                          onChange={(checked) => setProfileVisibility(prev => ({ ...prev, showAchievements: checked }))}
+                          className="toggler-compact"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Brain className="w-4 h-4 text-base-content/60" />
+                          <span className="text-sm">Skills & Technologies</span>
+                        </div>
+                        <CustomToggle
+                          id="show-skills"
+                          checked={profileVisibility.showSkills}
+                          onChange={(checked) => setProfileVisibility(prev => ({ ...prev, showSkills: checked }))}
+                          className="toggler-compact"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Link2 className="w-4 h-4 text-base-content/60" />
+                          <span className="text-sm">Social Links</span>
+                        </div>
+                        <CustomToggle
+                          id="show-social"
+                          checked={profileVisibility.showSocialLinks}
+                          onChange={(checked) => setProfileVisibility(prev => ({ ...prev, showSocialLinks: checked }))}
+                          className="toggler-compact"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <School className="w-4 h-4 text-base-content/60" />
+                          <span className="text-sm">College Details</span>
+                        </div>
+                        <CustomToggle
+                          id="show-college"
+                          checked={profileVisibility.showCollegeDetails}
+                          onChange={(checked) => setProfileVisibility(prev => ({ ...prev, showCollegeDetails: checked }))}
+                          className="toggler-compact"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="text-xs text-base-content/50 bg-base-200/50 p-2 rounded">
+                    💡 <strong>Tip:</strong> Your profile will be accessible at <code className="bg-base-300 px-1 rounded">/profile/{username}</code> when public
+                  </div>
+                  
+                  <div className="flex justify-end pt-3">
+                    <Button 
+                      onClick={handleSaveVisibility}
+                      size="sm"
+                      className="bg-info hover:bg-info/90 text-info-content"
+                    >
+                      Save Visibility Settings
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
             {/* Delete Modal */}
             {showDeleteModal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
