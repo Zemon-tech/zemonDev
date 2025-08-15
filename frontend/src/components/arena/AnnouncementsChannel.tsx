@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +35,37 @@ const AnnouncementsChannelComponent: React.FC<AnnouncementsChannelProps> = ({
   const [showGifPicker, setShowGifPicker] = React.useState(false);
   const gf = React.useMemo(() => new GiphyFetch('YOUR_GIPHY_API_KEY'), []);
   
+  // Auto-scroll refs
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0) {
+      const container = containerRef.current;
+      if (container) {
+        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+        
+        // Only auto-scroll if user is near the bottom
+        if (isNearBottom) {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    }
+  }, [messages]);
+
+  // Scroll to bottom on initial load
+  useEffect(() => {
+    if (!loading && messages.length > 0) {
+      // Use a small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [loading, messages.length]);
+
   // Infinite scroll setup - disabled for announcements
   // const scrollContainerRef = useInfiniteScroll({
   //   onLoadMore: () => {}, // Announcements typically don't need pagination, but keeping for consistency
@@ -171,7 +202,7 @@ const AnnouncementsChannelComponent: React.FC<AnnouncementsChannelProps> = ({
       </div>
 
       {/* Announcements Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={containerRef} className="flex-1 overflow-y-auto">
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -294,6 +325,9 @@ const AnnouncementsChannelComponent: React.FC<AnnouncementsChannelProps> = ({
               );
             });
           })()}
+          
+          {/* Invisible element for auto-scroll */}
+          <div ref={messagesEndRef} />
         </motion.div>
       </div>
 

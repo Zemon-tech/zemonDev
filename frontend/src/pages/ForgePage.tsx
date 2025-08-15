@@ -168,51 +168,9 @@ export default function ForgePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-base-100 via-base-50 to-base-100">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="relative z-10 max-w-7xl mx-auto px-4 py-8">
-          <div className="text-center">
-            <div className="mb-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-base-100/80 backdrop-blur-sm border border-base-300 rounded-full text-xs text-base-content/70 mb-2">
-                <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></span>
-                Discover 1000+ curated resources
-              </div>
-            </div>
-            
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              The Forge
-            </h1>
-            <p className="text-lg md:text-xl text-base-content/80 mb-6 max-w-2xl mx-auto leading-relaxed">
-              Your curated collection of learning resources, tools, and knowledge to accelerate your development journey.
-            </p>
-
-            {/* Stats */}
-            <div className="flex justify-center gap-8 mb-6">
-              <div className="text-center group">
-                <div className="text-2xl font-bold text-primary mb-1 group-hover:scale-110 transition-transform">
-                  {resources.length}
-                </div>
-                <div className="text-sm text-base-content/70">Resources</div>
-              </div>
-              <div className="text-center group">
-                <div className="text-2xl font-bold text-primary mb-1 group-hover:scale-110 transition-transform">
-                  {resources.reduce((sum, r) => sum + (r.metrics?.views || 0), 0)}
-                </div>
-                <div className="text-sm text-base-content/70">Total Views</div>
-              </div>
-              <div className="text-center group">
-                <div className="text-2xl font-bold text-primary mb-1 group-hover:scale-110 transition-transform">
-                  {bookmarkedResources.length}
-                </div>
-                <div className="text-sm text-base-content/70">Bookmarked</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      
       {/* Categories Section */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-base-content mb-4">Explore by Category</h2>
           <p className="text-base-content/60 text-lg">Find the perfect resources for your learning journey</p>
