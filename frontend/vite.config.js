@@ -15,7 +15,7 @@ export default defineConfig({
             '/api': {
                 target: 'https://zemondev.onrender.com',
                 changeOrigin: true,
-                secure: false,
+                secure: true,
             },
         },
     },

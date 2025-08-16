@@ -4,6 +4,7 @@ import { ThemeProvider } from './lib/ThemeContext';
 import { SidebarProvider } from './lib/SidebarContext';
 import { WorkspaceProvider } from './lib/WorkspaceContext';
 import { ToastProvider } from './components/ui/toast';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 
 // Layouts
 import PublicLayout from './components/layout/PublicLayout';
@@ -53,7 +54,8 @@ function RootRoute() {
     return <Navigate to={`/${username}/dashboard`} replace />;
   }
   
-  // Otherwise, redirect to sign-in
+  // If not authenticated, redirect to landing site
+  // This will be handled by the ProtectedRoute wrapper
   return <Navigate to="/signin" replace />;
 }
 
@@ -99,7 +101,11 @@ function App() {
                 </Route>
                 
                 {/* Protected Routes - Username based */}
-                <Route path=":username" element={<WorkspaceLayout />}>
+                <Route path=":username" element={
+                  <ProtectedRoute>
+                    <WorkspaceLayout />
+                  </ProtectedRoute>
+                }>
                   <Route index element={<ProfilePage />} />
                   <Route path="dashboard" element={<DashboardPage />} />
                   <Route path="forge" element={<ForgePage />} />
