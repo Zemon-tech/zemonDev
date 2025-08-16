@@ -106,7 +106,7 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
-      const response = await fetch('/api/users/me/role', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/api/users/me/role`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
