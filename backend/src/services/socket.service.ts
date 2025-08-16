@@ -18,7 +18,7 @@ export const initializeSocketIO = (server: HttpServer) => {
   try {
     const allowedOrigins = [
       process.env.CORS_ORIGIN || 'http://localhost:5173',
-      'http://localhost:5175'
+      'http://localhost:5175', 'quild.vercel.app'
     ];
 
     io = new SocketIOServer(server, {
