@@ -177,10 +177,16 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
   useEffect(() => {
     const initializeChat = async () => {
       try {
+        console.log('🔧 Initializing chat for problem:', problemId);
         const token = await getToken();
-        if (!token) return;
+        if (!token) {
+          console.log('❌ No token available');
+          return;
+        }
 
-        const response = await fetch(`/api/crucible/${problemId}/chats`, {
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://zemondev.onrender.com';
+        console.log('🌐 Using backend URL:', backendUrl);
+        const response = await fetch(`${backendUrl}/api/crucible/${problemId}/chats`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -190,8 +196,12 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
         });
 
         const data = await response.json();
+        console.log('📡 Chat initialization response:', data);
         if (data.success) {
           setCurrentChatId(data.data._id);
+          console.log('✅ Chat initialized with ID:', data.data._id);
+        } else {
+          console.log('❌ Chat initialization failed:', data);
         }
       } catch (error) {
         console.error('Error initializing chat:', error);
@@ -304,7 +314,12 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
 
   const handleSendMessage = async (messageContent?: string) => {
     const contentToSend = messageContent || inputMessage.trim();
-    if (!contentToSend || !currentChatId) return;
+    if (!contentToSend || !currentChatId) {
+      console.log('❌ Cannot send message:', { contentToSend, currentChatId });
+      return;
+    }
+    
+    console.log('🚀 Sending message:', { contentToSend, currentChatId, problemId });
 
     const newMessage: Message = {
       role: 'user',
@@ -341,7 +356,8 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
       console.log('Starting streaming request...');
       
       // Use streaming endpoint
-      const response = await fetch(`/api/crucible/${problemId}/chats/${currentChatId}/messages/stream`, {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://zemondev.onrender.com';
+      const response = await fetch(`${backendUrl}/api/crucible/${problemId}/chats/${currentChatId}/messages/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -463,6 +479,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      console.log('⌨️ Enter key pressed');
       handleSendMessage();
     }
   };
@@ -510,6 +527,9 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
   );
 
   const handleSendClick = () => {
+    console.log('🖱️ Send button clicked');
+    console.log('📝 Input message:', inputMessage);
+    console.log('🔑 Current chat ID:', currentChatId);
     handleSendMessage();
   };
 
