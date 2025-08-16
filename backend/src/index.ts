@@ -33,7 +33,7 @@ app.use(cookieParser());
 // Define allowed origins
 const allowedOrigins = [
   process.env.CORS_ORIGIN || 'http://localhost:5173',
-  'http://localhost:5175', 'quild.vercel.app'
+  'http://localhost:5175', 'https://quild.vercel.app'
 ];
 
 // CORS - must be before API routes
