@@ -623,7 +623,7 @@ function ProfileAccountSection() {
               </div>
               <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="block font-semibold text-sm text-base-content/80 flex items-center gap-2">
+                  <label className="font-semibold text-sm text-base-content/80 flex items-center gap-2">
                     <User size={14} className="text-primary" />
                     Full Name
                   </label>
@@ -635,7 +635,7 @@ function ProfileAccountSection() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="block font-semibold text-sm text-base-content/80 flex items-center gap-2">
+                  <label className="font-semibold text-sm text-base-content/80 flex items-center gap-2">
                     <User size={14} className="text-primary" />
                     Username
                   </label>
@@ -647,7 +647,7 @@ function ProfileAccountSection() {
                   />
                 </div>
                 <div className="md:col-span-2 space-y-2">
-                  <label className="block font-semibold text-sm text-base-content/80 flex items-center gap-2">
+                  <label className="font-semibold text-sm text-base-content/80 flex items-center gap-2">
                     <MessageCircle size={14} className="text-primary" />
                     Bio / Headline
                   </label>
@@ -661,7 +661,7 @@ function ProfileAccountSection() {
                   <div className="text-xs text-base-content/50 text-right">{bioCount}/120</div>
                 </div>
                 <div className="space-y-2">
-                  <label className="block font-semibold text-sm text-base-content/80 flex items-center gap-2">
+                  <label className="font-semibold text-sm text-base-content/80 flex items-center gap-2">
                     <MapPin size={14} className="text-primary" />
                     Location
                   </label>
@@ -673,7 +673,7 @@ function ProfileAccountSection() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="block font-semibold text-sm text-base-content/80 flex items-center gap-2">
+                  <label className="font-semibold text-sm text-base-content/80 flex items-center gap-2">
                     <BookOpen size={14} className="text-primary" />
                     About Me
                   </label>

@@ -42,7 +42,8 @@ const UserList: React.FC = () => {
           throw new Error('Not authenticated');
         }
 
-        const response = await fetch(`/api/admin/users?page=${page}&limit=20`, {
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+        const response = await fetch(`${backendUrl}/api/admin/users?page=${page}&limit=20`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },

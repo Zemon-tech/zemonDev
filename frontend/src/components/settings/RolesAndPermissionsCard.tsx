@@ -137,9 +137,7 @@ export const RolesAndPermissionsCard: React.FC<RolesAndPermissionsCardProps> = (
           <thead>
             <tr>
               <th className="text-left font-semibold text-base-content/80">Channel</th>
-              <th className="text-left font-semibold text-base-content/80">Type</th>
               <th className="text-left font-semibold text-base-content/80">Role</th>
-              <th className="text-left font-semibold text-base-content/80">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -149,18 +147,8 @@ export const RolesAndPermissionsCard: React.FC<RolesAndPermissionsCardProps> = (
                   {membership.name}
                 </td>
                 <td>
-                  <span className="capitalize text-sm text-base-content/70">
-                    {membership.type}
-                  </span>
-                </td>
-                <td>
                   <span className={getRoleBadgeClass(membership.computedRole)}>
                     {membership.computedRole.charAt(0).toUpperCase() + membership.computedRole.slice(1)}
-                  </span>
-                </td>
-                <td>
-                  <span className={getStatusBadgeClass(membership.status)}>
-                    {membership.status.charAt(0).toUpperCase() + membership.status.slice(1)}
                   </span>
                 </td>
               </tr>

@@ -31,7 +31,8 @@ const UnbanModal: React.FC<UnbanModalProps> = ({ open, onClose, user, parentChan
     setLoading(true);
     try {
       const token = await getToken();
-      const res = await fetch(`/api/arena/channels/${parentChannel}/unban`, {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const res = await fetch(`${backendUrl}/api/arena/channels/${parentChannel}/unban`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
