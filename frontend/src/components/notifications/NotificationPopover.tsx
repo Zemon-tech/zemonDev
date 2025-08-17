@@ -19,7 +19,6 @@ import {
   EyeOff
 } from "lucide-react";
 import { useNotifications } from '@/hooks/useNotifications'
-import { useTheme } from '@/lib/ThemeContext';
 import { useState, useEffect, useRef } from 'react';
 
 
@@ -30,7 +29,6 @@ interface NotificationPopoverProps {
 }
 
 export function NotificationPopover({ className, toasterRef }: NotificationPopoverProps) {
-  const { theme } = useTheme();
   const [expandedNotifications, setExpandedNotifications] = useState<Set<string>>(new Set());
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
