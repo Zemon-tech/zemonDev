@@ -1,8 +1,6 @@
 
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   Bell, 
   Rocket, 
@@ -34,7 +32,9 @@ interface NotificationPopoverProps {
 export function NotificationPopover({ className, toasterRef }: NotificationPopoverProps) {
   const { theme } = useTheme();
   const [expandedNotifications, setExpandedNotifications] = useState<Set<string>>(new Set());
-  const popoverRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [processedNotifications, setProcessedNotifications] = useState<Set<string>>(new Set());
   
   const {
     notifications,
@@ -48,53 +48,53 @@ export function NotificationPopover({ className, toasterRef }: NotificationPopov
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'hackathon':
-        return <Rocket className="w-4 h-4 text-blue-600" />;
+        return <Rocket className="w-4 h-4 text-info" />;
       case 'news':
-        return <Newspaper className="w-4 h-4 text-green-600" />;
+        return <Newspaper className="w-4 h-4 text-success" />;
       case 'channel':
-        return <Tv className="w-4 h-4 text-purple-600" />;
+        return <Tv className="w-4 h-4 text-secondary" />;
       case 'problem':
-        return <Puzzle className="w-4 h-4 text-orange-600" />;
+        return <Puzzle className="w-4 h-4 text-warning" />;
       case 'resource':
-        return <Wrench className="w-4 h-4 text-indigo-600" />;
+        return <Wrench className="w-4 h-4 text-primary" />;
       case 'project_approval':
-        return <CheckCircle className="w-4 h-4 text-emerald-600" />;
+        return <CheckCircle className="w-4 h-4 text-success" />;
       case 'custom':
-        return <Megaphone className="w-4 h-4 text-amber-600" />;
+        return <Megaphone className="w-4 h-4 text-accent" />;
       case 'system':
-        return <Settings className="w-4 h-4 text-red-600" />;
+        return <Settings className="w-4 h-4 text-error" />;
       default:
-        return <Bell className="w-4 h-4 text-gray-600" />;
+        return <Bell className="w-4 h-4 text-base-content" />;
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'urgent':
-        return 'text-red-600';
+        return 'text-error';
       case 'high':
-        return 'text-orange-600';
+        return 'text-warning';
       case 'medium':
-        return 'text-yellow-600';
+        return 'text-warning';
       case 'low':
-        return 'text-green-600';
+        return 'text-success';
       default:
-        return 'text-gray-600';
+        return 'text-base-content';
     }
   };
 
   const getPriorityBadgeColor = (priority: string) => {
     switch (priority) {
       case 'urgent':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'badge-error badge-sm';
       case 'high':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return 'badge-warning badge-sm';
       case 'medium':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'badge-warning badge-sm';
       case 'low':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'badge-success badge-sm';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'badge-neutral badge-sm';
     }
   };
 
@@ -122,14 +122,21 @@ export function NotificationPopover({ className, toasterRef }: NotificationPopov
 
   const showNotificationToast = (notification: any) => {
     if (!notification.isRead && toasterRef?.current) {
-      const variant = getNotificationVariant(notification.type, notification.priority);
-      const typeLabel = notification.type.charAt(0).toUpperCase() + notification.type.slice(1).replace('_', ' ');
-      toasterRef.current.show({
-        title: `${typeLabel} - ${notification.title}`,
-        message: `${notification.message} (${notification.priority} priority)`,
-        variant,
-        duration: 6000,
-      });
+      try {
+        const variant = getNotificationVariant(notification.type, notification.priority);
+        const typeLabel = notification.type.charAt(0).toUpperCase() + notification.type.slice(1).replace('_', ' ');
+        
+        toasterRef.current.show({
+          title: `${typeLabel} - ${notification.title}`,
+          message: `${notification.message} (${notification.priority} priority)`,
+          variant,
+          duration: 6000,
+        });
+        
+        console.log('[NotificationPopover] Toast shown for notification:', notification._id);
+      } catch (error) {
+        console.error('[NotificationPopover] Error showing toast:', error);
+      }
     }
   };
 
@@ -270,10 +277,11 @@ export function NotificationPopover({ className, toasterRef }: NotificationPopov
     });
   };
 
-  // Close expanded notifications when clicking outside
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
         setExpandedNotifications(new Set());
       }
     };
@@ -286,20 +294,39 @@ export function NotificationPopover({ className, toasterRef }: NotificationPopov
 
   // Show toast notifications for new unread notifications
   useEffect(() => {
-    if (notifications.length > 0) {
+    if (notifications.length > 0 && toasterRef?.current) {
       // Get the most recent notification
       const latestNotification = notifications[0];
       
-      // Check if it's a new unread notification (created in the last 10 seconds)
+      // Check if we've already processed this notification
+      if (processedNotifications.has(latestNotification._id)) {
+        return;
+      }
+      
+      // Check if it's a new unread notification (created in the last 60 seconds)
       const now = new Date();
       const notificationTime = new Date(latestNotification.createdAt);
       const timeDiff = now.getTime() - notificationTime.getTime();
       
-      if (timeDiff < 10000 && !latestNotification.isRead) {
-        showNotificationToast(latestNotification);
+      console.log('[NotificationPopover] Checking notification:', {
+        id: latestNotification._id,
+        isRead: latestNotification.isRead,
+        timeDiff,
+        shouldShow: timeDiff < 60000 && !latestNotification.isRead
+      });
+      
+      // Show toast for unread notifications that are recent (within 60 seconds)
+      if (timeDiff < 60000 && !latestNotification.isRead) {
+        // Mark as processed
+        setProcessedNotifications(prev => new Set([...prev, latestNotification._id]));
+        
+        // Add a small delay to ensure the notification is properly processed
+        setTimeout(() => {
+          showNotificationToast(latestNotification);
+        }, 100);
       }
     }
-  }, [notifications, toasterRef]);
+  }, [notifications, toasterRef, processedNotifications]);
 
   // Transform notifications to display format
   const transformedNotifications = notifications.map((notification) => ({
@@ -315,297 +342,219 @@ export function NotificationPopover({ className, toasterRef }: NotificationPopov
   }));
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button 
-          size="icon" 
-          variant="ghost" 
-          className={`relative h-9 w-9 p-0 rounded-lg transition-all duration-200 ${className} ${
-            theme === 'dark' 
-              ? 'hover:bg-gray-800 text-gray-300' 
-              : 'hover:bg-gray-100 text-gray-700'
-          }`} 
-          aria-label="Open notifications"
-        >
-          <Bell size={18} strokeWidth={2} aria-hidden="true" />
-          {unreadCount > 0 && (
-            <Badge className="absolute -top-1 -right-1 min-w-5 h-5 px-1.5 py-0.5 bg-red-500 text-white text-xs font-bold border-2 border-white rounded-full shadow-sm">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </Badge>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent 
-        ref={popoverRef}
-        side="bottom"
-        align="end"
-        sideOffset={8}
-        alignOffset={-20}
-        className={`w-80 p-0 border-0 shadow-xl rounded-xl overflow-hidden ${
-          theme === 'dark' 
-            ? 'bg-gray-900 border-gray-700' 
-            : 'bg-white border-gray-200'
-        }`}
+    <div className="relative" ref={dropdownRef}>
+      <Button 
+        size="icon" 
+        variant="ghost" 
+        className={`relative h-9 w-9 p-0 rounded-lg transition-all duration-200 ${className} hover:bg-base-200 text-base-content`}
+        aria-label="Open notifications"
+        onClick={() => setIsOpen(!isOpen)}
       >
-        {/* Header */}
-        <div className={`flex items-center justify-between px-4 py-3 border-b ${
-          theme === 'dark' 
-            ? 'bg-gray-800 border-gray-700' 
-            : 'bg-gray-50 border-gray-100'
-        }`}>
-          <div className={`text-sm font-semibold ${
-            theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-          }`}>
-            Notifications
-          </div>
-          <div className="flex items-center gap-2">
-            {unreadCount > 0 && (
-              <button 
-                className={`text-xs font-medium hover:underline transition-colors ${
-                  theme === 'dark' 
-                    ? 'text-blue-400 hover:text-blue-300' 
-                    : 'text-blue-600 hover:text-blue-700'
-                }`}
-                onClick={handleMarkAllAsRead}
-              >
-                Mark all as read
-              </button>
-            )}
-            {transformedNotifications.length > 0 && (
-              <>
+        <Bell size={18} strokeWidth={2} aria-hidden="true" />
+        {unreadCount > 0 && (
+          <Badge className="absolute -top-1 -right-1 min-w-5 h-5 px-1.5 py-0.5 bg-error text-error-content text-xs font-bold border-2 border-base-100 rounded-full shadow-sm">
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </Badge>
+        )}
+      </Button>
+      
+      {/* Custom Dropdown */}
+      {isOpen && (
+        <div 
+          className="absolute right-0 top-full mt-2 w-80 p-0 border-0 shadow-xl rounded-xl overflow-hidden z-[9999] bg-base-100 border border-base-300"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-base-300 bg-base-200">
+            <div className="text-sm font-semibold text-base-content">
+              Notifications
+            </div>
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
                 <button 
-                  className={`text-xs font-medium hover:underline transition-colors ${
-                    theme === 'dark' 
-                      ? 'text-orange-400 hover:text-orange-300' 
-                      : 'text-orange-600 hover:text-orange-700'
-                  }`}
-                  onClick={handleArchiveAllNotifications}
-                  title="Archive all notifications"
+                  className="text-xs font-medium hover:underline transition-colors text-primary hover:text-primary-focus"
+                  onClick={handleMarkAllAsRead}
                 >
-                  Archive all
+                  Mark all as read
                 </button>
-                <button 
-                  className={`text-xs font-medium hover:underline transition-colors ${
-                    theme === 'dark' 
-                      ? 'text-red-400 hover:text-red-300' 
-                      : 'text-red-600 hover:text-red-700'
-                  }`}
-                  onClick={handleDeleteAllNotifications}
-                  title="Delete all notifications"
+              )}
+              {transformedNotifications.length > 0 && (
+                <>
+                  <button 
+                    className="text-xs font-medium hover:underline transition-colors text-warning hover:text-warning-focus"
+                    onClick={handleArchiveAllNotifications}
+                    title="Archive all notifications"
+                  >
+                    Archive all
+                  </button>
+                  <button 
+                    className="text-xs font-medium hover:underline transition-colors text-error hover:text-error-focus"
+                    onClick={handleDeleteAllNotifications}
+                    title="Delete all notifications"
+                  >
+                    Delete all
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+          
+          {/* Notifications List */}
+          {transformedNotifications.length === 0 ? (
+            <div className="p-6 text-center bg-base-100">
+              <Bell className="w-10 h-10 mx-auto mb-2 text-base-content/50" />
+              <p className="font-medium text-base-content">
+                No notifications yet
+              </p>
+              <p className="text-sm mt-1 text-base-content/60">
+                We'll notify you when something important happens
+              </p>
+            </div>
+          ) : (
+            <div className="max-h-96 overflow-y-auto bg-base-100">
+              {transformedNotifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className="px-3 py-2.5 text-sm transition-all duration-200 border-b border-base-300 last:border-b-0 hover:bg-base-200"
                 >
-                  Delete all
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-        
-        {/* Notifications List */}
-        {transformedNotifications.length === 0 ? (
-          <div className={`p-6 text-center ${
-            theme === 'dark' ? 'bg-gray-900' : 'bg-white'
-          }`}>
-            <Bell className={`w-10 h-10 mx-auto mb-2 ${
-              theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-            }`} />
-            <p className={`font-medium ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-            }`}>
-              No notifications yet
-            </p>
-            <p className={`text-sm mt-1 ${
-              theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
-            }`}>
-              We'll notify you when something important happens
-            </p>
-          </div>
-        ) : (
-          <div className={`max-h-96 overflow-y-auto ${
-            theme === 'dark' ? 'bg-gray-900' : 'bg-white'
-          }`}>
-            {transformedNotifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={`px-3 py-2.5 text-sm transition-all duration-200 border-b last:border-b-0 ${
-                  theme === 'dark' 
-                    ? 'hover:bg-gray-800 border-gray-700' 
-                    : 'hover:bg-gray-50 border-gray-100'
-                }`}
-              >
-                <div className="relative flex items-start gap-2.5">
-                  {/* Notification Icon */}
-                  <div className={`w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 ${
-                    theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
-                  }`}>
-                    {notification.icon}
-                  </div>
-                  
-                  {/* Notification Content */}
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className={`font-medium text-sm leading-tight ${
-                          theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-                        }`}>
-                          {notification.title}
-                        </span>
-                        {/* Type Badge */}
-                        <Badge 
-                          variant="outline" 
-                          className={`text-xs px-2 py-0.5 ${
-                            theme === 'dark' 
-                              ? 'bg-gray-800 text-gray-300 border-gray-600' 
-                              : 'bg-gray-100 text-gray-700 border-gray-300'
-                          }`}
-                        >
-                          {notification.type}
-                        </Badge>
-                        {/* Priority Badge */}
-                        <Badge 
-                          variant="outline" 
-                          className={`text-xs px-2 py-0.5 ${getPriorityBadgeColor(notification.priority)}`}
-                        >
-                          {notification.priority}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-1 ml-2">
-                        {/* Mark as read/unread */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleNotificationClick(notification.id);
-                          }}
-                          className={`p-1 rounded transition-colors ${
-                            theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
-                          }`}
-                          title={notification.unread ? 'Mark as read' : 'Mark as unread'}
-                        >
-                          {notification.unread ? (
-                            <Eye className="w-3 h-3 text-gray-400" />
-                          ) : (
-                            <EyeOff className="w-3 h-3 text-gray-500" />
-                          )}
-                        </button>
-                        
-                        {/* More actions dropdown */}
-                        <div className="relative">
+                  <div className="relative flex items-start gap-2.5">
+                    {/* Notification Icon */}
+                    <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 bg-base-200">
+                      {notification.icon}
+                    </div>
+                    
+                    {/* Notification Content */}
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm leading-tight text-base-content">
+                            {notification.title}
+                          </span>
+                          {/* Type Badge */}
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs px-2 py-0.5 bg-base-200 text-base-content border-base-300"
+                          >
+                            {notification.type}
+                          </Badge>
+                          {/* Priority Badge */}
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs px-2 py-0.5 ${getPriorityBadgeColor(notification.priority)}`}
+                          >
+                            {notification.priority}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-1 ml-2">
+                          {/* Mark as read/unread */}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              toggleNotificationExpanded(notification.id);
+                              handleNotificationClick(notification.id);
                             }}
-                            className={`p-1 rounded transition-colors ${
-                              theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
-                            }`}
-                            title="More actions"
+                            className="p-1 rounded transition-colors hover:bg-base-300"
+                            title={notification.unread ? 'Mark as read' : 'Mark as unread'}
                           >
-                            <MoreVertical className="w-3 h-3 text-gray-400" />
+                            {notification.unread ? (
+                              <Eye className="w-3 h-3 text-base-content/60" />
+                            ) : (
+                              <EyeOff className="w-3 h-3 text-base-content/40" />
+                            )}
                           </button>
                           
-                          {/* Actions dropdown */}
-                          {expandedNotifications.has(notification.id) && (
-                            <div className={`absolute right-0 top-full mt-1 py-1 rounded-md shadow-lg z-10 ${
-                              theme === 'dark' 
-                                ? 'bg-gray-800 border border-gray-700' 
-                                : 'bg-white border border-gray-200'
-                            }`}>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleArchiveNotification(notification.id);
-                                  setExpandedNotifications(prev => {
-                                    const newSet = new Set(prev);
-                                    newSet.delete(notification.id);
-                                    return newSet;
-                                  });
-                                }}
-                                className={`w-full px-3 py-1.5 text-xs text-left transition-colors flex items-center gap-2 ${
-                                  theme === 'dark' 
-                                    ? 'text-gray-300 hover:bg-gray-700' 
-                                    : 'text-gray-700 hover:bg-gray-100'
-                                }`}
-                              >
-                                <Archive className="w-3 h-3" />
-                                Archive
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteNotification(notification.id);
-                                  setExpandedNotifications(prev => {
-                                    const newSet = new Set(prev);
-                                    newSet.delete(notification.id);
-                                    return newSet;
-                                  });
-                                }}
-                                className={`w-full px-3 py-1.5 text-xs text-left transition-colors flex items-center gap-2 ${
-                                  theme === 'dark' 
-                                    ? 'text-gray-300 hover:bg-gray-700' 
-                                    : 'text-gray-700 hover:bg-gray-100'
-                                }`}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                                Delete
-                              </button>
-                            </div>
-                          )}
+                          {/* More actions dropdown */}
+                          <div className="relative">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleNotificationExpanded(notification.id);
+                              }}
+                              className="p-1 rounded transition-colors hover:bg-base-300"
+                              title="More actions"
+                            >
+                              <MoreVertical className="w-3 h-3 text-base-content/60" />
+                            </button>
+                            
+                            {/* Actions dropdown */}
+                            {expandedNotifications.has(notification.id) && (
+                              <div className="absolute right-0 top-full mt-1 py-1 rounded-md shadow-lg z-10 bg-base-100 border border-base-300">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleArchiveNotification(notification.id);
+                                    setExpandedNotifications(prev => {
+                                      const newSet = new Set(prev);
+                                      newSet.delete(notification.id);
+                                      return newSet;
+                                    });
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs text-left transition-colors flex items-center gap-2 text-base-content hover:bg-base-200"
+                                >
+                                  <Archive className="w-3 h-3" />
+                                  Archive
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteNotification(notification.id);
+                                    setExpandedNotifications(prev => {
+                                      const newSet = new Set(prev);
+                                      newSet.delete(notification.id);
+                                      return newSet;
+                                    });
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs text-left transition-colors flex items-center gap-2 text-base-content hover:bg-base-200"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
+                      </div>
+                      
+                      <div className="text-xs leading-tight text-base-content/70">
+                        {expandedNotifications.has(notification.id) 
+                          ? notification.message
+                          : (notification.message.length > 60 
+                              ? notification.message.substring(0, 60) + '...' 
+                              : notification.message
+                            )
+                        }
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium flex items-center gap-1 text-base-content/60">
+                          <Clock className="w-3 h-3" />
+                          {notification.timestamp}
+                        </span>
                       </div>
                     </div>
                     
-                    <div className={`text-xs leading-tight ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      {expandedNotifications.has(notification.id) 
-                        ? notification.message
-                        : (notification.message.length > 60 
-                            ? notification.message.substring(0, 60) + '...' 
-                            : notification.message
-                          )
-                      }
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-medium flex items-center gap-1 ${
-                        theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
-                      }`}>
-                        <Clock className="w-3 h-3" />
-                        {notification.timestamp}
-                      </span>
-                    </div>
+                    {/* Unread Indicator */}
+                    {notification.unread && (
+                      <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
+                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                      </div>
+                    )}
                   </div>
-                  
-                  {/* Unread Indicator */}
-                  {notification.unread && (
-                    <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    </div>
-                  )}
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-        
-        {/* Footer */}
-        {transformedNotifications.length > 0 && (
-          <div className={`px-4 py-3 border-t ${
-            theme === 'dark' 
-              ? 'bg-gray-800 border-gray-700' 
-              : 'bg-gray-50 border-gray-100'
-          }`}>
-            <button 
-              className={`text-xs font-medium transition-colors w-full text-center ${
-                theme === 'dark' 
-                  ? 'text-blue-400 hover:text-blue-300 hover:underline' 
-                  : 'text-blue-600 hover:text-blue-700 hover:underline'
-              }`}
-            >
-              View all notifications
-            </button>
-          </div>
-        )}
-      </PopoverContent>
-    </Popover>
+              ))}
+            </div>
+          )}
+          
+          {/* Footer */}
+          {transformedNotifications.length > 0 && (
+            <div className="px-4 py-3 border-t border-base-300 bg-base-200">
+              <button 
+                className="text-xs font-medium transition-colors w-full text-center text-primary hover:text-primary-focus hover:underline"
+              >
+                View all notifications
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

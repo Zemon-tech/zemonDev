@@ -255,7 +255,7 @@ export default function AppLayout() {
         )}
         {/* Top Navigation - now fixed with sidebar offset */}
         <header
-          className={`fixed top-0 left-0 w-full h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between shrink-0 z-50 transition-all duration-300`}
+          className={`fixed top-0 left-0 w-full h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between shrink-0 z-40 transition-all duration-300`}
           style={{
             transform: shouldShowNav ? 'translateY(0)' : 'translateY(-100%)',
             left: `${sidebarWidth}px`,
@@ -472,7 +472,7 @@ export default function AppLayout() {
           </div>
           
           {/* Right side - user actions */}
-          <div className="flex items-center space-x-3 mr-4">
+          <div className="flex items-center space-x-3 mr-4 relative z-50">
             {/* Notifications */}
             <NotificationPopover className="h-9 w-9" toasterRef={toasterRef} />
             {/* [ADD] Nav lock button - only on Crucible Problem Page in focus mode */}

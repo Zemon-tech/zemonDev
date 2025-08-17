@@ -105,7 +105,7 @@ const UserSearch = ({ placeholder = "Search users...", className = "", onUserSel
           placeholder={placeholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="pl-10 pr-10"
+          className="pl-10 pr-10 border-0 focus-visible:border-0 focus-visible:ring-0 shadow-none"
         />
         {query && (
           <Button
@@ -125,7 +125,7 @@ const UserSearch = ({ placeholder = "Search users...", className = "", onUserSel
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute top-full left-0 right-0 mt-2 bg-base-100 border border-base-300 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto"
+            className="absolute top-full left-0 right-0 mt-2 bg-base-100 border-0 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto"
           >
             {loading && (
               <div className="p-4 text-center text-base-content/60">

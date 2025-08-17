@@ -60,8 +60,8 @@ export const RolesAndPermissionsCard: React.FC<RolesAndPermissionsCardProps> = (
 }) => {
   if (loading) {
     return (
-      <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5">
-        <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-4">
+      <div className="bg-base-100 rounded-xl shadow border border-base-300 p-5">
+        <div className="font-semibold text-base-content flex items-center gap-2 text-lg mb-4">
           <Shield size={18} className="text-primary" /> 
           Roles & Permissions
         </div>
@@ -69,7 +69,7 @@ export const RolesAndPermissionsCard: React.FC<RolesAndPermissionsCardProps> = (
         {/* Loading skeleton */}
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center gap-4 p-3 bg-base-100 rounded-lg border border-base-200">
+            <div key={i} className="flex items-center gap-4 p-3 bg-base-200 rounded-lg border border-base-300">
               <div className="skeleton h-4 w-32"></div>
               <div className="skeleton h-4 w-20"></div>
               <div className="skeleton h-4 w-16"></div>
@@ -82,8 +82,8 @@ export const RolesAndPermissionsCard: React.FC<RolesAndPermissionsCardProps> = (
 
   if (error) {
     return (
-      <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5">
-        <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-4">
+      <div className="bg-base-100 rounded-xl shadow border border-base-300 p-5">
+        <div className="font-semibold text-base-content flex items-center gap-2 text-lg mb-4">
           <Shield size={18} className="text-primary" /> 
           Roles & Permissions
         </div>
@@ -110,8 +110,8 @@ export const RolesAndPermissionsCard: React.FC<RolesAndPermissionsCardProps> = (
 
   if (memberships.length === 0) {
     return (
-      <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5">
-        <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-4">
+      <div className="bg-base-100 rounded-xl shadow border border-base-300 p-5">
+        <div className="font-semibold text-base-content flex items-center gap-2 text-lg mb-4">
           <Shield size={18} className="text-primary" /> 
           Roles & Permissions
         </div>
@@ -126,8 +126,8 @@ export const RolesAndPermissionsCard: React.FC<RolesAndPermissionsCardProps> = (
   }
 
   return (
-    <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5">
-      <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-4">
+    <div className="bg-base-100 rounded-xl shadow border border-base-300 p-5">
+      <div className="font-semibold text-base-content flex items-center gap-2 text-lg mb-4">
         <Shield size={18} className="text-primary" /> 
         Roles & Permissions
       </div>
@@ -144,7 +144,7 @@ export const RolesAndPermissionsCard: React.FC<RolesAndPermissionsCardProps> = (
           </thead>
           <tbody>
             {memberships.map((membership) => (
-              <tr key={membership.channelId} className="hover:bg-base-100/50">
+              <tr key={membership.channelId} className="hover:bg-base-200/50">
                 <td className="font-medium text-base-content">
                   {membership.name}
                 </td>

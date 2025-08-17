@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, Star, Mail, Github, X, Eye, Linkedin, Twitter, BookOpen, Plus, Palette, ExternalLink, LogOut, Lock, Unlock, TrendingUp, Trophy, Brain, School, RefreshCw, MessageCircle } from 'lucide-react';
+import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, Star, Mail, Github, X, Eye, Linkedin, Twitter, BookOpen, Plus, Palette, ExternalLink, LogOut, Lock, Unlock, TrendingUp, TrendingDown, Trophy, Brain, School, RefreshCw, MessageCircle, Award, Target, MapPin, Globe, Lightbulb, Zap, Clock, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import clsx from 'clsx';
@@ -32,20 +32,25 @@ const tabVariants = {
 
 function SectionSidebar({ active, setActive }: { active: string, setActive: (k: string) => void }) {
   return (
-    <aside className="w-64 min-w-[220px] h-full border-r border-base-200 bg-base-100/95 flex flex-col py-8 px-4 shadow-sm">
-      <div className="mb-8 text-2xl font-bold tracking-tight">Settings</div>
-      <nav className="flex flex-col gap-2">
+    <aside className="w-64 min-w-[220px] h-full border-r border-base-200/60 bg-gradient-to-b from-base-100/95 to-base-50/90 backdrop-blur-sm flex flex-col py-8 px-4 shadow-lg">
+      <div className="mb-8 text-2xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Settings</div>
+      <nav className="flex flex-col gap-3">
         {SECTIONS.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             className={clsx(
-              'flex items-center gap-3 px-4 py-2 rounded-lg text-base font-medium transition-all',
-              active === key ? 'bg-primary/90 text-primary-content shadow-lg' : 'hover:bg-primary/10 hover:text-primary text-base-content/80',
-              'focus:outline-none focus:ring-2 focus:ring-primary/40'
+              'flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 group',
+              active === key 
+                ? 'bg-gradient-to-r from-primary/90 to-primary/70 text-primary-content shadow-lg shadow-primary/25 scale-105' 
+                : 'hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/5 hover:text-primary text-base-content/80 hover:scale-102',
+              'focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 focus:ring-offset-base-100'
             )}
             onClick={() => setActive(key)}
           >
-            <Icon size={20} />
+            <Icon size={20} className={clsx(
+              'transition-transform duration-200',
+              active === key ? 'scale-110' : 'group-hover:scale-110'
+            )} />
             {label}
           </button>
         ))}
@@ -497,11 +502,56 @@ function ProfileAccountSection() {
   return (
     <div className="flex flex-col h-full w-full p-6">
       {showToast && (
-        <div className={clsx('fixed top-6 right-8 z-50 px-4 py-2 rounded shadow text-white', showToast.type === 'success' ? 'bg-green-500' : 'bg-red-500')}>{showToast.message}</div>
+        <motion.div 
+          initial={{ opacity: 0, y: -20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20, scale: 0.95 }}
+          className={clsx(
+            'fixed top-6 right-6 z-50 px-6 py-3 rounded-xl shadow-2xl text-white backdrop-blur-sm border',
+            showToast.type === 'success' 
+              ? 'bg-gradient-to-r from-green-500 to-green-600 border-green-400/30' 
+              : 'bg-gradient-to-r from-red-500 to-red-600 border-red-400/30'
+          )}
+        >
+          <div className="flex items-center gap-2">
+            {showToast.type === 'success' ? (
+              <CheckCircle size={18} className="text-green-100" />
+            ) : (
+              <AlertCircle size={18} className="text-red-100" />
+            )}
+            <span className="font-medium">{showToast.message}</span>
+          </div>
+        </motion.div>
       )}
-      <div className="flex gap-4 border-b border-base-200 mb-4">
-        <button className={clsx('px-3 py-1 font-semibold text-sm transition-all', tab === 'profile' ? 'border-b-2 border-primary text-primary' : 'text-base-content/70 hover:text-primary')} onClick={() => setTab('profile')}>Profile</button>
-        <button className={clsx('px-3 py-1 font-semibold text-sm transition-all', tab === 'account' ? 'border-b-2 border-primary text-primary' : 'text-base-content/70 hover:text-primary')} onClick={() => setTab('account')}>Account</button>
+      <div className="flex gap-1 border-b border-base-200/60 mb-6 bg-base-100/50 rounded-lg p-1">
+        <button 
+          className={clsx(
+            'px-6 py-3 font-semibold text-sm transition-all duration-200 rounded-md relative',
+            tab === 'profile' 
+              ? 'text-primary bg-primary/10 border-b-2 border-primary' 
+              : 'text-base-content/70 hover:text-primary hover:bg-base-200/50'
+          )} 
+          onClick={() => setTab('profile')}
+        >
+          <div className="flex items-center gap-2">
+            <User size={16} />
+            Profile
+          </div>
+        </button>
+        <button 
+          className={clsx(
+            'px-6 py-3 font-semibold text-sm transition-all duration-200 rounded-md relative',
+            tab === 'account' 
+              ? 'text-primary bg-primary/10 border-b-2 border-primary' 
+              : 'text-base-content/70 hover:text-primary hover:bg-base-200/50'
+          )} 
+          onClick={() => setTab('account')}
+        >
+          <div className="flex items-center gap-2">
+            <Shield size={16} />
+            Account
+          </div>
+        </button>
       </div>
       <AnimatePresence mode="wait">
         {tab === 'profile' && (
@@ -516,96 +566,225 @@ function ProfileAccountSection() {
             ) : (
               <>
                 {/* Profile Completion Meter */}
-                <div className="flex items-center gap-3 text-xs text-base-content/70">
-              <div className="w-40 h-2 bg-base-200 rounded-full overflow-hidden">
-                <div className="h-2 bg-primary rounded-full transition-all" style={{ width: `${completion}%` }} />
+                <div className="bg-gradient-to-r from-base-100/80 to-base-200/40 rounded-xl p-4 border border-base-300/30 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Target size={16} className="text-primary" />
               </div>
-              <span>{completion}% complete</span>
-              <Button size="sm" variant="outline" className="ml-2">Preview Public Profile</Button>
-              <Button size="sm" variant="outline" onClick={() => {navigator.clipboard.writeText(window.location.href); setShowToast({type:'success',message:'Profile link copied!'});}}>Copy Link</Button>
+                      <div>
+                        <h3 className="font-semibold text-base-content text-sm">Profile Completion</h3>
+                        <p className="text-xs text-base-content/60">Complete your profile to unlock more features</p>
+                      </div>
+                    </div>
+                    <span className="text-lg font-bold text-primary">{completion}%</span>
+                  </div>
+                  
+                  <div className="w-full h-3 bg-base-200 rounded-full overflow-hidden mb-3">
+                    <div 
+                      className="h-3 bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-500 ease-out shadow-sm" 
+                      style={{ width: `${completion}%` }} 
+                    />
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary transition-colors">
+                      <Eye size={14} />
+                      Preview Public Profile
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => {
+                        navigator.clipboard.writeText(window.location.href); 
+                        setShowToast({type:'success',message:'Profile link copied!'});
+                      }}
+                      className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary transition-colors"
+                    >
+                      <Link2 size={14} />
+                      Copy Link
+                    </Button>
+                  </div>
             </div>
             {/* Avatar and Editable Fields */}
             <div className="flex flex-col md:flex-row gap-8 items-start">
               <div className="relative group">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center border-2 border-primary/30 shadow-lg transition-transform group-hover:scale-105">
-                  <img src={user?.imageUrl || '/avatar.png'} alt="avatar" className="w-20 h-20 rounded-full object-cover border-2 border-white" />
-                  <Button size="icon" className="absolute bottom-2 right-2 bg-primary text-primary-content border-none shadow hover:bg-primary/80 opacity-0 group-hover:opacity-100 transition-opacity" title="Edit Avatar"><Edit size={18} /></Button>
+                <div className="w-28 h-28 rounded-2xl bg-gradient-to-tr from-primary via-primary/80 to-accent flex items-center justify-center border-2 border-primary/30 shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-primary/25">
+                  <img src={user?.imageUrl || '/avatar.png'} alt="avatar" className="w-24 h-24 rounded-xl object-cover border-2 border-white/90 shadow-inner" />
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <Button 
+                    size="icon" 
+                    className="absolute bottom-2 right-2 bg-primary text-primary-content border-none shadow-lg hover:bg-primary/80 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0" 
+                    title="Edit Avatar"
+                  >
+                    <Edit size={16} />
+                  </Button>
                 </div>
               </div>
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-semibold mb-1 text-base-content/80">Full Name</label>
-                  <input value={fullName} onChange={e => setFullName(e.target.value)} className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="block font-semibold text-sm text-base-content/80 flex items-center gap-2">
+                    <User size={14} className="text-primary" />
+                    Full Name
+                  </label>
+                  <input 
+                    value={fullName} 
+                    onChange={e => setFullName(e.target.value)} 
+                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50" 
+                    placeholder="Enter your full name"
+                  />
                 </div>
-                <div>
-                  <label className="block font-semibold mb-1 text-base-content/80">Username</label>
-                  <input value={username} onChange={e => setUsername(e.target.value)} className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                <div className="space-y-2">
+                  <label className="block font-semibold text-sm text-base-content/80 flex items-center gap-2">
+                    <User size={14} className="text-primary" />
+                    Username
+                  </label>
+                  <input 
+                    value={username} 
+                    onChange={e => setUsername(e.target.value)} 
+                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50" 
+                    placeholder="Choose a username"
+                  />
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block font-semibold mb-1 text-base-content/80">Bio / Headline</label>
-                  <textarea value={bio} onChange={e => { setBio(e.target.value); setBioCount(e.target.value.length); }} maxLength={120} className="w-full border border-base-200 rounded px-3 py-2 min-h-[48px] text-base focus:ring-1 focus:ring-primary/30 transition-all" />
-                  <div className="text-xs text-base-content/50 text-right mt-1">{bioCount}/120</div>
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block font-semibold text-sm text-base-content/80 flex items-center gap-2">
+                    <MessageCircle size={14} className="text-primary" />
+                    Bio / Headline
+                  </label>
+                  <textarea 
+                    value={bio} 
+                    onChange={e => { setBio(e.target.value); setBioCount(e.target.value.length); }} 
+                    maxLength={120} 
+                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 min-h-[56px] text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50 resize-none" 
+                    placeholder="Tell us about yourself in a few words..."
+                  />
+                  <div className="text-xs text-base-content/50 text-right">{bioCount}/120</div>
                 </div>
-                <div>
-                  <label className="block font-semibold mb-1 text-base-content/80">Location</label>
-                  <input value={location} onChange={e => setLocation(e.target.value)} className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                <div className="space-y-2">
+                  <label className="block font-semibold text-sm text-base-content/80 flex items-center gap-2">
+                    <MapPin size={14} className="text-primary" />
+                    Location
+                  </label>
+                  <input 
+                    value={location} 
+                    onChange={e => setLocation(e.target.value)} 
+                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50" 
+                    placeholder="City, Country"
+                  />
                 </div>
-                <div>
-                  <label className="block font-semibold mb-1 text-base-content/80">About Me</label>
-                  <textarea value={about} onChange={e => setAbout(e.target.value)} maxLength={200} className="w-full border border-base-200 rounded px-3 py-2 min-h-[40px] text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                <div className="space-y-2">
+                  <label className="block font-semibold text-sm text-base-content/80 flex items-center gap-2">
+                    <BookOpen size={14} className="text-primary" />
+                    About Me
+                  </label>
+                  <textarea 
+                    value={about} 
+                    onChange={e => setAbout(e.target.value)} 
+                    maxLength={200} 
+                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 min-h-[56px] text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50 resize-none" 
+                    placeholder="Share more details about yourself..."
+                  />
                 </div>
-                <div>
-                  <label className="font-semibold mb-1 text-base-content/80 flex items-center gap-1"><Github size={14}/> GitHub</label>
-                  <input value={github} onChange={e => setGithub(e.target.value)} placeholder="https://github.com/username" className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                <div className="space-y-2">
+                  <label className="font-semibold text-sm text-base-content/80 flex items-center gap-2">
+                    <Github size={14} className="text-primary" /> 
+                    GitHub
+                  </label>
+                  <input 
+                    value={github} 
+                    onChange={e => setGithub(e.target.value)} 
+                    placeholder="https://github.com/username" 
+                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50" 
+                  />
                 </div>
-                <div>
-                  <label className="font-semibold mb-1 text-base-content/80 flex items-center gap-1"><Linkedin size={14}/> LinkedIn</label>
-                  <input value={linkedin} onChange={e => setLinkedin(e.target.value)} placeholder="https://linkedin.com/in/username" className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                <div className="space-y-2">
+                  <label className="font-semibold text-sm text-base-content/80 flex items-center gap-2">
+                    <Linkedin size={14} className="text-primary" /> 
+                    LinkedIn
+                  </label>
+                  <input 
+                    value={linkedin} 
+                    onChange={e => setLinkedin(e.target.value)} 
+                    placeholder="https://linkedin.com/in/username" 
+                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50" 
+                  />
                 </div>
-                <div>
-                  <label className="font-semibold mb-1 text-base-content/80 flex items-center gap-1"><Twitter size={14}/> Twitter</label>
-                  <input value={twitter} onChange={e => setTwitter(e.target.value)} placeholder="https://twitter.com/username" className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                <div className="space-y-2">
+                  <label className="font-semibold text-sm text-base-content/80 flex items-center gap-2">
+                    <Twitter size={14} className="text-primary" /> 
+                    Twitter
+                  </label>
+                  <input 
+                    value={twitter} 
+                    onChange={e => setTwitter(e.target.value)} 
+                    placeholder="https://twitter.com/username" 
+                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-1 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50" 
+                  />
                 </div>
-                <div>
-                  <label className="font-semibold mb-1 text-base-content/80 flex items-center gap-1"><Link2 size={14}/> Website</label>
-                  <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yourwebsite.com" className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                <div className="space-y-2">
+                  <label className="font-semibold text-sm text-base-content/80 flex items-center gap-2">
+                    <Globe size={14} className="text-primary" /> 
+                    Website
+                  </label>
+                  <input 
+                    value={website} 
+                    onChange={e => setWebsite(e.target.value)} 
+                    placeholder="https://yourwebsite.com" 
+                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50" 
+                  />
                 </div>
               </div>
             </div>
             
             {/* Skills Management */}
-            <div className="bg-base-100 border border-base-200 rounded-lg p-4">
-              <h3 className="font-semibold mb-3 text-base-content/90 flex items-center gap-2">
-                <BookOpen size={16} className="text-primary" />
-                Skills & Technologies
+            <div className="bg-gradient-to-r from-base-100/80 to-base-200/40 rounded-xl p-5 border border-base-300/30 shadow-sm">
+              <h3 className="font-semibold mb-4 text-base-content/90 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <BookOpen size={18} className="text-primary" />
+                </div>
+                <div>
+                  <div className="text-base font-semibold">Skills & Technologies</div>
+                  <div className="text-xs text-base-content/60">Showcase your technical expertise</div>
+                </div>
               </h3>
-              <div className="space-y-3">
-                <div className="flex gap-2">
+              <div className="space-y-4">
+                <div className="flex gap-3">
                   <input
                     value={newSkill}
                     onChange={e => setNewSkill(e.target.value)}
                     onKeyPress={e => e.key === 'Enter' && handleAddSkill()}
                     placeholder="Add a skill (e.g., React, Python, UI/UX)"
-                    className="flex-1 border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                    className="flex-1 border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50"
                   />
-                  <Button onClick={handleAddSkill} disabled={!newSkill.trim()} size="sm" className="bg-primary text-primary-content hover:bg-primary/90">
-                    <Plus size={16} />
+                  <Button 
+                    onClick={handleAddSkill} 
+                    disabled={!newSkill.trim()} 
+                    size="default"
+                    className="bg-primary text-primary-content hover:bg-primary/90 px-6 transition-all duration-200 hover:scale-105"
+                  >
+                    <Plus size={16} className="mr-2" />
+                    Add
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3">
                   {skills.map((skill, index) => (
-                    <div key={index} className="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm">
-                      <span>{skill}</span>
+                    <div key={index} className="flex items-center gap-2 bg-gradient-to-r from-primary/10 to-primary/5 text-primary px-4 py-2 rounded-full text-sm border border-primary/20 hover:border-primary/40 transition-all duration-200 hover:scale-105 group">
+                      <Zap size={14} className="text-primary/70 group-hover:text-primary transition-colors" />
+                      <span className="font-medium">{skill}</span>
                       <button
                         onClick={() => handleRemoveSkill(skill)}
-                        className="hover:bg-primary/20 rounded-full p-0.5 transition-colors"
+                        className="hover:bg-primary/20 rounded-full p-1 transition-colors hover:scale-110"
+                        title="Remove skill"
                       >
                         <X size={12} />
                       </button>
                     </div>
                   ))}
                   {skills.length === 0 && (
-                    <span className="text-base-content/50 text-sm">No skills added yet</span>
+                    <div className="text-center py-6 text-base-content/50">
+                      <BookOpen size={24} className="mx-auto mb-2 opacity-50" />
+                      <span className="text-sm">No skills added yet</span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -655,7 +834,7 @@ function ProfileAccountSection() {
                         />
                         <button
                           onClick={() => handleRemoveSkillProgress(sp.skill)}
-                          className="hover:bg-red-200 rounded-full p-0.5 transition-colors"
+                          className="hover:bg-error/20 rounded-full p-0.5 transition-colors"
                         >
                           <X size={12} />
                         </button>
@@ -670,31 +849,36 @@ function ProfileAccountSection() {
             </div>
 
             {/* Achievements */}
-            <div className="bg-base-100 border border-base-200 rounded-lg p-4">
-              <h3 className="font-semibold mb-3 text-base-content/90 flex items-center gap-2">
-                <Bookmark size={16} className="text-primary" />
-                Achievements
+            <div className="bg-gradient-to-r from-base-100/80 to-base-200/40 rounded-xl p-5 border border-base-300/30 shadow-sm">
+              <h3 className="font-semibold mb-4 text-base-content/90 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Award size={18} className="text-primary" />
+                </div>
+                <div>
+                  <div className="text-base font-semibold">Achievements & Badges</div>
+                  <div className="text-xs text-base-content/60">Track your accomplishments and milestones</div>
+                </div>
               </h3>
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <input
                     value={newBadge.name}
                     onChange={e => setNewBadge(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="Achievement Name"
-                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                    className="border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50"
                   />
                   <input
                     value={newBadge.description}
                     onChange={e => setNewBadge(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Achievement Description"
-                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                    className="border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50"
                   />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <select
                     value={newBadge.category}
                     onChange={e => setNewBadge(prev => ({ ...prev, category: e.target.value as any }))}
-                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                    className="border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50"
                   >
                     <option value="crucible">Crucible</option>
                     <option value="forge">Forge</option>
@@ -706,26 +890,37 @@ function ProfileAccountSection() {
                     value={newBadge.icon}
                     onChange={e => setNewBadge(prev => ({ ...prev, icon: e.target.value }))}
                     placeholder="🏆"
-                    className="w-20 border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all text-center"
+                    className="w-24 border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all text-center bg-base-50/50 hover:bg-base-50"
                   />
-                  <Button onClick={handleAddBadge} disabled={!newBadge.name.trim() || !newBadge.description.trim()} size="sm" className="bg-primary text-primary-content hover:bg-primary/90">
-                    <Plus size={16} />
+                  <Button 
+                    onClick={handleAddBadge} 
+                    disabled={!newBadge.name.trim() || !newBadge.description.trim()} 
+                    size="default"
+                    className="bg-primary text-primary-content hover:bg-primary/90 px-6 transition-all duration-200 hover:scale-105"
+                  >
+                    <Plus size={16} className="mr-2" />
+                    Add
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3">
                   {badges.map((badge) => (
-                    <div key={badge.id} className="flex items-center gap-2 bg-base-200 rounded-full px-3 py-1 text-sm">
-                      <span>{badge.icon} {badge.name}</span>
+                    <div key={badge.id} className="flex items-center gap-2 bg-gradient-to-r from-base-200/60 to-base-200/40 rounded-full px-4 py-2 text-sm border border-base-300/30 hover:border-base-400/50 transition-all duration-200 hover:scale-105 group">
+                      <Trophy size={14} className="text-primary/70 group-hover:text-primary transition-colors" />
+                      <span className="font-medium">{badge.name}</span>
                       <button
                         onClick={() => handleRemoveBadge(badge.id)}
-                        className="hover:bg-red-200 rounded-full p-0.5 transition-colors"
+                        className="hover:bg-red-200 rounded-full p-1 transition-colors hover:scale-110"
+                        title="Remove achievement"
                       >
                         <X size={12} />
                       </button>
                     </div>
                   ))}
                   {badges.length === 0 && (
-                    <span className="text-base-content/50 text-sm">No achievements added yet</span>
+                    <div className="text-center py-6 text-base-content/50">
+                      <Award size={24} className="mx-auto mb-2 opacity-50" />
+                      <span className="text-sm">No achievements added yet</span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -903,10 +1098,40 @@ function ProfileAccountSection() {
                 </div>
               </div>
             </div>
-            <div className="flex gap-2 mt-2">
-              <Button onClick={handleSave} disabled={saving} className="bg-primary text-primary-content hover:bg-primary/90">{saving ? 'Saving...' : 'Save Changes'}</Button>
-              <Button onClick={handleCancel} variant="outline" disabled={saving}>Cancel</Button>
-              {profileUpdated && <span className="text-xs text-base-content/60 ml-2">Last updated: {profileUpdated.toLocaleTimeString()}</span>}
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-base-100/80 to-base-200/40 rounded-xl border border-base-300/30 shadow-sm">
+              <div className="flex items-center gap-4">
+                <Button 
+                  onClick={handleSave} 
+                  disabled={saving} 
+                  className="bg-gradient-to-r from-primary to-primary/80 text-primary-content hover:from-primary/90 hover:to-primary/70 px-8 py-2 transition-all duration-200 hover:scale-105 shadow-lg shadow-primary/25"
+                >
+                  {saving ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      Saving...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <CheckCircle size={16} />
+                      Save Changes
+                    </div>
+                  )}
+                </Button>
+                <Button 
+                  onClick={handleCancel} 
+                  variant="outline" 
+                  disabled={saving}
+                  className="px-6 py-2 hover:bg-base-200/60 transition-all duration-200"
+                >
+                  Cancel
+                </Button>
+              </div>
+              {profileUpdated && (
+                <div className="flex items-center gap-2 text-xs text-base-content/60 bg-base-200/50 px-3 py-2 rounded-lg border border-base-300/30">
+                  <Clock size={12} />
+                  <span>Last updated: {profileUpdated.toLocaleTimeString()}</span>
+                </div>
+              )}
             </div>
               </>
             )}
@@ -1109,8 +1334,9 @@ function ProfileAccountSection() {
                     </div>
                   )}
 
-                  <div className="text-xs text-base-content/50 bg-base-200/50 p-2 rounded">
-                    💡 <strong>Tip:</strong> Your profile will be accessible at <code className="bg-base-300 px-1 rounded">/profile/{username}</code> when public
+                  <div className="text-xs text-base-content/50 bg-base-200/50 p-3 rounded-lg border border-base-300/30 flex items-center gap-2">
+                    <Lightbulb size={14} className="text-primary/70" />
+                    <span><strong>Tip:</strong> Your profile will be accessible at <code className="bg-base-300 px-1 rounded">/profile/{username}</code> when public</span>
                   </div>
                   
                   <div className="flex justify-end pt-3">
@@ -1128,13 +1354,19 @@ function ProfileAccountSection() {
 
             {/* Delete Modal */}
             {showDeleteModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-                <div className="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full">
-                  <h2 className="text-lg font-bold mb-2">Delete Account?</h2>
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-base-300/50 backdrop-blur-sm">
+                <div className="bg-base-100 rounded-xl shadow-xl p-8 max-w-sm w-full border border-base-300/30">
+                  <h2 className="text-lg font-bold mb-2 text-base-content">Delete Account?</h2>
                   <p className="text-base-content/70 mb-4">Are you sure you want to delete your account? This action cannot be undone.</p>
                   <div className="flex gap-2 justify-end">
                     <Button variant="outline" onClick={() => setShowDeleteModal(false)}>Cancel</Button>
-                    <Button variant="destructive" onClick={handleDeleteAccount}>Delete</Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={handleDeleteAccount}
+                      className="bg-error hover:bg-error/90 text-error-content"
+                    >
+                      Delete
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -1214,15 +1446,15 @@ function PreferencesSection() {
           
           <div className="space-y-2">
             {[
-              { key: 'upvotes', label: 'Upvotes & Reactions', description: 'Get notified when someone upvotes your content', icon: '👍' },
-              { key: 'approvals', label: 'Project Approvals', description: 'Notifications for project approval status', icon: '✅' },
-              { key: 'mentions', label: 'Mentions & Comments', description: 'When someone mentions you in discussions', icon: '💬' },
-              { key: 'invites', label: 'Invite Reminders', description: 'Reminders for pending invitations', icon: '📧' }
+              { key: 'upvotes', label: 'Upvotes & Reactions', description: 'Get notified when someone upvotes your content', icon: TrendingUp },
+              { key: 'approvals', label: 'Project Approvals', description: 'Notifications for project approval status', icon: CheckCircle },
+              { key: 'mentions', label: 'Mentions & Comments', description: 'When someone mentions you in discussions', icon: MessageCircle },
+              { key: 'invites', label: 'Invite Reminders', description: 'Reminders for pending invitations', icon: Mail }
             ].map((item) => (
-              <div key={item.key} className="flex items-center justify-between p-3 rounded-lg bg-base-200/40 border border-base-300/20 hover:bg-base-200/60 transition-all duration-200 group">
+              <div key={item.key} className="flex items-center justify-between p-4 rounded-xl bg-base-200/40 border border-base-300/20 hover:bg-base-200/60 transition-all duration-200 group">
                 <div className="flex items-center gap-3 flex-1">
-                  <div className="w-7 h-7 rounded-lg bg-base-300/50 flex items-center justify-center text-sm group-hover:scale-110 transition-transform duration-200">
-                    {item.icon}
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                    <item.icon size={16} className="text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-base-content text-sm truncate">{item.label}</p>
@@ -1339,23 +1571,26 @@ function WorkspaceSection() {
 
   const getStatusBadge = (isApproved: boolean, isArchived?: boolean) => {
     if (isArchived) {
-      return <span className="px-2 py-1 text-xs bg-gray-500 text-white rounded-full">Archived</span>;
+      return <span className="badge badge-neutral bg-neutral text-neutral-content">Archived</span>;
     }
     return isApproved ? 
-      <span className="px-2 py-1 text-xs bg-green-500 text-white rounded-full">Approved</span> :
-      <span className="px-2 py-1 text-xs bg-yellow-500 text-white rounded-full">Pending</span>;
+      <span className="badge badge-success bg-success text-success-content">Approved</span> :
+      <span className="badge badge-warning bg-warning text-warning-content">Pending</span>;
   };
 
   const getChannelStatusBadge = (status: string) => {
-    const statusColors = {
-      pending: 'bg-yellow-500',
-      approved: 'bg-green-500',
-      denied: 'bg-red-500',
-      banned: 'bg-red-600',
-      kicked: 'bg-gray-500'
+    const statusConfig = {
+      pending: { color: 'warning', bg: 'bg-warning', text: 'text-warning-content' },
+      approved: { color: 'success', bg: 'bg-success', text: 'text-success-content' },
+      denied: { color: 'error', bg: 'bg-error', text: 'text-error-content' },
+      banned: { color: 'error', bg: 'bg-error', text: 'text-error-content' },
+      kicked: { color: 'neutral', bg: 'bg-neutral', text: 'text-neutral-content' }
     };
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    
     return (
-      <span className={`px-2 py-1 text-xs ${statusColors[status as keyof typeof statusColors]} text-white rounded-full capitalize`}>
+      <span className={`badge badge-${config.color} ${config.bg} ${config.text} capitalize`}>
         {status}
       </span>
     );
@@ -1386,9 +1621,12 @@ function WorkspaceSection() {
     <div className="flex flex-col gap-6 w-full h-full p-6">
       {/* Error Display */}
       {(projectsError || workspaceError) && (
-        <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-lg">
+        <div className="alert alert-error bg-error/10 border-error/20 text-error-content">
+          <AlertCircle size={20} />
+          <div>
           <p className="font-semibold">Error:</p>
           <p>{projectsError || workspaceError}</p>
+          </div>
         </div>
       )}
 
@@ -1464,10 +1702,22 @@ function WorkspaceSection() {
                   </div>
 
                   <div className="flex items-center gap-4 text-xs text-base-content/60 mb-3">
-                    <span>👁️ {project.views || 0} views</span>
-                    <span>⭐ {project.bookmarks || 0} bookmarks</span>
-                    <span>👍 {project.upvotes} upvotes</span>
-                    <span>👎 {project.downvotes} downvotes</span>
+                    <span className="flex items-center gap-1">
+                      <Eye size={12} className="text-base-content/50" />
+                      {project.views || 0} views
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Bookmark size={12} className="text-base-content/50" />
+                      {project.bookmarks || 0} bookmarks
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <TrendingUp size={12} className="text-base-content/50" />
+                      {project.upvotes} upvotes
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <TrendingDown size={12} className="text-base-content/50" />
+                      {project.downvotes} downvotes
+                    </span>
                   </div>
 
                   <div className="flex gap-2">
@@ -1547,7 +1797,7 @@ function WorkspaceSection() {
                       size="sm" 
                       variant="ghost"
                       onClick={() => removeBookmarkItem(bookmark._id, bookmark.type)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-error hover:text-error hover:bg-error/10"
                     >
                       <X size={14} />
                     </Button>
@@ -1591,8 +1841,8 @@ function WorkspaceSection() {
                          <div key={membership.channelId} className="bg-base-100 rounded-lg p-4 border border-base-200 hover:shadow-md transition-shadow">
                           <div className="flex items-start justify-between">
                             <div className="flex items-start gap-3 flex-1">
-                              <div className="p-2 rounded-lg bg-green-100">
-                                <MessageCircle size={16} className="text-green-600" />
+                              <div className="p-2 rounded-lg bg-success/10 border border-success/20">
+                                <MessageCircle size={16} className="text-success" />
                               </div>
                                                              <div className="flex-1 min-w-0">
                                  <h4 className="font-semibold text-base-content">{membership.name}</h4>
@@ -1614,7 +1864,7 @@ function WorkspaceSection() {
                                 variant="outline"
                                 onClick={() => leaveChannel(membership.channelId)}
                                 disabled={leavingChannel === membership.channelId}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                className="text-error hover:text-error hover:bg-error/10 border-error/30 hover:border-error/50"
                               >
                                 {leavingChannel === membership.channelId ? 'Leaving...' : 'Leave'}
                               </Button>
@@ -1640,8 +1890,8 @@ function WorkspaceSection() {
                          <div key={membership.channelId} className="bg-base-100 rounded-lg p-4 border border-base-200">
                            <div className="flex items-start justify-between">
                              <div className="flex items-start gap-3 flex-1">
-                               <div className="p-2 rounded-lg bg-yellow-100">
-                                 <MessageCircle size={16} className="text-yellow-600" />
+                                                             <div className="p-2 rounded-lg bg-warning/10 border border-warning/20">
+                                <MessageCircle size={16} className="text-warning" />
                                </div>
                                <div className="flex-1 min-w-0">
                                  <h4 className="font-semibold text-base-content">{membership.name}</h4>
@@ -1658,7 +1908,7 @@ function WorkspaceSection() {
                                 variant="outline"
                                 onClick={() => leaveChannel(membership.channelId)}
                                 disabled={leavingChannel === membership.channelId}
-                                className="text-gray-600"
+                                className="text-neutral hover:text-neutral hover:bg-neutral/10 border-neutral/30 hover:border-neutral/50"
                               >
                                 {leavingChannel === membership.channelId ? 'Canceling...' : 'Cancel Request'}
                               </Button>
@@ -1684,8 +1934,8 @@ function WorkspaceSection() {
                          <div key={membership.channelId} className="bg-base-100 rounded-lg p-4 border border-base-200">
                            <div className="flex items-start justify-between">
                              <div className="flex items-start gap-3 flex-1">
-                               <div className="p-2 rounded-lg bg-red-100">
-                                 <MessageCircle size={16} className="text-red-600" />
+                               <div className="p-2 rounded-lg bg-error/10 border border-error/20">
+                                 <MessageCircle size={16} className="text-error" />
                                </div>
                                <div className="flex-1 min-w-0">
                                  <h4 className="font-semibold text-base-content">{membership.name}</h4>
@@ -1723,8 +1973,8 @@ function WorkspaceSection() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-base-100 rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-base-300/50 backdrop-blur-sm">
+          <div className="bg-base-100 rounded-xl shadow-xl p-6 max-w-sm w-full mx-4 border border-base-300/30">
             <h3 className="text-lg font-bold text-base-content mb-2">Delete Project?</h3>
             <p className="text-base-content/70 mb-4">Are you sure you want to delete this project? This action cannot be undone.</p>
             <div className="flex gap-3 justify-end">
@@ -1735,6 +1985,7 @@ function WorkspaceSection() {
                 variant="destructive" 
                 onClick={() => handleDeleteProject(showDeleteConfirm)}
                 disabled={deleting === showDeleteConfirm}
+                className="bg-error hover:bg-error/90 text-error-content"
               >
                 {deleting === showDeleteConfirm ? 'Deleting...' : 'Delete'}
               </Button>
@@ -1887,19 +2138,19 @@ function CollaborationSection() {
   return (
     <div className="flex flex-col gap-6 w-full h-full p-6">
       {/* Phase 2: Replace placeholder with new component */}
-      <RolesAndPermissionsCard
-        memberships={approvedParentMemberships}
-        loading={isLoading}
-        error={hasError}
-        onRetry={handleRetry}
-      />
+          <RolesAndPermissionsCard
+            memberships={approvedParentMemberships}
+            loading={isLoading}
+            error={hasError}
+            onRetry={handleRetry}
+          />
       
-      <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5">
+      <div className="bg-base-100/90 rounded-xl shadow border border-base-200 p-5">
         <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-2">
           <AlertTriangle size={18} className="text-primary" /> Moderation Flags
-        </div>
-        
-        {loadingBanned ? (
+          </div>
+          
+          {loadingBanned ? (
           <div className="space-y-3">
             {[1, 2].map((i) => (
               <div key={i} className="flex items-center gap-4 p-3 bg-base-100 rounded-lg border border-base-200">
@@ -1907,85 +2158,85 @@ function CollaborationSection() {
                 <div className="skeleton h-4 w-20"></div>
                 <div className="skeleton h-4 w-16"></div>
               </div>
-            ))}
-          </div>
-        ) : errorBanned ? (
-          <div className="alert alert-error">
+              ))}
+            </div>
+          ) : errorBanned ? (
+          <div className="alert alert-error bg-error/10 border-error/20 text-error-content">
             <AlertTriangle size={20} />
-            <div>
+              <div>
               <h3 className="font-semibold">Error loading moderation information</h3>
               <p className="text-xs">{errorBanned}</p>
-            </div>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={fetchDetailedChannelStatus}
+              </div>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={fetchDetailedChannelStatus}
               className="ml-auto"
-            >
+              >
               <RefreshCw size={16} className="mr-2" />
-              Retry
-            </Button>
-          </div>
-        ) : bannedChannels.length === 0 ? (
-          <div className="bg-base-100 rounded px-4 py-3 border border-base-200">
+                Retry
+              </Button>
+            </div>
+          ) : bannedChannels.length === 0 ? (
+          <div className="bg-base-100/80 rounded-lg px-4 py-3 border border-base-200 text-base-content/80">
             No moderation flags found. You are not banned or kicked from any channels.
-          </div>
-        ) : (
+            </div>
+          ) : (
           <div className="space-y-3">
-            {bannedChannels.map((channel) => (
+              {bannedChannels.map((channel) => (
               <div key={channel.channelId} className="bg-base-100 rounded-lg p-4 border border-base-200">
                 <div className="flex items-center justify-between mb-2">
-                  <div>
+                        <div>
                     <h3 className="font-semibold flex items-center gap-2">
-                      <span className="badge badge-error">{channel.status === 'banned' ? 'Banned' : 'Kicked'}</span>
+                      <span className="badge badge-error bg-error text-error-content border-error">{channel.status === 'banned' ? 'Banned' : 'Kicked'}</span>
                       {channel.name}
                     </h3>
-                    {channel.parentChannelName && (
+                          {channel.parentChannelName && (
                       <p className="text-xs text-base-content/60">
                         Parent channel: {channel.parentChannelName}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                
+                            </p>
+                          )}
+                      </div>
+                    </div>
+                    
                 <div className="text-sm space-y-1">
-                  {channel.status === 'banned' && (
-                    <>
+                      {channel.status === 'banned' && (
+                        <>
                       <p>
                         <span className="font-medium">Banned by:</span>{' '}
-                        {channel.bannedBy ? channel.bannedBy.fullName || channel.bannedBy.username : 'Unknown'}
+                              {channel.bannedBy ? channel.bannedBy.fullName || channel.bannedBy.username : 'Unknown'}
                       </p>
-                      {channel.banReason && (
+                          {channel.banReason && (
                         <p>
                           <span className="font-medium">Reason:</span> {channel.banReason}
                         </p>
-                      )}
-                      {channel.banExpiresAt && (
+                          )}
+                          {channel.banExpiresAt && (
                         <p>
                           <span className="font-medium">Expires:</span> {formatDate(channel.banExpiresAt)}
                         </p>
+                          )}
+                        </>
                       )}
-                    </>
-                  )}
-                  
-                  {channel.status === 'kicked' && (
-                    <>
+                      
+                      {channel.status === 'kicked' && (
+                        <>
                       <p>
                         <span className="font-medium">Kicked by:</span>{' '}
-                        {channel.kickedBy ? channel.kickedBy.fullName || channel.kickedBy.username : 'Unknown'}
+                              {channel.kickedBy ? channel.kickedBy.fullName || channel.kickedBy.username : 'Unknown'}
                       </p>
-                      {channel.kickedAt && (
+                          {channel.kickedAt && (
                         <p>
                           <span className="font-medium">Kicked on:</span> {formatDate(channel.kickedAt)}
                         </p>
+                          )}
+                        </>
                       )}
-                    </>
-                  )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
       </div>
     </div>
   );
@@ -2045,7 +2296,7 @@ function SupportSection() {
 
   return (
     <div className="flex flex-col gap-6 w-full h-full p-6">
-      <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5">
+      <div className="bg-base-100/90 rounded-xl shadow border border-base-200 p-5">
         <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-2"><HelpCircle size={18} className="text-primary" /> FAQ / Help Center</div>
         <div className="flex flex-col gap-2 mt-1">
           <a href="#" className="text-primary hover:underline">How to use the app?</a>
@@ -2053,18 +2304,18 @@ function SupportSection() {
           <a href="#" className="text-primary hover:underline">Project Management</a>
         </div>
       </div>
-      <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5">
+      <div className="bg-base-100/90 rounded-xl shadow border border-base-200 p-5">
         <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-2"><Mail size={18} className="text-primary" /> Contact Support</div>
         <Button variant="outline">Open Support Chat</Button>
       </div>
-      <div className="bg-white/90 rounded-xl shadow border border-base-200 p-5">
+      <div className="bg-base-100/90 rounded-xl shadow border border-base-200 p-5">
         <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-2"><Star size={18} className="text-primary" /> Feedback</div>
         
         {submitStatus && (
-          <div className={`p-3 mb-3 rounded text-sm ${
+          <div className={`p-3 mb-3 rounded-lg text-sm border ${
             submitStatus.type === 'success' 
-              ? 'bg-green-100 text-green-800 border border-green-200' 
-              : 'bg-red-100 text-red-800 border border-red-200'
+              ? 'bg-success/10 text-success-content border-success/20' 
+              : 'bg-error/10 text-error-content border-error/20'
           }`}>
             {submitStatus.message}
           </div>
@@ -2118,8 +2369,13 @@ export default function SettingsPage() {
   const [active, setActive] = useState('profile');
   return (
     <div className="h-full w-full bg-gradient-to-br from-base-100 via-base-50 to-base-200 flex relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
+      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-accent/10 to-transparent rounded-full blur-3xl" />
+      
       <SectionSidebar active={active} setActive={setActive} />
-      <main className="flex-1 flex flex-col h-full w-full overflow-hidden">
+      <main className="flex-1 flex flex-col h-full w-full overflow-hidden relative z-10">
         <AnimatePresence mode="wait">
           {active === 'profile' && (
             <motion.section 
@@ -2127,7 +2383,7 @@ export default function SettingsPage() {
               initial={{ opacity: 0, x: 40 }} 
               animate={{ opacity: 1, x: 0 }} 
               exit={{ opacity: 0, x: -40 }} 
-              transition={{ duration: 0.3 }} 
+              transition={{ duration: 0.4, ease: "easeOut" }} 
               className="h-full w-full overflow-hidden"
             >
               <div className="h-full overflow-y-auto">
@@ -2141,7 +2397,7 @@ export default function SettingsPage() {
               initial={{ opacity: 0, x: 40 }} 
               animate={{ opacity: 1, x: 0 }} 
               exit={{ opacity: 0, x: -40 }} 
-              transition={{ duration: 0.3 }} 
+              transition={{ duration: 0.4, ease: "easeOut" }} 
               className="h-full w-full overflow-hidden"
             >
               <div className="h-full overflow-y-auto">
@@ -2155,7 +2411,7 @@ export default function SettingsPage() {
               initial={{ opacity: 0, x: 40 }} 
               animate={{ opacity: 1, x: 0 }} 
               exit={{ opacity: 0, x: -40 }} 
-              transition={{ duration: 0.3 }} 
+              transition={{ duration: 0.4, ease: "easeOut" }} 
               className="h-full w-full overflow-hidden"
             >
               <div className="h-full overflow-y-auto">
@@ -2169,7 +2425,7 @@ export default function SettingsPage() {
               initial={{ opacity: 0, x: 40 }} 
               animate={{ opacity: 1, x: 0 }} 
               exit={{ opacity: 0, x: -40 }} 
-              transition={{ duration: 0.3 }} 
+              transition={{ duration: 0.4, ease: "easeOut" }} 
               className="h-full w-full overflow-hidden"
             >
               <div className="h-full overflow-y-auto">
@@ -2183,7 +2439,7 @@ export default function SettingsPage() {
               initial={{ opacity: 0, x: 40 }} 
               animate={{ opacity: 1, x: 0 }} 
               exit={{ opacity: 0, x: -40 }} 
-              transition={{ duration: 0.3 }} 
+              transition={{ duration: 0.4, ease: "easeOut" }} 
               className="h-full w-full overflow-hidden"
             >
               <div className="h-full overflow-y-auto">
