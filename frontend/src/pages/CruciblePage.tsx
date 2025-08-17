@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowRight, TrendingUp, Clock, Code, Database, Globe, Zap, Target, Users, BookOpen, Lightbulb } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -7,7 +7,6 @@ import { getProblems, checkUserAnalysisForProblem, getTrendingProblems, ITrendin
 import { useAuth } from '@clerk/clerk-react';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
 import { useToast } from '../components/ui/toast';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '@/components/ui/carousel';
 
 // Problem categories with icons and colors
 const problemCategories = [
@@ -109,8 +108,6 @@ export default function CruciblePage() {
   const [hotProblems, setHotProblems] = useState<HotProblem[]>([]);
   const { toast } = useToast();
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
-  const [categoriesCarouselApi, setCategoriesCarouselApi] = useState<CarouselApi | null>(null);
-  const autoPlayRef = useRef<number | null>(null);
   
 
   
@@ -206,21 +203,6 @@ export default function CruciblePage() {
     }
   }, [authLoaded, isSignedIn]);
 
-  // Autoplay for categories carousel
-  useEffect(() => {
-    if (!categoriesCarouselApi) return;
-    // Clear any existing timer
-    if (autoPlayRef.current) window.clearInterval(autoPlayRef.current);
-    autoPlayRef.current = window.setInterval(() => {
-      if (!categoriesCarouselApi) return;
-      if (categoriesCarouselApi.canScrollNext()) categoriesCarouselApi.scrollNext();
-      else categoriesCarouselApi.scrollTo(0);
-    }, 4000);
-    return () => {
-      if (autoPlayRef.current) window.clearInterval(autoPlayRef.current);
-    };
-  }, [categoriesCarouselApi]);
-  
   // Handle category selection
   const handleCategoryClick = (categoryId: string) => {
     // setSelectedCategory(categoryId); // Removed as per edit hint
@@ -283,34 +265,26 @@ export default function CruciblePage() {
           <h2 className="text-3xl font-bold text-base-content mb-3">Choose Your Challenge</h2>
           <p className="text-base-content/60 text-lg">Explore problems by category and find your next challenge</p>
         </div>
-        <div className="relative">
-          <Carousel setApi={setCategoriesCarouselApi} className="w-full">
-            <CarouselContent>
-              {problemCategories.map((category) => (
-                <CarouselItem key={category.id} className="basis-1/1 sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
-                  <div onClick={() => handleCategoryClick(category.id)}>
-                    <SpotlightCard className="group cursor-pointer h-full">
-                      <div className={`p-6 rounded-xl border-2 transition-all duration-300 ${category.bgColor} ${category.borderColor} hover:border-opacity-40 h-full`}> 
-                        <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                          <category.icon className="w-6 h-6 text-white" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-base-content mb-2">{category.name}</h3>
-                        <p className="text-sm text-base-content/70 mb-4 line-clamp-2">{category.description}</p>
-                        <div className="flex items-center justify-between">
-                          <Badge variant="secondary" className="text-xs">
-                            {category.count} problems
-                          </Badge>
-                          <ArrowRight className="w-4 h-4 text-base-content/40 group-hover:text-primary transition-colors" />
-                        </div>
-                      </div>
-                    </SpotlightCard>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {problemCategories.map((category) => (
+            <div key={category.id} onClick={() => handleCategoryClick(category.id)}>
+              <SpotlightCard className="cursor-pointer">
+                <div className={`p-6 rounded-xl border-2 transition-all duration-300 ${category.bgColor} ${category.borderColor} hover:border-opacity-40 h-full`}> 
+                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                    <category.icon className="w-6 h-6 text-white" />
                   </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious className="-left-6 md:-left-8" />
-            <CarouselNext className="-right-6 md:-right-8" />
-          </Carousel>
+                  <h3 className="text-lg font-semibold text-base-content mb-2">{category.name}</h3>
+                  <p className="text-sm text-base-content/70 mb-4 line-clamp-2">{category.description}</p>
+                  <div className="flex items-center justify-between">
+                    <Badge variant="secondary" className="text-xs">
+                      {category.count} problems
+                    </Badge>
+                    <ArrowRight className="w-4 h-4 text-base-content/40 group-hover:text-primary transition-colors" />
+                  </div>
+                </div>
+              </SpotlightCard>
+            </div>
+          ))}
         </div>
       </div>
 
