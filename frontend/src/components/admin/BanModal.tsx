@@ -29,7 +29,8 @@ const BanModal: React.FC<BanModalProps> = ({ open, onClose, user, parentChannels
       setAdminLoading(true);
       try {
         const token = await getToken();
-        const res = await fetch('/api/users/me', {
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+        const res = await fetch(`${backendUrl}/api/users/me`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -61,7 +62,8 @@ const BanModal: React.FC<BanModalProps> = ({ open, onClose, user, parentChannels
     setLoading(true);
     try {
       const token = await getToken();
-      const res = await fetch(`/api/arena/channels/${parentChannel}/ban`, {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const res = await fetch(`${backendUrl}/api/arena/channels/${parentChannel}/ban`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -2,7 +2,7 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import { ExternalLink } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { registerForgeResourceView, getForgeProgress, updateForgeProgress, type ForgeProgress } from '../lib/forgeApi';
+import { getForgeResource, registerForgeResourceView, getForgeProgress, updateForgeProgress, type ForgeProgress } from '../lib/forgeApi';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import HtmlContentRenderer from '../components/ui/html-content-renderer';
@@ -41,11 +41,11 @@ export default function ForgeDetailPage() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    registerForgeResourceView(id, getToken)
+    getForgeResource(id)
       .then(setResource)
       .catch(e => setError(e.message || 'Resource not found'))
       .finally(() => setLoading(false));
-  }, [id, getToken]);
+  }, [id]);
 
   // Set forge title in context when resource loads
   useEffect(() => {
@@ -75,6 +75,17 @@ export default function ForgeDetailPage() {
       canceled = true;
     };
   }, [id, getToken]);
+
+  // Register view when content is actually loaded and displayed
+  useEffect(() => {
+    if (resource && !loading) {
+      // Only register view when content is successfully loaded
+      registerForgeResourceView(id!, getToken).catch((error: any) => {
+        console.warn('Failed to register view:', error);
+        // Don't break functionality if view registration fails
+      });
+    }
+  }, [resource, loading, id, getToken]);
 
   // Track time spent locally and periodically sync
   useEffect(() => {

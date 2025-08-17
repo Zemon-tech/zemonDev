@@ -244,7 +244,8 @@ export default function ProfilePage() {
   // Function to save background to backend
   const saveBackgroundToBackend = async (background: BackgroundOption) => {
     try {
-      const response = await fetch('/api/users/me/background', {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const response = await fetch(`${backendUrl}/api/users/me/background`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -263,9 +264,21 @@ export default function ProfilePage() {
 
       // Refetch user profile to get updated data
       refetch();
+      
+      // Show success toast
+      toast({
+        title: "Background Updated",
+        description: "Your profile background has been saved successfully!",
+        variant: "success"
+      });
     } catch (error) {
       console.error('Error saving background:', error);
-      // You could add a toast notification here
+      // Show error toast
+      toast({
+        title: "Update Failed",
+        description: "Failed to save background. Please try again.",
+        variant: "error"
+      });
     }
   };
 

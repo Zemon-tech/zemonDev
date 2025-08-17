@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { BookOpen, FileText, Film, Wrench, FolderGit2, FileBadge2,Eye, Filter } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getForgeResources, registerForgeResourceView, toggleBookmark, getBookmarkedResources } from '../lib/forgeApi';
+import { getForgeResources, toggleBookmark, getBookmarkedResources } from '../lib/forgeApi';
 import { ResourceCard } from '@/components/blocks/ResourceCard';
 import type { Resource } from '@/components/blocks/ResourceCard';
 import { Button } from '@/components/ui/button';
@@ -244,14 +244,12 @@ export default function ForgePage() {
                   }}
                   onView={resource.url
                     ? async (res: Resource) => {
-                        await registerForgeResourceView(res._id, getToken);
                         window.open(res.url, '_blank', 'noopener,noreferrer');
                       }
                     : () => navigate(`/${username}/forge/${resource._id}`)
                   }
                   onClick={resource.url
                     ? async (res: Resource) => {
-                        await registerForgeResourceView(res._id, getToken);
                         window.open(res.url, '_blank', 'noopener,noreferrer');
                       }
                     : () => navigate(`/${username}/forge/${resource._id}`)
