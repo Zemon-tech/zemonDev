@@ -64,6 +64,8 @@ app.use(ClerkExpressWithAuth({
 
 // API Routes
 app.use('/api', apiRoutes);
+// Temporary compatibility: also serve routes without the /api prefix
+app.use('/', apiRoutes);
 
 // 404 handler
 app.use('*', (req, res, next) => {
