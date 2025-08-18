@@ -508,6 +508,16 @@ export default function ProfilePage() {
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => window.open(`/profile/${userProfile?.username}`, '_blank')}
+            className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border border-white/30 transition-all duration-300"
+            title="Open your public profile in a new tab"
+          >
+            <Globe className="w-4 h-4 mr-2" />
+            View Public Profile
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleShareProfile}
             className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border border-white/30 transition-all duration-300"
             title="Share your public profile link"

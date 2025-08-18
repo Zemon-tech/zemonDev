@@ -769,7 +769,7 @@ export const getPublicUserProfileController = asyncHandler(
       }
 
       const user = await User.findOne({ username })
-        .select('fullName username profile socialLinks college stats achievements profileVisibility profileBackground')
+        .select('fullName username profile socialLinks college stats achievements profileVisibility profileBackground profilePicture')
         .lean();
 
       if (!user) {
@@ -785,6 +785,7 @@ export const getPublicUserProfileController = asyncHandler(
       const publicProfile = {
         fullName: user.fullName,
         username: user.username,
+        profilePicture: (user as any).profilePicture,
         profile: {
           headline: user.profile?.headline,
           bio: user.profile?.bio,
