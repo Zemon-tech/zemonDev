@@ -99,6 +99,8 @@ export interface IUser extends Document {
     linkedin?: string;
     twitter?: string;
   };
+  // App-managed avatar image URL
+  profilePicture?: string;
   profileVisibility?: {
     isPublic: boolean;
     showEmail: boolean;
@@ -467,6 +469,12 @@ const UserSchema: Schema = new Schema(
         trim: true,
         default: '',
       },
+    },
+    // App-managed avatar image URL
+    profilePicture: {
+      type: String,
+      trim: true,
+      default: '',
     },
     profileVisibility: {
       isPublic: {

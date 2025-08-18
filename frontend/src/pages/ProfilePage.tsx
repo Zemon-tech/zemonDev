@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import BackgroundSelector, { BackgroundOption, gradientOptions } from '@/components/ui/background-selector';
@@ -14,6 +15,9 @@ import { getUserAnalysisHistory, getUserActiveDrafts, IUserAnalysisHistory, IUse
 import { getBookmarkedResources } from '@/lib/forgeApi';
 import { useZemonStreak } from '@/hooks/useZemonStreak';
 import { useToast } from '@/components/ui/toast';
+import { buildAvatarCategories } from '@/lib/avatars';
+import type { AvatarCategoryKey } from '@/lib/avatars';
+import { ApiService } from '@/services/api.service';
 import { 
   Github, 
   Linkedin, 
@@ -48,7 +52,7 @@ import {
   Globe,
   User,
   Palette,
-  Copy
+  Share2
 } from 'lucide-react';
 
 // Register GSAP plugins
@@ -160,7 +164,7 @@ const mockUserData = {
 };
 
 export default function ProfilePage() {
-  const { user } = useUser();
+  const { /* user */ } = useUser();
   const { getToken } = useAuth();
   const navigate = useNavigate();
   const { username } = useParams<{ username: string }>();
@@ -168,6 +172,8 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [currentBackground, setCurrentBackground] = useState<BackgroundOption>(gradientOptions[0]);
   const [isBackgroundSelectorOpen, setIsBackgroundSelectorOpen] = useState(false);
+  const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
+  const [activeAvatarCategory, setActiveAvatarCategory] = useState<AvatarCategoryKey>('recommended');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -180,6 +186,58 @@ export default function ProfilePage() {
   const profileBadges = userProfile?.achievements?.badges || [];
   const profileCertificates = userProfile?.achievements?.certificates || [];
   const profileMilestones = userProfile?.achievements?.milestones || [];
+
+  const publicProfileUrl = `${window.location.origin}/profile/${userProfile?.username || ''}`;
+
+  const handleShareProfile = async () => {
+    if (!userProfile?.username) {
+      toast({
+        title: 'Profile not ready',
+        description: 'Please wait for your profile to load',
+        variant: 'error'
+      });
+      return;
+    }
+
+    const shareData = {
+      title: `${getDisplayName(userProfile)} | Zemon` || 'Zemon Profile',
+      text: 'Check out this Zemon profile',
+      url: publicProfileUrl
+    } as any;
+
+    try {
+      if ((navigator as any).share) {
+        await (navigator as any).share(shareData);
+      } else {
+        await navigator.clipboard.writeText(publicProfileUrl);
+        toast({
+          title: 'Link copied!',
+          description: 'Public profile link copied to clipboard',
+          variant: 'success'
+        });
+      }
+    } catch (error) {
+      // User may cancel share; only show error when clipboard also fails
+      toast({
+        title: 'Failed to share',
+        description: 'Could not share or copy the profile link',
+        variant: 'error'
+      });
+    }
+  };
+
+  const avatarCategories = buildAvatarCategories(getDisplayName(userProfile), userProfile?.username);
+
+  const handleChangeAvatar = async (url: string) => {
+    try {
+      await ApiService.updateCurrentUser({ profilePicture: url }, getToken);
+      await refetch();
+      toast({ title: 'Avatar updated!', description: 'Your profile avatar has been changed.', variant: 'success' });
+      setIsAvatarSelectorOpen(false);
+    } catch (e: any) {
+      toast({ title: 'Update failed', description: e?.message || 'Could not update avatar', variant: 'error' });
+    }
+  };
 
   // State for Crucible data
   const [analysisHistory, setAnalysisHistory] = useState<IUserAnalysisHistory[]>([]);
@@ -426,8 +484,8 @@ export default function ProfilePage() {
         {/* Background overlay for better text readability */}
         <div className="absolute inset-0 bg-black/10" />
         
-        {/* Background Customization Button */}
-        <div className="absolute top-4 right-4">
+        {/* Background Customization & Share Buttons */}
+        <div className="absolute top-4 right-4 flex gap-2">
           <Button
             variant="ghost"
             size="sm"
@@ -436,6 +494,26 @@ export default function ProfilePage() {
           >
             <Palette className="w-4 h-4 mr-2" />
             Customize
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsAvatarSelectorOpen(true)}
+            className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border border-white/30 transition-all duration-300"
+            title="Change your profile avatar"
+          >
+            <User className="w-4 h-4 mr-2" />
+            Change Avatar
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleShareProfile}
+            className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border border-white/30 transition-all duration-300"
+            title="Share your public profile link"
+          >
+            <Share2 className="w-4 h-4 mr-2" />
+            Share Profile
           </Button>
         </div>
       </section>
@@ -472,13 +550,18 @@ export default function ProfilePage() {
             {/* Removed previous always-white overlay in favor of ring on image */}
             <div className="absolute inset-0 rounded-full p-[5px] bg-white"></div>
             
-            {/* Avatar Image */}
-            <motion.img
-              src={user?.imageUrl || 'https://via.placeholder.com/200'}
-              alt="Profile"
-              className="w-[160px] h-[160px] rounded-full relative z-10 object-cover ring-2 ring-gray-300 dark:ring-white/80"
-              transition={{ duration: 0.3 }}
-            />
+            {/* Avatar Image (using app avatar, not Clerk image) */}
+            <motion.div className="relative z-10" transition={{ duration: 0.3 }}>
+              <Avatar className="w-[160px] h-[160px] ring-2 ring-gray-300 dark:ring-white/80">
+                <AvatarImage
+                  src={(userProfile as any)?.profilePicture || (userProfile as any)?.avatar || ''}
+                  alt={getDisplayName(userProfile)}
+                />
+                <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-primary/80 to-accent/80 text-primary-foreground">
+                  {getDisplayName(userProfile).charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+            </motion.div>
             
             {/* Change Photo Overlay - Only visible on hover */}
             <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 z-10">
@@ -507,56 +590,7 @@ export default function ProfilePage() {
               </span>
             </motion.h1>
             
-            {/* Public Profile Link */}
-            <motion.div 
-              className="space-y-3 mb-3"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-            >
-              <div className="text-xs text-white/60">
-                💡 This is your public profile link that others can view without logging in
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(`/profile/${userProfile?.username}`, '_blank')}
-                  className="text-xs bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-all duration-300"
-                >
-                  <Globe className="w-3 h-3 mr-1" />
-                  View Public Profile
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(`${window.location.origin}/profile/${userProfile?.username}`);
-                      toast({
-                        title: "Link copied!",
-                        description: "Public profile link copied to clipboard",
-                        variant: "success"
-                      });
-                    } catch (error) {
-                      toast({
-                        title: "Failed to copy",
-                        description: "Could not copy link to clipboard",
-                        variant: "error"
-                      });
-                    }
-                  }}
-                  className="text-xs bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-all duration-300"
-                  title="Copy public profile link to clipboard"
-                >
-                  <Copy className="w-3 h-3 mr-1" />
-                  Copy Link
-                </Button>
-              </div>
-              <div className="text-xs text-white/70">
-                Share this link: <code className="bg-white/20 px-1 rounded text-white">{window.location.origin}/profile/{userProfile?.username}</code>
-              </div>
-            </motion.div>
+            {/* Public profile sharing consolidated into Share button near Customize */}
             
             <motion.div 
               ref={taglineRef} 
@@ -1834,6 +1868,42 @@ export default function ProfilePage() {
         isOpen={isBackgroundSelectorOpen}
         onClose={() => setIsBackgroundSelectorOpen(false)}
       />
+
+      {/* Avatar Selector Modal */}
+      {isAvatarSelectorOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setIsAvatarSelectorOpen(false)} />
+          <div className="relative z-10 w-full max-w-2xl rounded-2xl bg-white text-black p-5 shadow-2xl">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Choose an avatar</h3>
+              <button onClick={() => setIsAvatarSelectorOpen(false)} className="text-sm opacity-70 hover:opacity-100">Close</button>
+            </div>
+            <div className="flex gap-2 flex-wrap mb-4">
+              {avatarCategories.map(cat => (
+                <button
+                  key={cat.key}
+                  onClick={() => setActiveAvatarCategory(cat.key)}
+                  className={`px-3 py-1.5 rounded-full border text-sm ${activeAvatarCategory === cat.key ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-black border-gray-300 hover:bg-gray-50'}`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-4 gap-3 max-h-[420px] overflow-auto pr-1">
+              {avatarCategories.find(c => c.key === activeAvatarCategory)?.urls.map((url) => (
+                <button
+                  key={url}
+                  onClick={() => handleChangeAvatar(url)}
+                  className="rounded-full overflow-hidden border border-gray-200 hover:ring-2 hover:ring-blue-500 transition"
+                  title="Use this avatar"
+                >
+                  <img src={url} alt="avatar option" className="w-24 h-24 object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
