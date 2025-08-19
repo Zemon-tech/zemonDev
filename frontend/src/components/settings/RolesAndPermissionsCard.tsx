@@ -25,21 +25,6 @@ interface RolesAndPermissionsCardProps {
   onRetry: () => void;
 }
 
-// const getStatusBadgeClass = (status: string) => {
-//   switch (status) {
-//     case 'approved':
-//       return 'badge badge-success';
-//     case 'pending':
-//       return 'badge badge-warning';
-//     case 'denied':
-//     case 'banned':
-//     case 'kicked':
-//       return 'badge badge-error';
-//     default:
-//       return 'badge badge-neutral';
-//   }
-// };
-
 const getRoleBadgeClass = (role: string) => {
   switch (role) {
     case 'admin':

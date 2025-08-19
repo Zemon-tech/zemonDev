@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
@@ -31,6 +32,7 @@ import {
 interface PublicProfile {
   fullName: string;
   username: string;
+  profilePicture?: string;
   profile?: {
     headline?: string;
     bio?: string;
@@ -236,13 +238,15 @@ const PublicProfilePage = () => {
             {/* Theme-adaptive subtle ring around avatar (light: grey, dark: white) */}
             <div className="absolute inset-0 rounded-full p-[5px] bg-white"></div>
             
-            {/* Avatar Image */}
-            <motion.img
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=random&size=160&rounded=true`}
-              alt="Profile"
-              className="w-[160px] h-[160px] rounded-full relative z-10 object-cover ring-2 ring-gray-300 dark:ring-white/80"
-              transition={{ duration: 0.3 }}
-            />
+            {/* Avatar Image - unified with app avatar */}
+            <motion.div className="relative z-10" transition={{ duration: 0.3 }}>
+              <Avatar className="w-[160px] h-[160px] ring-2 ring-gray-300 dark:ring-white/80">
+                <AvatarImage src={profile.profilePicture || ''} alt={profile.fullName} />
+                <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-primary/80 to-accent/80 text-primary-foreground">
+                  {profile.fullName.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+            </motion.div>
           </motion.div>
 
           {/* Enhanced Name and Title - All content below banner */}

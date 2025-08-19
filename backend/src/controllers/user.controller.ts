@@ -154,7 +154,7 @@ export const getStreakLeaderboard = asyncHandler(
  */
 export const updateCurrentUser = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { collegeDetails, profile, interests, profileBackground, college, socialLinks, achievements } = req.body;
+    const { collegeDetails, profile, interests, profileBackground, college, socialLinks, achievements, profilePicture } = req.body;
 
     // Filter out unwanted fields
     const updateData: any = {};
@@ -165,6 +165,7 @@ export const updateCurrentUser = asyncHandler(
     if (college) updateData.college = college;
     if (socialLinks) updateData.socialLinks = socialLinks;
     if (achievements) updateData.achievements = achievements;
+    if (typeof profilePicture === 'string') updateData.profilePicture = profilePicture;
 
     // Calculate skill mastery if skillProgress is provided
     if (profile?.skillProgress && Array.isArray(profile.skillProgress)) {
@@ -768,7 +769,7 @@ export const getPublicUserProfileController = asyncHandler(
       }
 
       const user = await User.findOne({ username })
-        .select('fullName username profile socialLinks college stats achievements profileVisibility profileBackground')
+        .select('fullName username profile socialLinks college stats achievements profileVisibility profileBackground profilePicture')
         .lean();
 
       if (!user) {
@@ -784,6 +785,7 @@ export const getPublicUserProfileController = asyncHandler(
       const publicProfile = {
         fullName: user.fullName,
         username: user.username,
+        profilePicture: (user as any).profilePicture,
         profile: {
           headline: user.profile?.headline,
           bio: user.profile?.bio,

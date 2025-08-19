@@ -130,6 +130,15 @@ export class ApiService {
     return this.makeRequest('/api/users/me', {}, getToken);
   }
 
+  // Update current user profile (partial), including profilePicture
+  static async updateCurrentUser(partial: any, getToken: () => Promise<string | null>) {
+    return this.makeRequest(
+      '/api/users/me',
+      { method: 'PATCH', body: JSON.stringify(partial) },
+      getToken
+    );
+  }
+
   // Join channel request
   static async requestJoinChannel(channelId: string, getToken: () => Promise<string | null>) {
     return this.makeRequest(
