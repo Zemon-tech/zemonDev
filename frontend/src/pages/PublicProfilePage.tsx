@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { useParams, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,15 +19,22 @@ import {
   School,
   Award,
   Star,
+  GraduationCap,
+  TrendingUp,
   Zap,
-  Brain,
   Trophy,
   Users,
   Sparkles,
   Globe,
   User,
-  Lock
+  Lock,
+  Target,
+  Bookmark,
+  ChevronRight,
+  Eye
 } from 'lucide-react';
+import { getUserAnalysisHistory, getUserActiveDrafts, getPublicUserAnalysisHistory, getPublicUserActiveDrafts, type IUserAnalysisHistory, type IUserActiveDraft } from '@/lib/profileApi';
+import { getBookmarkedResources } from '@/lib/forgeApi';
 
 
 interface PublicProfile {
@@ -98,10 +106,27 @@ interface PublicProfile {
 
 const PublicProfilePage = () => {
   const { username } = useParams<{ username: string }>();
+  const { getToken } = useAuth();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
+
+  // Crucible / Forge state (own profile only)
+  const [analysisHistory, setAnalysisHistory] = useState<IUserAnalysisHistory[]>([]);
+  const [activeDrafts, setActiveDrafts] = useState<IUserActiveDraft[]>([]);
+  const [crucibleLoading, setCrucibleLoading] = useState(false);
+  const [crucibleError, setCrucibleError] = useState<string | null>(null);
+  const [bookmarkedResources, setBookmarkedResources] = useState<any[]>([]);
+  const [forgeLoading, setForgeLoading] = useState(false);
+  const [forgeError, setForgeError] = useState<string | null>(null);
+
+  // Derived for achievements/skills UI parity with ProfilePage
+  const profileBadges = profile?.achievements?.badges || [];
+  const profileCertificates = profile?.achievements?.certificates || [];
+  const profileMilestones = profile?.achievements?.milestones || [];
+  const skillProgressData = (profile as any)?.profile?.skillProgress || [];
 
   // Refs for animations
   const containerRef = useRef<HTMLDivElement>(null);
@@ -114,6 +139,7 @@ const PublicProfilePage = () => {
   // Tab definitions
   const tabs = [
     { id: 'overview', label: 'Overview' },
+    { id: 'crucible-forge', label: 'Crucible & Forge' },
     { id: 'achievements', label: 'Achievements & Skills' },
   ];
 
@@ -150,6 +176,75 @@ const PublicProfilePage = () => {
 
     fetchPublicProfile();
   }, [username]);
+
+  // Determine if viewing own profile (to allow private Crucible/Forge data fetch)
+  useEffect(() => {
+    const checkOwnProfile = async () => {
+      try {
+        const token = await getToken?.();
+        if (!token || !username) {
+          setIsOwnProfile(false);
+          return;
+        }
+        const backend = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+        const res = await fetch(`${backend}/api/users/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) {
+          setIsOwnProfile(false);
+          return;
+        }
+        const data = await res.json();
+        const currentUsername = (data.data || data)?.username;
+        setIsOwnProfile(Boolean(currentUsername && currentUsername === username));
+      } catch {
+        setIsOwnProfile(false);
+      }
+    };
+    checkOwnProfile();
+  }, [username, getToken]);
+
+  // Fetch Crucible and Forge data when combined tab is active
+  useEffect(() => {
+    const fetchCombinedData = async () => {
+      if (activeTab !== 'crucible-forge') return;
+      if (crucibleLoading || forgeLoading) return;
+      setCrucibleLoading(true);
+      setForgeLoading(true);
+      setCrucibleError(null);
+      setForgeError(null);
+      try {
+        if (isOwnProfile) {
+          const [analyses, drafts, bookmarked] = await Promise.all([
+            getUserAnalysisHistory(getToken),
+            getUserActiveDrafts(getToken),
+            getBookmarkedResources(getToken)
+          ]);
+          setAnalysisHistory(analyses);
+          setActiveDrafts(drafts);
+          setBookmarkedResources(bookmarked);
+        } else if (username) {
+          const [analyses, drafts] = await Promise.all([
+            getPublicUserAnalysisHistory(username),
+            getPublicUserActiveDrafts(username)
+          ]);
+          setAnalysisHistory(analyses);
+          setActiveDrafts(drafts);
+          setBookmarkedResources([]);
+        }
+      } catch (e) {
+        setCrucibleError('Failed to load Crucible data');
+        setForgeError('Failed to load Forge data');
+        setAnalysisHistory([]);
+        setActiveDrafts([]);
+        setBookmarkedResources([]);
+      } finally {
+        setCrucibleLoading(false);
+        setForgeLoading(false);
+      }
+    };
+    fetchCombinedData();
+  }, [activeTab, isOwnProfile, getToken, username]);
 
   if (loading) {
     return (
@@ -534,16 +629,17 @@ const PublicProfilePage = () => {
             </motion.div>
           )}
 
-          {activeTab === 'achievements' && (
+          {activeTab === 'crucible-forge' && (
             <motion.div 
-              key="achievements"
+              key="crucible-forge"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.5 }}
               className="w-full mb-10"
             >
-              {/* Enhanced Header Section */}
+              {!isOwnProfile ? (
+                <>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -551,50 +647,162 @@ const PublicProfilePage = () => {
                 className="mb-6"
               >
                 <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary text-primary-content flex items-center justify-center shadow-sm ring-1 ring-white/10">
+                          <Hammer className="w-5 h-5" />
+                        </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-base-content mb-2">Achievements & Skills</h2>
-                    <p className="text-base-content/70">Badges, certificates, and skill progress</p>
+                          <h2 className="text-2xl font-bold text-base-content mb-1">Crucible & Forge</h2>
+                          <p className="text-base-content/70 text-sm">Public coding activity and resources</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Solutions {profile.stats?.problemsSolved || 0}</Badge>
+                        <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Resources {profile.stats?.resourcesCreated || 0}</Badge>
                   </div>
                 </div>
               </motion.div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {/* Badges Section */}
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.1 }}
-                >
-                  <Card className="overflow-hidden shadow-lg transition-all duration-300 rounded-xl border border-base-300 bg-base-100 group cursor-pointer h-full relative">
-                    <CardContent className="p-6 h-full flex flex-col relative z-10">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center transition-transform duration-300 shadow-lg">
-                          <Trophy className="w-6 h-6 text-primary-content" />
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <Card className="overflow-hidden rounded-2xl border border-base-300/70 bg-gradient-to-b from-base-100 to-base-200/40 backdrop-blur shadow-[0_6px_24px_-6px_rgba(0,0,0,0.15)] lg:col-span-2">
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-sm">
+                              <Target className="w-4.5 h-4.5" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold">Crucible Activity</h3>
+                              <p className="text-sm text-base-content/70">Recent public milestones</p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Total {profile.stats?.problemsSolved || 0}</Badge>
                         </div>
-                        <div className="flex-1">
-                          <h2 className="text-xl font-bold text-base-content transition-colors duration-300">Badges</h2>
-                          <p className="text-sm text-base-content/70">Achievements earned</p>
+
+                        {crucibleError ? (
+                          <div className="text-sm text-error/90 rounded-lg border border-error/20 bg-error/5 p-3">Failed to load solutions</div>
+                        ) : analysisHistory.length === 0 ? (
+                          <div className="text-sm text-base-content/60 rounded-lg border border-base-300/60 bg-base-100/70 p-3">No solutions yet</div>
+                        ) : (
+                          <div className="divide-y divide-base-300/60 rounded-xl border border-base-300/60 bg-base-100/70">
+                            {analysisHistory.slice(0, 5).map((analysis, index) => (
+                              <div key={analysis._id || index} className="w-full text-left px-4 py-3 hover:bg-base-200/60 transition-colors flex items-center gap-3">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500/80" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium truncate">{analysis.problemId.title}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card className="overflow-hidden rounded-2xl border border-base-300/70 bg-gradient-to-b from-base-100 to-base-200/40 backdrop-blur">
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-sm">
+                              <Bookmark className="w-4.5 h-4.5" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold">Forge Resources</h3>
+                              <p className="text-sm text-base-content/70">Created or featured</p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Total {profile.stats?.resourcesCreated || 0}</Badge>
+                        </div>
+
+                        <div className="text-sm text-base-content/60 rounded-lg border border-base-300/60 bg-base-100/70 p-4">Bookmarks are private</div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </>
+              ) : (
+                <>
+                <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.45, delay: 0.05 }}
+                    className="mb-6"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-[1.6rem] font-semibold tracking-tight">Workspace</h2>
+                        <p className="text-base-content/70 text-sm">Your coding activity and saved resources</p>
+                        </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Solutions {analysisHistory.length}</Badge>
+                        <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Drafts {activeDrafts.length}</Badge>
+                        <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Bookmarks {bookmarkedResources.length}</Badge>
                         </div>
                       </div>
-                      
-                      <div className="space-y-3 flex-1">
-                        {profile.achievements?.badges && profile.achievements.badges.length > 0 ? (
-                          profile.achievements.badges.slice(0, 3).map((badge) => (
-                            <div key={badge.id} className="flex items-center gap-3 p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300">
-                              <div className="w-8 h-8 bg-warning/20 rounded-lg flex items-center justify-center">
-                                <span className="text-lg">{badge.icon}</span>
+                  </motion.div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.45, delay: 0.1 }}
+                      className="space-y-6"
+                    >
+                      <Card className="overflow-hidden shadow-[0_6px_24px_-6px_rgba(0,0,0,0.12)] rounded-2xl border border-base-300/70 bg-base-100/80 backdrop-blur">
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center ring-1 ring-white/10">
+                                <Target className="w-5 h-5" />
                               </div>
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-base-content">{badge.name}</p>
-                                <p className="text-xs text-base-content/50">{badge.description}</p>
+                              <h3 className="text-lg font-semibold">Crucible</h3>
                               </div>
+                            {(crucibleLoading) && (
+                              <div className="flex items-center gap-2 px-2.5 py-1 text-xs rounded-full bg-base-200">
+                                <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-primary border-t-transparent" />
+                                Loading
                             </div>
-                          ))
-                        ) : (
-                          <div className="flex flex-col items-center justify-center py-8 text-center">
-                            <Trophy className="w-12 h-12 text-base-content/30 mb-3" />
-                            <p className="text-base-content/60 font-medium">No badges yet</p>
-                            <p className="text-sm text-base-content/40">Keep solving problems to earn badges!</p>
+                            )}
+                          </div>
+
+                          <div className="mb-4">
+                            <div className="text-xs uppercase tracking-wide text-base-content/50 mb-2">Solution Journeys</div>
+                            {crucibleError ? (
+                              <div className="text-sm text-error/90 rounded-lg border border-error/20 bg-error/5 p-3">Failed to load solutions</div>
+                            ) : analysisHistory.length === 0 ? (
+                              <div className="text-sm text-base-content/60 rounded-lg border border-base-300/60 bg-base-100/70 p-3">No solutions yet</div>
+                            ) : (
+                              <div className="divide-y divide-base-300/60 rounded-xl border border-base-300/60 bg-base-100/70">
+                                {analysisHistory.slice(0, 5).map((analysis, index) => (
+                                  <div
+                                    key={analysis._id || index}
+                                    className="w-full text-left px-4 py-3 hover:bg-base-200/60 transition-colors flex items-center gap-3"
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-primary/80" />
+                                    <span className="flex-1 truncate text-sm font-medium">{analysis.problemId.title}</span>
+                                    <ChevronRight className="w-4 h-4 text-base-content/50" />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <div className="text-xs uppercase tracking-wide text-base-content/50 mb-2">Active Drafts</div>
+                            {crucibleError ? (
+                              <div className="text-sm text-error/90 rounded-lg border border-error/20 bg-error/5 p-3">Failed to load drafts</div>
+                            ) : activeDrafts.length === 0 ? (
+                              <div className="text-sm text-base-content/60 rounded-lg border border-base-300/60 bg-base-100/70 p-3">No active drafts</div>
+                            ) : (
+                              <div className="divide-y divide-base-300/60 rounded-xl border border-base-300/60 bg-base-100/70">
+                                {activeDrafts.slice(0, 5).map((draft, index) => (
+                                  <div
+                                    key={draft._id || index}
+                                    className="w-full text-left px-4 py-3 hover:bg-base-200/60 transition-colors flex items-center gap-3"
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-secondary/80" />
+                                    <span className="flex-1 truncate text-sm font-medium">{draft.problemId.title}</span>
+                                    <ChevronRight className="w-4 h-4 text-base-content/50" />
+                                  </div>
+                                ))}
                           </div>
                         )}
                       </div>
@@ -602,92 +810,317 @@ const PublicProfilePage = () => {
                   </Card>
                 </motion.div>
 
-                {/* Certificates Section */}
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.2 }}
-                >
-                  <Card className="overflow-hidden shadow-lg transition-all duration-300 rounded-xl border border-base-300 bg-base-100 group cursor-pointer h-full relative">
-                    <CardContent className="p-6 h-full flex flex-col relative z-10">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 bg-secondary rounded-xl flex items-center justify-center transition-transform duration-300 shadow-lg">
-                          <Award className="w-6 h-6 text-secondary-content" />
-                        </div>
-                        <div className="flex-1">
-                          <h2 className="text-xl font-bold text-base-content transition-colors duration-300">Certificates</h2>
-                          <p className="text-sm text-base-content/70">Professional achievements</p>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-3 flex-1">
-                        {profile.achievements?.certificates && profile.achievements.certificates.length > 0 ? (
-                          profile.achievements.certificates.slice(0, 3).map((cert) => (
-                            <div key={cert.id} className="flex items-center gap-3 p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300">
-                              <div className="w-8 h-8 bg-secondary/20 rounded-lg flex items-center justify-center">
-                                <Award className="w-4 h-4 text-secondary" />
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.45, delay: 0.15 }}
+                      className="space-y-6"
+                    >
+                      <Card className="overflow-hidden shadow-[0_6px_24px_-6px_rgba(0,0,0,0.12)] rounded-2xl border border-base-300/70 bg-base-100/80 backdrop-blur">
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 text-white flex items-center justify-center ring-1 ring-white/10">
+                                <Bookmark className="w-5 h-5" />
                               </div>
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-base-content">{cert.name}</p>
-                                <p className="text-xs text-base-content/50">{cert.issuer}</p>
-                              </div>
+                              <h3 className="text-lg font-semibold">Bookmarked Resources</h3>
                             </div>
-                          ))
-                        ) : (
-                          <div className="flex flex-col items-center justify-center py-8 text-center">
-                            <Award className="w-12 h-12 text-base-content/30 mb-3" />
-                            <p className="text-base-content/60 font-medium">No certificates yet</p>
-                            <p className="text-sm text-base-content/40">Add your professional certifications!</p>
+                            {(forgeLoading) && (
+                              <div className="flex items-center gap-2 px-2.5 py-1 text-xs rounded-full bg-base-200">
+                                <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-primary border-t-transparent" />
+                                Loading
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
 
-                {/* Skills Progress Section */}
+                          {forgeError ? (
+                            <div className="text-sm text-error/90 rounded-lg border border-error/20 bg-error/5 p-3">Failed to load resources</div>
+                          ) : bookmarkedResources.length === 0 ? (
+                            <div className="text-sm text-base-content/60 rounded-lg border border-base-300/60 bg-base-100/70 p-3">No bookmarks yet</div>
+                          ) : (
+                            <div className="divide-y divide-base-300/60 rounded-xl border border-base-300/60 bg-base-100/70">
+                              {bookmarkedResources.slice(0, 6).map((resource: any, index) => (
+                                <div key={resource._id || index} className="px-4 py-3 flex items-center gap-3">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500/80" />
+                                  <span className="flex-1 truncate text-sm font-medium">{resource.title || resource.name || 'Untitled Resource'}</span>
+                                  <div className="flex items-center gap-2 text-base-content/50">
+                                    <Eye className="w-4 h-4" />
+                                    <span className="text-xs">{Math.floor(Math.random() * 200) + 50}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      <Card className="overflow-hidden shadow-[0_6px_24px_-6px_rgba(0,0,0,0.12)] rounded-2xl border border-base-300/70 bg-base-100/80 backdrop-blur">
+                        <CardContent className="p-6">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 text-center">
+                              <div className="text-xl font-bold">{analysisHistory.length}</div>
+                              <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Solutions</div>
+                            </div>
+                            <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 text-center">
+                              <div className="text-xl font-bold">{activeDrafts.length}</div>
+                              <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Drafts</div>
+                            </div>
+                            <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 text-center">
+                              <div className="text-xl font-bold">{bookmarkedResources.length}</div>
+                              <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Resources</div>
+                            </div>
+                            <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 text-center">
+                              <div className="text-xl font-bold">{Math.floor((analysisHistory.length + activeDrafts.length + bookmarkedResources.length) / 3)}</div>
+                              <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Avg</div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          )}
+
+          {activeTab === 'achievements' && (
+            <motion.div 
+              key="achievements"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+              className="w-full space-y-8 mb-10"
+            >
+              {/* Achievements & Recognition - parity with ProfilePage */}
                 <motion.div
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.3 }}
-                >
-                  <Card className="overflow-hidden shadow-lg transition-all duration-300 rounded-xl border border-base-300 bg-base-100 group cursor-pointer h-full relative">
-                    <CardContent className="p-6 h-full flex flex-col relative z-10">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center transition-transform duration-300 shadow-lg">
-                          <Brain className="w-6 h-6 text-accent-content" />
+                transition={{ duration: 0.6, delay: 0.1 }}
+              >
+                <Card className="overflow-hidden shadow-[0_6px_24px_-6px_rgba(0,0,0,0.15)] rounded-2xl border border-base-300/70 bg-gradient-to-b from-base-100 to-base-200/40 backdrop-blur">
+                  <CardContent className="p-6 md:p-7">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-warning rounded-xl flex items-center justify-center text-warning-content ring-1 ring-white/10">
+                          <Trophy className="w-5 h-5" />
                         </div>
-                        <div className="flex-1">
-                          <h2 className="text-xl font-bold text-base-content transition-colors duration-300">Skills</h2>
-                          <p className="text-sm text-base-content/70">Technologies mastered</p>
+                        <h2 className="text-2xl font-semibold tracking-tight">Achievements & Recognition</h2>
                         </div>
+                      <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Public</Badge>
                       </div>
                       
-                      <div className="space-y-3 flex-1">
-                        {profile.profile?.skills && profile.profile.skills.length > 0 ? (
-                          profile.profile.skills.slice(0, 4).map((skill, index) => (
-                            <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-all duration-300">
-                              <div className="w-8 h-8 bg-accent/20 rounded-lg flex items-center justify-center">
-                                <Zap className="w-4 h-4 text-accent" />
+                    {/* Summary strip */}
+                    <div className="grid grid-cols-3 gap-3 mb-6">
+                      <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 flex items-center gap-3 shadow-sm">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-warning to-amber-500 text-white flex items-center justify-center">
+                          <Award className="w-4 h-4" />
                               </div>
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-base-content">{skill}</p>
-                                <p className="text-xs text-base-content/50">Skill mastered</p>
+                        <div>
+                          <div className="text-lg font-bold leading-5">{profileBadges.length}</div>
+                          <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Badges</div>
                               </div>
                             </div>
-                          ))
+                      <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 flex items-center gap-3 shadow-sm">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center">
+                          <GraduationCap className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-lg font-bold leading-5">{profileCertificates.length}</div>
+                          <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Certificates</div>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 flex items-center gap-3 shadow-sm">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center">
+                          <TrendingUp className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-lg font-bold leading-5">{profile?.stats?.skillMastery ?? 0}%</div>
+                          <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Skill Mastery</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Badges */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold flex items-center gap-2 text-base-content">
+                          <Award className="w-5 h-5 text-warning" />
+                          Badges
+                        </h3>
+                        {profileBadges.length === 0 ? (
+                          <div className="text-sm text-base-content/60">No badges yet</div>
                         ) : (
-                          <div className="flex flex-col items-center justify-center py-8 text-center">
-                            <Brain className="w-12 h-12 text-base-content/30 mb-3" />
-                            <p className="text-base-content/60 font-medium">No skills listed</p>
-                            <p className="text-sm text-base-content/40">Skills will appear here</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {profileBadges.map((badge, index) => (
+                              <motion.div
+                                key={badge.id || index}
+                                className="flex items-center gap-3 rounded-xl border border-base-300/60 bg-base-100/70 p-3 shadow-sm hover:border-warning/40 transition-colors"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.35, delay: 0.08 + index * 0.04 }}
+                              >
+                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center text-base">
+                                  <span aria-hidden>{(badge as any).icon || '⭐'}</span>
+                          </div>
+                                <div className="min-w-0">
+                                  <div className="font-medium leading-tight truncate">{badge.name}</div>
+                                  {badge.description && (
+                                    <div className="text-xs text-base-content/60 truncate">{badge.description}</div>
+                        )}
+                      </div>
+                </motion.div>
+                            ))}
                           </div>
                         )}
+                      </div>
+
+                      {/* Milestones timeline */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold flex items-center gap-2 text-base-content">
+                          <Target className="w-5 h-5 text-info" />
+                          Milestones
+                        </h3>
+                        {profileMilestones.length === 0 ? (
+                          <div className="text-sm text-base-content/60">No milestones yet</div>
+                        ) : (
+                          <div className="relative pl-4">
+                            <div className="absolute left-1 top-0 bottom-0 w-px bg-base-300/70" />
+                            <div className="space-y-3">
+                              {profileMilestones.map((m, index) => (
+                <motion.div
+                                  key={m.id || index}
+                                  className="relative rounded-xl border border-base-300/60 bg-base-100/70 p-3 shadow-sm"
+                                  initial={{ opacity: 0, x: 10 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ duration: 0.35, delay: 0.1 + index * 0.05 }}
+                                >
+                                  <div className="absolute -left-[9px] top-4 w-2.5 h-2.5 rounded-full bg-info ring-4 ring-info/15" />
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <div className="font-medium leading-tight truncate">{m.name}</div>
+                                      {m.description && (
+                                        <div className="text-xs text-base-content/60 truncate">{m.description}</div>
+                                      )}
+                                    </div>
+                                    <Badge variant="outline" className="text-[10px] rounded-full capitalize">{m.category}</Badge>
+                                  </div>
+                                </motion.div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Certificates */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold flex items-center gap-2 text-base-content">
+                          <GraduationCap className="w-5 h-5 text-success" />
+                          Certificates
+                        </h3>
+                        {profileCertificates.length === 0 ? (
+                          <div className="text-sm text-base-content/60">No certificates yet</div>
+                        ) : (
+                          <div className="space-y-2">
+                            {profileCertificates.map((cert, index) => (
+                              <motion.div
+                                key={cert.id || index}
+                                className="group block rounded-xl border border-base-300/60 bg-base-100/70 p-3 shadow-sm hover:border-success/40 transition-colors"
+                                initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.35, delay: 0.08 + index * 0.04 }}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="min-w-0">
+                                    <div className="font-medium leading-tight truncate">{cert.name}</div>
+                                    <div className="text-xs text-base-content/60 truncate">{cert.issuer}</div>
+                        </div>
+                        </div>
+                              </motion.div>
+                            ))}
+                      </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Skills in Progress - parity layout; show public skills if no progress */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+              >
+                <Card className="overflow-hidden shadow-[0_6px_24px_-6px_rgba(0,0,0,0.15)] rounded-2xl border border-base-300/70 bg-gradient-to-b from-base-100 to-base-200/40 backdrop-blur">
+                  <CardContent className="p-6 md:p-7">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-content ring-1 ring-white/10">
+                          <TrendingUp className="w-5 h-5" />
+                              </div>
+                        <h2 className="text-2xl font-semibold tracking-tight">Skills in Progress</h2>
+                              </div>
+                      <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">{profile?.stats?.skillMastery ?? 0}% avg</Badge>
+                            </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div>
+                        <h3 className="text-base font-semibold text-base-content mb-3">Currently Learning</h3>
+                        <div className="flex flex-wrap gap-2.5">
+                          {(profile.profile?.skills || []).length === 0 ? (
+                            <span className="text-sm text-base-content/60">No skills listed</span>
+                          ) : (
+                            (profile.profile?.skills || []).map((skill, index) => (
+                              <motion.span
+                                key={skill || index}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-100/70 backdrop-blur ring-1 ring-base-300/60 shadow-sm"
+                                whileHover={{ scale: 1.05, y: -2 }}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.25, delay: 0.15 + index * 0.05 }}
+                              >
+                                {skill}
+                              </motion.span>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="text-base font-semibold text-base-content mb-3">Progress</h3>
+                        <div className="space-y-4">
+                          {skillProgressData.length === 0 ? (
+                            <span className="text-sm text-base-content/60">No progress to show</span>
+                          ) : (
+                            skillProgressData.map((sp: any, index: number) => (
+                              <motion.div
+                                key={sp.skill || index}
+                                className="space-y-2"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.5, delay: 0.2 + index * 0.08 }}
+                              >
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium text-base-content">{sp.skill}</span>
+                                  <span className="text-sm font-semibold text-primary">{sp.progress}%</span>
+                          </div>
+                                <div className="w-full h-3 rounded-full bg-gradient-to-r from-base-300 to-base-200 overflow-hidden">
+                                  <motion.div
+                                    className="h-full rounded-full bg-gradient-to-r from-primary to-secondary"
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${sp.progress}%` }}
+                                    transition={{ duration: 0.9, delay: 0.3 + index * 0.1, ease: 'easeOut' }}
+                                    style={{ width: `${sp.progress}%` }}
+                                  />
+                                </div>
+                              </motion.div>
+                            ))
+                          )}
+                        </div>
+                      </div>
                       </div>
                     </CardContent>
                   </Card>
                 </motion.div>
-              </div>
             </motion.div>
           )}
         </AnimatePresence>

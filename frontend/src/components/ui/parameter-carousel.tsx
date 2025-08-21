@@ -83,7 +83,7 @@ function ParameterCarousel({ parameters }: ParameterCarouselProps) {
             >
               <CarouselContent className="-ml-2">
                 {parameters.map((param, index) => (
-                  <CarouselItem key={index} className="pl-2 basis-1/4">
+                  <CarouselItem key={index} className="pl-2 basis-1/3">
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -108,7 +108,7 @@ function ParameterCarousel({ parameters }: ParameterCarouselProps) {
                                 <FloatingIcon icon={param.icon} className="w-5 h-5 text-primary" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h3 className="text-sm font-semibold text-base-content/90 leading-tight truncate">
+                                <h3 className="text-sm font-semibold text-base-content/90 leading-tight">
                                   {param.name}
                                 </h3>
                                 <Badge 
@@ -157,7 +157,7 @@ function ParameterCarousel({ parameters }: ParameterCarouselProps) {
                               {/* Justification */}
                               <div className="flex-1 flex flex-col">
                                 <div className="bg-base-100/80 backdrop-blur-sm border border-base-300/50 rounded-lg p-3 flex-1">
-                                  <p className="text-xs text-base-content/80 leading-relaxed line-clamp-4">
+                                  <p className="text-xs text-base-content/80 leading-relaxed line-clamp-3">
                                     {param.justification}
                                   </p>
                                 </div>

@@ -606,7 +606,7 @@ export default function ResultPage() {
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-center mt-12 p-4 bg-gradient-to-br from-primary/5 via-accent/5 to-primary/5 rounded-xl border border-primary/20 backdrop-blur-sm focus:ring-0 focus:border-0"
+              className="text-center mt-12 p-4 bg-gradient-to-br from-primary/5 via-accent/5 to-primary/5 rounded-xl backdrop-blur-sm focus:ring-0"
             >
               <div className="flex items-center justify-center gap-2 mb-2">
                 <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
@@ -637,10 +637,10 @@ export default function ResultPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className={`group relative overflow-hidden rounded-xl border cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105 focus:ring-0 focus:border-0 ${
+                    className={`group relative overflow-hidden rounded-xl cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105 focus:ring-0 ${
                       item._id === analysisToDisplay?._id 
                         ? 'bg-gradient-to-br from-primary/10 to-accent/10 border-primary/40 shadow-lg' 
-                        : 'bg-gradient-to-br from-base-100/80 to-base-200/40 border-base-300/50 hover:border-primary/40 hover:bg-gradient-to-br hover:from-primary/5 hover:to-accent/5'
+                        : 'bg-gradient-to-br from-base-100/80 to-base-200/40 hover:bg-gradient-to-br hover:from-primary/5 hover:to-accent/5'
                     }`}
                     onClick={() => navigate(`/${username}/crucible/results/${item._id}`)}
                   >

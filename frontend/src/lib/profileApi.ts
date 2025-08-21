@@ -149,3 +149,23 @@ export async function getUserActiveDrafts(
     getToken
   );
 } 
+
+/**
+ * Get public user's recent analysis history by username
+ * @param username - public username
+ */
+export async function getPublicUserAnalysisHistory(username: string): Promise<IUserAnalysisHistory[]> {
+  const url = `${API_BASE_URL}/profile/public/${encodeURIComponent(username)}/crucible/analyses`;
+  const response = await fetch(url);
+  return handleResponse<IUserAnalysisHistory[]>(response);
+}
+
+/**
+ * Get public user's active drafts by username
+ * @param username - public username
+ */
+export async function getPublicUserActiveDrafts(username: string): Promise<IUserActiveDraft[]> {
+  const url = `${API_BASE_URL}/profile/public/${encodeURIComponent(username)}/crucible/drafts`;
+  const response = await fetch(url);
+  return handleResponse<IUserActiveDraft[]>(response);
+}
