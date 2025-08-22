@@ -2,11 +2,10 @@
   "name": "zemon-frontend",
   "compatibility_date": "2024-01-01",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "dist/index.html",
-  "site": {
-    "bucket": "dist"
-  },
-  "env": {
-    "NODE_ENV": "production"
+  "pages": {
+    "build": {
+      "command": "npm run build",
+      "output_dir": "dist"
+    }
   }
 }
