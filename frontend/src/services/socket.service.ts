@@ -10,14 +10,26 @@ class SocketService {
       this.disconnect();
     }
 
-    console.log('Creating new socket connection to:', import.meta.env.VITE_BACKEND_URL);
+    // Determine the correct WebSocket URL based on environment
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
+    const isProduction = import.meta.env.PROD || backendUrl.includes('https://');
     
-    this.socket = io(import.meta.env.VITE_BACKEND_URL, {
+    // Use secure WebSocket protocol in production
+    const socketUrl = isProduction 
+      ? backendUrl.replace('https://', 'wss://').replace('http://', 'ws://')
+      : backendUrl;
+    
+    console.log('Creating new socket connection to:', socketUrl);
+    console.log('Environment:', isProduction ? 'production' : 'development');
+    
+    this.socket = io(socketUrl, {
       auth: { token: `Bearer ${token}` },
       transports: ['websocket'],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
+      // Force secure connection in production
+      secure: isProduction,
     });
 
     this.socket.on("connect", () => {
