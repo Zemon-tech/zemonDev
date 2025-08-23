@@ -389,6 +389,17 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
           tags={problem.tags}
           estimatedTime={problem.estimatedTime}
           learningObjectives={problem.learningObjectives}
+          difficulty={problem.difficulty}
+          category={problem.category}
+          expectedOutcome={problem.expectedOutcome}
+          prerequisites={problem.prerequisites}
+          userPersonas={problem.userPersona}
+          dataAssumptions={problem.dataAssumptions}
+          edgeCases={problem.edgeCases}
+          communityTips={problem.communityTips}
+          aiPrompts={problem.aiPrompts}
+          technicalParameters={problem.technicalParameters}
+          metrics={problem.metrics}
         />
       )}
       <div className="flex-1 overflow-hidden flex flex-col border-x border-base-200 dark:border-base-700 shadow-lg">

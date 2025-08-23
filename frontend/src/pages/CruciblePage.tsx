@@ -8,6 +8,118 @@ import { useAuth } from '@clerk/clerk-react';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
 import { useToast } from '../components/ui/toast';
 
+// Local fallback problems to show immediately without waiting for Redis
+const fallbackProblems = [
+  {
+    _id: '507f1f77bcf86cd799439011',
+    title: 'Design a URL Shortener (like bit.ly)',
+    description: 'Build a scalable service to shorten URLs, handle redirects, and track analytics. Consider database schema, unique code generation, and high availability.',
+    difficulty: 'easy',
+    category: 'system-design',
+    tags: ['database', 'api', 'scaling', 'backend'],
+    requirements: {
+      functional: [
+        'Design a system to shorten long URLs',
+        'Handle redirects efficiently',
+        'Track basic analytics (clicks, referrers)'
+      ],
+      nonFunctional: [
+        'Ensure high availability and scalability'
+      ]
+    },
+    constraints: [
+      'URLs must be unique',
+      'Shortened URLs should be as short as possible',
+      'System should handle high traffic',
+      'Analytics should be real-time'
+    ],
+    expectedOutcome: 'A scalable URL shortening service with analytics capabilities',
+    hints: [
+      'Consider using a hash function for URL generation',
+      'Think about caching strategies',
+      'Plan for database sharding'
+    ],
+    estimatedTime: 120,
+    learningObjectives: [
+      'Learn about hash functions',
+      'Understand scaling strategies',
+      'Implement efficient redirects'
+    ]
+  },
+  {
+    _id: '507f1f77bcf86cd799439012',
+    title: 'Real-Time Chat System',
+    description: 'Design a real-time chat application supporting 1:1 and group messaging, typing indicators, and message history. Discuss WebSocket usage and data storage.',
+    difficulty: 'medium',
+    category: 'web-development',
+    tags: ['realtime', 'api', 'scaling', 'frontend', 'backend'],
+    requirements: {
+      functional: [
+        'Support 1:1 and group messaging',
+        'Show typing indicators',
+        'Store message history'
+      ],
+      nonFunctional: [
+        'Support online/offline status'
+      ]
+    },
+    constraints: [
+      'Messages must be delivered in real-time',
+      'System must scale to millions of users',
+      'Message history should be searchable',
+      'Support offline message delivery'
+    ],
+    expectedOutcome: 'A real-time chat system with robust message delivery guarantees',
+    hints: [
+      'Consider WebSocket for real-time communication',
+      'Think about message delivery guarantees',
+      'Plan for message persistence'
+    ],
+    estimatedTime: 180,
+    learningObjectives: [
+      'Understand real-time communication',
+      'Learn about WebSocket implementation',
+      'Design scalable messaging systems'
+    ]
+  },
+  {
+    _id: '507f1f77bcf86cd799439013',
+    title: 'E-commerce Recommendation Engine',
+    description: 'Build a recommendation system that suggests products based on user behavior, purchase history, and collaborative filtering.',
+    difficulty: 'hard',
+    category: 'data-science',
+    tags: ['machine-learning', 'recommendations', 'algorithms', 'backend'],
+    requirements: {
+      functional: [
+        'Generate personalized product recommendations',
+        'Support multiple recommendation algorithms',
+        'Handle cold start problem for new users'
+      ],
+      nonFunctional: [
+        'Recommendations should load within 200ms',
+        'System should handle millions of products'
+      ]
+    },
+    constraints: [
+      'Must work with sparse user data',
+      'Should adapt to changing user preferences',
+      'Recommendations must be diverse and relevant'
+    ],
+    expectedOutcome: 'An intelligent recommendation engine that improves user engagement and sales',
+    hints: [
+      'Consider collaborative filtering approaches',
+      'Think about content-based filtering',
+      'Plan for A/B testing different algorithms'
+    ],
+    estimatedTime: 240,
+    learningObjectives: [
+      'Understand recommendation algorithms',
+      'Learn about collaborative filtering',
+      'Implement machine learning systems'
+    ]
+  }
+];
+
 // Problem categories with icons and colors
 const problemCategories = [
   {
@@ -106,10 +218,34 @@ export default function CruciblePage() {
   const navigate = useNavigate();
   const { username } = useParams();
   const [hotProblems, setHotProblems] = useState<HotProblem[]>([]);
+  const [problems, setProblems] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
   
-
+  // Initialize with fallback problems immediately
+  useEffect(() => {
+    if (authLoaded && isSignedIn) {
+      // Set fallback problems immediately for instant display
+      setProblems(fallbackProblems);
+      
+      // Update category counts from fallback problems
+      const categoryCounts = fallbackProblems.reduce((acc: any, problem: any) => {
+        if (problem.category) {
+          acc[problem.category] = (acc[problem.category] || 0) + 1;
+        }
+        return acc;
+      }, {});
+      
+      // Update categories with counts
+      problemCategories.forEach(category => {
+        category.count = categoryCounts[category.id] || 0;
+      });
+      
+      // Then try to fetch fresh data from API
+      fetchProblems();
+    }
+  }, [authLoaded, isSignedIn]);
   
   // Fetch problems from API
   const fetchProblems = async () => {
@@ -123,11 +259,12 @@ export default function CruciblePage() {
     }
     
     try {
-      // setIsLoading(true); // Removed as per edit hint
+      setIsLoading(true);
       const problemsData = await getProblems({ limit: 100 });
       
-      if (problemsData && Array.isArray(problemsData)) {
-        // setProblems(problemsData); // Removed as per edit hint
+      if (problemsData && Array.isArray(problemsData) && problemsData.length > 0) {
+        // Update with fresh data from API
+        setProblems(problemsData);
         
         // Update category counts using the new category field
         const categoryCounts = problemsData.reduce((acc: any, problem: any) => {
@@ -142,15 +279,13 @@ export default function CruciblePage() {
           category.count = categoryCounts[category.id] || 0;
         });
       }
+      // If API returns empty or fails, keep fallback problems
     } catch (err) {
-      console.error('Error fetching problems:', err);
-      toast({
-        title: 'Failed to load problems',
-        description: 'Failed to load problems. Please try again later.',
-        variant: "error",
-      });
+      console.error('Error fetching problems from API:', err);
+      // Keep fallback problems, don't show error toast to user
+      // The page will continue to work with fallback data
     } finally {
-      // setIsLoading(false); // Removed as per edit hint
+      setIsLoading(false);
     }
   };
   
@@ -196,12 +331,7 @@ export default function CruciblePage() {
     loadTrending();
   }, []);
   
-  // Initial load
-  useEffect(() => {
-    if (authLoaded && isSignedIn) {
-      fetchProblems();
-    }
-  }, [authLoaded, isSignedIn]);
+  // Initial load is now handled in the initialization useEffect above
 
   // Handle category selection
   const handleCategoryClick = (categoryId: string) => {
@@ -286,6 +416,66 @@ export default function CruciblePage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Problems Display Section */}
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-3xl font-bold text-base-content mb-2">Available Problems</h2>
+            <p className="text-base-content/60">
+              {isLoading ? 'Refreshing problems...' : `${problems.length} problems available`}
+            </p>
+          </div>
+          {isLoading && (
+            <div className="flex items-center gap-2 text-primary">
+              <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+              <span className="text-sm">Updating...</span>
+            </div>
+          )}
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {problems.map((problem) => (
+            <div key={problem._id} onClick={() => handleHotProblemClick(problem._id)}>
+              <SpotlightCard className="cursor-pointer">
+                <div className="p-6 rounded-xl border border-base-300 hover:border-primary/30 transition-all duration-300 group relative">
+                  <div className="flex items-start justify-between mb-3">
+                    <Badge className={cn("text-xs", getDifficultyColor(problem.difficulty))}>
+                      {problem.difficulty}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {problem.category}
+                    </Badge>
+                  </div>
+                  <h3 className="font-semibold text-base-content mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                    {problem.title}
+                  </h3>
+                  <p className="text-sm text-base-content/70 mb-4 line-clamp-3">
+                    {problem.description}
+                  </p>
+                  <div className="flex items-center justify-between text-sm text-base-content/60">
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      {problem.estimatedTime} min
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Target className="w-4 h-4" />
+                      {problem.tags.slice(0, 2).join(', ')}
+                    </div>
+                  </div>
+                </div>
+              </SpotlightCard>
+            </div>
+          ))}
+        </div>
+        
+        {problems.length === 0 && !isLoading && (
+          <div className="text-center py-12">
+            <div className="text-base-content/40 text-lg">No problems available at the moment</div>
+            <div className="text-base-content/30 text-sm mt-2">Check back later for new challenges</div>
+          </div>
+        )}
       </div>
 
       {/* Hot & Latest Problems */}

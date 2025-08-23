@@ -17,7 +17,7 @@ export interface ICrucibleProblem {
   };
   constraints: string[];
   expectedOutcome: string;
-  hints?: string[];
+  hints: string[];
   createdBy?: string;
   metrics?: {
     attempts: number;
