@@ -228,7 +228,7 @@ export default function AppLayout() {
     if (focusMode) {
       return 0; // Sidebar is hidden in focus mode
     }
-    return isSidebarOpen ? 256 : 80; // w-64 = 256px, w-20 = 80px
+    return isSidebarOpen ? 224 : 80; // w-56 = 224px, w-20 = 80px
   };
   
   const sidebarWidth = getSidebarWidth();

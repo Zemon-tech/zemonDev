@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { motion } from 'framer-motion';
 import {
   Carousel,
@@ -12,7 +12,6 @@ import { CountUp } from '@/components/blocks/CountUp';
 import { FloatingIcon } from '@/components/blocks/FloatingIcon';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AnimatedGradient } from '@/components/ui/animated-gradient-with-svg';
 
 interface ParameterCard {
   name: string;
@@ -28,16 +27,102 @@ interface ParameterCarouselProps {
 function ParameterCarousel({ parameters }: ParameterCarouselProps) {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+  const [isAutoScrolling] = useState(true);
+  const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const autoScrollRef = useRef<NodeJS.Timeout | null>(null);
+  const userInteractionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Auto-scroll functionality
+  const startAutoScroll = useCallback(() => {
+    if (!api || !isAutoScrolling || isUserInteracting) return;
+    
+    autoScrollRef.current = setTimeout(() => {
+      if (api && isAutoScrolling && !isUserInteracting) {
+        const nextIndex = (current + 1) % parameters.length;
+        api.scrollTo(nextIndex);
+      }
+    }, 3000); // Auto-scroll every 3 seconds
+  }, [api, current, isAutoScrolling, isUserInteracting, parameters.length]);
+
+  // Stop auto-scroll when user interacts
+  const handleUserInteraction = useCallback(() => {
+    setIsUserInteracting(true);
+    
+    // Clear existing timeout
+    if (userInteractionTimeoutRef.current) {
+      clearTimeout(userInteractionTimeoutRef.current);
+    }
+    
+    // Reset user interaction after 5 seconds of no interaction
+    userInteractionTimeoutRef.current = setTimeout(() => {
+      setIsUserInteracting(false);
+    }, 5000);
+  }, []);
+
+  // Handle carousel events
   useEffect(() => {
-    if (!api) {
-      return;
+    if (!api) return;
+
+    const handleSelect = () => {
+      const newCurrent = api.selectedScrollSnap();
+      setCurrent(newCurrent);
+      
+      // Restart auto-scroll after selection
+      if (isAutoScrolling && !isUserInteracting) {
+        startAutoScroll();
+      }
+    };
+
+    const handlePointerDown = () => {
+      handleUserInteraction();
+      if (autoScrollRef.current) {
+        clearTimeout(autoScrollRef.current);
+        autoScrollRef.current = null;
+      }
+    };
+
+    const handlePointerUp = () => {
+      // Restart auto-scroll after interaction ends
+      if (isAutoScrolling && !isUserInteracting) {
+        startAutoScroll();
+      }
+    };
+
+    api.on("select", handleSelect);
+    api.on("pointerDown", handlePointerDown);
+    api.on("pointerUp", handlePointerUp);
+
+    return () => {
+      api.off("select", handleSelect);
+      api.off("pointerDown", handlePointerDown);
+      api.off("pointerUp", handlePointerUp);
+    };
+  }, [api, isAutoScrolling, isUserInteracting, startAutoScroll, handleUserInteraction]);
+
+  // Start auto-scroll when component mounts or when auto-scroll is enabled
+  useEffect(() => {
+    if (isAutoScrolling && !isUserInteracting) {
+      startAutoScroll();
     }
 
-    api.on("select", () => {
-      setCurrent(api.selectedScrollSnap());
-    });
-  }, [api]);
+    return () => {
+      if (autoScrollRef.current) {
+        clearTimeout(autoScrollRef.current);
+      }
+    };
+  }, [isAutoScrolling, isUserInteracting, startAutoScroll]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (autoScrollRef.current) {
+        clearTimeout(autoScrollRef.current);
+      }
+      if (userInteractionTimeoutRef.current) {
+        clearTimeout(userInteractionTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const getScoreColor = (score: number) => {
     if (score <= 25) return "from-red-400 to-red-500";
@@ -53,11 +138,19 @@ function ParameterCarousel({ parameters }: ParameterCarouselProps) {
     return { text: "Excellent", variant: "default" as const };
   };
 
-  const getGradientColors = (score: number) => {
-    if (score <= 25) return ["#EF4444", "#F87171", "#FCA5A5"];
-    if (score <= 50) return ["#F59E0B", "#FCD34D", "#FEF3C7"];
-    if (score <= 75) return ["#EAB308", "#FDE047", "#FEFCE8"];
-    return ["#10B981", "#34D399", "#6EE7B7"];
+  // Static gradient that mimics the animated gradient but without animation
+  const getStaticGradientStyle = (score: number) => {
+    let colors;
+    if (score <= 25) colors = ["#EF4444", "#F87171", "#FCA5A5"];
+    else if (score <= 50) colors = ["#F59E0B", "#FCD34D", "#FEF3C7"];
+    else if (score <= 75) colors = ["#EAB308", "#FDE047", "#FEFCE8"];
+    else colors = ["#10B981", "#34D399", "#6EE7B7"];
+
+    return {
+      background: `radial-gradient(circle at 20% 80%, ${colors[0]}15 0%, transparent 50%), 
+                   radial-gradient(circle at 80% 20%, ${colors}15 0%, transparent 50%), 
+                   radial-gradient(circle at 40% 40%, ${colors}10 0%, transparent 50%)`,
+    };
   };
 
   return (
@@ -77,13 +170,23 @@ function ParameterCarousel({ parameters }: ParameterCarouselProps) {
                 align: "start",
                 loop: true,
                 skipSnaps: false,
-                dragFree: true,
+                dragFree: false,
                 containScroll: "trimSnaps",
+                slidesToScroll: 1,
+                breakpoints: {
+                  '(min-width: 768px)': { slidesToScroll: 1 },
+                  '(min-width: 1024px)': { slidesToScroll: 1 }
+                }
               }}
             >
               <CarouselContent className="-ml-2">
                 {parameters.map((param, index) => (
-                  <CarouselItem key={index} className="pl-2 basis-1/3">
+                  <CarouselItem 
+                    key={index} 
+                    className="pl-2 basis-1/3 md:basis-1/3 lg:basis-1/3"
+                    onMouseEnter={handleUserInteraction}
+                    onTouchStart={handleUserInteraction}
+                  >
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -91,14 +194,11 @@ function ParameterCarousel({ parameters }: ParameterCarouselProps) {
                       className="h-full"
                     >
                       <Card className="h-full bg-base-100/90 backdrop-blur-sm border-base-300/50 hover:shadow-xl hover:border-primary/30 transition-all duration-300 group overflow-hidden relative">
-                        {/* Animated Gradient Background */}
-                        <div className="absolute inset-0 overflow-hidden rounded-xl">
-                          <AnimatedGradient 
-                            colors={getGradientColors(param.score)} 
-                            speed={0.03} 
-                            blur="light" 
-                          />
-                        </div>
+                        {/* Static Gradient Background - Same style as AnimatedGradient but without animation */}
+                        <div 
+                          className="absolute inset-0 rounded-xl"
+                          style={getStaticGradientStyle(param.score)}
+                        />
                         
                         {/* Content Layer */}
                         <div className="relative z-10 h-full flex flex-col">
@@ -182,7 +282,10 @@ function ParameterCarousel({ parameters }: ParameterCarouselProps) {
                       ? 'bg-primary w-4' 
                       : 'bg-base-300 hover:bg-base-400'
                   }`}
-                  onClick={() => api?.scrollTo(index)}
+                  onClick={() => {
+                    api?.scrollTo(index);
+                    handleUserInteraction();
+                  }}
                 />
               ))}
             </div>
@@ -193,4 +296,4 @@ function ParameterCarousel({ parameters }: ParameterCarouselProps) {
   );
 }
 
-export { ParameterCarousel }; 
+export { ParameterCarousel };

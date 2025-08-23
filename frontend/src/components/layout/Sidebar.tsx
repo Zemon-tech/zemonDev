@@ -54,12 +54,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, current
   };
 
   // [FIX] Sidebar width and shadow logic for focus mode
-  let sidebarWidth = 'w-64';
+  let sidebarWidth = 'w-56'; // Reduced from w-64 (256px) to w-56 (224px)
   let sidebarShadow = '';
   let sidebarBg = 'bg-base-200';
   if (focusMode) {
     if (hovered) {
-      sidebarWidth = 'w-64';
+      sidebarWidth = 'w-56'; // Reduced width
       sidebarShadow = 'shadow-xl';
       sidebarBg = 'bg-base-200';
     } else {
@@ -68,7 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, current
       sidebarBg = 'bg-transparent';
     }
   } else {
-    sidebarWidth = isOpen ? 'w-64' : 'w-20';
+    sidebarWidth = isOpen ? 'w-56' : 'w-20'; // Reduced from w-64 to w-56
     sidebarShadow = '';
     sidebarBg = 'bg-base-200';
   }
@@ -95,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, current
         <div className="h-14 flex items-center justify-center border-b border-base-300">
           <Link to={`/${currentUsername}/dashboard`} className={`flex items-center justify-center font-bold text-primary font-heading transition-all duration-200 ${isOpen ? 'text-xl' : 'w-10 h-10'}`}>
             {isOpen ? (
-              'ZEMON'
+              'QUILD'
             ) : (
               <SubjectIcon className="w-full h-full" />
             )}

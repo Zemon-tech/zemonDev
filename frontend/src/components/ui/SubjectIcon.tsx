@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '@/lib/ThemeContext';
 
 interface SubjectIconProps {
   className?: string;
@@ -11,6 +12,22 @@ const SubjectIcon: React.FC<SubjectIconProps> = ({
   width = 24, 
   height = 24 
 }) => {
+  const { theme } = useTheme();
+  
+  // Determine logo color based on theme
+  const getLogoColor = () => {
+    switch (theme) {
+      case 'light':
+      case 'bumblebee':
+        return '#000000'; // Black for light and bumblebee themes
+      case 'dark':
+      case 'halloween':
+        return '#ffffff'; // White for dark and halloween themes
+      default:
+        return '#000000'; // Default to black
+    }
+  };
+
   return (
     <svg 
       className={className}
@@ -20,34 +37,9 @@ const SubjectIcon: React.FC<SubjectIconProps> = ({
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
     >
-      <style>
-        {`
-          .subject-path {
-            fill: var(--subject-color, currentColor);
-            transition: fill 0.3s ease;
-          }
-          
-          /* Dark mode styles */
-          @media (prefers-color-scheme: dark) {
-            .subject-path {
-              fill: var(--subject-color-dark, #ffffff);
-            }
-          }
-          
-          /* DaisyUI theme support */
-          [data-theme="dark"] .subject-path {
-            fill: var(--subject-color-dark, #ffffff);
-          }
-          
-          [data-theme="light"] .subject-path {
-            fill: var(--subject-color-light, #000000);
-          }
-        `}
-      </style>
-      
       <g 
         transform="translate(0.000000,435.000000) scale(0.100000,-0.100000)"
-        className="subject-path"
+        style={{ fill: getLogoColor(), transition: 'fill 0.3s ease' }}
       >
         <path d="M610 4055 c0 -20 9 -61 20 -92 38 -107 22 -158 -50 -165 -19 -2 -34
 -7 -33 -12 2 -9 134 -56 157 -56 12 0 108 -66 175 -120 24 -19 70 -66 103

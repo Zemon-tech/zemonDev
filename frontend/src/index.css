@@ -61,21 +61,7 @@ body {
   min-height: 100vh;
 }
 
-/* Subject SVG theme support */
-[data-theme="dark"] {
-  --subject-color: var(--subject-color-dark, #ffffff);
-}
-
-[data-theme="light"] {
-  --subject-color: var(--subject-color-light, #000000);
-}
-
-/* Fallback for systems without data-theme attribute */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --subject-color: var(--subject-color-dark, #ffffff);
-  }
-}
+/* Subject SVG theme support - now handled dynamically in SubjectIcon component */
 
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
@@ -1192,4 +1178,89 @@ aside a.active {
 
 .scale-transition:active {
   transform: scale(0.95);
+}
+
+/* Enhanced Parameter Carousel Styles */
+.parameter-carousel {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.parameter-carousel .embla__container {
+  display: flex;
+  gap: 1rem;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.parameter-carousel .embla__slide {
+  flex: 0 0 calc(33.333% - 0.667rem);
+  min-width: 0;
+  scroll-snap-align: start;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Responsive breakpoints for exact card visibility */
+@media (max-width: 767px) {
+  .parameter-carousel .embla__slide {
+    flex: 0 0 100%;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .parameter-carousel .embla__slide {
+    flex: 0 0 calc(50% - 0.5rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  .parameter-carousel .embla__slide {
+    flex: 0 0 calc(33.333% - 0.667rem);
+  }
+}
+
+/* Elastic scrolling effect */
+.parameter-carousel .embla__container {
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+/* Enhanced indicator styles */
+.carousel-indicator {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.carousel-indicator:hover {
+  transform: scale(1.1);
+}
+
+.carousel-indicator.active {
+  transform: scale(1.2);
+}
+
+/* Control panel button animations */
+.carousel-control-btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.carousel-control-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.carousel-control-btn:active {
+  transform: translateY(0);
+}
+
+/* Smooth card transitions */
+.parameter-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.parameter-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
