@@ -1,46 +1,47 @@
 import { useState, useEffect, useRef } from "react";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Sun, Moon, Zap, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/ThemeContext";
 
 type Theme = {
   id: string;
   name: string;
+  icon: React.ReactNode;
+  description: string;
+  gradient: string;
 };
 
-// Ensure there's at least one theme
+// Curated premium themes with beautiful descriptions and icons
 const themes: Theme[] = [
-  { id: "light", name: "Light" },
-  { id: "dark", name: "Dark" },
-  { id: "cupcake", name: "Cupcake" },
-  { id: "bumblebee", name: "Bumblebee" },
-  { id: "emerald", name: "Emerald" },
-  { id: "corporate", name: "Corporate" },
-  { id: "synthwave", name: "Synthwave" },
-  { id: "retro", name: "Retro" },
-  { id: "cyberpunk", name: "Cyberpunk" },
-  { id: "valentine", name: "Valentine" },
-  { id: "halloween", name: "Halloween" },
-  { id: "garden", name: "Garden" },
-  { id: "forest", name: "Forest" },
-  { id: "aqua", name: "Aqua" },
-  { id: "lofi", name: "Lo-Fi" },
-  { id: "pastel", name: "Pastel" },
-  { id: "fantasy", name: "Fantasy" },
-  { id: "wireframe", name: "Wireframe" },
-  { id: "black", name: "Black" },
-  { id: "luxury", name: "Luxury" },
-  { id: "dracula", name: "Dracula" },
-  { id: "cmyk", name: "CMYK" },
-  { id: "autumn", name: "Autumn" },
-  { id: "business", name: "Business" },
-  { id: "acid", name: "Acid" },
-  { id: "lemonade", name: "Lemonade" },
-  { id: "night", name: "Night" },
-  { id: "coffee", name: "Coffee" },
-  { id: "winter", name: "Winter" },
+  { 
+    id: "light", 
+    name: "Light", 
+    icon: <Sun className="w-4 h-4" />,
+    description: "Clean & bright",
+    gradient: "from-amber-400 to-orange-500"
+  },
+  { 
+    id: "halloween", 
+    name: "Halloween", 
+    icon: <Flame className="w-4 h-4" />,
+    description: "Spooky & vibrant",
+    gradient: "from-orange-500 to-purple-600"
+  },
+  { 
+    id: "bumblebee", 
+    name: "Bumblebee", 
+    icon: <Zap className="w-4 h-4" />,
+    description: "Energetic & warm",
+    gradient: "from-yellow-400 to-amber-500"
+  },
+  { 
+    id: "dark", 
+    name: "Dark", 
+    icon: <Moon className="w-4 h-4" />,
+    description: "Elegant & sleek",
+    gradient: "from-slate-700 to-slate-900"
+  }
 ];
-
 
 export function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
@@ -69,46 +70,94 @@ export function ThemeSwitcher() {
     };
   }, [isOpen]);
 
-  // Find the current theme object or default to the first theme
-  // Using non-null assertion because we know themes array is not empty
+  // Find the current theme object or default to light
   const currentTheme = themes.find((t) => t.id === theme) || themes[0]!;
 
   return (
     <div className="relative z-[9999]" ref={dropdownRef}>
+      {/* Compact Theme Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-base-200/80 to-base-300/80 hover:from-base-200 hover:to-base-300 border border-base-300/50 shadow-sm hover:shadow-md transition-all duration-200 backdrop-blur-sm"
+        className="group flex items-center gap-2.5 px-3 py-2 rounded-xl bg-gradient-to-r from-base-100/90 to-base-200/90 hover:from-base-200/90 hover:to-base-300/90 border border-base-300/40 shadow-sm hover:shadow-lg transition-all duration-300 backdrop-blur-sm hover:scale-105 active:scale-95 theme-switcher-hover"
       >
-        <div className="w-3 h-3 rounded-full bg-gradient-to-br from-primary to-primary/60 shadow-sm"></div>
-        <span className="font-medium text-base-content">{currentTheme.name}</span>
-        <ChevronDown className={cn("h-4 w-4 transition-transform duration-200 text-base-content/60", isOpen ? "rotate-180" : "")} />
+        {/* Theme Icon with Gradient Background */}
+        <div className={cn(
+          "p-1.5 rounded-lg bg-gradient-to-br transition-all duration-300 group-hover:scale-110",
+          currentTheme.gradient
+        )}>
+          <div className="text-white">
+            {currentTheme.icon}
+          </div>
+        </div>
+        
+        {/* Theme Name */}
+        <span className="font-semibold text-sm text-base-content/90 group-hover:text-base-content transition-colors duration-200">
+          {currentTheme.name}
+        </span>
+        
+        {/* Chevron Icon */}
+        <ChevronDown className={cn(
+          "h-3.5 w-3.5 transition-all duration-300 text-base-content/50 group-hover:text-base-content/70", 
+          isOpen ? "rotate-180" : ""
+        )} />
       </button>
 
+      {/* Premium Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-64 p-3 rounded-2xl shadow-2xl bg-base-100/95 border border-base-300/50 z-[9999] max-h-[70vh] overflow-y-auto backdrop-blur-xl">
-          <div className="grid grid-cols-1 gap-1">
-            {themes.map((t) => (
+        <div className="absolute right-0 mt-2 w-56 p-2 rounded-2xl shadow-2xl bg-base-100/95 border border-base-300/30 z-[9999] backdrop-blur-xl animate-in fade-in-0 zoom-in-95">
+          <div className="space-y-1">
+            {themes.map((t, index) => (
               <button
                 key={t.id}
                 className={cn(
-                  "flex items-center justify-between px-4 py-3 text-left rounded-xl hover:bg-base-200/80 transition-all duration-200 group",
-                  theme === t.id && "bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30 shadow-sm"
+                  "group w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-xl transition-all duration-300 hover:bg-base-200/60 active:scale-95 scale-transition",
+                  theme === t.id && "bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/20 shadow-sm"
                 )}
+                style={{
+                  animationDelay: `${index * 50}ms`,
+                  animationName: 'slide-in-from-right-2',
+                  animationDuration: '200ms',
+                  animationFillMode: 'both',
+                  animationTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
                 onClick={() => handleThemeChange(t.id)}
               >
-                <div className="flex items-center gap-3">
+                {/* Theme Icon */}
+                <div className={cn(
+                  "p-1.5 rounded-lg transition-all duration-200 group-hover:scale-110",
+                  theme === t.id 
+                    ? `bg-gradient-to-br ${t.gradient} shadow-md` 
+                    : "bg-base-200/60 group-hover:bg-base-300/60"
+                )}>
                   <div className={cn(
-                    "w-3 h-3 rounded-full shadow-sm transition-all duration-200",
-                    theme === t.id 
-                      ? "bg-gradient-to-br from-primary to-primary/60 scale-110" 
-                      : "bg-gradient-to-br from-base-300 to-base-400 group-hover:from-base-200 group-hover:to-base-300"
-                  )}></div>
-                  <span className={cn(
-                    "font-medium transition-colors duration-200",
-                    theme === t.id ? "text-primary" : "text-base-content group-hover:text-base-content/80"
-                  )}>{t.name}</span>
+                    "transition-colors duration-200",
+                    theme === t.id ? "text-white" : "text-base-content/70 group-hover:text-base-content"
+                  )}>
+                    {t.icon}
+                  </div>
                 </div>
-                {theme === t.id && <Check className="h-4 w-4 text-primary" />}
+                
+                {/* Theme Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm text-base-content group-hover:text-base-content/90 transition-colors duration-200">
+                    {t.name}
+                  </div>
+                  <div className="text-xs text-base-content/60 group-hover:text-base-content/70 transition-colors duration-200 truncate">
+                    {t.description}
+                  </div>
+                </div>
+                
+                {/* Check Icon */}
+                {theme === t.id && (
+                  <div className="flex-shrink-0">
+                    <div className={cn(
+                      "p-1 rounded-full bg-gradient-to-br shadow-sm",
+                      t.gradient
+                    )}>
+                      <Check className="h-3 w-3 text-white" />
+                    </div>
+                  </div>
+                )}
               </button>
             ))}
           </div>
