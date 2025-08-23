@@ -38,6 +38,8 @@ export const clerkWebhookHandler = asyncHandler(
     // Create a new Svix instance with your secret.
     const wh = new Webhook(WEBHOOK_SECRET);
     logger.info('Webhook secret configured:', WEBHOOK_SECRET ? 'present' : 'missing');
+    logger.info('Webhook secret value (first 10 chars):', WEBHOOK_SECRET ? WEBHOOK_SECRET.substring(0, 10) + '...' : 'missing');
+    logger.info('Svix signature format:', svix_signature ? svix_signature.substring(0, 20) + '...' : 'missing');
 
     let evt: any;
 
