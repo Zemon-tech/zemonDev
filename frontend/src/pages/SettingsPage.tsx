@@ -475,10 +475,18 @@ function ProfileAccountSection() {
   const handleLogout = async () => {
     const getLandingRedirectUrl = () => {
       try {
+        // Use environment variable for landing URL
+        const landingUrl = import.meta.env.VITE_LANDING_URL;
+        if (landingUrl) {
+          return landingUrl;
+        }
+        
+        // Fallback to localhost for development
         const { hostname } = window.location;
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
           return 'http://localhost:3000/';
         }
+        
         return '/';
       } catch {
         return '/';
