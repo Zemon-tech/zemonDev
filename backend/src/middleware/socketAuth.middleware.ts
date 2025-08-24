@@ -1,6 +1,7 @@
 import { Socket } from 'socket.io';
 import { verifyToken } from '@clerk/clerk-sdk-node';
 import User, { IUser } from '../models/user.model'; // Import IUser
+import env from '../config/env';
 
 /**
  * Socket.IO authentication middleware
@@ -25,10 +26,10 @@ export const authenticateSocket = async (socket: Socket, next: Function) => {
     const tokenValue = token.split(' ')[1];
     
     try {
-      // Use Clerk's proper token verification
+      // Use Clerk's proper token verification with environment config
       const session = await verifyToken(tokenValue, {
-        secretKey: process.env.CLERK_SECRET_KEY,
-        issuer: process.env.CLERK_ISSUER || 'https://clerk.yourdomain.com'
+        secretKey: env.CLERK_SECRET_KEY,
+        issuer: env.CLERK_ISSUER
       });
       
       if (!session) {

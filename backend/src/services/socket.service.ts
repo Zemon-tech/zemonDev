@@ -6,6 +6,7 @@ import { ArenaMessage, ArenaChannel, UserChannelStatus } from '../models';
 import User from '../models/user.model'; // Add this import
 import mongoose from 'mongoose';
 import logger from '../utils/logger';
+import env from '../config/env';
 
 let io: SocketIOServer;
 
@@ -17,10 +18,9 @@ let io: SocketIOServer;
 export const initializeSocketIO = (server: HttpServer) => {
   try {
     const allowedOrigins = [
-      process.env.CORS_ORIGIN || 'http://localhost:5173',
-      'http://localhost:5175', 
-      'https://quild.vercel.app'
-    ];
+      env.CORS_ORIGIN,
+      // Add any additional allowed origins here if needed
+    ].filter(Boolean); // Remove any undefined values
 
     io = new SocketIOServer(server, {
       cors: {

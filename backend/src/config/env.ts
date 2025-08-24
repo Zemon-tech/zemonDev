@@ -16,6 +16,8 @@ interface EnvConfig {
   GEMINI_PRO_API_KEY: string;
   SERPAPI_KEY: string;
   CLERK_SECRET_KEY: string;
+  CLERK_JWT_KEY: string;
+  CLERK_ISSUER: string;
   CORS_ORIGIN: string;
   ENABLE_CHANGE_STREAMS: boolean;
 }
@@ -33,6 +35,8 @@ const env: EnvConfig = {
   GEMINI_PRO_API_KEY: process.env.GEMINI_PRO_API_KEY || '',
   SERPAPI_KEY: process.env.SERPAPI_KEY || '',
   CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || '',
+  CLERK_JWT_KEY: process.env.CLERK_JWT_KEY || '',
+  CLERK_ISSUER: process.env.CLERK_ISSUER || '',
   CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',
   ENABLE_CHANGE_STREAMS: process.env.ENABLE_CHANGE_STREAMS === 'true',
 };
@@ -52,6 +56,15 @@ const requiredEnvVars = [
 // Always validate Clerk Secret Key, regardless of environment
 if (!env.CLERK_SECRET_KEY) {
   throw new Error('FATAL ERROR: CLERK_SECRET_KEY is not defined.');
+}
+
+// Always validate Clerk JWT Key and Issuer, regardless of environment
+if (!env.CLERK_JWT_KEY) {
+  throw new Error('FATAL ERROR: CLERK_JWT_KEY is not defined.');
+}
+
+if (!env.CLERK_ISSUER) {
+  throw new Error('FATAL ERROR: CLERK_ISSUER is not defined.');
 }
 
 // In production, we strictly check other required environment variables

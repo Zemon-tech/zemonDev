@@ -15,6 +15,7 @@ import apiRoutes from './api';
 import errorMiddleware from './middleware/error.middleware';
 import AppError from './utils/AppError';
 import { initializeSocketIO } from './services/socket.service';
+import env from './config/env';
 
 // Initialize Express app
 const app = express();
@@ -32,10 +33,9 @@ app.use(cookieParser());
 
 // Define allowed origins
 const allowedOrigins = [
-  process.env.CORS_ORIGIN || 'http://localhost:5173',
-  'http://localhost:5175', 
-  'https://quild.vercel.app'
-];
+  env.CORS_ORIGIN,
+  // Add any additional allowed origins here if needed
+].filter(Boolean); // Remove any undefined values
 
 // CORS - must be before API routes
 app.use(
@@ -59,7 +59,7 @@ app.use(
 // Add Clerk authentication (but don't require it)
 app.use(ClerkExpressWithAuth({
   // Ensure Clerk properly handles the Bearer token in the Authorization header
-  jwtKey: process.env.CLERK_JWT_KEY,
+  jwtKey: env.CLERK_JWT_KEY,
   authorizedParties: allowedOrigins
 }));
 
