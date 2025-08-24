@@ -8,118 +8,6 @@ import { useAuth } from '@clerk/clerk-react';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
 import { useToast } from '../components/ui/toast';
 
-// Local fallback problems to show immediately without waiting for Redis
-const fallbackProblems = [
-  {
-    _id: '507f1f77bcf86cd799439011',
-    title: 'Design a URL Shortener (like bit.ly)',
-    description: 'Build a scalable service to shorten URLs, handle redirects, and track analytics. Consider database schema, unique code generation, and high availability.',
-    difficulty: 'easy',
-    category: 'system-design',
-    tags: ['database', 'api', 'scaling', 'backend'],
-    requirements: {
-      functional: [
-        'Design a system to shorten long URLs',
-        'Handle redirects efficiently',
-        'Track basic analytics (clicks, referrers)'
-      ],
-      nonFunctional: [
-        'Ensure high availability and scalability'
-      ]
-    },
-    constraints: [
-      'URLs must be unique',
-      'Shortened URLs should be as short as possible',
-      'System should handle high traffic',
-      'Analytics should be real-time'
-    ],
-    expectedOutcome: 'A scalable URL shortening service with analytics capabilities',
-    hints: [
-      'Consider using a hash function for URL generation',
-      'Think about caching strategies',
-      'Plan for database sharding'
-    ],
-    estimatedTime: 120,
-    learningObjectives: [
-      'Learn about hash functions',
-      'Understand scaling strategies',
-      'Implement efficient redirects'
-    ]
-  },
-  {
-    _id: '507f1f77bcf86cd799439012',
-    title: 'Real-Time Chat System',
-    description: 'Design a real-time chat application supporting 1:1 and group messaging, typing indicators, and message history. Discuss WebSocket usage and data storage.',
-    difficulty: 'medium',
-    category: 'web-development',
-    tags: ['realtime', 'api', 'scaling', 'frontend', 'backend'],
-    requirements: {
-      functional: [
-        'Support 1:1 and group messaging',
-        'Show typing indicators',
-        'Store message history'
-      ],
-      nonFunctional: [
-        'Support online/offline status'
-      ]
-    },
-    constraints: [
-      'Messages must be delivered in real-time',
-      'System must scale to millions of users',
-      'Message history should be searchable',
-      'Support offline message delivery'
-    ],
-    expectedOutcome: 'A real-time chat system with robust message delivery guarantees',
-    hints: [
-      'Consider WebSocket for real-time communication',
-      'Think about message delivery guarantees',
-      'Plan for message persistence'
-    ],
-    estimatedTime: 180,
-    learningObjectives: [
-      'Understand real-time communication',
-      'Learn about WebSocket implementation',
-      'Design scalable messaging systems'
-    ]
-  },
-  {
-    _id: '507f1f77bcf86cd799439013',
-    title: 'E-commerce Recommendation Engine',
-    description: 'Build a recommendation system that suggests products based on user behavior, purchase history, and collaborative filtering.',
-    difficulty: 'hard',
-    category: 'data-science',
-    tags: ['machine-learning', 'recommendations', 'algorithms', 'backend'],
-    requirements: {
-      functional: [
-        'Generate personalized product recommendations',
-        'Support multiple recommendation algorithms',
-        'Handle cold start problem for new users'
-      ],
-      nonFunctional: [
-        'Recommendations should load within 200ms',
-        'System should handle millions of products'
-      ]
-    },
-    constraints: [
-      'Must work with sparse user data',
-      'Should adapt to changing user preferences',
-      'Recommendations must be diverse and relevant'
-    ],
-    expectedOutcome: 'An intelligent recommendation engine that improves user engagement and sales',
-    hints: [
-      'Consider collaborative filtering approaches',
-      'Think about content-based filtering',
-      'Plan for A/B testing different algorithms'
-    ],
-    estimatedTime: 240,
-    learningObjectives: [
-      'Understand recommendation algorithms',
-      'Learn about collaborative filtering',
-      'Implement machine learning systems'
-    ]
-  }
-];
-
 // Problem categories with icons and colors
 const problemCategories = [
   {
@@ -219,31 +107,16 @@ export default function CruciblePage() {
   const { username } = useParams();
   const [hotProblems, setHotProblems] = useState<HotProblem[]>([]);
   const [problems, setProblems] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
   
-  // Initialize with fallback problems immediately
+  // Initialize and fetch data
   useEffect(() => {
     if (authLoaded && isSignedIn) {
-      // Set fallback problems immediately for instant display
-      setProblems(fallbackProblems);
-      
-      // Update category counts from fallback problems
-      const categoryCounts = fallbackProblems.reduce((acc: any, problem: any) => {
-        if (problem.category) {
-          acc[problem.category] = (acc[problem.category] || 0) + 1;
-        }
-        return acc;
-      }, {});
-      
-      // Update categories with counts
-      problemCategories.forEach(category => {
-        category.count = categoryCounts[category.id] || 0;
-      });
-      
-      // Then try to fetch fresh data from API
+      // Fetch data from API
       fetchProblems();
+      fetchTrendingProblems();
     }
   }, [authLoaded, isSignedIn]);
   
@@ -279,71 +152,46 @@ export default function CruciblePage() {
           category.count = categoryCounts[category.id] || 0;
         });
       }
-      // If API returns empty or fails, keep fallback problems
+      // If API returns empty or fails, show empty state
     } catch (err) {
       console.error('Error fetching problems from API:', err);
-      // Keep fallback problems, don't show error toast to user
-      // The page will continue to work with fallback data
+      setProblems([]);
+      toast({
+        title: 'Error loading problems',
+        description: 'Failed to load problems. Please try again later.',
+        variant: "error",
+      });
     } finally {
       setIsLoading(false);
     }
   };
   
-  // Load animations
-  useEffect(() => {
-    const loadAnimations = async () => {
-      try {
-        await Promise.all([
-          fetch('/Cat Movement.json'),
-          fetch('/Stress Management.json')
-        ]);
-        
-        // Removed as per edit hint
-        // setCatAnimation(catData); // Removed as per edit hint
-        // setStressAnimation(stressData); // Removed as per edit hint
-      } catch (error) {
-        console.error('Error loading animations:', error);
-      }
-    };
-    
-    loadAnimations();
-  }, []);
-
-  // Load trending problems from API
-  useEffect(() => {
-    const loadTrending = async () => {
-      try {
-        const trending = await getTrendingProblems(3);
-        const mapped: HotProblem[] = (trending as ITrendingProblem[]).map((t) => ({
-          id: t.problemId,
-          title: t.title,
-          difficulty: t.difficulty,
-          category: t.category || 'general',
-          solvedCount: t.solvedCount,
-          trending: true,
-        }));
-        setHotProblems(mapped);
-      } catch (err) {
-        console.warn('Failed to load trending problems, falling back to empty list', err);
-        setHotProblems([]);
-      }
-    };
-    loadTrending();
-  }, []);
+  // Fetch trending problems from API
+  const fetchTrendingProblems = async () => {
+    try {
+      const trending = await getTrendingProblems(3);
+      const mapped: HotProblem[] = (trending as ITrendingProblem[]).map((t) => ({
+        id: t.problemId,
+        title: t.title,
+        difficulty: t.difficulty,
+        category: t.category || 'general',
+        solvedCount: t.solvedCount,
+        trending: true,
+      }));
+      setHotProblems(mapped);
+    } catch (err) {
+      console.warn('Failed to load trending problems, falling back to empty list', err);
+      setHotProblems([]);
+    }
+  };
   
-  // Initial load is now handled in the initialization useEffect above
-
   // Handle category selection
   const handleCategoryClick = (categoryId: string) => {
-    // setSelectedCategory(categoryId); // Removed as per edit hint
     navigate(`/${username}/crucible/category/${categoryId}`);
   };
 
   // Handle hot problem click with analysis check
   const handleHotProblemClick = async (problemId: string) => {
-    // Set loading state for this problem
-    // setCheckingAnalysis(problemId); // Removed as per edit hint
-    
     try {
       // Check if user is reattempting this problem
       const isReattempting = sessionStorage.getItem(`reattempting_${problemId}`);
@@ -370,9 +218,6 @@ export default function CruciblePage() {
       // If there's an error checking analysis, fall back to normal navigation
       console.warn('Error checking analysis, falling back to problem page:', error);
       navigate(`/${username}/crucible/problem/${problemId}`);
-    } finally {
-      // Clear loading state
-      // setCheckingAnalysis(null); // Removed as per edit hint
     }
   };
 
@@ -551,58 +396,46 @@ export default function CruciblePage() {
         </div>
 
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-           {hotProblems.map((problem) => (
-             <div key={problem.id} onClick={() => handleHotProblemClick(problem.id)}>
-               <SpotlightCard className="cursor-pointer">
-                 <div className={cn(
-                   "p-5 rounded-2xl border border-base-300/50 hover:border-primary/40 hover:shadow-lg transition-all duration-300 group relative h-64 w-full bg-gradient-to-br from-base-100 to-base-50/50 backdrop-blur-sm",
-                   // Removed checkingAnalysis === problem.id && "opacity-75" // Removed as per edit hint
-                 )}>
-                   {/* Removed checkingAnalysis === problem.id && ( // Removed as per edit hint
-                     <div className="absolute inset-0 bg-base-100/80 backdrop-blur-sm rounded-xl flex items-center justify-center z-10">
-                       <div className="flex items-center gap-2 text-primary">
-                         <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-                         <span className="text-sm">Checking...</span>
-                       </div>
-                     </div>
-                   ) */}
-                   
-                   {/* Difficulty Badge and Trending Icon */}
-                   <div className="flex items-start justify-between mb-4">
-                     <Badge className={cn("text-xs font-medium px-2.5 py-1 rounded-full", getDifficultyColor(problem.difficulty))}>
-                       {problem.difficulty}
-                     </Badge>
-                     {problem.trending && (
-                       <div className="w-8 h-8 bg-orange-500/20 rounded-full flex items-center justify-center">
-                         <TrendingUp className="w-4 h-4 text-orange-500" />
-                       </div>
-                     )}
-                   </div>
-                   
-                   {/* Problem Title */}
-                   <h3 className="problem-title font-bold text-base-content text-lg mb-4 group-hover:text-primary transition-colors min-h-[3.5rem]">
-                     {problem.title}
-                   </h3>
-                   
-                   {/* Bottom Info Bar */}
-                   <div className="flex items-center justify-between text-xs text-base-content/60 absolute bottom-5 left-5 right-5">
-                     <div className="flex items-center gap-2 bg-base-200/50 dark:bg-base-700/50 px-3 py-1.5 rounded-full">
-                       <Users className="w-3.5 h-3.5" />
-                       <span className="font-medium">{problem.solvedCount} solved</span>
-                     </div>
-                     <div className="flex items-center gap-2 bg-base-200/50 dark:bg-base-700/50 px-3 py-1.5 rounded-full">
-                       <Clock className="w-3.5 h-3.5" />
-                       <span className="font-medium">Latest</span>
-                     </div>
-                   </div>
-                   
-                   {/* Hover Effect Overlay */}
-                   <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
-                 </div>
-               </SpotlightCard>
-             </div>
-           ))}
-         </div>
+            {hotProblems.map((problem) => (
+              <div key={problem.id} onClick={() => handleHotProblemClick(problem.id)}>
+                <SpotlightCard className="cursor-pointer">
+                  <div className="p-5 rounded-2xl border border-base-300/50 hover:border-primary/40 hover:shadow-lg transition-all duration-300 group relative h-64 w-full bg-gradient-to-br from-base-100 to-base-50/50 backdrop-blur-sm">
+                    {/* Difficulty Badge and Trending Icon */}
+                    <div className="flex items-start justify-between mb-4">
+                      <Badge className={cn("text-xs font-medium px-2.5 py-1 rounded-full", getDifficultyColor(problem.difficulty))}>
+                        {problem.difficulty}
+                      </Badge>
+                      {problem.trending && (
+                        <div className="w-8 h-8 bg-orange-500/20 rounded-full flex items-center justify-center">
+                          <TrendingUp className="w-4 h-4 text-orange-500" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Problem Title */}
+                    <h3 className="problem-title font-bold text-base-content text-lg mb-4 group-hover:text-primary transition-colors min-h-[3.5rem]">
+                      {problem.title}
+                    </h3>
+                    
+                    {/* Bottom Info Bar */}
+                    <div className="flex items-center justify-between text-xs text-base-content/60 absolute bottom-5 left-5 right-5">
+                      <div className="flex items-center gap-2 bg-base-200/50 dark:bg-base-700/50 px-3 py-1.5 rounded-full">
+                        <Users className="w-3.5 h-3.5" />
+                        <span className="font-medium">{problem.solvedCount} solved</span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-base-200/50 dark:bg-base-700/50 px-3 py-1.5 rounded-full">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span className="font-medium">Latest</span>
+                      </div>
+                    </div>
+                    
+                    {/* Hover Effect Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
+                  </div>
+                </SpotlightCard>
+              </div>
+            ))}
+          </div>
       </div>
 
 
