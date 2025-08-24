@@ -387,6 +387,46 @@ export default function CruciblePage() {
     }
   };
 
+  // Add custom styles for line-clamp functionality
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-break: break-word;
+      }
+      
+      .line-clamp-3 {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-break: break-word;
+      }
+      
+      /* Ensure titles don't wrap and are properly truncated */
+      .problem-title {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-break: break-word;
+        line-height: 1.2;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-base-100 via-base-50 to-base-100">
       {/* Categories Section */}
@@ -399,18 +439,30 @@ export default function CruciblePage() {
           {problemCategories.map((category) => (
             <div key={category.id} onClick={() => handleCategoryClick(category.id)}>
               <SpotlightCard className="cursor-pointer">
-                <div className={`p-6 rounded-xl border-2 transition-all duration-300 ${category.bgColor} ${category.borderColor} hover:border-opacity-40 h-full`}> 
-                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                <div className={`p-5 rounded-2xl border-2 transition-all duration-300 ${category.bgColor} ${category.borderColor} hover:border-opacity-60 hover:shadow-lg h-64 w-full backdrop-blur-sm`}> 
+                  {/* Category Icon */}
+                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${category.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg`}>
                     <category.icon className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold text-base-content mb-2">{category.name}</h3>
-                  <p className="text-sm text-base-content/70 mb-4 line-clamp-2">{category.description}</p>
-                  <div className="flex items-center justify-between">
-                    <Badge variant="secondary" className="text-xs">
+                  
+                  {/* Category Name */}
+                  <h3 className="text-lg font-bold text-base-content mb-3 leading-tight">{category.name}</h3>
+                  
+                  {/* Category Description */}
+                  <p className="text-sm text-base-content/70 leading-relaxed mb-5 line-clamp-2 min-h-[2.5rem] overflow-hidden">{category.description}</p>
+                  
+                  {/* Bottom Info Bar */}
+                  <div className="flex items-center justify-between absolute bottom-5 left-5 right-5">
+                    <Badge variant="secondary" className="text-xs font-medium px-2.5 py-1 rounded-full bg-base-200/80 dark:bg-base-700/80">
                       {category.count} problems
                     </Badge>
-                    <ArrowRight className="w-4 h-4 text-base-content/40 group-hover:text-primary transition-colors" />
+                    <div className="w-8 h-8 bg-base-200/50 dark:bg-base-700/50 rounded-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                      <ArrowRight className="w-4 h-4 text-base-content/60 group-hover:text-primary transition-colors" />
+                    </div>
                   </div>
+                  
+                  {/* Hover Effect Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-base-content/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
                 </div>
               </SpotlightCard>
             </div>
@@ -439,31 +491,41 @@ export default function CruciblePage() {
           {problems.map((problem) => (
             <div key={problem._id} onClick={() => handleHotProblemClick(problem._id)}>
               <SpotlightCard className="cursor-pointer">
-                <div className="p-6 rounded-xl border border-base-300 hover:border-primary/30 transition-all duration-300 group relative">
-                  <div className="flex items-start justify-between mb-3">
-                    <Badge className={cn("text-xs", getDifficultyColor(problem.difficulty))}>
+                <div className="p-5 rounded-2xl border border-base-300/50 hover:border-primary/40 hover:shadow-lg transition-all duration-300 group relative h-72 w-full bg-gradient-to-br from-base-100 to-base-50/50 backdrop-blur-sm">
+                  {/* Difficulty and Category Badges */}
+                  <div className="flex items-start justify-between mb-4">
+                    <Badge className={cn("text-xs font-medium px-2.5 py-1 rounded-full", getDifficultyColor(problem.difficulty))}>
                       {problem.difficulty}
                     </Badge>
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs font-medium px-2.5 py-1 rounded-full border-base-300/60 text-base-content/70">
                       {problem.category}
                     </Badge>
                   </div>
-                  <h3 className="font-semibold text-base-content mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                  
+                  {/* Problem Title */}
+                  <h3 className="problem-title font-bold text-base-content text-lg mb-3 group-hover:text-primary transition-colors min-h-[3.5rem]">
                     {problem.title}
                   </h3>
-                  <p className="text-sm text-base-content/70 mb-4 line-clamp-3">
+                  
+                  {/* Problem Description */}
+                  <p className="text-sm text-base-content/70 leading-relaxed mb-5 line-clamp-3 min-h-[4rem]">
                     {problem.description}
                   </p>
-                  <div className="flex items-center justify-between text-sm text-base-content/60">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      {problem.estimatedTime} min
+                  
+                  {/* Bottom Info Bar */}
+                  <div className="flex items-center justify-between text-xs text-base-content/60 absolute bottom-5 left-5 right-5">
+                    <div className="flex items-center gap-2 bg-base-200/50 dark:bg-base-700/50 px-3 py-1.5 rounded-full">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span className="font-medium">{problem.estimatedTime}m</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Target className="w-4 h-4" />
-                      {problem.tags.slice(0, 2).join(', ')}
+                    <div className="flex items-center gap-2 bg-base-200/50 dark:bg-base-700/50 px-3 py-1.5 rounded-full">
+                      <Target className="w-3.5 h-3.5" />
+                      <span className="font-medium">{problem.tags.slice(0, 2).join(', ')}</span>
                     </div>
                   </div>
+                  
+                  {/* Hover Effect Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
                 </div>
               </SpotlightCard>
             </div>
@@ -493,7 +555,7 @@ export default function CruciblePage() {
              <div key={problem.id} onClick={() => handleHotProblemClick(problem.id)}>
                <SpotlightCard className="cursor-pointer">
                  <div className={cn(
-                   "p-6 rounded-xl border border-base-300 hover:border-primary/30 transition-all duration-300 group relative",
+                   "p-5 rounded-2xl border border-base-300/50 hover:border-primary/40 hover:shadow-lg transition-all duration-300 group relative h-64 w-full bg-gradient-to-br from-base-100 to-base-50/50 backdrop-blur-sm",
                    // Removed checkingAnalysis === problem.id && "opacity-75" // Removed as per edit hint
                  )}>
                    {/* Removed checkingAnalysis === problem.id && ( // Removed as per edit hint
@@ -504,27 +566,38 @@ export default function CruciblePage() {
                        </div>
                      </div>
                    ) */}
-                   <div className="flex items-start justify-between mb-3">
-                     <Badge className={cn("text-xs", getDifficultyColor(problem.difficulty))}>
+                   
+                   {/* Difficulty Badge and Trending Icon */}
+                   <div className="flex items-start justify-between mb-4">
+                     <Badge className={cn("text-xs font-medium px-2.5 py-1 rounded-full", getDifficultyColor(problem.difficulty))}>
                        {problem.difficulty}
                      </Badge>
                      {problem.trending && (
-                       <TrendingUp className="w-4 h-4 text-orange-500" />
+                       <div className="w-8 h-8 bg-orange-500/20 rounded-full flex items-center justify-center">
+                         <TrendingUp className="w-4 h-4 text-orange-500" />
+                       </div>
                      )}
                    </div>
-                   <h3 className="font-semibold text-base-content mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                   
+                   {/* Problem Title */}
+                   <h3 className="problem-title font-bold text-base-content text-lg mb-4 group-hover:text-primary transition-colors min-h-[3.5rem]">
                      {problem.title}
                    </h3>
-                   <div className="flex items-center justify-between text-sm text-base-content/60">
-                     <div className="flex items-center gap-1">
-                       <Users className="w-4 h-4" />
-                       {problem.solvedCount} solved
+                   
+                   {/* Bottom Info Bar */}
+                   <div className="flex items-center justify-between text-xs text-base-content/60 absolute bottom-5 left-5 right-5">
+                     <div className="flex items-center gap-2 bg-base-200/50 dark:bg-base-700/50 px-3 py-1.5 rounded-full">
+                       <Users className="w-3.5 h-3.5" />
+                       <span className="font-medium">{problem.solvedCount} solved</span>
                      </div>
-                     <div className="flex items-center gap-1">
-                       <Clock className="w-4 h-4" />
-                       Latest
+                     <div className="flex items-center gap-2 bg-base-200/50 dark:bg-base-700/50 px-3 py-1.5 rounded-full">
+                       <Clock className="w-3.5 h-3.5" />
+                       <span className="font-medium">Latest</span>
                      </div>
                    </div>
+                   
+                   {/* Hover Effect Overlay */}
+                   <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
                  </div>
                </SpotlightCard>
              </div>
