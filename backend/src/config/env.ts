@@ -14,6 +14,7 @@ interface EnvConfig {
   UPSTASH_VECTOR_REST_TOKEN: string;
   GEMINI_API_KEY: string;
   GEMINI_PRO_API_KEY: string;
+  SERPAPI_KEY: string;
   CLERK_SECRET_KEY: string;
   CORS_ORIGIN: string;
   ENABLE_CHANGE_STREAMS: boolean;
@@ -30,6 +31,7 @@ const env: EnvConfig = {
   UPSTASH_VECTOR_REST_TOKEN: process.env.UPSTASH_VECTOR_REST_TOKEN || '',
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
   GEMINI_PRO_API_KEY: process.env.GEMINI_PRO_API_KEY || '',
+  SERPAPI_KEY: process.env.SERPAPI_KEY || '',
   CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || '',
   CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',
   ENABLE_CHANGE_STREAMS: process.env.ENABLE_CHANGE_STREAMS === 'true',
@@ -44,6 +46,7 @@ const requiredEnvVars = [
   'UPSTASH_VECTOR_REST_TOKEN',
   'GEMINI_API_KEY',
   'GEMINI_PRO_API_KEY',
+  'SERPAPI_KEY',
 ];
 
 // Always validate Clerk Secret Key, regardless of environment
@@ -67,6 +70,7 @@ if (env.NODE_ENV === 'development') {
     'UPSTASH_VECTOR_REST_TOKEN',
     'GEMINI_API_KEY',
     'GEMINI_PRO_API_KEY',
+    'SERPAPI_KEY',
   ];
   
   for (const key of ragSystemVars) {

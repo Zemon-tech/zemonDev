@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import asyncHandler from '../utils/asyncHandler';
 import AppError from '../utils/AppError';
 import ApiResponse from '../utils/ApiResponse';
-import { analyzeSolution, generateHints, generateChatResponse } from '../services/ai.service';
+import { analyzeSolution, generateHints, generateChatResponse, generateEnhancedChatResponse } from '../services/ai.service';
 import { CrucibleProblem } from '../models';
 
 /**
@@ -107,6 +107,52 @@ export const askAI = asyncHandler(
       new ApiResponse(
         200,
         'AI response generated successfully',
+        aiResponse
+      )
+    );
+  }
+);
+
+/**
+ * @desc    Ask a question to the AI assistant with intelligent web search integration
+ * @route   POST /api/ai/ask-enhanced
+ * @access  Private
+ */
+export const askAIEnhanced = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { userMessage, problemId, solutionDraftContent, messages } = req.body;
+
+    if (!userMessage || !problemId) {
+      return next(new AppError('Both userMessage and problemId are required', 400));
+    }
+    
+    // Fetch the problem details
+    const problem = await CrucibleProblem.findById(problemId);
+    if (!problem) {
+      return next(new AppError('Problem not found', 404));
+    }
+
+    // Prepare chat messages
+    const chatMessages = messages || [];
+    // Add the current user message
+    chatMessages.push({
+      role: 'user',
+      content: userMessage,
+      timestamp: new Date()
+    });
+
+    // Call enhanced AI service with intelligent web search capabilities
+    // The AI service will automatically determine if web search is needed
+    const aiResponse = await generateEnhancedChatResponse(
+      chatMessages,
+      problem,
+      solutionDraftContent
+    );
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        'Enhanced AI response with intelligent web search generated successfully',
         aiResponse
       )
     );

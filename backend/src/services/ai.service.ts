@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI, GenerationConfig, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import { ICrucibleProblem } from '../models';
+import { performWebSearch, searchNews, searchScholar, getAnswerBox } from './serpapi.service';
 
 // --- INTERFACES ---
 
@@ -24,6 +25,15 @@ export interface IChatResponse {
 export interface IStreamingChatResponse {
   content: string;
   isComplete: boolean;
+  error?: string;
+}
+
+export interface IEnhancedChatResponse {
+  message: string;
+  webSearchResults?: any;
+  newsResults?: any;
+  scholarResults?: any;
+  answerBox?: any;
   error?: string;
 }
 
@@ -72,7 +82,7 @@ const model = genAI.getGenerativeModel({
 // --- HELPER FUNCTIONS ---
 
 const safeJsonParse = <T>(text: string): T | null => {
-  const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+  const cleanedText = text.replace(/``````/g, '').trim();
   try {
     return JSON.parse(cleanedText) as T;
   } catch (e) {
@@ -91,10 +101,92 @@ const formatChatHistory = (messages: IChatMessage[]): string => {
     .join('\n\n');
 };
 
+// Intelligent web search detection
+const shouldUseWebSearch = (userMessage: string): boolean => {
+  const searchKeywords = [
+    'search', 'find', 'latest', 'news', 'research', 'current', 'recent',
+    'today', 'yesterday', 'this week', 'this month', 'this year',
+    'update', 'trend', 'trending', 'popular', 'new', 'recently',
+    'what is', 'how to', 'where to', 'when did', 'who is',
+    'latest version', 'current status', 'recent developments',
+    'breaking news', 'latest research', 'current events',
+    'recent changes', 'latest updates', 'current trends'
+  ];
+  
+  const message = userMessage.toLowerCase();
+  
+  // Check for explicit search requests
+  if (searchKeywords.some(keyword => message.includes(keyword))) {
+    return true;
+  }
+  
+  // Check for time-sensitive queries
+  const timeIndicators = ['now', 'today', 'current', 'latest', 'recent'];
+  if (timeIndicators.some(indicator => message.includes(indicator))) {
+    return true;
+  }
+  
+  // Check for factual queries that might need current information
+  const factualPatterns = [
+    /\bwhat (is|are)\b/i,
+    /\bhow (does|do|can|should)\b/i,
+    /\bwhen (did|does|will)\b/i,
+    /\bwhere (is|are|can|should)\b/i,
+    /\bwho (is|are|can|should)\b/i
+  ];
+  
+  if (factualPatterns.some(pattern => pattern.test(message))) {
+    return true;
+  }
+  
+  return false;
+};
+
+// Perform intelligent web search based on user query
+const performIntelligentWebSearch = async (userMessage: string) => {
+  try {
+    // Extract the most relevant search terms from the user message
+    const searchQuery = userMessage
+      .replace(/\b(what|how|when|where|who|is|are|can|should|does|do|will|did)\b/gi, '')
+      .replace(/\b(search|find|look|get|tell|show)\b/gi, '')
+      .trim();
+    
+    if (!searchQuery || searchQuery.length < 3) {
+      return null;
+    }
+    
+    console.log(`🔍 Performing intelligent web search for: "${searchQuery}"`);
+    
+    // Perform multiple types of searches for comprehensive results
+    const [webSearch, newsSearch, scholarSearch, answerBoxData] = await Promise.allSettled([
+      performWebSearch(searchQuery, 5),
+      searchNews(searchQuery, 3),
+      searchScholar(searchQuery, 3),
+      getAnswerBox(searchQuery)
+    ]);
+    
+    const results = {
+      query: searchQuery,
+      webSearch: webSearch.status === 'fulfilled' ? webSearch.value : null,
+      newsSearch: newsSearch.status === 'fulfilled' ? newsSearch.value : null,
+      scholarSearch: scholarSearch.status === 'fulfilled' ? scholarSearch.value : null,
+      answerBox: answerBoxData.status === 'fulfilled' ? answerBoxData.value : null,
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log(`✅ Web search completed for "${searchQuery}"`);
+    return results;
+    
+  } catch (error) {
+    console.warn('Web search failed:', error);
+    return null;
+  }
+};
+
 // --- CORE AI SERVICES ---
 
 /**
- * Generates a chat response using Gemini AI.
+ * Generates a chat response using Gemini AI with intelligent web search integration.
  * @param messages Array of previous chat messages
  * @param problemContext Optional problem context to help guide responses
  * @param solutionDraftContent Optional solution draft content to provide context
@@ -113,11 +205,72 @@ export const generateChatResponse = async (
   }
 
   try {
-    // Enhanced system prompt with better structure and safety
-    let prompt = `# 🚀 QUILD AI CODING ASSISTANT - SYSTEM PROMPT
+    // Get the last user message to determine if web search is needed
+    const lastUserMessage = messages.filter(msg => msg.role === 'user').pop();
+    const shouldSearch = lastUserMessage && shouldUseWebSearch(lastUserMessage.content);
+    
+    let webSearchResults = null;
+    
+    // Perform intelligent web search if needed
+    if (shouldSearch) {
+      console.log(`🌐 User query suggests web search is needed: "${lastUserMessage.content}"`);
+      webSearchResults = await performIntelligentWebSearch(lastUserMessage.content);
+    }
+
+    // Enhanced system prompt with intelligent web search integration
+    let prompt = `# 🚀 QUILD AI CODING ASSISTANT - INTELLIGENT MODE
 
 ## 🎯 CORE IDENTITY & PURPOSE
 You are **QUILD**, an advanced AI coding assistant specifically designed for engineering students. Your mission is to be the ultimate **thinking partner** and **problem-solving catalyst** - not a solution provider, but a strategic guide who helps students develop their own problem-solving skills.
+
+## 🌐 INTELLIGENT WEB SEARCH INTEGRATION
+${webSearchResults ? `
+**🔍 WEB SEARCH CONTEXT AVAILABLE**
+I have performed an intelligent web search for your query: "${lastUserMessage?.content}"
+
+**📊 SEARCH RESULTS SUMMARY:**
+- **Web Results**: ${webSearchResults.webSearch?.totalResults || 0} general results
+- **News Results**: ${webSearchResults.newsSearch?.totalResults || 0} recent news articles
+- **Scholar Results**: ${webSearchResults.scholarSearch?.totalResults || 0} academic sources
+- **Quick Facts**: ${webSearchResults.answerBox ? 'Available' : 'Not available'}
+
+**📋 DETAILED SEARCH CONTEXT:**
+${webSearchResults.webSearch ? `
+**Top Web Results:**
+${webSearchResults.webSearch.results?.slice(0, 3).map((result: any, index: number) => 
+  `${index + 1}. **${result.title}**\n   - Source: ${result.source || 'Unknown'}\n   - Snippet: ${result.snippet || 'No description available'}`
+).join('\n\n') || 'No web results available'}
+` : ''}
+
+${webSearchResults.newsSearch && webSearchResults.newsSearch.news ? `
+**Recent News:**
+${webSearchResults.newsSearch.news.slice(0, 2).map((result: any, index: number) => 
+  `${index + 1}. **${result.title}**\n   - Source: ${result.source}\n   - Date: ${result.date}\n   - Snippet: ${result.snippet || 'No description available'}`
+).join('\n\n')}
+` : ''}
+
+${webSearchResults.scholarSearch && webSearchResults.scholarSearch.results ? `
+**Academic Sources:**
+${webSearchResults.scholarSearch.results.slice(0, 2).map((result: any, index: number) => 
+  `${index + 1}. **${result.title}**\n   - Authors: ${result.authors?.join(', ') || 'Unknown'}\n   - Publication: ${result.publication || 'Unknown'}\n   - Year: ${result.year || 'Unknown'}`
+).join('\n\n')}
+` : ''}
+
+${webSearchResults.answerBox ? `
+**Quick Facts:**
+${webSearchResults.answerBox.answerBox ? JSON.stringify(webSearchResults.answerBox.answerBox, null, 2) : 'No answer box data available'}
+` : ''}
+
+**🎯 HOW TO USE THIS INFORMATION:**
+- **Incorporate current information** from web search results when relevant
+- **Reference specific sources** when providing factual information
+- **Use recent news and developments** to provide up-to-date guidance
+- **Maintain your role** as a strategic guide, not just an information source
+- **Combine web knowledge** with your existing expertise for comprehensive guidance
+` : `
+**🔍 NO WEB SEARCH PERFORMED**
+I am working with my existing knowledge base. If you need current information, recent developments, or specific factual details, please rephrase your question to include search-related keywords like "search for", "find", "latest", "current", "recent", etc.
+`}
 
 ## 🧠 RESPONSE PHILOSOPHY & APPROACH
 - **STIMULATE THINKING**: Ask probing questions that guide users to discover solutions themselves
@@ -125,6 +278,7 @@ You are **QUILD**, an advanced AI coding assistant specifically designed for eng
 - **KNOWLEDGE ACTIVATION**: Remind users of relevant concepts, algorithms, and approaches they should consider
 - **CONSTRUCTIVE FEEDBACK**: Provide insights that help users improve their problem-solving approach
 - **CONTEXTUAL AWARENESS**: Adapt your response style based on the user's current situation and needs
+- **CURRENT INFORMATION**: When web search results are available, use them to provide up-to-date, accurate information
 
 ## 🛡️ SAFETY BOUNDARIES & LIMITATIONS
 ### ✅ WHAT YOU CAN DO
@@ -135,6 +289,8 @@ You are **QUILD**, an advanced AI coding assistant specifically designed for eng
 - Share best practices and coding principles
 - Help identify edge cases and potential issues
 - Suggest testing approaches and validation strategies
+- Use web search results to provide current, factual information
+- Reference specific sources when appropriate
 
 ### ❌ WHAT YOU CANNOT DO
 - Write complete solutions or implementations
@@ -169,6 +325,13 @@ You are **QUILD**, an advanced AI coding assistant specifically designed for eng
 1. [Actionable step 1]
 2. [Actionable step 2]
 
+${webSearchResults ? `
+**🌐 Current Information Sources:**
+- [Reference specific web search results when relevant]
+- [Cite news or academic sources when appropriate]
+- [Use quick facts to support your guidance]
+` : ''}
+
 ### **For casual interactions:**
 Keep responses friendly, brief, and natural. Use appropriate emojis and maintain a supportive tone.
 
@@ -183,6 +346,7 @@ Keep responses friendly, brief, and natural. Use appropriate emojis and maintain
 - **Numbered lists** for step-by-step guidance or sequential information
 - **Blockquotes** for important notes, warnings, or key insights
 - **Inline code** for technical terms, function names, or specific syntax
+- **Links** to reference web search results when appropriate
 
 ## 📝 MARKDOWN CAPABILITIES
 The chat interface supports full markdown rendering including:
@@ -223,6 +387,7 @@ The chat interface supports full markdown rendering including:
 - Complex problem decomposition is needed
 - Multiple concepts need to be connected
 - Step-by-step guidance is requested
+- Web search results provide substantial additional context
 
 **Be smart - match response length to input complexity!**
 
@@ -232,24 +397,28 @@ The chat interface supports full markdown rendering including:
 - Ask **clarifying questions** about requirements
 - Suggest **research directions** and relevant concepts
 - Help identify **what specific aspect** they're struggling with
+- Use web search results to provide current best practices or recent developments
 
 ### **Strategy Development Mode** (when planning approach):
 - Help **break down** the problem into logical steps
 - Suggest **multiple approaches** to consider
 - Identify **trade-offs** between different strategies
 - Recommend **relevant algorithms** or data structures
+- Incorporate current industry trends or research findings from web search
 
 ### **Code Review Mode** (when analyzing existing code):
 - Focus on **approach and logic** rather than syntax
 - Identify **potential improvements** in structure or efficiency
 - Suggest **better patterns** or practices to consider
 - Point out **edge cases** that might be missed
+- Reference current best practices from web search results
 
 ### **Learning Mode** (when explaining concepts):
 - Provide **conceptual understanding** rather than memorization
 - Connect concepts to **real-world applications**
 - Suggest **practice problems** or exercises
 - Recommend **additional resources** for deeper learning
+- Use current examples or recent developments from web search
 
 ## 🚫 CONTENT RESTRICTIONS
 - **No complete code solutions** - only snippets, examples, or pseudocode
@@ -265,6 +434,8 @@ The chat interface supports full markdown rendering including:
 - **Stay focused** - address the specific question or concern
 - **Be encouraging** - maintain a positive, supportive tone
 - **Validate understanding** - ask clarifying questions when needed
+- **Use current information** - when web search results are available, incorporate them thoughtfully
+- **Cite sources appropriately** - reference web search results when providing factual information
 
 ## 🔧 TOOL UTILIZATION
 - **Leverage your knowledge** of programming concepts, algorithms, and best practices
@@ -272,8 +443,10 @@ The chat interface supports full markdown rendering including:
 - **Provide specific examples** when helpful (but not complete solutions)
 - **Reference relevant concepts** that users should research or understand
 - **Create logical flow** in your responses to guide users through their thinking process
+- **Integrate web search results** intelligently to provide current, accurate information
+- **Reference specific sources** when using web search results to maintain credibility
 
-Remember: Your goal is to make users **better problem solvers**, not to solve problems for them. Every interaction should leave them with a clearer understanding of how to approach their challenges strategically.`;
+Remember: Your goal is to make users **better problem solvers**, not to solve problems for them. Every interaction should leave them with a clearer understanding of how to approach their challenges strategically. When web search results are available, use them to enhance your guidance with current, relevant information while maintaining your role as a strategic guide.`;
 
     // Add problem context if available
     if (problemContext) {
@@ -307,8 +480,9 @@ Remember: Your goal is to make users **better problem solvers**, not to solve pr
     prompt += `- **If it's a technical question**: Provide strategic guidance using the structured format\n`;
     prompt += `- **If they're stuck**: Help them identify what specific aspect they're struggling with\n`;
     prompt += `- **If they need strategy**: Help break down the problem and suggest approaches\n`;
-    prompt += `- **If they're reviewing code**: Focus on approach and logic, not syntax fixes\n\n`;
-    prompt += `**Remember**: Your goal is to make them better problem solvers, not solve problems for them. **Use your brain to determine response length - be brief for simple inputs, detailed for complex questions.**`;
+    prompt += `- **If they're reviewing code**: Focus on approach and logic, not syntax fixes\n`;
+    prompt += `- **If web search results are available**: Use them to provide current, accurate information\n\n`;
+    prompt += `**Remember**: Your goal is to make them better problem solvers, not solve problems for them. **Use your brain to determine response length - be brief for simple inputs, detailed for complex questions.** When web search results are available, incorporate them thoughtfully to enhance your guidance.`;
 
     // Get the last user message
     const lastMessage = messages[messages.length - 1];
@@ -358,17 +532,66 @@ export const generateStreamingChatResponse = async function* (
   }
 
   try {
-    // Enhanced system prompt for streaming (optimized for chunking)
-    let prompt = `# 🚀 QUILD AI CODING ASSISTANT - STREAMING MODE
+    // Get the last user message to determine if web search is needed
+    const lastUserMessage = messages.filter(msg => msg.role === 'user').pop();
+    const shouldSearch = lastUserMessage && shouldUseWebSearch(lastUserMessage.content);
+    
+    let webSearchResults = null;
+    
+    // Perform intelligent web search if needed
+    if (shouldSearch) {
+      console.log(`🌐 User query suggests web search is needed: "${lastUserMessage.content}"`);
+      webSearchResults = await performIntelligentWebSearch(lastUserMessage.content);
+    }
+
+    // Enhanced system prompt for streaming with intelligent web search integration
+    let prompt = `# 🚀 QUILD AI CODING ASSISTANT - STREAMING MODE WITH INTELLIGENT WEB SEARCH
 
 ## 🎯 CORE IDENTITY
 You are QUILD, an advanced AI coding assistant for engineering students. Your mission: be a **thinking partner** who helps students develop problem-solving skills through strategic guidance, not complete solutions.
+
+## 🌐 INTELLIGENT WEB SEARCH INTEGRATION
+${webSearchResults ? `
+**🔍 WEB SEARCH CONTEXT AVAILABLE**
+I have performed an intelligent web search for your query: "${lastUserMessage?.content}"
+
+**📊 SEARCH RESULTS SUMMARY:**
+- **Web Results**: ${webSearchResults.webSearch?.totalResults || 0} general results
+- **News Results**: ${webSearchResults.newsSearch?.totalResults || 0} recent news articles
+- **Scholar Results**: ${webSearchResults.scholarSearch?.totalResults || 0} academic sources
+- **Quick Facts**: ${webSearchResults.answerBox ? 'Available' : 'Not available'}
+
+**📋 DETAILED SEARCH CONTEXT:**
+${webSearchResults.webSearch ? `
+**Top Web Results:**
+${webSearchResults.webSearch.results?.slice(0, 2).map((result: any, index: number) => 
+  `${index + 1}. **${result.title}**\n   - Source: ${result.source || 'Unknown'}\n   - Snippet: ${result.snippet || 'No description available'}`
+).join('\n\n') || 'No web results available'}
+` : ''}
+
+${webSearchResults.newsSearch && webSearchResults.newsSearch.news ? `
+**Recent News:**
+${webSearchResults.newsSearch.news.slice(0, 1).map((result: any, index: number) => 
+  `${index + 1}. **${result.title}**\n   - Source: ${result.source}\n   - Date: ${result.date}`
+).join('\n\n')}
+` : ''}
+
+**🎯 HOW TO USE THIS INFORMATION:**
+- **Incorporate current information** from web search results when relevant
+- **Reference specific sources** when providing factual information
+- **Use recent news and developments** to provide up-to-date guidance
+- **Maintain your role** as a strategic guide, not just an information source
+` : `
+**🔍 NO WEB SEARCH PERFORMED**
+I am working with my existing knowledge base. If you need current information, recent developments, or specific factual details, please rephrase your question to include search-related keywords like "search for", "find", "latest", "current", "recent", etc.
+`}
 
 ## 🧠 RESPONSE APPROACH
 - **STIMULATE THINKING** through strategic questions and guidance
 - **PROVIDE CONCEPTUAL FRAMEWORKS** for approaching problems
 - **ENCOURAGE RESEARCH** and deeper understanding
 - **FOCUS ON STRATEGY** rather than implementation details
+- **USE CURRENT INFORMATION** when web search results are available
 
 ## 🛡️ SAFETY BOUNDARIES
 ### ✅ ALLOWED
@@ -377,6 +600,8 @@ You are QUILD, an advanced AI coding assistant for engineering students. Your mi
 - Concept explanations and research directions
 - Best practices and principles
 - Debugging guidance (not fixes)
+- Current information from web search results
+- Source citations when appropriate
 
 ### ❌ FORBIDDEN
 - Complete code solutions
@@ -394,6 +619,8 @@ Use this format for technical responses:
 **📚 Concepts:** [Relevant topics to research]
 **⚠️ Challenges:** [Potential issues to watch for]
 **✅ Next Steps:** [Actionable next actions]
+${webSearchResults ? `
+**🌐 Current Information:** [Reference web search results when relevant]` : ''}
 
 ## 🎨 FORMATTING
 - Use **bold** for key concepts
@@ -412,7 +639,7 @@ Use this format for technical responses:
 - **SHORT (10-30 words)**: Greetings, simple questions, basic confirmations
 - **MEDIUM (50-100 words)**: Simple technical questions, basic clarifications
 - **DETAILED (100-200 words)**: Complex problems, strategy planning, detailed explanations
-- **EXTENDED (200+ words)**: ONLY when explicitly requested or complexity warrants it
+- **EXTENDED (200+ words)**: ONLY when explicitly requested, complexity warrants it, or web search results provide substantial additional context
 
 **Be smart - match response length to input complexity!**
 
@@ -421,8 +648,9 @@ Use this format for technical responses:
 - **Strategy development**: Help break down into logical steps
 - **Code review**: Focus on approach, not syntax
 - **Learning**: Provide conceptual understanding
+- **Current information**: Use web search results to provide up-to-date guidance
 
-Remember: Make users better problem solvers, don't solve for them.`;
+Remember: Make users better problem solvers, don't solve for them. When web search results are available, use them to enhance your guidance with current, relevant information while maintaining your role as a strategic guide.`;
 
     // Add problem context if available
     if (problemContext) {
@@ -448,7 +676,7 @@ Remember: Make users better problem solvers, don't solve for them.`;
     // Add chat history
     prompt += `\n\n## 💬 CONVERSATION ##\n`;
     prompt += formatChatHistory(messages);
-    prompt += `\n\n---\n\nRespond strategically to the user's latest message. Focus on guidance, not solutions. **Use your brain to determine response length - be brief for simple inputs, detailed for complex questions.**`;
+    prompt += `\n\n---\n\nRespond strategically to the user's latest message. Focus on guidance, not solutions. **Use your brain to determine response length - be brief for simple inputs, detailed for complex questions.** When web search results are available, incorporate them thoughtfully to enhance your guidance.`;
 
     // Get the last user message
     const lastMessage = messages[messages.length - 1];
@@ -583,15 +811,15 @@ Analyze the solution across these dimensions:
 **Description**: ${problem.description}
 **Difficulty**: ${problem.difficulty}
 **Functional Requirements**:
-    ${problem.requirements.functional.join('\n- ')}
+- ${problem.requirements.functional.join('\n- ')}
 **Constraints**:
-    ${problem.constraints.join('\n- ')}
+- ${problem.constraints.join('\n- ')}
 **Expected Outcome**: ${problem.expectedOutcome}
 
 ## 💻 STUDENT'S SOLUTION
-    \`\`\`
-    ${content}
-    \`\`\`
+\`\`\`
+${content}
+\`\`\`
 
 ## 🎯 ANALYSIS REQUIREMENTS
 Provide a **comprehensive analysis** that includes:
@@ -605,12 +833,12 @@ Provide a **comprehensive analysis** that includes:
 Return ONLY a clean JSON object with this exact structure:
 
 \`\`\`json
-    {
-      "score": number,
-      "feedback": "string",
-      "suggestions": ["string"],
-      "meetsRequirements": boolean
-    }
+{
+  "score": number,
+  "feedback": "string",
+  "suggestions": ["string"],
+  "meetsRequirements": boolean
+}
 \`\`\`
 
 ## 🎨 FEEDBACK GUIDELINES
@@ -705,7 +933,7 @@ Create **3 progressive hints** that follow this pattern:
 Return ONLY a clean JSON array of strings:
 
 \`\`\`json
-    ["hint 1", "hint 2", "hint 3"]
+["hint 1", "hint 2", "hint 3"]
 \`\`\`
 
 ## 🎨 HINT QUALITY STANDARDS
@@ -736,4 +964,161 @@ Remember: Your hints should **illuminate the path** without **walking the path**
     console.error("AI Service: Error in generateHints", error);
     return ["An error occurred while generating hints. Please try again later."];
   }
-}; 
+};
+
+/**
+ * Generates an enhanced chat response with web search capabilities
+ * @param messages Array of previous chat messages
+ * @param problemContext Optional problem context
+ * @param solutionDraftContent Optional solution draft content
+ * @param enableWebSearch Whether to enable web search for relevant queries
+ * @returns Enhanced chat response with web search results
+ */
+export const generateEnhancedChatResponse = async (
+  messages: IChatMessage[],
+  problemContext?: ICrucibleProblem,
+  solutionDraftContent?: string,
+  enableWebSearch: boolean = false
+): Promise<IEnhancedChatResponse> => {
+  if (!geminiApiKey) {
+    return {
+      message: "AI chat is disabled. No API key was provided.",
+      error: "MISSING_API_KEY"
+    };
+  }
+
+  try {
+    // Get the last user message to determine if web search is needed
+    const lastUserMessage = messages.filter(msg => msg.role === 'user').pop();
+    const shouldPerformWebSearch = enableWebSearch && lastUserMessage && 
+      (lastUserMessage.content.toLowerCase().includes('search') ||
+       lastUserMessage.content.toLowerCase().includes('find') ||
+       lastUserMessage.content.toLowerCase().includes('latest') ||
+       lastUserMessage.content.toLowerCase().includes('news') ||
+       lastUserMessage.content.toLowerCase().includes('research') ||
+       lastUserMessage.content.toLowerCase().includes('current') ||
+       lastUserMessage.content.toLowerCase().includes('recent'));
+
+    let webSearchResults = null;
+    let newsResults = null;
+    let scholarResults = null;
+    let answerBox = null;
+
+    // Perform web search if enabled and relevant
+    if (shouldPerformWebSearch) {
+      try {
+        const searchQuery = lastUserMessage!.content;
+        
+        // Perform multiple types of searches
+        const [webSearch, newsSearch, scholarSearch, answerBoxData] = await Promise.allSettled([
+          performWebSearch(searchQuery, 5),
+          searchNews(searchQuery, 5),
+          searchScholar(searchQuery, 5),
+          getAnswerBox(searchQuery)
+        ]);
+
+        if (webSearch.status === 'fulfilled') webSearchResults = webSearch.value;
+        if (newsSearch.status === 'fulfilled') newsResults = newsSearch.value;
+        if (scholarSearch.status === 'fulfilled') scholarResults = scholarSearch.value;
+        if (answerBoxData.status === 'fulfilled') answerBox = answerBoxData.value;
+      } catch (searchError) {
+        console.warn('Web search failed, continuing with AI response only:', searchError);
+      }
+    }
+
+    // Generate AI response with web search context
+    let enhancedPrompt = `# 🚀 QUILD AI CODING ASSISTANT - ENHANCED MODE
+
+## 🎯 CORE IDENTITY & PURPOSE
+You are **QUILD**, an advanced AI coding assistant specifically designed for engineering students. Your mission is to be the ultimate **thinking partner** and **problem-solving catalyst** - not a solution provider, but a strategic guide who helps students develop their own problem-solving skills.
+
+## 🌐 WEB SEARCH INTEGRATION
+${webSearchResults ? `**Web Search Results Available**: You have access to current web search results for: "${lastUserMessage?.content}"` : '**No Web Search Results**: You are working with your existing knowledge only.'}
+
+${webSearchResults ? `
+### 📊 WEB SEARCH CONTEXT
+**Search Query**: "${lastUserMessage?.content}"
+**Total Web Results**: ${webSearchResults.totalResults || 'Unknown'}
+**Search Time**: ${webSearchResults.searchTime || 'Unknown'}
+
+**Top Web Results**:
+${webSearchResults.results?.slice(0, 3).map((result: any, index: number) => 
+  `${index + 1}. **${result.title}**\n   - Source: ${result.source || 'Unknown'}\n   - Snippet: ${result.snippet || 'No description available'}`
+).join('\n\n') || 'No web results available'}
+
+${newsResults && newsResults.news ? `
+### 📰 NEWS CONTEXT
+**Total News Results**: ${newsResults.totalResults || 'Unknown'}
+**Recent News**:
+${newsResults.news.slice(0, 3).map((result: any, index: number) => 
+  `${index + 1}. **${result.title}**\n   - Source: ${result.source}\n   - Date: ${result.date}\n   - Snippet: ${result.snippet || 'No description available'}`
+).join('\n\n')}
+` : ''}
+
+${scholarResults && scholarResults.results ? `
+### 🎓 SCHOLARLY CONTEXT
+**Total Scholar Results**: ${scholarResults.totalResults || 'Unknown'}
+**Academic Sources**:
+${scholarResults.results.slice(0, 3).map((result: any, index: number) => 
+  `${index + 1}. **${result.title}**\n   - Authors: ${result.authors?.join(', ') || 'Unknown'}\n   - Publication: ${result.publication || 'Unknown'}\n   - Year: ${result.year || 'Unknown'}\n   - Snippet: ${result.snippet || 'No description available'}`
+).join('\n\n')}
+` : ''}
+
+${answerBox ? `
+### 💡 QUICK FACTS
+**Answer Box Data**: ${answerBox.answerBox ? JSON.stringify(answerBox.answerBox, null, 2) : 'No answer box data available'}
+**Knowledge Graph**: ${answerBox.knowledgeGraph ? JSON.stringify(answerBox.knowledgeGraph, null, 2) : 'No knowledge graph data available'}
+` : ''}
+
+**IMPORTANT**: Use this web search context to provide more current, accurate, and comprehensive information. Reference specific sources when appropriate, but always maintain your role as a strategic guide rather than just a source of information.
+` : ''}
+
+Remember: Your goal is to make users **better problem solvers**, not to solve problems for them. Every interaction should leave them with a clearer understanding of how to approach their challenges strategically. When web search results are available, use them to enhance your guidance with current, relevant information.`;
+
+    // Add problem context if available
+    if (problemContext) {
+      enhancedPrompt += `\n\n## 🎯 CURRENT CHALLENGE CONTEXT ##\n`;
+      enhancedPrompt += `**Problem Title**: ${problemContext.title}\n`;
+      enhancedPrompt += `**Difficulty Level**: ${problemContext.difficulty}\n`;
+      enhancedPrompt += `**Problem Description**: ${problemContext.description}\n`;
+      if (problemContext.requirements?.functional) {
+        enhancedPrompt += `**Functional Requirements**:\n${problemContext.requirements.functional.map(req => `- ${req}`).join('\n')}\n`;
+      }
+      if (problemContext.constraints) {
+        enhancedPrompt += `**Constraints**:\n${problemContext.constraints.map(constraint => `- ${constraint}`).join('\n')}\n`;
+      }
+      enhancedPrompt += `\nUse this context to provide more relevant and targeted guidance.`;
+    }
+
+    // Add solution draft content if available
+    if (solutionDraftContent) {
+      enhancedPrompt += `\n\n## 📝 USER'S CURRENT WORK ##\n`;
+      enhancedPrompt += `The user has the following draft in progress. Analyze their current approach and provide strategic guidance:\n\n`;
+      enhancedPrompt += `\`\`\`\n${solutionDraftContent}\n\`\`\`\n\n`;
+      enhancedPrompt += `**Focus on**:\n- What aspects of their approach are solid?\n- What strategic improvements could they consider?\n- What concepts might they need to research further?\n- What potential issues should they watch out for?`;
+    }
+
+    // Add chat history
+    enhancedPrompt += `\n\n## 💬 CONVERSATION HISTORY ##\n`;
+    enhancedPrompt += formatChatHistory(messages);
+    enhancedPrompt += `\n\n## 🎯 RESPONSE REQUIREMENTS ##\n`;
+    enhancedPrompt += `Provide a helpful, strategic response that addresses the user's latest message. If web search results are available, incorporate them thoughtfully to enhance your guidance. Always maintain your role as a strategic guide rather than just an information source.`;
+
+    const result = await model.generateContent(enhancedPrompt);
+    const responseText = result.response.text();
+
+    return {
+      message: responseText,
+      webSearchResults,
+      newsResults,
+      scholarResults,
+      answerBox
+    };
+  } catch (error) {
+    console.error("AI Service: Error in generateEnhancedChatResponse", error);
+    return {
+      message: "An error occurred while generating the enhanced response. Please try again later.",
+      error: "AI_SERVICE_ERROR"
+    };
+  }
+};

@@ -15,6 +15,7 @@ import notificationRoutes from './notification.routes';
 import healthRoutes from './health.routes';
 import feedbackRoutes from './feedback.routes';
 import adminFeedbackRoutes from './admin-feedback.routes';
+import serpapiRoutes from './serpapi.routes';
 
 const router = Router();
 
@@ -49,6 +50,9 @@ router.use('/webhooks', webhookRoutes);
 // Feedback routes
 router.use('/feedback', feedbackRoutes);
 router.use('/admin/feedback', adminFeedbackRoutes);
+
+// SerpAPI routes for web search and scraping
+router.use('/serpapi', serpapiRoutes);
 
 
 export default router; 
