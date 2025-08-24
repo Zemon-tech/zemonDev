@@ -74,6 +74,11 @@ export const getAllChallenges = asyncHandler(
       ]);
 
       const total = countResult.length > 0 ? countResult[0].total : 0;
+      
+      logger.info(`getAllChallenges: Found ${challenges.length} challenges, filter: ${JSON.stringify(filter)}`);
+      if (challenges.length > 0) {
+        logger.info(`Sample challenge: ${JSON.stringify(challenges[0])}`);
+      }
 
       res.status(200).json(
         new ApiResponse(

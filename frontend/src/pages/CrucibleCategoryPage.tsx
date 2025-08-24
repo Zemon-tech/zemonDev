@@ -109,11 +109,18 @@ export default function CrucibleCategoryPage() {
       const problemsData = await getProblems({ limit: 100 });
       
       if (problemsData && Array.isArray(problemsData)) {
-        // Filter problems by category
-        const categoryProblems = problemsData.filter((problem: any) => 
-          problem.tags && problem.tags.includes(categoryId)
-        );
+        console.log('All problems:', problemsData);
+        console.log('Category ID:', categoryId);
         
+        // Filter problems by category
+        const categoryProblems = problemsData.filter((problem: any) => {
+          const matchesCategory = problem.category === categoryId;
+          const matchesTags = problem.tags && problem.tags.includes(categoryId);
+          console.log(`Problem "${problem.title}": category=${problem.category}, tags=${problem.tags}, matchesCategory=${matchesCategory}, matchesTags=${matchesTags}`);
+          return matchesCategory || matchesTags;
+        });
+        
+        console.log('Filtered problems:', categoryProblems);
         setProblems(categoryProblems);
         setFilteredProblems(categoryProblems);
       }
