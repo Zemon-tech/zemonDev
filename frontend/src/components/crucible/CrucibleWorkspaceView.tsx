@@ -399,7 +399,6 @@ export default function CrucibleWorkspaceView({ problem, initialDraft }: Crucibl
           communityTips={problem.communityTips}
           aiPrompts={problem.aiPrompts}
           technicalParameters={problem.technicalParameters}
-          metrics={problem.metrics}
         />
       )}
       <div className="flex-1 overflow-hidden flex flex-col border-x border-base-200 dark:border-base-700 shadow-lg">

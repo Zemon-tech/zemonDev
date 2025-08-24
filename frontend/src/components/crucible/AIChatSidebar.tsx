@@ -30,51 +30,51 @@ interface AIChatSidebarProps {
   solutionContent?: string;
 }
 
-// Enhanced Markdown Components
+// Enhanced Markdown Components - Compact Design
 const MarkdownComponents = {
   h1: ({ children, ...props }: any) => (
-    <h1 className="text-xl font-bold text-base-content mb-3 mt-4 first:mt-0" {...props}>
+    <h1 className="text-lg font-bold text-base-content mb-1 mt-2 first:mt-0 border-b border-base-300/50 pb-1" {...props}>
       {children}
     </h1>
   ),
   h2: ({ children, ...props }: any) => (
-    <h2 className="text-lg font-semibold text-base-content mb-2 mt-3" {...props}>
+    <h2 className="text-base font-semibold text-base-content mb-1 mt-2" {...props}>
       {children}
     </h2>
   ),
   h3: ({ children, ...props }: any) => (
-    <h3 className="text-base font-medium text-base-content mb-2 mt-3" {...props}>
+    <h3 className="text-sm font-medium text-base-content mb-0.5 mt-1.5" {...props}>
       {children}
     </h3>
   ),
   p: ({ children, ...props }: any) => (
-    <p className="text-base-content/90 leading-relaxed mb-2 last:mb-0" {...props}>
+    <p className="text-sm text-base-content/90 leading-relaxed mb-1 last:mb-0" {...props}>
       {children}
     </p>
   ),
   ul: ({ children, ...props }: any) => (
-    <ul className="list-disc list-inside space-y-0.5 mb-3 text-base-content/90" {...props}>
+    <ul className="list-disc list-inside space-y-0.5 mb-1 text-sm text-base-content/90" {...props}>
       {children}
     </ul>
   ),
   ol: ({ children, ...props }: any) => (
-    <ol className="list-decimal list-inside space-y-0.5 mb-3 text-base-content/90" {...props}>
+    <ol className="list-decimal list-inside space-y-0.5 mb-1 text-sm text-base-content/90" {...props}>
       {children}
     </ol>
   ),
   li: ({ children, ...props }: any) => (
-    <li className="text-base-content/90 leading-relaxed" {...props}>
+    <li className="text-sm text-base-content/90 leading-relaxed" {...props}>
       {children}
     </li>
   ),
   blockquote: ({ children, ...props }: any) => (
-    <blockquote className="border-l-4 border-primary/30 pl-3 italic text-base-content/80 bg-base-200/30 py-1.5 rounded-r-lg mb-3" {...props}>
+    <blockquote className="border-l-3 border-primary/30 pl-2.5 italic text-sm text-base-content/80 bg-base-200/30 py-1 rounded-r-md mb-1" {...props}>
       {children}
     </blockquote>
   ),
   table: ({ children, ...props }: any) => (
-    <div className="my-6 overflow-x-auto">
-      <table className="w-full border-collapse bg-base-100 dark:bg-base-700 rounded-lg overflow-hidden shadow-lg border border-base-300 dark:border-base-600" {...props}>
+    <div className="my-1.5 w-full overflow-x-auto">
+      <table className="w-full border-collapse bg-base-100 dark:bg-base-700 rounded-md overflow-hidden shadow-sm border border-base-300 dark:border-base-600 text-xs" {...props}>
         {children}
       </table>
     </div>
@@ -95,49 +95,54 @@ const MarkdownComponents = {
     </tr>
   ),
   th: ({ children, ...props }: any) => (
-    <th className="px-4 py-3 text-left text-sm font-semibold text-base-content/90 border-b border-base-200 dark:border-base-600" {...props}>
+    <th className="px-2 py-1.5 text-left text-xs font-semibold text-base-content/90 border-b border-base-200 dark:border-base-600" {...props}>
       {children}
     </th>
   ),
   td: ({ children, ...props }: any) => (
-    <td className="px-4 py-3 text-sm text-base-content/80" {...props}>
+    <td className="px-2 py-1.5 text-xs text-base-content/80" {...props}>
       {children}
     </td>
   ),
   code: ({ inline, className, children, ...props }: any) => {
     const match = /language-(\w+)/.exec(className || '');
     return !inline && match ? (
-      <div className="my-4">
+      <div className="my-1 w-full">
         <SyntaxHighlighter
           style={oneDark}
           language={match[1]}
           PreTag="div"
-          className="rounded-lg border border-base-300"
+          className="rounded-md border border-base-300 text-xs"
+          customStyle={{
+            fontSize: '0.75rem',
+            lineHeight: '1.4',
+            padding: '0.75rem'
+          }}
           {...props}
         >
           {String(children || '').replace(/\n$/, '')}
         </SyntaxHighlighter>
       </div>
     ) : (
-      <code className="bg-base-200 text-base-content px-2 py-1 rounded text-sm font-mono border border-base-300" {...props}>
+      <code className="bg-base-200 text-base-content px-1.5 py-0.5 rounded text-xs font-mono border border-base-300" {...props}>
         {children}
       </code>
     );
   },
   strong: ({ children, ...props }: any) => (
-    <strong className="font-semibold text-base-content" {...props}>
+    <strong className="font-semibold text-base-content text-sm" {...props}>
       {children}
     </strong>
   ),
   em: ({ children, ...props }: any) => (
-    <em className="italic text-base-content/90" {...props}>
+    <em className="italic text-base-content/90 text-sm" {...props}>
       {children}
     </em>
   ),
   a: ({ children, href, ...props }: any) => (
     <a 
       href={href} 
-      className="text-primary hover:text-primary-focus underline decoration-primary/30 underline-offset-2 transition-colors" 
+      className="text-primary hover:text-primary-focus underline decoration-primary/30 underline-offset-2 transition-colors text-sm" 
       target="_blank" 
       rel="noopener noreferrer"
       {...props}
@@ -572,15 +577,15 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
       {/* Enhanced Chat messages */}
       <ScrollArea.Root className="flex-1 relative">
         <ScrollArea.Viewport className="absolute inset-0 overflow-y-auto chat-scrollbar">
-          <div className="p-4 space-y-2">
+          <div className="p-4 space-y-1">
             {messagesState.map((message) => (
               <div
                 key={message.id}
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} group`}
               >
-                <div className={`max-w-[85%] ${message.role === 'user' ? 'order-2' : 'order-1'}`}>
+                <div className={`${message.role === 'user' ? 'max-w-[85%] order-2' : 'w-full order-1'}`}>
                   {/* Message Header */}
-                  <div className={`text-xs text-base-content/50 mb-0.5 ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
+                  <div className={`text-xs text-base-content/50 mb-0 ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
                     {message.role === 'user' ? 'You' : 'AI Assistant'}
                   </div>
                   
@@ -592,7 +597,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
                       </div>
                     </div>
                   ) : (
-                    <div className="prose prose-xs dark:prose-invert max-w-none markdown-content ai-chat-message pl-0">
+                    <div className="prose prose-xs dark:prose-invert w-full markdown-content ai-chat-message pl-0">
                       {message.isStreaming ? (
                         <div>
                           <ReactMarkdown
@@ -615,7 +620,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
                   )}
                   
                   {/* Message Actions */}
-                  <div className={`flex items-center gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity ${
+                  <div className={`flex items-center gap-1 mt-0 opacity-0 group-hover:opacity-100 transition-opacity ${
                     message.role === 'user' ? 'justify-end' : 'justify-start'
                   }`}>
                     <MessageActions message={message} />
@@ -626,9 +631,9 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
             
             {isLoading && !streamingMessageId && (
               <div className="flex justify-start">
-                <div className="max-w-[85%]">
-                  <div className="text-xs text-base-content/50 mb-2">AI Assistant</div>
-                  <div className="prose prose-sm dark:prose-invert max-w-none markdown-content">
+                <div className="w-full">
+                  <div className="text-xs text-base-content/50 mb-0.5">AI Assistant</div>
+                  <div className="prose prose-sm dark:prose-invert w-full markdown-content">
                     <DynamicTypingIndicator />
                   </div>
                 </div>
