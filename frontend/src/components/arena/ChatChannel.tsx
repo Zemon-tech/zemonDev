@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Plus, Image, Gift, Smile, MoreHorizontal, Loader2, MessageSquare } from 'lucide-react';
 import { useArenaChat } from '@/hooks/useArenaChat';
@@ -11,6 +11,22 @@ import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 import { GiphyFetch } from '@giphy/js-fetch-api';
 import { Grid as GiphyGrid } from '@giphy/react-components';
+
+// Utility function to extract profile picture from message
+const getMessageProfilePicture = (message: Message): string | undefined => {
+  if (typeof message.userId === 'object' && message.userId.profilePicture) {
+    return message.userId.profilePicture;
+  }
+  return undefined;
+};
+
+// Utility function to get display name from message
+const getMessageDisplayName = (message: Message): string => {
+  if (typeof message.userId === 'object' && message.userId.fullName) {
+    return message.userId.fullName;
+  }
+  return message.username;
+};
 
 interface ChatChannelProps {
   channelId?: string;
@@ -436,8 +452,12 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
                   )}>
                     {/* Avatar only for first in group, aligned top, premium style */}
                     <Avatar className="w-11 h-11 mt-0.5 mr-3 flex-shrink-0 border-2 border-base-300 shadow-sm bg-base-100">
+                      <AvatarImage 
+                        src={getMessageProfilePicture(first)} 
+                        alt={getMessageDisplayName(first)}
+                      />
                       <AvatarFallback className="font-bold text-lg bg-primary/80 text-primary-foreground">
-                        {first.username.charAt(0).toUpperCase()}
+                        {getMessageDisplayName(first).charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">

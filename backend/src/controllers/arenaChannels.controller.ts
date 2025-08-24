@@ -156,7 +156,7 @@ export const getChannelMessages = asyncHandler(
     const messages = await ArenaMessage.find(query)
       .sort({ timestamp: -1 }) // Newest first
       .limit(currentLimit)
-      .populate('userId', 'fullName')
+      .populate('userId', 'fullName profilePicture')
       .populate('replyToId');
 
     const hasMore = messages.length === currentLimit;
@@ -275,7 +275,7 @@ export const createMessage = asyncHandler(
 
     // Populate user info
     const populatedMessage = await ArenaMessage.findById(message._id)
-      .populate('userId', 'fullName')
+      .populate('userId', 'fullName profilePicture')
       .populate('replyToId');
 
     // Update user's last read timestamp

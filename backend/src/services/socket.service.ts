@@ -306,7 +306,7 @@ const handleConnection = (socket: any) => {
           // Populate user info
           logger.info('Populating message with user info:', { messageId: message._id });
           message = await ArenaMessage.findById(message._id)
-            .populate('userId', 'fullName')
+            .populate('userId', 'fullName profilePicture')
             .populate('replyToId');
           
           if (!message) {

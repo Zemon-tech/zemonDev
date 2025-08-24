@@ -15,6 +15,7 @@ import { useArenaChannels } from '@/hooks/useArenaChannels';
 import { useUserRole } from '@/context/UserRoleContext';
 import { RolesAndPermissionsCard } from '@/components/settings/RolesAndPermissionsCard';
 import { ApiService } from '@/services/api.service';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 const SECTIONS = [
   { key: 'profile', label: 'Profile & Account', icon: User },
@@ -618,7 +619,15 @@ function ProfileAccountSection() {
             <div className="flex flex-col md:flex-row gap-8 items-start">
               <div className="relative group">
                 <div className="w-28 h-28 rounded-2xl bg-gradient-to-tr from-primary via-primary/80 to-accent flex items-center justify-center border-2 border-primary/30 shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-primary/25">
-                  <img src={user?.imageUrl || '/avatar.png'} alt="avatar" className="w-24 h-24 rounded-xl object-cover border-2 border-white/90 shadow-inner" />
+                  <Avatar className="w-24 h-24 rounded-xl border-2 border-white/90 shadow-inner">
+                    <AvatarImage 
+                      src={(userProfile as any)?.profilePicture || (userProfile as any)?.avatar || user?.imageUrl || ''} 
+                      alt={fullName || user?.firstName || 'User'} 
+                    />
+                    <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-primary/80 to-accent/80 text-primary-foreground">
+                      {(fullName || user?.firstName || 'U').charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <Button 
                     size="icon" 

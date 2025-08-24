@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { PlusCircle, Pin, Loader2, AlertCircle, Plus, Image, Gift, Smile } from 'lucide-react';
 import { useArenaChat, Message } from '@/hooks/useArenaChat';
 import { useUserRole } from '@/context/UserRoleContext';
@@ -12,6 +12,22 @@ import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 import { GiphyFetch } from '@giphy/js-fetch-api';
 import { Grid as GiphyGrid } from '@giphy/react-components';
+
+// Utility function to extract profile picture from message
+const getMessageProfilePicture = (message: Message): string | undefined => {
+  if (typeof message.userId === 'object' && message.userId.profilePicture) {
+    return message.userId.profilePicture;
+  }
+  return undefined;
+};
+
+// Utility function to get display name from message
+const getMessageDisplayName = (message: Message): string => {
+  if (typeof message.userId === 'object' && message.userId.fullName) {
+    return message.userId.fullName;
+  }
+  return message.username;
+};
 
 interface AnnouncementsChannelProps {
   channelId?: string;
@@ -292,13 +308,14 @@ const AnnouncementsChannelComponent: React.FC<AnnouncementsChannelProps> = ({
                       )}
                     >
                       <Avatar className="w-11 h-11 mt-0.5 mr-3 flex-shrink-0 border-2 border-base-300 shadow-sm bg-base-100">
+                        <AvatarImage src={getMessageProfilePicture(message)} alt={getMessageDisplayName(message)} />
                         <AvatarFallback className="font-bold text-lg bg-primary/80 text-primary-foreground">
-                          {message.username.charAt(0).toUpperCase()}
+                          {getMessageDisplayName(message).charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-2">
-                          <span className="font-semibold text-base-content text-[15px] leading-tight">{message.username}</span>
+                          <span className="font-semibold text-base-content text-[15px] leading-tight">{getMessageDisplayName(message)}</span>
                           {isPinned(message) && (
                             <>
                               <Badge variant="secondary" className="bg-primary/20 text-primary border-none px-1 py-0.5 text-xs">Pinned</Badge>

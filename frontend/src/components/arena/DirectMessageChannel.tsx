@@ -7,6 +7,22 @@ import { Plus, Image, Gift, Smile, Loader2, AlertCircle, MessageSquare } from 'l
 import { useArenaChat } from '@/hooks/useArenaChat';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
+// Utility function to extract profile picture from message
+const getMessageProfilePicture = (message: any): string | undefined => {
+  if (typeof message.userId === 'object' && message.userId.profilePicture) {
+    return message.userId.profilePicture;
+  }
+  return undefined;
+};
+
+// Utility function to get display name from message
+const getMessageDisplayName = (message: any): string => {
+  if (typeof message.userId === 'object' && message.userId.fullName) {
+    return message.userId.fullName;
+  }
+  return message.username;
+};
+
 interface DirectMessageChannelProps {
   recipientName: string;
   recipientAvatar?: string;
@@ -278,13 +294,17 @@ const DirectMessageChannel: React.FC<DirectMessageChannelProps> = ({
               >
                 <div className="flex items-start gap-4">
                   <Avatar className="w-10 h-10">
+                    <AvatarImage 
+                      src={getMessageProfilePicture(message)} 
+                      alt={getMessageDisplayName(message)}
+                    />
                     <AvatarFallback>
-                      {message.username.charAt(0).toUpperCase()}
+                      {getMessageDisplayName(message).charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-base-content">{message.username}</span>
+                      <span className="font-medium text-base-content">{getMessageDisplayName(message)}</span>
                       <span className="text-xs text-base-content/70">
                         {new Date(message.timestamp).toLocaleTimeString()}
                       </span>

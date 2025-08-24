@@ -5,7 +5,7 @@ import { ApiService } from '../services/api.service';
 
 export interface Message {
   _id: string;
-  userId: string;
+  userId: string | { _id: string; fullName: string; profilePicture?: string };
   username: string;
   content: string;
   timestamp: Date;
