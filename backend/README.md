@@ -43,6 +43,58 @@ Edit the `.env` file with your credentials.
 npm run dev
 ```
 
+## Docker
+
+### Build & run with Docker directly
+
+```bash
+# From repo root or backend folder
+docker build -t zemon-backend ./backend
+docker run --rm -p 5000:5000 \
+  -e NODE_ENV=production \
+  -e PORT=5000 \
+  -e MONGO_URI=mongodb://host.docker.internal:27017/zemon \
+  -e CORS_ORIGIN=http://localhost:5173 \
+  -e CLERK_SECRET_KEY=your_key \
+  -e CLERK_JWT_KEY=your_key \
+  -e CLERK_ISSUER=your_issuer \
+  -e UPSTASH_REDIS_REST_URL=... \
+  -e UPSTASH_REDIS_REST_TOKEN=... \
+  -e UPSTASH_VECTOR_REST_URL=... \
+  -e UPSTASH_VECTOR_REST_TOKEN=... \
+  -e GEMINI_API_KEY=... \
+  -e GEMINI_PRO_API_KEY=... \
+  -e SERPAPI_KEY=... \
+  zemon-backend
+```
+
+### docker-compose (with MongoDB)
+
+At repo root, we provide `docker-compose.yml`.
+
+1) Create a `.env` file at repo root with secrets:
+
+```
+CLERK_SECRET_KEY=...
+CLERK_JWT_KEY=...
+CLERK_ISSUER=...
+UPSTASH_REDIS_REST_URL=...
+UPSTASH_REDIS_REST_TOKEN=...
+UPSTASH_VECTOR_REST_URL=...
+UPSTASH_VECTOR_REST_TOKEN=...
+GEMINI_API_KEY=...
+GEMINI_PRO_API_KEY=...
+SERPAPI_KEY=...
+```
+
+2) Start services:
+
+```bash
+docker compose up --build
+```
+
+Backend will be available at `http://localhost:5000` and MongoDB at `mongodb://localhost:27017`.
+
 5. For production build:
 ```bash
 npm run build

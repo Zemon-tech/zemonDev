@@ -1,0 +1,16 @@
+node_modules
+npm-debug.log
+Dockerfile*
+.dockerignore
+.git
+.gitignore
+.env
+coverage
+.tmp
+**/*.tsbuildinfo
+**/.DS_Store
+
+# Exclude local test scripts that aren't needed in image
+/test-*.js
+README.md
+*.md
