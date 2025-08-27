@@ -279,8 +279,15 @@ export default function ProfilePage() {
             getBookmarkedResources(getToken)
           ]);
           
-          setAnalysisHistory(analyses);
-          setActiveDrafts(drafts);
+          // Filter out any items with null/undefined problemId before setting state
+          const validAnalyses = Array.isArray(analyses) ? analyses.filter(analysis => analysis?.problemId) : [];
+          const validDrafts = Array.isArray(drafts) ? drafts.filter(draft => draft?.problemId) : [];
+          
+          console.log('Setting analysis history:', validAnalyses);
+          console.log('Setting active drafts:', validDrafts);
+          
+          setAnalysisHistory(validAnalyses);
+          setActiveDrafts(validDrafts);
           setBookmarkedResources(bookmarked);
         } catch (error) {
           console.error('Error fetching combined data:', error);
@@ -354,7 +361,7 @@ export default function ProfilePage() {
   };
 
   const handleDraftClick = (draft: IUserActiveDraft) => {
-    if (username) {
+    if (username && draft.problemId?._id) {
       navigate(`/${username}/crucible/problem/${draft.problemId._id}`);
     }
   };
@@ -960,7 +967,7 @@ export default function ProfilePage() {
                 { 
                   title: "Solution Journeys", 
                   subtitle: "Completed analyses",
-                  items: analysisHistory.map(analysis => analysis.problemId.title),
+                  items: (analysisHistory || []).filter(analysis => analysis?.problemId).map(analysis => analysis.problemId?.title || 'Untitled Problem'),
                   data: analysisHistory,
                   icon: Target, 
                   color: "from-blue-500 to-indigo-600",
@@ -974,7 +981,7 @@ export default function ProfilePage() {
                 { 
                   title: "Active Drafts", 
                   subtitle: "Work in progress",
-                  items: activeDrafts.map(draft => draft.problemId.title),
+                  items: (activeDrafts || []).filter(draft => draft?.problemId).map(draft => draft.problemId?.title || 'Untitled Problem'),
                   data: activeDrafts,
                   icon: BookOpen, 
                   color: "from-emerald-500 to-teal-600",
@@ -1243,9 +1250,9 @@ export default function ProfilePage() {
                   <p className="text-base-content/70 text-sm">Your coding activity and saved resources</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Solutions {analysisHistory.length}</Badge>
-                  <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Drafts {activeDrafts.length}</Badge>
-                  <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Bookmarks {bookmarkedResources.length}</Badge>
+                                        <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Solutions {analysisHistory.filter(analysis => analysis.problemId).length}</Badge>
+                      <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Drafts {activeDrafts.filter(draft => draft.problemId).length}</Badge>
+                                          <Badge variant="outline" className="rounded-full bg-white/5 border-base-300/60 text-xs">Bookmarks {(bookmarkedResources || []).length}</Badge>
                 </div>
               </div>
             </motion.div>
@@ -1281,18 +1288,18 @@ export default function ProfilePage() {
                       <div className="text-xs uppercase tracking-wide text-base-content/50 mb-2">Solution Journeys</div>
                       {crucibleError ? (
                         <div className="text-sm text-error/90 rounded-lg border border-error/20 bg-error/5 p-3">Failed to load solutions</div>
-                      ) : analysisHistory.length === 0 ? (
+                      ) : (analysisHistory || []).length === 0 ? (
                         <div className="text-sm text-base-content/60 rounded-lg border border-base-300/60 bg-base-100/70 p-3">No solutions yet</div>
                       ) : (
                         <div className="divide-y divide-base-300/60 rounded-xl border border-base-300/60 bg-base-100/70">
-                          {analysisHistory.slice(0, 5).map((analysis, index) => (
+                          {(analysisHistory || []).filter(analysis => analysis?.problemId).slice(0, 5).map((analysis, index) => (
                             <button
                               key={analysis._id || index}
                               className="w-full text-left px-4 py-3 hover:bg-base-200/60 transition-colors flex items-center gap-3"
                               onClick={() => handleAnalysisClick(analysis)}
                             >
                               <span className="w-1.5 h-1.5 rounded-full bg-primary/80" />
-                              <span className="flex-1 truncate text-sm font-medium">{analysis.problemId.title}</span>
+                              <span className="flex-1 truncate text-sm font-medium">{analysis.problemId?.title || 'Untitled Problem'}</span>
                               <ChevronRight className="w-4 h-4 text-base-content/50" />
                             </button>
                           ))}
@@ -1305,18 +1312,18 @@ export default function ProfilePage() {
                       <div className="text-xs uppercase tracking-wide text-base-content/50 mb-2">Active Drafts</div>
                       {crucibleError ? (
                         <div className="text-sm text-error/90 rounded-lg border border-error/20 bg-error/5 p-3">Failed to load drafts</div>
-                      ) : activeDrafts.length === 0 ? (
+                      ) : (activeDrafts || []).length === 0 ? (
                         <div className="text-sm text-base-content/60 rounded-lg border border-base-300/60 bg-base-100/70 p-3">No active drafts</div>
                       ) : (
                         <div className="divide-y divide-base-300/60 rounded-xl border border-base-300/60 bg-base-100/70">
-                          {activeDrafts.slice(0, 5).map((draft, index) => (
+                          {(activeDrafts || []).filter(draft => draft?.problemId).slice(0, 5).map((draft, index) => (
                             <button
                               key={draft._id || index}
                               className="w-full text-left px-4 py-3 hover:bg-base-200/60 transition-colors flex items-center gap-3"
                               onClick={() => handleDraftClick(draft)}
                             >
                               <span className="w-1.5 h-1.5 rounded-full bg-secondary/80" />
-                              <span className="flex-1 truncate text-sm font-medium">{draft.problemId.title}</span>
+                              <span className="flex-1 truncate text-sm font-medium">{draft.problemId?.title || 'Untitled Problem'}</span>
                               <ChevronRight className="w-4 h-4 text-base-content/50" />
                             </button>
                           ))}
@@ -1354,11 +1361,11 @@ export default function ProfilePage() {
 
                     {forgeError ? (
                       <div className="text-sm text-error/90 rounded-lg border border-error/20 bg-error/5 p-3">Failed to load resources</div>
-                    ) : bookmarkedResources.length === 0 ? (
+                    ) : (bookmarkedResources || []).length === 0 ? (
                       <div className="text-sm text-base-content/60 rounded-lg border border-base-300/60 bg-base-100/70 p-3">No bookmarks yet</div>
                     ) : (
                       <div className="divide-y divide-base-300/60 rounded-xl border border-base-300/60 bg-base-100/70">
-                        {bookmarkedResources.slice(0, 6).map((resource: any, index) => (
+                        {(bookmarkedResources || []).slice(0, 6).map((resource: any, index) => (
                           <div key={resource._id || index} className="px-4 py-3 flex items-center gap-3">
                             <span className="w-1.5 h-1.5 rounded-full bg-orange-500/80" />
                             <span className="flex-1 truncate text-sm font-medium">{resource.title || resource.name || 'Untitled Resource'}</span>
@@ -1384,11 +1391,11 @@ export default function ProfilePage() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 text-center">
-                        <div className="text-xl font-bold">{analysisHistory.length}</div>
+                        <div className="text-xl font-bold">{(analysisHistory || []).filter(analysis => analysis?.problemId).length}</div>
                         <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Solutions</div>
                       </div>
                       <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 text-center">
-                        <div className="text-xl font-bold">{activeDrafts.length}</div>
+                        <div className="text-xl font-bold">{(activeDrafts || []).filter(draft => draft?.problemId).length}</div>
                         <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Drafts</div>
                       </div>
                       <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 text-center">
@@ -1396,7 +1403,7 @@ export default function ProfilePage() {
                         <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Resources</div>
                       </div>
                       <div className="rounded-xl border border-base-300/60 bg-base-100/70 p-3 text-center">
-                        <div className="text-xl font-bold">{Math.floor((analysisHistory.length + activeDrafts.length + bookmarkedResources.length) / 3)}</div>
+                        <div className="text-xl font-bold">{Math.floor(((analysisHistory || []).filter(analysis => analysis?.problemId).length + (activeDrafts || []).filter(draft => draft?.problemId).length + (bookmarkedResources || []).length) / 3)}</div>
                         <div className="text-[11px] tracking-wide text-base-content/60 uppercase">Avg</div>
                       </div>
                     </div>

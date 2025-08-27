@@ -1,0 +1,32 @@
+version: '3.9'
+
+services:
+  mongo:
+    image: mongo:6
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: zemon-backend:latest
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGO_URI: mongodb://mongo:27017/zemon
+      CORS_ORIGIN: http://localhost:5173
+      ENABLE_CHANGE_STREAMS: 'false'
+    ports:
+      - "5000:5000"
+
+volumes:
+  mongo-data:
