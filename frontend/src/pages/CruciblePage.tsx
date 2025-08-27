@@ -348,7 +348,7 @@ export default function CruciblePage() {
                   </div>
                   
                   {/* Problem Title */}
-                  <h3 className="problem-title font-bold text-base-content text-lg mb-3 group-hover:text-primary transition-colors min-h-[3.5rem]">
+                  <h3 className="problem-title font-bold text-base-content text-lg mb-3 group-hover:text-primary transition-colors line-clamp-2">
                     {problem.title}
                   </h3>
                   
@@ -413,7 +413,7 @@ export default function CruciblePage() {
                     </div>
                     
                     {/* Problem Title */}
-                    <h3 className="problem-title font-bold text-base-content text-lg mb-4 group-hover:text-primary transition-colors min-h-[3.5rem]">
+                    <h3 className="problem-title font-bold text-base-content text-lg mb-4 group-hover:text-primary transition-colors line-clamp-2">
                       {problem.title}
                     </h3>
                     
