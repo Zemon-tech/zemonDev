@@ -8,6 +8,7 @@ export interface ICrucibleProblem {
   _id: string;
   title: string;
   description: string;
+  thumbnailUrl?: string;
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
   category: 'algorithms' | 'system-design' | 'web-development' | 'mobile-development' | 'data-science' | 'devops' | 'frontend' | 'backend';
   tags: string[];
@@ -419,6 +420,8 @@ export interface ITrendingProblem {
   category?: 'algorithms' | 'system-design' | 'web-development' | 'mobile-development' | 'data-science' | 'devops' | 'frontend' | 'backend';
   tags?: string[];
   solvedCount: number;
+  thumbnailUrl?: string;
+  avatarUrls?: string[];
 }
 
 export async function getTrendingProblems(limit = 3): Promise<ITrendingProblem[]> {

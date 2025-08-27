@@ -4,6 +4,7 @@ import { ArrowRight, TrendingUp, Clock, Code, Database, Globe, Zap, Target, User
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { getProblems, checkUserAnalysisForProblem, getTrendingProblems, ITrendingProblem } from '@/lib/crucibleApi';
+import { AvatarCircles } from '@/components/ui/avatar-circles';
 import { useAuth } from '@clerk/clerk-react';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
 import { useToast } from '../components/ui/toast';
@@ -100,6 +101,8 @@ interface HotProblem {
   category: string;
   solvedCount: number;
   trending: boolean;
+  thumbnailUrl?: string;
+  avatarUrls?: string[];
 }
 
 export default function CruciblePage() {
@@ -168,6 +171,8 @@ export default function CruciblePage() {
         category: t.category || 'general',
         solvedCount: t.solvedCount,
         trending: true,
+        thumbnailUrl: t.thumbnailUrl,
+        avatarUrls: t.avatarUrls || [],
       }));
       setHotProblems(mapped);
     } catch (err) {
@@ -322,12 +327,22 @@ export default function CruciblePage() {
             {hotProblems.map((problem) => (
               <div key={problem.id} onClick={() => handleHotProblemClick(problem.id)}>
                 <SpotlightCard className="cursor-pointer">
-                  <div className="p-5 rounded-2xl border border-base-300/50 hover:border-primary/40 hover:shadow-lg transition-all duration-300 group relative h-64 w-full bg-gradient-to-br from-base-100 to-base-50/50 backdrop-blur-sm">
+                  <div className="p-0 rounded-2xl border border-base-300/50 hover:border-primary/40 hover:shadow-lg transition-all duration-300 group relative h-72 w-full bg-base-100 overflow-hidden">
+                    <div className="relative h-36 w-full overflow-hidden">
+                      {problem.thumbnailUrl ? (
+                        <img src={problem.thumbnailUrl} alt={problem.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="h-full w-full bg-base-200" />
+                      )}
+                      <div className="absolute top-2 right-2">
+                        <Badge className={cn("text-xs font-medium px-2.5 py-1 rounded-full", getDifficultyColor(problem.difficulty))}>
+                          {problem.difficulty}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="p-5">
                     {/* Difficulty Badge and Trending Icon */}
-                    <div className="flex items-start justify-between mb-4">
-                      <Badge className={cn("text-xs font-medium px-2.5 py-1 rounded-full", getDifficultyColor(problem.difficulty))}>
-                        {problem.difficulty}
-                      </Badge>
+                    <div className="flex items-start justify-end mb-3">
                       {problem.trending && (
                         <div className="w-8 h-8 bg-orange-500/20 rounded-full flex items-center justify-center">
                           <TrendingUp className="w-4 h-4 text-orange-500" />
@@ -336,15 +351,22 @@ export default function CruciblePage() {
                     </div>
                     
                     {/* Problem Title */}
-                    <h3 className="problem-title font-bold text-base-content text-lg mb-4 group-hover:text-primary transition-colors line-clamp-2">
+                    <h3 className="problem-title font-bold text-base-content text-lg mb-3 group-hover:text-primary transition-colors line-clamp-2">
                       {problem.title}
                     </h3>
                     
                     {/* Bottom Info Bar */}
-                    <div className="flex items-center justify-between text-xs text-base-content/60 absolute bottom-5 left-5 right-5">
-                      <div className="flex items-center gap-2 bg-base-200/50 dark:bg-base-700/50 px-3 py-1.5 rounded-full">
-                        <Users className="w-3.5 h-3.5" />
-                        <span className="font-medium">{problem.solvedCount} solved</span>
+                    <div className="flex items-center justify-between text-xs text-base-content/60">
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const totalSolved = problem.solvedCount as number;
+                          const displayed = Math.min(3, (problem.avatarUrls?.length || 0));
+                          const remainder = Math.max(0, totalSolved - displayed);
+                          return (
+                            <AvatarCircles avatarUrls={(problem.avatarUrls || []).slice(0,3)} numPeople={remainder} />
+                          );
+                        })()}
+                        <span className="font-medium whitespace-nowrap">{problem.solvedCount} solved</span>
                       </div>
                       <div className="flex items-center gap-2 bg-base-200/50 dark:bg-base-700/50 px-3 py-1.5 rounded-full">
                         <Clock className="w-3.5 h-3.5" />
@@ -354,6 +376,7 @@ export default function CruciblePage() {
                     
                     {/* Hover Effect Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
+                    </div>
                   </div>
                 </SpotlightCard>
               </div>

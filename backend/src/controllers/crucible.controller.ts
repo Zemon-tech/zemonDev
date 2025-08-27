@@ -51,6 +51,7 @@ export const getAllChallenges = asyncHandler(
         { $sort: { createdAt: -1 } },
         { $skip: (options.page - 1) * options.limit },
         { $limit: options.limit },
+        // Join creator basic info
         {
           $lookup: {
             from: 'users',
@@ -61,7 +62,47 @@ export const getAllChallenges = asyncHandler(
           }
         },
         { $unwind: { path: '$creator', preserveNullAndEmptyArrays: true } },
-        { $project: { __v: 0 } }
+        // Compute solvedCount and sample user avatars from analyses
+        {
+          $lookup: {
+            from: 'solutionanalyses',
+            localField: '_id',
+            foreignField: 'problemId',
+            as: 'analyses',
+            pipeline: [
+              { $project: { userId: 1 } }
+            ]
+          }
+        },
+        {
+          $addFields: {
+            solvedCount: { $size: '$analyses' },
+            sampledUserIds: { $slice: ['$analyses.userId', 5] }
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'sampledUserIds',
+            foreignField: '_id',
+            as: 'solvedUsers',
+            pipeline: [
+              { $project: { profilePicture: 1 } }
+            ]
+          }
+        },
+        {
+          $addFields: {
+            avatarUrls: {
+              $map: {
+                input: '$solvedUsers',
+                as: 'u',
+                in: { $ifNull: ['$$u.profilePicture', ''] }
+              }
+            }
+          }
+        },
+        { $project: { __v: 0, analyses: 0, solvedUsers: 0, sampledUserIds: 0 } }
       ] as mongoose.PipelineStage[];
 
       // Execute aggregation in parallel with count
@@ -114,7 +155,7 @@ export const getTrendingChallenges = asyncHandler(
       const limit = Math.max(1, Math.min(isNaN(rawLimit) ? 3 : rawLimit, 10));
 
       const pipeline: mongoose.PipelineStage[] = [
-        { $group: { _id: '$problemId', solvedCount: { $sum: 1 } } },
+        { $group: { _id: '$problemId', solvedCount: { $sum: 1 }, userIds: { $push: '$userId' } } },
         { $sort: { solvedCount: -1 } },
         { $limit: limit },
         {
@@ -124,11 +165,27 @@ export const getTrendingChallenges = asyncHandler(
             foreignField: '_id',
             as: 'problem',
             pipeline: [
-              { $project: { title: 1, difficulty: 1, category: 1, tags: 1 } },
+              { $project: { title: 1, difficulty: 1, category: 1, tags: 1, thumbnailUrl: 1 } },
             ],
           },
         },
         { $unwind: { path: '$problem', preserveNullAndEmptyArrays: true } },
+        {
+          $addFields: {
+            sampledUserIds: { $slice: ['$userIds', 5] }
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'sampledUserIds',
+            foreignField: '_id',
+            as: 'users',
+            pipeline: [
+              { $project: { profilePicture: 1 } }
+            ]
+          }
+        },
         {
           $project: {
             _id: 0,
@@ -138,6 +195,14 @@ export const getTrendingChallenges = asyncHandler(
             difficulty: '$problem.difficulty',
             category: '$problem.category',
             tags: '$problem.tags',
+            thumbnailUrl: '$problem.thumbnailUrl',
+            avatarUrls: {
+              $map: {
+                input: '$users',
+                as: 'u',
+                in: { $ifNull: ['$$u.profilePicture', ''] }
+              }
+            }
           },
         },
       ];

@@ -40,8 +40,8 @@ export class GeminiServiceError extends Error {
   }
 }
 
-// Initialize Gemini 2.5 Pro
-const genAI = new GoogleGenerativeAI(env.GEMINI_PRO_API_KEY);
+// Initialize Gemini with fallback to process.env for compatibility with other services
+const genAI = new GoogleGenerativeAI(env.GEMINI_PRO_API_KEY || process.env.GEMINI_API_KEY || '');
 
 /**
  * Generates a comprehensive analysis of a user's solution
@@ -58,9 +58,9 @@ export async function generateComprehensiveAnalysis(
   technicalParameters: string[]
 ): Promise<ISolutionAnalysisResponse> {
   try {
-    // Configure the model
+    // Configure the model (switching to the same model used by chat for stability)
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-2.5-flash',
       generationConfig: {
         temperature: 0.2,
         topK: 32,
@@ -178,11 +178,33 @@ interface ISolutionAnalysisResult {
 - Keep justifications concise and evidence-based.
 `;
 
-    // Call the AI model
-    console.log('Sending prompt to Gemini 2.5 Pro...');
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
-    console.log('Received response from Gemini 2.5 Pro');
+    // Call the AI model with minimal retry on transient 5xx errors
+    let responseText: string | undefined;
+    const MAX_ATTEMPTS = 2;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        console.log(`Sending prompt to Gemini 2.5 Flash... attempt ${attempt}/${MAX_ATTEMPTS}`);
+        const result = await model.generateContent(prompt);
+        responseText = result.response.text();
+        console.log('Received response from Gemini 2.5 Flash');
+        break;
+      } catch (e) {
+        const maybeError = e as { status?: number; message?: string };
+        const isTransient = (maybeError?.status && maybeError.status >= 500) ||
+          (typeof maybeError?.message === 'string' && /Internal Server Error|5\d\d/.test(maybeError.message));
+        if (attempt < MAX_ATTEMPTS && isTransient) {
+          const backoffMs = 300 * attempt;
+          console.warn(`Gemini error (transient). Retrying in ${backoffMs}ms...`, maybeError);
+          await new Promise(r => setTimeout(r, backoffMs));
+          continue;
+        }
+        throw e;
+      }
+    }
+
+    if (!responseText) {
+      throw new GeminiServiceError('Empty response from Gemini after retries.');
+    }
     
     // Parse the JSON response
     try {

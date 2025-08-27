@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Search, X, ArrowLeft, Filter, Clock, Users, Star } from 'lucide-react';
+import { AvatarCircles } from '@/components/ui/avatar-circles';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { getProblems, checkUserAnalysisForProblem } from '@/lib/crucibleApi';
@@ -389,9 +390,22 @@ export default function CrucibleCategoryPage() {
               <div key={problem._id || problem.id} onClick={() => handleProblemClick(problem._id || problem.id)}>
                 <SpotlightCard className="cursor-pointer">
                   <div className={cn(
-                    "p-6 rounded-xl border border-base-300 hover:border-primary/30 transition-all duration-300 group relative",
+                    "p-0 rounded-xl border border-base-300 hover:border-primary/30 transition-all duration-300 group relative overflow-hidden",
                     checkingAnalysis === (problem._id || problem.id) && "opacity-75"
                   )}>
+                    <div className="relative h-40 w-full overflow-hidden">
+                      {problem.thumbnailUrl ? (
+                        <img src={problem.thumbnailUrl} alt={problem.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="h-full w-full bg-base-200" />
+                      )}
+                      <div className="absolute top-2 right-2">
+                        <Badge className={cn("text-xs", getDifficultyColor(problem.difficulty))}>
+                          {problem.difficulty}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="p-6">
                     {checkingAnalysis === (problem._id || problem.id) && (
                       <div className="absolute inset-0 bg-base-100/80 backdrop-blur-sm rounded-xl flex items-center justify-center z-10">
                         <div className="flex items-center gap-2 text-primary">
@@ -400,10 +414,7 @@ export default function CrucibleCategoryPage() {
                         </div>
                       </div>
                     )}
-                    <div className="flex items-start justify-between mb-3">
-                      <Badge className={cn("text-xs", getDifficultyColor(problem.difficulty))}>
-                        {problem.difficulty}
-                      </Badge>
+                    <div className="flex items-start justify-end mb-3">
                       <div className="flex items-center gap-1 text-xs text-base-content/40">
                         <Star className="w-3 h-3" />
                         {problem.metrics?.attempts || 0}
@@ -416,14 +427,30 @@ export default function CrucibleCategoryPage() {
                       {problem.description}
                     </p>
                     <div className="flex items-center justify-between text-sm text-base-content/60">
-                      <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
-                        {problem.metrics?.solutions || 0} solutions
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const totalSolved = (problem.solvedCount || problem.metrics?.solutions || 0) as number;
+                          const displayed = Math.min(3, (problem.avatarUrls?.length || 0));
+                          const remainder = Math.max(0, totalSolved - displayed);
+                          return (
+                            <AvatarCircles avatarUrls={(problem.avatarUrls || []).slice(0,3)} numPeople={remainder} />
+                          );
+                        })()}
+                        <span className="font-medium whitespace-nowrap">{(problem.solvedCount || problem.metrics?.solutions || 0)} solved</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        {problem.estimatedTime ? `${problem.estimatedTime}min` : 'N/A'}
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          {problem.estimatedTime ? `${problem.estimatedTime}min` : 'N/A'}
+                        </div>
+                        <button
+                          className="px-3 py-1.5 text-xs font-semibold rounded-full border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+                          onClick={(e) => { e.stopPropagation(); handleProblemClick(problem._id || problem.id); }}
+                        >
+                          Solve Now
+                        </button>
                       </div>
+                    </div>
                     </div>
                   </div>
                 </SpotlightCard>

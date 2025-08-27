@@ -18,6 +18,7 @@ interface ICommunityTip {
 export interface ICrucibleProblem extends Document {
   title: string;
   description: string;
+  thumbnailUrl?: string;
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
   category: 'algorithms' | 'system-design' | 'web-development' | 'mobile-development' | 'data-science' | 'devops' | 'frontend' | 'backend';
   tags: string[];
@@ -64,6 +65,11 @@ const CrucibleProblemSchema: Schema = new Schema(
     description: {
       type: String,
       required: [true, 'Please provide a description'],
+    },
+    thumbnailUrl: {
+      type: String,
+      default: '',
+      trim: true,
     },
     difficulty: {
       type: String,
