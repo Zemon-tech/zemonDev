@@ -106,8 +106,6 @@ export default function CruciblePage() {
   const navigate = useNavigate();
   const { username } = useParams();
   const [hotProblems, setHotProblems] = useState<HotProblem[]>([]);
-  const [problems, setProblems] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
   
@@ -120,7 +118,7 @@ export default function CruciblePage() {
     }
   }, [authLoaded, isSignedIn]);
   
-  // Fetch problems from API
+  // Fetch problems from API to update category counts
   const fetchProblems = async () => {
     if (!isSignedIn) {
       toast({
@@ -132,13 +130,9 @@ export default function CruciblePage() {
     }
     
     try {
-      setIsLoading(true);
       const problemsData = await getProblems({ limit: 100 });
       
       if (problemsData && Array.isArray(problemsData) && problemsData.length > 0) {
-        // Update with fresh data from API
-        setProblems(problemsData);
-        
         // Update category counts using the new category field
         const categoryCounts = problemsData.reduce((acc: any, problem: any) => {
           if (problem.category) {
@@ -155,14 +149,11 @@ export default function CruciblePage() {
       // If API returns empty or fails, show empty state
     } catch (err) {
       console.error('Error fetching problems from API:', err);
-      setProblems([]);
       toast({
         title: 'Error loading problems',
         description: 'Failed to load problems. Please try again later.',
         variant: "error",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
   
@@ -315,75 +306,7 @@ export default function CruciblePage() {
         </div>
       </div>
 
-      {/* Problems Display Section */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-3xl font-bold text-base-content mb-2">Available Problems</h2>
-            <p className="text-base-content/60">
-              {isLoading ? 'Refreshing problems...' : `${problems.length} problems available`}
-            </p>
-          </div>
-          {isLoading && (
-            <div className="flex items-center gap-2 text-primary">
-              <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-              <span className="text-sm">Updating...</span>
-            </div>
-          )}
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {problems.map((problem) => (
-            <div key={problem._id} onClick={() => handleHotProblemClick(problem._id)}>
-              <SpotlightCard className="cursor-pointer">
-                <div className="p-5 rounded-2xl border border-base-300/50 hover:border-primary/40 hover:shadow-lg transition-all duration-300 group relative h-72 w-full bg-gradient-to-br from-base-100 to-base-50/50 backdrop-blur-sm">
-                  {/* Difficulty and Category Badges */}
-                  <div className="flex items-start justify-between mb-4">
-                    <Badge className={cn("text-xs font-medium px-2.5 py-1 rounded-full", getDifficultyColor(problem.difficulty))}>
-                      {problem.difficulty}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs font-medium px-2.5 py-1 rounded-full border-base-300/60 text-base-content/70">
-                      {problem.category}
-                    </Badge>
-                  </div>
-                  
-                  {/* Problem Title */}
-                  <h3 className="problem-title font-bold text-base-content text-lg mb-3 group-hover:text-primary transition-colors line-clamp-2">
-                    {problem.title}
-                  </h3>
-                  
-                  {/* Problem Description */}
-                  <p className="text-sm text-base-content/70 leading-relaxed mb-5 line-clamp-3 min-h-[4rem]">
-                    {problem.description}
-                  </p>
-                  
-                  {/* Bottom Info Bar */}
-                  <div className="flex items-center justify-between text-xs text-base-content/60 absolute bottom-5 left-5 right-5">
-                    <div className="flex items-center gap-2 bg-base-200/50 dark:bg-base-700/50 px-3 py-1.5 rounded-full">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span className="font-medium">{problem.estimatedTime}m</span>
-                    </div>
-                    <div className="flex items-center gap-2 bg-base-200/50 dark:bg-base-700/50 px-3 py-1.5 rounded-full">
-                      <Target className="w-3.5 h-3.5" />
-                      <span className="font-medium">{problem.tags.slice(0, 2).join(', ')}</span>
-                    </div>
-                  </div>
-                  
-                  {/* Hover Effect Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
-                </div>
-              </SpotlightCard>
-            </div>
-          ))}
-        </div>
-        
-        {problems.length === 0 && !isLoading && (
-          <div className="text-center py-12">
-            <div className="text-base-content/40 text-lg">No problems available at the moment</div>
-            <div className="text-base-content/30 text-sm mt-2">Check back later for new challenges</div>
-          </div>
-        )}
-      </div>
+
 
       {/* Hot & Latest Problems */}
       <div className="max-w-7xl mx-auto px-4 py-12">
