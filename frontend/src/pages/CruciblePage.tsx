@@ -1,9 +1,9 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { ArrowRight, TrendingUp, Clock, Code, Database, Globe, Zap, Target, Users, BookOpen, Lightbulb } from 'lucide-react';
+import { ArrowRight, TrendingUp, Clock, Code, Database, Globe, Zap, Target, Users, BookOpen, Lightbulb, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { getProblems, checkUserAnalysisForProblem, getTrendingProblems, ITrendingProblem } from '@/lib/crucibleApi';
+import { getProblems, checkUserAnalysisForProblem, getTrendingProblems, ITrendingProblem, toggleProblemLike } from '@/lib/crucibleApi';
 import { AvatarCircles } from '@/components/ui/avatar-circles';
 import { useAuth } from '@clerk/clerk-react';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
@@ -103,6 +103,8 @@ interface HotProblem {
   trending: boolean;
   thumbnailUrl?: string;
   avatarUrls?: string[];
+  isLiked?: boolean;
+  likesCount?: number;
 }
 
 export default function CruciblePage() {
@@ -173,6 +175,8 @@ export default function CruciblePage() {
         trending: true,
         thumbnailUrl: t.thumbnailUrl,
         avatarUrls: t.avatarUrls || [],
+        isLiked: false, // Will be updated when user data is available
+        likesCount: 0, // Will be updated when user data is available
       }));
       setHotProblems(mapped);
     } catch (err) {
@@ -214,6 +218,44 @@ export default function CruciblePage() {
       // If there's an error checking analysis, fall back to normal navigation
       console.warn('Error checking analysis, falling back to problem page:', error);
       navigate(`/${username}/crucible/problem/${problemId}`);
+    }
+  };
+
+  // Handle like toggle
+  const handleLikeToggle = async (e: React.MouseEvent, problemId: string) => {
+    e.stopPropagation(); // Prevent navigation
+    
+    if (!isSignedIn) {
+      toast({
+        title: 'Please sign in to like problems',
+        description: 'You need to be signed in to like problems.',
+        variant: "error",
+      });
+      return;
+    }
+
+    try {
+      const result = await toggleProblemLike(problemId, getToken);
+      
+      // Update the local state
+      setHotProblems(prev => prev.map(problem => 
+        problem.id === problemId 
+          ? { ...problem, isLiked: result.isLiked, likesCount: result.likesCount }
+          : problem
+      ));
+
+      toast({
+        title: result.isLiked ? 'Problem liked!' : 'Problem unliked',
+        description: result.isLiked ? 'Added to your liked problems' : 'Removed from your liked problems',
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      toast({
+        title: 'Error updating like',
+        description: 'Failed to update like. Please try again.',
+        variant: "error",
+      });
     }
   };
 
@@ -340,9 +382,9 @@ export default function CruciblePage() {
                         </Badge>
                       </div>
                     </div>
-                    <div className="p-5">
+                    <div className="p-4">
                     {/* Difficulty Badge and Trending Icon */}
-                    <div className="flex items-start justify-end mb-3">
+                    <div className="flex items-start justify-end mb-2">
                       {problem.trending && (
                         <div className="w-8 h-8 bg-orange-500/20 rounded-full flex items-center justify-center">
                           <TrendingUp className="w-4 h-4 text-orange-500" />
@@ -351,26 +393,38 @@ export default function CruciblePage() {
                     </div>
                     
                     {/* Problem Title */}
-                    <h3 className="problem-title font-bold text-base-content text-lg mb-3 group-hover:text-primary transition-colors line-clamp-2">
+                    <h3 className="problem-title font-bold text-base-content text-lg mb-2 group-hover:text-primary transition-colors line-clamp-2">
                       {problem.title}
                     </h3>
                     
                     {/* Bottom Info Bar */}
                     <div className="flex items-center justify-between text-xs text-base-content/60">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         {(() => {
-                          const totalSolved = problem.solvedCount as number;
+                          const totalSolved = (problem.solvedCount || 0) as number;
                           const displayed = Math.min(3, (problem.avatarUrls?.length || 0));
                           const remainder = Math.max(0, totalSolved - displayed);
                           return (
-                            <AvatarCircles avatarUrls={(problem.avatarUrls || []).slice(0,3)} numPeople={remainder} />
+                            <AvatarCircles size="sm" avatarUrls={(problem.avatarUrls || []).slice(0,3)} numPeople={remainder} />
                           );
                         })()}
-                        <span className="font-medium whitespace-nowrap">{problem.solvedCount} solved</span>
                       </div>
-                      <div className="flex items-center gap-2 bg-base-200/50 dark:bg-base-700/50 px-3 py-1.5 rounded-full">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span className="font-medium">Latest</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => handleLikeToggle(e, problem.id)}
+                          className={`flex items-center gap-1 px-2 py-1 rounded-full transition-colors ${
+                            problem.isLiked 
+                              ? 'text-red-500 bg-red-100 dark:bg-red-900/20' 
+                              : 'text-base-content/60 bg-base-200/50 dark:bg-base-700/50 hover:bg-base-300/50'
+                          }`}
+                        >
+                          <Star className={`w-3 h-3 ${problem.isLiked ? 'fill-current' : ''}`} />
+                          <span className="font-medium">{problem.likesCount || 0}</span>
+                        </button>
+                        <div className="flex items-center gap-1 bg-base-200/50 dark:bg-base-700/50 px-2 py-1 rounded-full">
+                          <Clock className="w-3 h-3" />
+                          <span className="font-medium">Latest</span>
+                        </div>
                       </div>
                     </div>
                     

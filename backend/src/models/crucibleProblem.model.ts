@@ -34,7 +34,9 @@ export interface ICrucibleProblem extends Document {
     attempts: number;
     solutions: number;
     successRate: number;
+    likes: number;
   };
+  userLikes: mongoose.Types.ObjectId[];
   estimatedTime?: number;
   learningObjectives?: string[];
   prerequisites?: IPrerequisite[];
@@ -129,7 +131,17 @@ const CrucibleProblemSchema: Schema = new Schema(
         type: Number,
         default: 0,
       },
+      likes: {
+        type: Number,
+        default: 0,
+      },
     },
+    userLikes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     estimatedTime: {
       type: Number,
       default: 0,

@@ -24,6 +24,7 @@ export interface ICrucibleProblem {
     attempts: number;
     solutions: number;
     successRate: number;
+    likes: number;
   };
   estimatedTime?: number;
   learningObjectives?: string[];
@@ -41,6 +42,8 @@ export interface ICrucibleProblem {
   technicalParameters?: string[];
   createdAt?: Date;
   updatedAt?: Date;
+  isLiked?: boolean;
+  likesCount?: number;
 }
 
 export interface ICrucibleNote {
@@ -449,4 +452,24 @@ export interface ITrendingProblem {
 export async function getTrendingProblems(limit = 3): Promise<ITrendingProblem[]> {
   const response = await fetch(`${API_BASE_URL}/crucible/trending?limit=${limit}`);
   return handleResponse<ITrendingProblem[]>(response);
+}
+
+// Toggle like on a problem (auth required)
+export async function toggleProblemLike(
+  problemId: string,
+  getToken: () => Promise<string | null>
+): Promise<{
+  isLiked: boolean;
+  likesCount: number;
+  problemId: string;
+}> {
+  return apiRequest<{
+    isLiked: boolean;
+    likesCount: number;
+    problemId: string;
+  }>(
+    `/crucible/${problemId}/like`,
+    { method: 'POST' },
+    getToken
+  );
 }

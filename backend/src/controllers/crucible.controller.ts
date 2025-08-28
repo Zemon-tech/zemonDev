@@ -102,6 +102,12 @@ export const getAllChallenges = asyncHandler(
             }
           }
         },
+        // Add likes count and check if current user liked
+        {
+          $addFields: {
+            likesCount: { $ifNull: ['$metrics.likes', 0] }
+          }
+        },
         { $project: { __v: 0, analyses: 0, solvedUsers: 0, sampledUserIds: 0 } }
       ] as mongoose.PipelineStage[];
 
@@ -245,11 +251,26 @@ export const getChallengeById = asyncHandler(
     challenge.metrics.attempts += 1;
     await challenge.save();
 
+    // Check if current user liked this problem (if authenticated)
+    let isLiked = false;
+    if (req.user) {
+      isLiked = challenge.userLikes.some(
+        (userId) => userId.toString() === req.user._id.toString()
+      );
+    }
+
+    // Prepare response with likes information
+    const responseData = {
+      ...challenge.toObject(),
+      isLiked,
+      likesCount: challenge.metrics.likes || 0
+    };
+
     res.status(200).json(
       new ApiResponse(
         200,
         'Challenge fetched successfully',
-        challenge
+        responseData
       )
     );
   }
@@ -995,4 +1016,64 @@ export const getLastSubmittedSolution = asyncHandler(
       })
     );
   }
-); 
+);
+
+/**
+ * @desc    Toggle like on a problem
+ * @route   POST /api/crucible/:problemId/like
+ * @access  Private
+ */
+export const toggleProblemLike = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { problemId } = req.params;
+    const userId = req.user._id;
+
+    // Validate problem ID format
+    if (!mongoose.Types.ObjectId.isValid(problemId)) {
+      return next(new AppError('Invalid problem ID format', 400));
+    }
+
+    // Find the problem
+    const problem = await CrucibleProblem.findById(problemId);
+    if (!problem) {
+      return next(new AppError('Problem not found', 404));
+    }
+
+    // Check if user already liked the problem
+    const userLikedIndex = problem.userLikes.findIndex(
+      (id) => id.toString() === userId.toString()
+    );
+
+    let isLiked: boolean;
+    let newLikesCount: number;
+
+    if (userLikedIndex === -1) {
+      // User hasn't liked, add like
+      problem.userLikes.push(userId);
+      problem.metrics.likes = (problem.metrics.likes || 0) + 1;
+      isLiked = true;
+      newLikesCount = problem.metrics.likes;
+    } else {
+      // User already liked, remove like
+      problem.userLikes.splice(userLikedIndex, 1);
+      problem.metrics.likes = Math.max(0, (problem.metrics.likes || 0) - 1);
+      isLiked = false;
+      newLikesCount = problem.metrics.likes;
+    }
+
+    // Save the updated problem
+    await problem.save();
+
+    // Clear cache for this problem
+    const cacheKey = getCacheKeys.problem(problemId);
+    await redisClient.del(cacheKey);
+
+    res.status(200).json(
+      new ApiResponse(200, `Problem ${isLiked ? 'liked' : 'unliked'} successfully`, {
+        isLiked,
+        likesCount: newLikesCount,
+        problemId
+      })
+    );
+  }
+);

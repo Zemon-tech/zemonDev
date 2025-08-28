@@ -9,7 +9,8 @@ import {
   getAnalysisResult,
   getLatestAnalysisForUserProblem,
   getAnalysisHistoryForUserProblem,
-  getLastSubmittedSolution
+  getLastSubmittedSolution,
+  toggleProblemLike
 } from '../controllers/crucible.controller';
 import { 
   getDraft, 
@@ -71,6 +72,7 @@ router.get('/:challengeId/solutions', standardLimiter, cacheMiddleware(300), get
 
 // Protected routes
 router.post('/:challengeId/solutions', protect, submitSolution);
+router.post('/:problemId/like', protect, toggleProblemLike);
 
 // Solution analysis routes
 router.post('/:problemId/analyze', protect, analyzeUserSolution);

@@ -4,12 +4,14 @@ interface AvatarCirclesProps {
   className?: string
   numPeople?: number
   avatarUrls: string[]
+  size?: 'sm' | 'md' | 'lg'
 }
 
 const AvatarCircles = ({
   numPeople,
   className,
   avatarUrls,
+  size = 'md',
 }: AvatarCirclesProps) => {
   // Debug logging in development
   if (import.meta.env.DEV) {
@@ -24,16 +26,22 @@ const AvatarCircles = ({
   
   // Filter out empty or invalid URLs
   const validAvatarUrls = avatarUrls.filter(url => url && typeof url === 'string' && url.trim() !== '');
+  const sizeToPx: Record<string, string> = { sm: 'h-6 w-6', md: 'h-8 w-8', lg: 'h-10 w-10' };
+  const sizePx = sizeToPx[size] || sizeToPx.md;
+  const borderSize = size === 'sm' ? 'border' : 'border-2';
+
+  // If nothing to show, render null
+  if (validAvatarUrls.length === 0 && (!numPeople || numPeople <= 0)) return null;
   
   return (
-    <div className={cn("z-10 flex -space-x-4 rtl:space-x-reverse", className)}>
+    <div className={cn("z-10 flex -space-x-2 rtl:space-x-reverse", className)}>
       {validAvatarUrls.map((url, index) => (
         <img
           key={index}
-          className="h-10 w-10 rounded-full border-2 border-white dark:border-gray-800"
+          className={cn(`${sizePx} rounded-full ${borderSize} border-white dark:border-gray-800`)}
           src={url}
-          width={40}
-          height={40}
+          width={size === 'sm' ? 24 : size === 'md' ? 32 : 40}
+          height={size === 'sm' ? 24 : size === 'md' ? 32 : 40}
           alt={`Avatar ${index + 1}`}
           onError={(e) => {
             if (import.meta.env.DEV) {
@@ -45,17 +53,14 @@ const AvatarCircles = ({
         />
       ))}
       {typeof numPeople === 'number' && numPeople > 0 && (
-        <a
-          className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-black text-center text-xs font-medium text-white hover:bg-gray-600 dark:border-gray-800 dark:bg-white dark:text-black"
-          href=""
+        <div
+          className={cn(
+            `flex ${sizePx} items-center justify-center rounded-full ${borderSize} 
+             border-base-300 bg-base-200 text-center text-[10px] font-medium text-base-content/80 
+             dark:border-base-600 dark:bg-base-700 dark:text-base-content`
+          )}
         >
           +{numPeople}
-        </a>
-      )}
-      {/* Fallback display for debugging */}
-      {import.meta.env.DEV && validAvatarUrls.length === 0 && (
-        <div className="h-10 w-10 rounded-full border-2 border-gray-300 bg-gray-100 flex items-center justify-center text-xs text-gray-500">
-          No avatars
         </div>
       )}
     </div>

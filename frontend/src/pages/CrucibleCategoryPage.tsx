@@ -4,7 +4,7 @@ import { Search, X, ArrowLeft, Filter, Clock, Users, Star } from 'lucide-react';
 import { AvatarCircles } from '@/components/ui/avatar-circles';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { getProblems, checkUserAnalysisForProblem } from '@/lib/crucibleApi';
+import { getProblems, checkUserAnalysisForProblem, toggleProblemLike } from '@/lib/crucibleApi';
 import { useAuth } from '@clerk/clerk-react';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
 // Category information mapping with SVG icons
@@ -180,18 +180,17 @@ export default function CrucibleCategoryPage() {
       if (isReattempting || isActivelyReattempting) {
         // If user is reattempting, go directly to problem page instead of result page
         navigate(`/${username}/crucible/problem/${problemId}`);
-        return;
-      }
-      
-      // Check if user has analysis for this problem
-      const analysisId = await checkUserAnalysisForProblem(problemId, getToken);
-      
-      if (analysisId) {
-        // If analysis exists, redirect directly to result page
-        navigate(`/${username}/crucible/results/${analysisId}`);
       } else {
-        // If no analysis, navigate to problem page as usual
-        navigate(`/${username}/crucible/problem/${problemId}`);
+        // Check if user has analysis for this problem
+        const analysisId = await checkUserAnalysisForProblem(problemId, getToken);
+        
+        if (analysisId) {
+          // If analysis exists, redirect directly to result page
+          navigate(`/${username}/crucible/results/${analysisId}`);
+        } else {
+          // If no analysis, navigate to problem page as usual
+          navigate(`/${username}/crucible/problem/${problemId}`);
+        }
       }
     } catch (error) {
       // If there's an error checking analysis, fall back to normal navigation
@@ -200,6 +199,34 @@ export default function CrucibleCategoryPage() {
     } finally {
       // Clear loading state
       setCheckingAnalysis(null);
+    }
+  };
+
+  // Handle like toggle
+  const handleLikeToggle = async (e: React.MouseEvent, problemId: string) => {
+    e.stopPropagation(); // Prevent navigation
+    
+    if (!isSignedIn) {
+      return; // Silent fail for category page
+    }
+
+    try {
+      const result = await toggleProblemLike(problemId, getToken);
+      
+      // Update the local state
+      setProblems(prev => prev.map(problem => 
+        (problem._id || problem.id) === problemId 
+          ? { ...problem, isLiked: result.isLiked, metrics: { ...problem.metrics, likes: result.likesCount } }
+          : problem
+      ));
+      
+      setFilteredProblems(prev => prev.map(problem => 
+        (problem._id || problem.id) === problemId 
+          ? { ...problem, isLiked: result.isLiked, metrics: { ...problem.metrics, likes: result.likesCount } }
+          : problem
+      ));
+    } catch (error) {
+      console.error('Error toggling like:', error);
     }
   };
 
@@ -405,7 +432,7 @@ export default function CrucibleCategoryPage() {
                         </Badge>
                       </div>
                     </div>
-                    <div className="p-6">
+                    <div className="p-5">
                     {checkingAnalysis === (problem._id || problem.id) && (
                       <div className="absolute inset-0 bg-base-100/80 backdrop-blur-sm rounded-xl flex items-center justify-center z-10">
                         <div className="flex items-center gap-2 text-primary">
@@ -414,20 +441,14 @@ export default function CrucibleCategoryPage() {
                         </div>
                       </div>
                     )}
-                    <div className="flex items-start justify-end mb-3">
-                      <div className="flex items-center gap-1 text-xs text-base-content/40">
-                        <Star className="w-3 h-3" />
-                        {problem.metrics?.attempts || 0}
-                      </div>
-                    </div>
-                    <h3 className="font-semibold text-base-content mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                    <h3 className="font-semibold text-base-content mb-1 line-clamp-2 group-hover:text-primary transition-colors">
                       {problem.title}
                     </h3>
-                    <p className="text-sm text-base-content/70 mb-4 line-clamp-3">
+                    <p className="text-sm text-base-content/70 mb-3 line-clamp-3">
                       {problem.description}
                     </p>
                     <div className="flex items-center justify-between text-sm text-base-content/60">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         {(() => {
                           const totalSolved = (problem.solvedCount || problem.metrics?.solutions || 0) as number;
                           const displayed = Math.min(3, (problem.avatarUrls?.length || 0));
@@ -448,18 +469,28 @@ export default function CrucibleCategoryPage() {
                           }
                           
                           return (
-                            <AvatarCircles avatarUrls={(problem.avatarUrls || []).slice(0,3)} numPeople={remainder} />
+                            <AvatarCircles size="sm" avatarUrls={(problem.avatarUrls || []).slice(0,3)} numPeople={remainder} />
                           );
                         })()}
-                        <span className="font-medium whitespace-nowrap">{(problem.solvedCount || problem.metrics?.solutions || 0)} solved</span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => handleLikeToggle(e, problem._id || problem.id)}
+                          className={`flex items-center gap-1 px-2 py-1 rounded-full transition-colors ${
+                            problem.isLiked 
+                              ? 'text-red-500 bg-red-100 dark:bg-red-900/20' 
+                              : 'text-base-content/60 bg-base-200/50 dark:bg-base-700/50 hover:bg-base-300/50'
+                          }`}
+                        >
+                          <Star className={`w-3 h-3 ${problem.isLiked ? 'fill-current' : ''}`} />
+                          <span className="text-xs font-medium">{problem.metrics?.likes || 0}</span>
+                        </button>
+                        <div className="flex items-center gap-1 text-xs">
+                          <Clock className="w-3.5 h-3.5" />
                           {problem.estimatedTime ? `${problem.estimatedTime}min` : 'N/A'}
                         </div>
                         <button
-                          className="px-3 py-1.5 text-xs font-semibold rounded-full border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+                          className="px-2.5 py-1.5 text-xs font-semibold rounded-full border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
                           onClick={(e) => { e.stopPropagation(); handleProblemClick(problem._id || problem.id); }}
                         >
                           Solve Now
