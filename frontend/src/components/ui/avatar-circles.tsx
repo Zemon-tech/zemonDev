@@ -11,9 +11,23 @@ const AvatarCircles = ({
   className,
   avatarUrls,
 }: AvatarCirclesProps) => {
+  // Debug logging in development
+  if (import.meta.env.DEV) {
+    console.log('AvatarCircles props:', { numPeople, className, avatarUrls });
+  }
+  
+  // Validate props
+  if (!Array.isArray(avatarUrls)) {
+    console.warn('AvatarCircles: avatarUrls is not an array:', avatarUrls);
+    return null;
+  }
+  
+  // Filter out empty or invalid URLs
+  const validAvatarUrls = avatarUrls.filter(url => url && typeof url === 'string' && url.trim() !== '');
+  
   return (
     <div className={cn("z-10 flex -space-x-4 rtl:space-x-reverse", className)}>
-      {avatarUrls.map((url, index) => (
+      {validAvatarUrls.map((url, index) => (
         <img
           key={index}
           className="h-10 w-10 rounded-full border-2 border-white dark:border-gray-800"
@@ -21,6 +35,13 @@ const AvatarCircles = ({
           width={40}
           height={40}
           alt={`Avatar ${index + 1}`}
+          onError={(e) => {
+            if (import.meta.env.DEV) {
+              console.warn(`Avatar image failed to load: ${url}`);
+            }
+            // Hide broken images
+            (e.target as HTMLImageElement).style.display = 'none';
+          }}
         />
       ))}
       {typeof numPeople === 'number' && numPeople > 0 && (
@@ -30,6 +51,12 @@ const AvatarCircles = ({
         >
           +{numPeople}
         </a>
+      )}
+      {/* Fallback display for debugging */}
+      {import.meta.env.DEV && validAvatarUrls.length === 0 && (
+        <div className="h-10 w-10 rounded-full border-2 border-gray-300 bg-gray-100 flex items-center justify-center text-xs text-gray-500">
+          No avatars
+        </div>
       )}
     </div>
   )

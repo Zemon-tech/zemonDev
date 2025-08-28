@@ -1,7 +1,7 @@
 import { logger } from './utils';
 
 // API Base URL from environment variable
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : 'http://localhost:3001/api';
 
 // Type definitions
 export interface ICrucibleProblem {
@@ -173,9 +173,31 @@ async function apiRequest<T>(
 // Fetch all problems (public, no auth needed)
 export async function getProblems(filters?: Record<string, any>): Promise<ICrucibleProblem[]> {
     const query = filters ? new URLSearchParams(filters).toString() : '';
+    const url = `${API_BASE_URL}/crucible?${query}`;
+    
+    // Debug logging in development
+    if (import.meta.env.DEV) {
+        console.log('Fetching problems from:', url);
+        console.log('API_BASE_URL:', API_BASE_URL);
+    }
+    
     // This is a public endpoint, so we don't need a real getToken.
-    const response = await fetch(`${API_BASE_URL}/crucible?${query}`);
+    const response = await fetch(url);
+    
+    if (import.meta.env.DEV) {
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+    }
+    
     const result = await handleResponse<{ challenges: ICrucibleProblem[] }>(response);
+    
+    if (import.meta.env.DEV) {
+        console.log('API Response:', result);
+        if (result.challenges && result.challenges.length > 0) {
+            console.log('Sample problem:', result.challenges[0]);
+        }
+    }
+    
     return result.challenges || [];
 }
 

@@ -432,6 +432,21 @@ export default function CrucibleCategoryPage() {
                           const totalSolved = (problem.solvedCount || problem.metrics?.solutions || 0) as number;
                           const displayed = Math.min(3, (problem.avatarUrls?.length || 0));
                           const remainder = Math.max(0, totalSolved - displayed);
+                          
+                          // Debug logging in development
+                          if (import.meta.env.DEV) {
+                            console.log('Problem data:', {
+                              id: problem._id || problem.id,
+                              title: problem.title,
+                              solvedCount: problem.solvedCount,
+                              metrics: problem.metrics,
+                              avatarUrls: problem.avatarUrls,
+                              totalSolved,
+                              displayed,
+                              remainder
+                            });
+                          }
+                          
                           return (
                             <AvatarCircles avatarUrls={(problem.avatarUrls || []).slice(0,3)} numPeople={remainder} />
                           );

@@ -24,7 +24,7 @@ export const useZemonStreak = () => {
         return;
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/users/me/streak`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : 'http://localhost:3001/api'}/users/me/streak`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -52,7 +52,7 @@ export const useZemonStreak = () => {
         return;
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/users/me/visit`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : 'http://localhost:3001/api'}/users/me/visit`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
