@@ -90,6 +90,16 @@ h1, h2, h3, h4, h5, h6 {
   cursor: pointer;
 }
 
+/* Scrollbar utilities */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
 .theme-toggle input {
   opacity: 0;
   width: 0;
