@@ -41,6 +41,10 @@ import { AlignRightIcon } from '../tiptap-icons/align-right-icon';
 import { Undo2Icon } from '../tiptap-icons/undo2-icon';
 import { Redo2Icon } from '../tiptap-icons/redo2-icon';
 import { ChevronDownIcon } from '../tiptap-icons/chevron-down-icon';
+import { TableIcon } from '../tiptap-icons/table-icon';
+import { MinusIcon } from '../tiptap-icons/minus-icon';
+import { HighlighterIcon } from '../tiptap-icons/highlighter-icon';
+import { AlignJustifyIcon } from '../tiptap-icons/align-justify-icon';
 
 // Import Popover components
 import {
@@ -91,6 +95,7 @@ const editorStyles = `
     z-index: 10;
     width: 100%;
     align-items: center;
+    justify-content: center;
   }
   
   .toolbar-group {
@@ -116,13 +121,14 @@ const editorStyles = `
     background-color: transparent;
     border: none;
     color: hsl(var(--foreground));
-    transition: background-color 0.2s;
+    transition: all 0.2s ease;
     min-width: 32px;
     min-height: 32px;
   }
   
   .toolbar-button:hover {
     background-color: hsl(var(--accent));
+    transform: translateY(-1px);
   }
   
   .toolbar-button.is-active {
@@ -130,15 +136,62 @@ const editorStyles = `
     color: hsl(var(--primary));
   }
 
-  .toolbar-popover-content {
+  .toolbar-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .toolbar-popover-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 0.25rem;
     padding: 0.5rem;
+  }
+
+  .toolbar-popover-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.25rem;
+    padding: 0.5rem;
+  }
+
+  /* Ensure popover content is visible */
+  .toolbar-popover-grid button,
+  .toolbar-popover-grid-2 button {
+    background-color: hsl(var(--background));
+    border: none;
+    border-radius: 0.25rem;
+    color: hsl(var(--foreground));
+  }
+
+  .toolbar-popover-grid button:hover,
+  .toolbar-popover-grid-2 button:hover {
+    background-color: hsl(var(--accent));
+  }
+
+  .toolbar-popover-grid button.is-active,
+  .toolbar-popover-grid-2 button.is-active {
+    background-color: hsl(var(--primary) / 0.1);
+    color: hsl(var(--primary));
+  }
+
+  /* Ensure popover content has solid background */
+  .toolbar-popover-grid,
+  .toolbar-popover-grid-2 {
     background-color: hsl(var(--background));
     border: 1px solid hsl(var(--border));
     border-radius: 0.5rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    min-width: 120px;
+  }
+
+  /* Ensure popover buttons have consistent sizing */
+  .toolbar-popover-grid button,
+  .toolbar-popover-grid-2 button {
+    width: 100%;
+    height: 36px;
+    justify-content: center;
+    font-size: 0.875rem;
   }
 
   /* Task list styles */
@@ -194,6 +247,18 @@ const editorStyles = `
     font-weight: 600;
     margin: 1em 0 0.5em;
     color: hsl(var(--foreground));
+  }
+
+  /* Highlight styles */
+  .ProseMirror mark {
+    background-color: hsl(var(--warning) / 0.3);
+    color: hsl(var(--foreground));
+    padding: 0.1em 0.2em;
+    border-radius: 0.2em;
+  }
+
+  .ProseMirror mark.ProseMirror-selectednode {
+    background-color: hsl(var(--warning) / 0.5);
   }
 
   /* Table styles */
@@ -587,7 +652,7 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
               <ChevronDownIcon className="w-3 h-3" />
             </button>
           </PopoverTrigger>
-          <PopoverContent className="toolbar-popover-content w-auto p-2">
+          <PopoverContent className="toolbar-popover-grid">
             <button
               onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
               className={`toolbar-button ${editor.isActive('heading', { level: 1 }) ? 'is-active' : ''}`}
@@ -622,7 +687,7 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
               <ChevronDownIcon className="w-3 h-3" />
             </button>
           </PopoverTrigger>
-          <PopoverContent className="toolbar-popover-content w-auto p-2">
+          <PopoverContent className="toolbar-popover-grid">
             <button
               onClick={() => editor.chain().focus().toggleBold().run()}
               className={`toolbar-button ${editor.isActive('bold') ? 'is-active' : ''}`}
@@ -643,6 +708,13 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
               title="Underline"
             >
               <UnderlineIcon className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => editor.chain().focus().toggleHighlight().run()}
+              className={`toolbar-button ${editor.isActive('highlight') ? 'is-active' : ''}`}
+              title="Highlight"
+            >
+              <HighlighterIcon className="w-4 h-4" />
             </button>
             <button
               onClick={() => editor.chain().focus().toggleSuperscript().run()}
@@ -678,7 +750,7 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
               <ChevronDownIcon className="w-3 h-3" />
             </button>
           </PopoverTrigger>
-          <PopoverContent className="toolbar-popover-content w-auto p-2">
+          <PopoverContent className="toolbar-popover-grid">
             <button
               onClick={() => editor.chain().focus().toggleBulletList().run()}
               className={`toolbar-button ${editor.isActive('bulletList') ? 'is-active' : ''}`}
@@ -736,22 +808,14 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
           className={`toolbar-button ${editor.isActive('table') ? 'is-active' : ''}`}
           title="Insert Table"
         >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <line x1="3" y1="9" x2="21" y2="9" />
-            <line x1="3" y1="15" x2="21" y2="15" />
-            <line x1="9" y1="3" x2="9" y2="21" />
-            <line x1="15" y1="3" x2="15" y2="21" />
-          </svg>
+          <TableIcon className="w-4 h-4" />
         </button>
         <button
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
           className="toolbar-button"
           title="Horizontal Rule"
         >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="3" y1="12" x2="21" y2="12" />
-          </svg>
+          <MinusIcon className="w-4 h-4" />
         </button>
 
         <div className="toolbar-separator" />
@@ -764,7 +828,7 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
               <ChevronDownIcon className="w-3 h-3" />
             </button>
           </PopoverTrigger>
-          <PopoverContent className="toolbar-popover-content w-auto p-2">
+          <PopoverContent className="toolbar-popover-grid">
             <button
               onClick={() => editor.chain().focus().setTextAlign('left').run()}
               className={`toolbar-button ${editor.isActive('textAlign', { align: 'left' }) ? 'is-active' : ''}`}
@@ -785,6 +849,13 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
               title="Align Right"
             >
               <AlignRightIcon className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+              className={`toolbar-button ${editor.isActive('textAlign', { align: 'justify' }) ? 'is-active' : ''}`}
+              title="Justify"
+            >
+              <AlignJustifyIcon className="w-4 h-4" />
             </button>
           </PopoverContent>
         </Popover>
@@ -821,5 +892,3 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
 
 // Export with React.memo to prevent unnecessary re-renders
 export default React.memo(SolutionEditor);
-
-
