@@ -1,4 +1,6 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
 @plugin "daisyui" {
   themes: all;
 }
@@ -17,28 +19,28 @@
   --color-primary-light: color-mix(in srgb, var(--color-primary) 70%, white);
   --color-primary-dark: var(--color-primary-focus);
   --color-primary-content: var(--color-primary-content);
-  
+
   /* Secondary colors */
   --color-secondary: var(--color-secondary);
   --color-secondary-light: color-mix(in srgb, var(--color-secondary) 70%, white);
   --color-secondary-dark: var(--color-secondary-focus);
   --color-secondary-content: var(--color-secondary-content);
-  
+
   /* Accent colors */
   --color-accent: var(--color-accent);
   --color-accent-light: color-mix(in srgb, var(--color-accent) 70%, white);
   --color-accent-dark: var(--color-accent-focus);
   --color-accent-content: var(--color-accent-content);
-  
+
   /* Background colors */
   --color-background: var(--color-base-100);
   --color-background-secondary: var(--color-base-200);
   --color-border: var(--color-base-300);
-  
+
   /* Text colors */
   --color-text: var(--color-base-content);
   --color-text-secondary: var(--color-base-content, #1f2937);
-  
+
   /* Status colors */
   --color-success: var(--color-success);
   --color-success-content: var(--color-success-content);
@@ -48,11 +50,12 @@
   --color-warning-content: var(--color-warning-content);
   --color-error: var(--color-error);
   --color-error-content: var(--color-error-content);
-  
+
   /* Subject SVG colors */
   --subject-color: #000000;
   --subject-color-light: #000000;
   --subject-color-dark: #ffffff;
+  --destructive-foreground: oklch(1 0 0);
 }
 
 /* Base styles */
@@ -655,7 +658,7 @@ aside a.active {
   .text-responsive-xl {
     font-size: 1.5rem;
   }
-  
+
   .text-responsive-lg {
     font-size: 1.25rem;
   }
@@ -665,7 +668,7 @@ aside a.active {
   .text-responsive-xl {
     font-size: 2rem;
   }
-  
+
   .text-responsive-lg {
     font-size: 1.5rem;
   }
@@ -1274,3 +1277,13 @@ aside a.active {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
+
+@theme inline {
+  --color-destructive-foreground: oklch(1 0 0);
+  --color-color-destructive-foreground: var(----color-destructive-foreground);
+}
+
+.dark {
+  --destructive-foreground: oklch(1 0 0);
+}
+

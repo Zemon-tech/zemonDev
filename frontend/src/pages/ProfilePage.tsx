@@ -54,7 +54,8 @@ import {
   Palette,
   Share2,
   X,
-  Check
+  Check,
+  Search
 } from 'lucide-react';
 
 // Register GSAP plugins
@@ -176,6 +177,7 @@ export default function ProfilePage() {
   const [isBackgroundSelectorOpen, setIsBackgroundSelectorOpen] = useState(false);
   const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
   const [activeAvatarCategory, setActiveAvatarCategory] = useState<AvatarCategoryKey>('recommended');
+  const [avatarSearchQuery, setAvatarSearchQuery] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -229,6 +231,14 @@ export default function ProfilePage() {
   };
 
   const avatarCategories = buildAvatarCategories(getDisplayName(userProfile), userProfile?.username);
+
+  // Filter avatars based on search query
+  const filteredAvatars = avatarCategories
+    .find(c => c.key === activeAvatarCategory)
+    ?.urls.filter(url => 
+      avatarSearchQuery === '' || 
+      url.toLowerCase().includes(avatarSearchQuery.toLowerCase())
+    ) || [];
 
   const handleChangeAvatar = async (url: string) => {
     try {
@@ -1903,60 +1913,110 @@ export default function ProfilePage() {
           
           {/* Modal Container */}
           <motion.div 
-            className="relative z-10 w-full max-w-4xl bg-base-100 rounded-3xl shadow-2xl border border-base-300/50 overflow-hidden"
+            className="relative z-10 w-full max-w-2xl bg-base-100 rounded-2xl shadow-2xl border border-base-300/50 overflow-hidden"
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-secondary/10 p-6 border-b border-base-300/30">
+            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-secondary/10 p-4 border-b border-base-300/30">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-2xl font-bold text-base-content mb-1">Choose Your Avatar</h3>
-                  <p className="text-base-content/60 text-sm">Select a unique avatar that represents you</p>
+                  <h3 className="text-lg font-bold text-base-content mb-1">Choose Your Avatar</h3>
+                  <p className="text-base-content/60 text-xs">Select a unique avatar that represents you</p>
                 </div>
                 <button 
                   onClick={() => setIsAvatarSelectorOpen(false)} 
-                  className="w-10 h-10 rounded-full bg-base-200 hover:bg-base-300 transition-colors duration-200 flex items-center justify-center group"
+                  className="w-8 h-8 rounded-full bg-base-200 hover:bg-base-300 transition-colors duration-200 flex items-center justify-center group"
                 >
-                  <X className="w-5 h-5 text-base-content/60 group-hover:text-base-content transition-colors" />
+                  <X className="w-4 h-4 text-base-content/60 group-hover:text-base-content transition-colors" />
                 </button>
               </div>
             </div>
 
             {/* Category Tabs */}
-            <div className="p-6 border-b border-base-300/30">
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="p-4 border-b border-base-300/30">
+              <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide">
                 {avatarCategories.map((cat, index) => (
                   <motion.button
                     key={cat.key}
                     onClick={() => setActiveAvatarCategory(cat.key)}
-                    className={`px-4 py-2.5 rounded-full border-2 text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+                    className={`px-3 py-1.5 rounded-full border text-xs font-medium whitespace-nowrap transition-all duration-200 ${
                       activeAvatarCategory === cat.key 
-                        ? 'bg-primary text-primary-content border-primary shadow-lg shadow-primary/25' 
+                        ? 'bg-primary text-primary-content border-primary shadow-md shadow-primary/25' 
                         : 'bg-base-200/50 text-base-content/70 border-base-300 hover:bg-base-200 hover:text-base-content hover:border-base-400'
                     }`}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2, delay: index * 0.05 }}
-                    whileHover={{ y: -2 }}
+                    whileHover={{ y: -1 }}
                     whileTap={{ scale: 0.95 }}
                   >
                     {cat.label}
                   </motion.button>
                 ))}
               </div>
+              
+              {/* Category Description */}
+              {avatarCategories.find(c => c.key === activeAvatarCategory)?.description && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                  className="mt-3 text-center"
+                >
+                  <p className="text-xs text-base-content/70 italic">
+                    {avatarCategories.find(c => c.key === activeAvatarCategory)?.description}
+                  </p>
+                </motion.div>
+              )}
             </div>
 
             {/* Avatar Grid */}
-            <div className="p-6">
-              <div className="grid grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4 max-h-[500px] overflow-y-auto pr-2 scrollbar-hide">
-                {avatarCategories.find(c => c.key === activeAvatarCategory)?.urls.map((url, index) => (
+            <div className="p-4">
+              {/* Search and Random Avatar Bar */}
+              <div className="mb-3 flex gap-2 items-center justify-center">
+                <div className="relative flex-1 max-w-xs">
+                  <input
+                    type="text"
+                    placeholder="Search avatars..."
+                    className="w-full px-3 py-1.5 pl-8 pr-3 bg-base-200 border border-base-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 text-sm"
+                    value={avatarSearchQuery}
+                    onChange={(e) => setAvatarSearchQuery(e.target.value)}
+                  />
+                  <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-base-content/50" />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const randomAvatar = filteredAvatars[Math.floor(Math.random() * filteredAvatars.length)];
+                    if (randomAvatar) {
+                      handleChangeAvatar(randomAvatar);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 hover:bg-primary hover:text-primary-content transition-all duration-200 px-3 py-1.5 text-xs"
+                  disabled={filteredAvatars.length === 0}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Random
+                </Button>
+              </div>
+              
+              {/* Avatar Count */}
+              <div className="text-center mb-3">
+                <span className="text-xs text-base-content/60">
+                  {filteredAvatars.length} avatars available
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-6 md:grid-cols-8 gap-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
+                {filteredAvatars.map((url, index) => (
                   <motion.button
                     key={url}
                     onClick={() => handleChangeAvatar(url)}
-                    className="group relative aspect-square rounded-full overflow-hidden border-2 border-base-300 hover:border-primary/50 transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-primary/20"
+                    className="group relative aspect-square rounded-full overflow-hidden border border-base-300 hover:border-primary/50 transition-all duration-200 hover:scale-105 hover:shadow-md hover:shadow-primary/20"
                     title="Use this avatar"
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -1976,20 +2036,47 @@ export default function ProfilePage() {
                     
                     {/* Check Icon on Hover */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg">
-                        <Check className="w-4 h-4 text-primary-content" />
+                      <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-md">
+                        <Check className="w-3 h-3 text-primary-content" />
                       </div>
                     </div>
                   </motion.button>
                 ))}
               </div>
+              
+              {/* No Results Message */}
+              {filteredAvatars.length === 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-8"
+                >
+                  <p className="text-base-content/60 text-lg">No avatars found matching your search.</p>
+                  <p className="text-base-content/40 text-sm mt-2">Try a different search term or browse all categories.</p>
+                </motion.div>
+              )}
             </div>
 
             {/* Footer */}
-            <div className="bg-base-200/30 p-4 border-t border-base-300/30">
-              <div className="flex items-center justify-center gap-2 text-sm text-base-content/60">
-                <Sparkles className="w-4 h-4" />
-                <span>Click any avatar to select it</span>
+            <div className="bg-base-200/30 p-3 border-t border-base-300/30">
+              <div className="flex items-center justify-center gap-3 text-xs text-base-content/60">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Click any avatar to select it</span>
+                </div>
+                <div className="w-px h-3 bg-base-300/50"></div>
+                <div className="flex items-center gap-1.5">
+                  <span>Powered by</span>
+                  <a 
+                    href="https://www.dicebear.com/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:text-primary/80 transition-colors font-medium"
+                  >
+                    DiceBear
+                  </a>
+                  <span>• 30+ avatar styles</span>
+                </div>
               </div>
             </div>
           </motion.div>

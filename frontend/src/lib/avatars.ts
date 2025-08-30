@@ -7,6 +7,17 @@ export type AvatarProvider =
   | 'dicebear-adventurer'
   | 'dicebear-bottts'
   | 'dicebear-pixel'
+  | 'dicebear-personas'
+  | 'dicebear-lorelei'
+  | 'dicebear-micah'
+  | 'dicebear-miniavs'
+  | 'dicebear-notionists'
+  | 'dicebear-open-peeps'
+  | 'dicebear-rings'
+  | 'dicebear-shapes'
+  | 'dicebear-sunset'
+  | 'dicebear-identicon'
+  | 'dicebear-ui-avatars'
   | 'ui-avatars'
   | 'github'
   | 'gravatar'
@@ -28,6 +39,28 @@ export function avatarFromProvider(provider: AvatarProvider, seed: string): stri
       return `https://api.dicebear.com/7.x/bottts/svg?seed=${safe}`;
     case 'dicebear-pixel':
       return `https://api.dicebear.com/7.x/pixel-art/svg?seed=${safe}`;
+    case 'dicebear-personas':
+      return `https://api.dicebear.com/7.x/personas/svg?seed=${safe}`;
+    case 'dicebear-lorelei':
+      return `https://api.dicebear.com/7.x/lorelei/svg?seed=${safe}`;
+    case 'dicebear-micah':
+      return `https://api.dicebear.com/7.x/micah/svg?seed=${safe}`;
+    case 'dicebear-miniavs':
+      return `https://api.dicebear.com/7.x/miniavs/svg?seed=${safe}`;
+    case 'dicebear-notionists':
+      return `https://api.dicebear.com/7.x/notionists/svg?seed=${safe}`;
+    case 'dicebear-open-peeps':
+      return `https://api.dicebear.com/7.x/open-peeps/svg?seed=${safe}`;
+    case 'dicebear-rings':
+      return `https://api.dicebear.com/7.x/rings/svg?seed=${safe}`;
+    case 'dicebear-shapes':
+      return `https://api.dicebear.com/7.x/shapes/svg?seed=${safe}`;
+    case 'dicebear-sunset':
+      return `https://api.dicebear.com/7.x/sunset/svg?seed=${safe}`;
+    case 'dicebear-identicon':
+      return `https://api.dicebear.com/7.x/identicon/svg?seed=${safe}`;
+    case 'dicebear-ui-avatars':
+      return `https://api.dicebear.com/7.x/ui-avatars/svg?seed=${safe}`;
     case 'ui-avatars':
       return `https://ui-avatars.com/api/?name=${safe}&background=random&size=160&rounded=true`;
     case 'github':
@@ -57,8 +90,8 @@ export function buildDefaultAvatarList(name: string, username?: string): string[
   return [
     avatarFromProvider('dicebear-initials', seed),
     avatarFromProvider('dicebear-fun', seed),
-    avatarFromProvider('ui-avatars', name || seed),
-    avatarFromProvider('gravatar', seed),
+    avatarFromProvider('dicebear-avataaars', name || seed),
+    avatarFromProvider('dicebear-adventurer', seed),
   ];
 }
 
@@ -68,6 +101,14 @@ const SUPERHERO_SEEDS = [
   'Green Lantern','Shazam','Nightwing','Batgirl',
   'Iron Man','Captain America','Thor','Hulk','Black Widow','Hawkeye',
   'Spider-Man','Doctor Strange','Black Panther','Captain Marvel',
+];
+
+// Additional creative seeds for variety
+const CREATIVE_SEEDS = [
+  'Artist', 'Creator', 'Innovator', 'Dreamer', 'Explorer', 'Builder',
+  'Thinker', 'Visionary', 'Pioneer', 'Trailblazer', 'Inventor', 'Designer',
+  'Developer', 'Engineer', 'Scientist', 'Researcher', 'Scholar', 'Student',
+  'Teacher', 'Mentor', 'Leader', 'Collaborator', 'Problem Solver', 'Creative'
 ];
 
 function buildDicebearSet(provider: AvatarProvider, seeds: string[]): string[] {
@@ -96,11 +137,11 @@ function buildRobohash(seed: string, opts?: { set?: 'set1'|'set2'|'set3'|'set4'|
 
 export type AvatarCategoryKey =
   | 'recommended'
+  | 'dicebear-classic'
+  | 'dicebear-modern'
+  | 'dicebear-artistic'
+  | 'dicebear-geometric'
   | 'cartoons'
-  | 'adventurer'
-  | 'avataaars'
-  | 'pixel'
-  | 'bottts'
   | 'superheroes'
   | 'robohash-robots'
   | 'robohash-monsters'
@@ -113,34 +154,147 @@ export interface AvatarCategory {
   key: AvatarCategoryKey;
   label: string;
   urls: string[];
+  description?: string;
 }
 
 export function buildAvatarCategories(name: string, username?: string): AvatarCategory[] {
   const seed = username || name || 'Zemon User';
+  const allSeeds = [seed, ...SUPERHERO_SEEDS, ...CREATIVE_SEEDS];
+  
   const recommended = [
     avatarFromProvider('dicebear-initials', seed),
-    avatarFromProvider('ui-avatars', name || seed),
+    avatarFromProvider('dicebear-avataaars', seed),
+    avatarFromProvider('dicebear-adventurer', seed),
     avatarFromProvider('dicebear-fun', seed),
-    avatarFromProvider('gravatar', seed),
   ];
+
   return [
-    { key: 'recommended', label: 'Recommended', urls: recommended },
-    { key: 'cartoons', label: 'Cartoons', urls: buildCartoonAvatarSet(24) },
-    { key: 'adventurer', label: 'Adventurer', urls: buildDicebearSet('dicebear-adventurer', [seed, ...SUPERHERO_SEEDS]) },
-    { key: 'avataaars', label: 'Avataaars', urls: buildDicebearSet('dicebear-avataaars', [seed, ...SUPERHERO_SEEDS]) },
-    { key: 'pixel', label: 'Pixel', urls: buildDicebearSet('dicebear-pixel', [seed, 'Pixel Hero', 'Retro', ...SUPERHERO_SEEDS.slice(0, 6)]) },
-    { key: 'bottts', label: 'Bots', urls: buildDicebearSet('dicebear-bottts', [seed, 'Coder', 'Hacker', 'Robot', ...SUPERHERO_SEEDS.slice(6, 12)]) },
-    { key: 'superheroes', label: 'Superheroes', urls: [
-      ...buildDicebearSet('dicebear-adventurer', SUPERHERO_SEEDS),
-      ...buildDicebearSet('dicebear-avataaars', SUPERHERO_SEEDS)
-    ] },
-    { key: 'robohash-robots', label: 'Robohash Robots', urls: [seed, ...SUPERHERO_SEEDS].slice(0, 16).map(s => buildRobohash(s, { set: 'set1', bgset: 'bg1' })) },
-    { key: 'robohash-monsters', label: 'Robohash Monsters', urls: [seed, ...SUPERHERO_SEEDS].slice(0, 16).map(s => buildRobohash(s, { set: 'set2' })) },
-    { key: 'robohash-heads', label: 'Robohash Heads', urls: [seed, ...SUPERHERO_SEEDS].slice(0, 16).map(s => buildRobohash(s, { set: 'set3' })) },
-    { key: 'robohash-cats', label: 'Robohash Cats', urls: [seed, ...SUPERHERO_SEEDS].slice(0, 16).map(s => buildRobohash(s, { set: 'set4' })) },
-    { key: 'robohash-avatars', label: 'Robohash Avataaars', urls: [seed, ...SUPERHERO_SEEDS].slice(0, 16).map(s => buildRobohash(s, { set: 'set5' })) },
-    { key: 'robohash-gorillas', label: 'Robohash Gorillas', urls: [seed, ...SUPERHERO_SEEDS].slice(0, 16).map(s => buildRobohash(s, { set: 'set6' })) },
+    { 
+      key: 'recommended', 
+      label: '✨ Recommended', 
+      urls: recommended,
+      description: 'Best avatars for your profile'
+    },
+    { 
+      key: 'dicebear-classic', 
+      label: '🎭 Classic Styles', 
+      urls: [
+        ...buildDicebearSet('dicebear-avataaars', allSeeds.slice(0, 20)),
+        ...buildDicebearSet('dicebear-adventurer', allSeeds.slice(0, 20)),
+        ...buildDicebearSet('dicebear-bottts', allSeeds.slice(0, 20))
+      ],
+      description: 'Timeless avatar styles'
+    },
+    { 
+      key: 'dicebear-modern', 
+      label: '🚀 Modern Styles', 
+      urls: [
+        ...buildDicebearSet('dicebear-personas', allSeeds.slice(0, 20)),
+        ...buildDicebearSet('dicebear-lorelei', allSeeds.slice(0, 20)),
+        ...buildDicebearSet('dicebear-micah', allSeeds.slice(0, 20))
+      ],
+      description: 'Contemporary avatar designs'
+    },
+    { 
+      key: 'dicebear-artistic', 
+      label: '🎨 Artistic Styles', 
+      urls: [
+        ...buildDicebearSet('dicebear-miniavs', allSeeds.slice(0, 20)),
+        ...buildDicebearSet('dicebear-notionists', allSeeds.slice(0, 20)),
+        ...buildDicebearSet('dicebear-open-peeps', allSeeds.slice(0, 20))
+      ],
+      description: 'Creative and expressive avatars'
+    },
+    { 
+      key: 'dicebear-geometric', 
+      label: '🔷 Geometric Styles', 
+      urls: [
+        ...buildDicebearSet('dicebear-pixel', allSeeds.slice(0, 20)),
+        ...buildDicebearSet('dicebear-rings', allSeeds.slice(0, 20)),
+        ...buildDicebearSet('dicebear-shapes', allSeeds.slice(0, 20)),
+        ...buildDicebearSet('dicebear-sunset', allSeeds.slice(0, 20))
+      ],
+      description: 'Abstract and geometric patterns'
+    },
+    { 
+      key: 'cartoons', 
+      label: '🎪 Cartoon Characters', 
+      urls: buildCartoonAvatarSet(24),
+      description: 'Fun cartoon-style avatars'
+    },
+    { 
+      key: 'superheroes', 
+      label: '🦸 Superheroes', 
+      urls: [
+        ...buildDicebearSet('dicebear-adventurer', SUPERHERO_SEEDS),
+        ...buildDicebearSet('dicebear-avataaars', SUPERHERO_SEEDS),
+        ...buildDicebearSet('dicebear-personas', SUPERHERO_SEEDS)
+      ],
+      description: 'Heroic and powerful avatars'
+    },
+    { 
+      key: 'robohash-robots', 
+      label: '🤖 Robotic', 
+      urls: allSeeds.slice(0, 20).map(s => buildRobohash(s, { set: 'set1', bgset: 'bg1' })),
+      description: 'Futuristic robot avatars'
+    },
+    { 
+      key: 'robohash-monsters', 
+      label: '👹 Monstrous', 
+      urls: allSeeds.slice(0, 20).map(s => buildRobohash(s, { set: 'set2' })),
+      description: 'Unique monster designs'
+    },
+    { 
+      key: 'robohash-heads', 
+      label: '👤 Abstract Heads', 
+      urls: allSeeds.slice(0, 20).map(s => buildRobohash(s, { set: 'set3' })),
+      description: 'Abstract head patterns'
+    },
+    { 
+      key: 'robohash-cats', 
+      label: '🐱 Feline', 
+      urls: allSeeds.slice(0, 20).map(s => buildRobohash(s, { set: 'set4' })),
+      description: 'Cat-inspired avatars'
+    },
+    { 
+      key: 'robohash-avatars', 
+      label: '🎭 Robohash Avataaars', 
+      urls: allSeeds.slice(0, 20).map(s => buildRobohash(s, { set: 'set5' })),
+      description: 'Robohash avataaars style'
+    },
+    { 
+      key: 'robohash-gorillas', 
+      label: '🦍 Gorilla', 
+      urls: allSeeds.slice(0, 20).map(s => buildRobohash(s, { set: 'set6' })),
+      description: 'Gorilla-themed avatars'
+    },
   ];
+}
+
+// Helper function to get a random avatar from any provider
+export function getRandomAvatar(name: string, username?: string): string {
+  const providers: AvatarProvider[] = [
+    'dicebear-initials', 'dicebear-avataaars', 'dicebear-adventurer',
+    'dicebear-personas', 'dicebear-lorelei', 'dicebear-micah',
+    'dicebear-miniavs', 'dicebear-notionists', 'dicebear-open-peeps'
+  ];
+  const randomProvider = providers[Math.floor(Math.random() * providers.length)];
+  return avatarFromProvider(randomProvider, username || name || 'Zemon User');
+}
+
+// Helper function to get avatars with custom parameters
+export function getCustomDicebearAvatar(style: string, seed: string, options?: Record<string, string>): string {
+  const safeSeed = encodeURIComponent(seed || 'Zemon User');
+  const params = new URLSearchParams();
+  
+  if (options) {
+    Object.entries(options).forEach(([key, value]) => {
+      params.set(key, value);
+    });
+  }
+  
+  const queryString = params.toString();
+  return `https://api.dicebear.com/7.x/${style}/svg?seed=${safeSeed}${queryString ? `&${queryString}` : ''}`;
 }
 
 

@@ -19,8 +19,6 @@ import {
   Lightbulb,
   ExternalLink,
   TrendingUp,
-  Eye,
-  EyeOff,
   Trophy,
   Rocket,
   FileText,
@@ -188,7 +186,6 @@ export default function ProblemDetailsSidebar({
 }: Props) {
   const { problemSidebarWidth, setProblemSidebarWidth } = useWorkspace();
   const [isResizing, setIsResizing] = useState(false);
-  const [showFullDetails, setShowFullDetails] = useState(false);
   
   // Generate a simple problem ID from title for localStorage
   const problemId = title.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 20);
@@ -212,9 +209,7 @@ export default function ProblemDetailsSidebar({
   const safeAiPrompts = Array.isArray(aiPrompts) ? aiPrompts : [];
   const safeTechnicalParameters = Array.isArray(technicalParameters) ? technicalParameters : [];
 
-  // Show only first 3 tags in compact mode
-  const displayTags = showFullDetails ? safeTags : safeTags.slice(0, 3);
-  const hasMoreTags = safeTags.length > 3;
+
 
   // Determine if sidebar is narrow (for responsive design)
   const isNarrow = problemSidebarWidth < 320;
@@ -350,7 +345,7 @@ export default function ProblemDetailsSidebar({
               /* Expanded State - Full Details */
               <>
                 <div className="prose-sm text-base-content/80 dark:text-base-content/70 text-sm leading-relaxed bg-base-200/30 dark:bg-base-700/30 p-3 rounded-xl">
-                  {showFullDetails ? description : truncateText(description, isNarrow ? 120 : 150)}
+                  {description}
                 </div>
           
                 {expectedOutcome && (
@@ -360,13 +355,13 @@ export default function ProblemDetailsSidebar({
                       Expected Outcome
                     </h4>
                     <p className="text-sm text-base-content/80">
-                      {showFullDetails ? expectedOutcome : truncateText(expectedOutcome, isNarrow ? 100 : 120)}
+                      {expectedOutcome}
                     </p>
                   </div>
                 )}
                 
                 <div className="flex flex-wrap gap-1.5">
-                  {displayTags.map(tag => (
+                  {safeTags.map(tag => (
                     <span 
                       key={tag} 
                       className={`px-2 py-1 bg-gradient-to-r from-primary/10 to-secondary/10 text-primary/90 dark:text-primary/80 rounded-full text-xs font-medium capitalize hover:from-primary/20 hover:to-secondary/20 transition-all duration-200 cursor-default shadow-sm ${isNarrow ? 'text-[10px] px-1.5 py-0.5' : ''}`}
@@ -374,30 +369,9 @@ export default function ProblemDetailsSidebar({
                       {tag}
                     </span>
                   ))}
-                  {hasMoreTags && !showFullDetails && (
-                    <span className={`px-2 py-1 bg-base-200 text-base-content/60 rounded-full text-xs font-medium shadow-sm ${isNarrow ? 'text-[10px] px-1.5 py-0.5' : ''}`}>
-                      +{safeTags.length - 3} more
-                    </span>
-                  )}
                 </div>
 
-                {/* View Full Details Toggle */}
-                <button
-                  onClick={() => setShowFullDetails(!showFullDetails)}
-                  className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-gradient-to-r from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 rounded-xl transition-all duration-200 text-sm font-medium text-primary shadow-sm hover:shadow-md transform hover:scale-[1.02]"
-                >
-                  {showFullDetails ? (
-                    <>
-                      <EyeOff className="w-4 h-4" />
-                      {!isNarrow && "Show Compact View"}
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="w-4 h-4" />
-                      {!isNarrow && "View Full Details"}
-                    </>
-                  )}
-                </button>
+
               </>
             )}
           </div>
@@ -461,11 +435,6 @@ export default function ProblemDetailsSidebar({
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="font-medium">{req.requirement}</div>
-                              {req.context && (
-                                <div className="text-xs text-base-content/60 dark:text-base-content/50 mt-1 italic">
-                                  {req.context}
-                                </div>
-                              )}
                             </div>
                           </li>
                         ))}
@@ -491,11 +460,6 @@ export default function ProblemDetailsSidebar({
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="font-medium">{req.requirement}</div>
-                              {req.context && (
-                                <div className="text-xs text-base-content/60 dark:text-base-content/50 mt-1 italic">
-                                  {req.context}
-                                </div>
-                              )}
                             </div>
                           </li>
                         ))}
