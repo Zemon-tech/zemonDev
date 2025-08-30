@@ -10,8 +10,7 @@ import {
   FileText, 
   Eye, 
   ExternalLink,
-  Bookmark,
-  Star
+  Bookmark
 } from 'lucide-react';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
 import { GradientText } from '@/components/blocks/GradientText';
