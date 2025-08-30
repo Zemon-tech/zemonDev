@@ -104,8 +104,8 @@ Description: ${problemDetails.description}
 Expected Outcome: ${problemDetails.expectedOutcome}
 Difficulty: ${problemDetails.difficulty}
 Tags: ${problemDetails.tags.join(', ')}
-Functional Requirements: ${problemDetails.requirements.functional.join('\n')}
-Non-Functional Requirements: ${problemDetails.requirements.nonFunctional.join('\n')}
+Functional Requirements: ${problemDetails.requirements.functional.map(req => req.requirement).join('\n')}
+Non-Functional Requirements: ${problemDetails.requirements.nonFunctional.map(req => req.requirement).join('\n')}
 Constraints: ${problemDetails.constraints.join('\n')}
 
 ## TECHNICAL & ARCHITECTURAL PARAMETERS TO EVALUATE ##

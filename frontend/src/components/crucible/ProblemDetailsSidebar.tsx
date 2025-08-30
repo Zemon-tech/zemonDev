@@ -55,12 +55,44 @@ interface Props {
   technicalParameters?: string[];
 }
 
+interface IRequirement {
+  requirement: string;
+  context: string;
+}
+
 // Helper function to normalize requirements
-function normalizeRequirements(requirements: ICrucibleProblem['requirements'] | string[]): { functional: string[]; nonFunctional: string[] } {
+function normalizeRequirements(requirements: ICrucibleProblem['requirements'] | string[]): { functional: IRequirement[]; nonFunctional: IRequirement[] } {
   if (Array.isArray(requirements)) {
-    return { functional: requirements, nonFunctional: [] };
+    // Backward compatibility: convert string array to IRequirement array
+    return { 
+      functional: requirements.map(req => ({ requirement: req, context: '' })), 
+      nonFunctional: [] 
+    };
   }
-  return requirements;
+  
+  // Handle new structure with backward compatibility for individual requirements
+  const normalizeRequirementArray = (reqArray: any[]): IRequirement[] => {
+    return reqArray.map(req => {
+      if (typeof req === 'string') {
+        // Backward compatibility: convert string to IRequirement
+        return { requirement: req, context: '' };
+      } else if (req && typeof req === 'object' && 'requirement' in req) {
+        // New structure: ensure context exists
+        return { 
+          requirement: req.requirement || '', 
+          context: req.context || '' 
+        };
+      } else {
+        // Fallback: treat as string
+        return { requirement: String(req), context: '' };
+      }
+    });
+  };
+
+  return {
+    functional: normalizeRequirementArray(requirements.functional || []),
+    nonFunctional: normalizeRequirementArray(requirements.nonFunctional || [])
+  };
 }
 
 // Helper function to truncate text
@@ -427,7 +459,14 @@ export default function ProblemDetailsSidebar({
                             <div className="w-5 h-5 rounded-full bg-gradient-to-br from-success/20 to-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                               <span className="text-xs font-bold text-success">{i + 1}</span>
                             </div>
-                            <span>{req}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium">{req.requirement}</div>
+                              {req.context && (
+                                <div className="text-xs text-base-content/60 dark:text-base-content/50 mt-1 italic">
+                                  {req.context}
+                                </div>
+                              )}
+                            </div>
                           </li>
                         ))}
                       </ul>
@@ -450,7 +489,14 @@ export default function ProblemDetailsSidebar({
                             <div className="w-5 h-5 rounded-full bg-gradient-to-br from-info/20 to-cyan-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                               <Target className="w-3.5 h-3.5 text-info" />
                             </div>
-                            <span>{req}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium">{req.requirement}</div>
+                              {req.context && (
+                                <div className="text-xs text-base-content/60 dark:text-base-content/50 mt-1 italic">
+                                  {req.context}
+                                </div>
+                              )}
+                            </div>
                           </li>
                         ))}
                       </ul>

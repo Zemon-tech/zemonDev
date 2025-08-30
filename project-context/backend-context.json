@@ -1,0 +1,177 @@
+{
+  "project": {
+    "name": "backend",
+    "version": "1.0.0",
+    "description": "Zemon Backend - Educational ecosystem for engineering students",
+    "language": "TypeScript (CommonJS)",
+    "entry": {
+      "source": "backend/src/index.ts",
+      "buildOutput": "backend/dist/index.js"
+    },
+    "scripts": {
+      "start": "node dist/index.js",
+      "dev": "nodemon --exec ts-node src/index.ts",
+      "build": "tsc"
+    }
+  },
+  "server": {
+    "framework": "Express",
+    "http": {
+      "createServer": "http.createServer(app)",
+      "listen": {
+        "portEnv": "PORT",
+        "defaultPort": 5000,
+        "hostBinding": "0.0.0.0 (implicit when hostname is omitted)"
+      },
+      "routesMount": [
+        { "prefix": "/api", "file": "backend/src/api/index.ts" },
+        { "prefix": "/", "note": "Temporary compatibility: API also mounted at root" }
+      ]
+    },
+    "cors": {
+      "allowedOrigins": [
+        "process.env.CORS_ORIGIN || 'http://localhost:5173'",
+        "http://localhost:5175",
+        "https://quild.vercel.app"
+      ],
+      "behavior": "Requests without Origin are allowed; unknown origins with Origin header are blocked",
+      "credentials": true,
+      "methods": ["GET","POST","PUT","DELETE","PATCH","OPTIONS"]
+    },
+    "middlewares": [
+      { "name": "express.json", "config": { "limit": "10mb" } },
+      { "name": "express.urlencoded", "config": { "extended": true, "limit": "10mb" } },
+      { "name": "cookieParser" },
+      { "name": "ClerkExpressWithAuth", "env": ["CLERK_JWT_KEY"], "authorizedParties": "same as allowedOrigins" },
+      { "name": "errorMiddleware", "file": "backend/src/middleware/error.middleware.ts" }
+    ],
+    "logging": [
+      "Logs mode, API URL, and Socket.IO availability on start"
+    ]
+  },
+  "sockets": {
+    "library": "socket.io",
+    "init": "initializeSocketIO(server)",
+    "port": "same HTTP server port (no separate port)",
+    "env": ["CORS_ORIGIN"],
+    "note": "SOCKET_IO_PORT exists in .env.example but is not used by current code; Socket.IO binds to the main HTTP server",
+    "cors": {
+      "allowedOrigins": [
+        "process.env.CORS_ORIGIN || 'http://localhost:5173'",
+        "http://localhost:5175",
+        "https://quild.vercel.app"
+      ],
+      "credentials": true,
+      "methods": ["GET","POST"]
+    }
+  },
+  "routing": {
+    "routerFile": "backend/src/api/index.ts",
+    "mountedAt": ["/api", "/"],
+    "routes": [
+      { "path": "/health", "file": "backend/src/api/health.routes.ts" },
+      { "path": "/users", "file": "backend/src/api/user.routes.ts" },
+      { "path": "/crucible", "file": "backend/src/api/crucible.routes.ts" },
+      { "path": "/forge", "file": "backend/src/api/forge.routes.ts" },
+      { "path": "/ai", "file": "backend/src/api/ai.routes.ts" },
+      { "path": "/profile", "file": "backend/src/api/profile.routes.ts" },
+      { "path": "/admin", "file": "backend/src/api/admin.routes.ts" },
+      { "path": "/arena/channels", "file": "backend/src/api/arena-channels.routes.ts" },
+      { "path": "/arena/showcase", "file": "backend/src/api/arena-showcase.routes.ts" },
+      { "path": "/arena/hackathons", "file": "backend/src/api/arena-hackathons.routes.ts" },
+      { "path": "/arena/users", "file": "backend/src/api/arena-users.routes.ts" },
+      { "path": "/nirvana", "file": "backend/src/api/nirvana.routes.ts" },
+      { "path": "/notifications", "file": "backend/src/api/notification.routes.ts" },
+      { "path": "/webhooks", "file": "backend/src/api/webhook.routes.ts" },
+      { "path": "/feedback", "file": "backend/src/api/feedback.routes.ts" },
+      { "path": "/admin/feedback", "file": "backend/src/api/admin-feedback.routes.ts" }
+    ],
+    "notFoundHandler": "app.use('*', ...) emits 404 for unknown routes"
+  },
+  "env": {
+    "sourceFiles": [
+      "backend/src/config/env.ts",
+      "backend/.env.example"
+    ],
+    "runtimeLoading": [
+      "dotenv.config in backend/src/index.ts and backend/src/config/redis.ts"
+    ],
+    "variables": {
+      "requiredAlways": ["CLERK_SECRET_KEY"],
+      "requiredInProduction": [
+        "MONGO_URI",
+        "UPSTASH_REDIS_REST_URL",
+        "UPSTASH_REDIS_REST_TOKEN",
+        "UPSTASH_VECTOR_REST_URL",
+        "UPSTASH_VECTOR_REST_TOKEN",
+        "GEMINI_API_KEY",
+        "GEMINI_PRO_API_KEY"
+      ],
+      "optionalWithDefaults": {
+        "NODE_ENV": "development",
+        "PORT": 5000,
+        "CORS_ORIGIN": "http://localhost:5173",
+        "MONGO_URI": "mongodb://localhost:27017/zemon"
+      },
+      "otherDeclaredInExample": [
+        "CLERK_WEBHOOK_SECRET",
+        "GEMINI_MODEL",
+        "CACHE_ENABLED",
+        "GEMINI_EMBEDDING_API_KEY",
+        "SOCKET_IO_PORT",
+        "ARENA_ENABLED",
+        "CLERK_JWT_KEY"
+      ]
+    }
+  },
+  "dataStores": {
+    "mongodb": {
+      "driver": "mongoose",
+      "connectCode": "backend/src/config/database.ts (uses env.MONGO_URI)"
+    },
+    "redis": {
+      "provider": "Upstash Redis (REST)",
+      "client": "@upstash/redis",
+      "file": "backend/src/config/redis.ts",
+      "env": ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
+      "notes": "Initializes client and provides wrapper with error handling. App continues if Redis not configured."
+    }
+  },
+  "errorHandling": {
+    "notFound": "AppError 404 for unhandled routes",
+    "middleware": "backend/src/middleware/error.middleware.ts",
+    "processHandlers": [
+      "uncaughtException (graceful server.close)",
+      "unhandledRejection (graceful server.close)",
+      "SIGTERM (graceful shutdown)"
+    ]
+  },
+  "health": {
+    "route": "/api/health (and /health due to root mount)",
+    "purpose": "Liveness/readiness checks"
+  },
+  "deployment": {
+    "startCommand": "npm run start (requires prior tsc build)",
+    "devCommand": "npm run dev",
+    "pm2": {
+      "recommendation": "Use ecosystem.config.js with env_production to define PORT, NODE_ENV, CORS_ORIGIN, and required secrets."
+    }
+  },
+  "dependencies": {
+    "runtime": [
+      "express", "cors", "cookie-parser", "dotenv", "mongoose", "socket.io",
+      "@clerk/clerk-sdk-node", "@upstash/redis", "redis", "express-rate-limit"
+    ],
+    "dev": ["typescript", "ts-node", "nodemon", "@types/express", "@types/node"]
+  },
+  "paths": {
+    "root": "backend/",
+    "src": "backend/src/",
+    "api": "backend/src/api/",
+    "config": "backend/src/config/",
+    "services": "backend/src/services/",
+    "controllers": "backend/src/controllers/",
+    "models": "backend/src/models/",
+    "middleware": "backend/src/middleware/"
+  }
+}

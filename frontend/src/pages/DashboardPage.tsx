@@ -574,12 +574,14 @@ export default function DashboardPage() {
               <DashboardLeaderboard />
             </div>
           </div>
-          {/* Activity Timeline */}
+          {/* Activity Timeline (hidden for now) */}
+          {false && (
           <div className="col-span-12 md:col-span-4 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto">
               <DashboardActivityTimeline />
             </div>
           </div>
+          )}
           {/* Project Showcase */}
           <div className="col-span-12 md:col-span-4 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto">

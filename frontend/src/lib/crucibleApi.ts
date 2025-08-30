@@ -4,6 +4,11 @@ import { logger } from './utils';
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : 'http://localhost:3001/api';
 
 // Type definitions
+export interface IRequirement {
+  requirement: string;
+  context: string;
+}
+
 export interface ICrucibleProblem {
   _id: string;
   title: string;
@@ -13,8 +18,8 @@ export interface ICrucibleProblem {
   category: 'algorithms' | 'system-design' | 'web-development' | 'mobile-development' | 'data-science' | 'devops' | 'frontend' | 'backend';
   tags: string[];
   requirements: {
-    functional: string[];
-    nonFunctional: string[];
+    functional: IRequirement[];
+    nonFunctional: IRequirement[];
   };
   constraints: string[];
   expectedOutcome: string;

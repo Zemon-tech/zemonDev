@@ -13,7 +13,7 @@ export default defineConfig({
     server: {
         proxy: {
             '/api': {
-                target: 'https://zemondev.onrender.com',
+                target: 'http://localhost:3001',
                 changeOrigin: true,
                 secure: true,
             },

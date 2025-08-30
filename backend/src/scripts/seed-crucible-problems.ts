@@ -25,12 +25,24 @@ const dummyProblems = [
     description: 'Build a scalable service to shorten URLs, handle redirects, and track analytics. Consider database schema, unique code generation, and high availability.',
     requirements: {
       functional: [
-        'Design a system to shorten long URLs',
-        'Handle redirects efficiently',
-        'Track basic analytics (clicks, referrers)'
+        {
+          requirement: 'Design a system to shorten long URLs',
+          context: 'This is the core functionality that users expect from a URL shortener service'
+        },
+        {
+          requirement: 'Handle redirects efficiently',
+          context: 'Performance is critical as this will be called frequently by users'
+        },
+        {
+          requirement: 'Track basic analytics (clicks, referrers)',
+          context: 'Provides valuable insights for users and business intelligence'
+        }
       ],
       nonFunctional: [
-        'Ensure high availability and scalability'
+        {
+          requirement: 'Ensure high availability and scalability',
+          context: 'URL shorteners typically experience high traffic and need to be always accessible'
+        }
       ]
     },
     constraints: [
@@ -67,12 +79,24 @@ const dummyProblems = [
     description: 'Design a real-time chat application supporting 1:1 and group messaging, typing indicators, and message history. Discuss WebSocket usage and data storage.',
     requirements: {
       functional: [
-        'Support 1:1 and group messaging',
-        'Show typing indicators',
-        'Store message history'
+        {
+          requirement: 'Support 1:1 and group messaging',
+          context: 'Basic communication functionality for users'
+        },
+        {
+          requirement: 'Show typing indicators',
+          context: 'Improves user experience by indicating when others are typing'
+        },
+        {
+          requirement: 'Store message history',
+          context: 'Allows users to view past conversations'
+        }
       ],
       nonFunctional: [
-        'Support online/offline status'
+        {
+          requirement: 'Support online/offline status',
+          context: 'Users expect to know if others are available'
+        }
       ]
     },
     constraints: [
@@ -109,12 +133,24 @@ const dummyProblems = [
     description: 'Implement a distributed rate limiter for an API gateway. Discuss algorithms (token bucket, leaky bucket), storage (Redis), and consistency.',
     requirements: {
       functional: [
-        'Limit requests per user/IP',
-        'Support distributed deployment',
-        'Configurable rate limits'
+        {
+          requirement: 'Limit requests per user/IP',
+          context: 'Prevents abuse and ensures fair usage'
+        },
+        {
+          requirement: 'Support distributed deployment',
+          context: 'Rate limits must work across multiple API servers'
+        },
+        {
+          requirement: 'Configurable rate limits',
+          context: 'Different users/services might need different rate limits'
+        }
       ],
       nonFunctional: [
-        'Minimal performance impact'
+        {
+          requirement: 'Minimal performance impact',
+          context: 'Rate limiting should not significantly slow down API calls'
+        }
       ]
     },
     constraints: [

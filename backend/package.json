@@ -15,7 +15,10 @@
     "migrate:profile-background": "ts-node src/migrations/add-profile-background-field.ts",
     "migrate:remove-version-history": "ts-node src/migrations/remove-version-history.ts",
     "migrate:change-parent-channels-to-info": "ts-node src/migrations/change-parent-channels-to-info.ts",
-    "migrate:crucible-category": "ts-node src/migrations/add-category-field-to-crucible-problems.ts"
+    "migrate:crucible-category": "ts-node src/migrations/add-category-field-to-crucible-problems.ts",
+    "migrate:requirements": "ts-node src/scripts/migrate-requirements-structure.ts migrate",
+    "migrate:requirements:rollback": "ts-node src/scripts/migrate-requirements-structure.ts rollback",
+    "migrate:requirements:validate": "ts-node src/scripts/migrate-requirements-structure.ts validate"
   },
   "keywords": [
     "education",

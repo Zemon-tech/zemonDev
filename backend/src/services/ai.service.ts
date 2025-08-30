@@ -455,7 +455,7 @@ Remember: Your goal is to make users **better problem solvers**, not to solve pr
       prompt += `**Difficulty Level**: ${problemContext.difficulty}\n`;
       prompt += `**Problem Description**: ${problemContext.description}\n`;
       if (problemContext.requirements?.functional) {
-        prompt += `**Functional Requirements**:\n${problemContext.requirements.functional.map(req => `- ${req}`).join('\n')}\n`;
+        prompt += `**Functional Requirements**:\n${problemContext.requirements.functional.map(req => `- ${req.requirement}`).join('\n')}\n`;
       }
       if (problemContext.constraints) {
         prompt += `**Constraints**:\n${problemContext.constraints.map(constraint => `- ${constraint}`).join('\n')}\n`;
@@ -659,7 +659,7 @@ Remember: Make users better problem solvers, don't solve for them. When web sear
       prompt += `**Difficulty**: ${problemContext.difficulty}\n`;
       prompt += `**Description**: ${problemContext.description}\n`;
       if (problemContext.requirements?.functional) {
-        prompt += `**Requirements**: ${problemContext.requirements.functional.join(', ')}\n`;
+        prompt += `**Requirements**: ${problemContext.requirements.functional.map(req => req.requirement).join(', ')}\n`;
       }
       if (problemContext.constraints) {
         prompt += `**Constraints**: ${problemContext.constraints.join(', ')}\n`;
@@ -811,7 +811,7 @@ Analyze the solution across these dimensions:
 **Description**: ${problem.description}
 **Difficulty**: ${problem.difficulty}
 **Functional Requirements**:
-- ${problem.requirements.functional.join('\n- ')}
+- ${problem.requirements.functional.map(req => req.requirement).join('\n- ')}
 **Constraints**:
 - ${problem.constraints.join('\n- ')}
 **Expected Outcome**: ${problem.expectedOutcome}
@@ -919,7 +919,7 @@ Create **3 progressive hints** that follow this pattern:
 **Title**: ${problem.title}
 **Description**: ${problem.description}
 **Difficulty**: ${problem.difficulty}
-**Requirements**: ${problem.requirements.functional.join(', ')}
+**Requirements**: ${problem.requirements.functional.map(req => req.requirement).join(', ')}
 **Constraints**: ${problem.constraints.join(', ')}
 
 ## 🎯 HINT REQUIREMENTS
@@ -1082,7 +1082,7 @@ Remember: Your goal is to make users **better problem solvers**, not to solve pr
       enhancedPrompt += `**Difficulty Level**: ${problemContext.difficulty}\n`;
       enhancedPrompt += `**Problem Description**: ${problemContext.description}\n`;
       if (problemContext.requirements?.functional) {
-        enhancedPrompt += `**Functional Requirements**:\n${problemContext.requirements.functional.map(req => `- ${req}`).join('\n')}\n`;
+        enhancedPrompt += `**Functional Requirements**:\n${problemContext.requirements.functional.map(req => `- ${req.requirement}`).join('\n')}\n`;
       }
       if (problemContext.constraints) {
         enhancedPrompt += `**Constraints**:\n${problemContext.constraints.map(constraint => `- ${constraint}`).join('\n')}\n`;
