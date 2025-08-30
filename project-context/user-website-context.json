@@ -1,7 +1,7 @@
 {
   "meta": {
     "name": "Quild User Website Context",
-    "generatedAt": "2025-08-11T00:00:00Z",
+    "generatedAt": "2025-08-30T10:37:29Z",
     "projects": {
       "frontend": "frontend/",
       "backend": "backend/"
@@ -109,7 +109,9 @@
         "/api/arena/users": "backend/src/api/arena-users.routes.ts",
         "/api/nirvana": "backend/src/api/nirvana.routes.ts",
         "/api/notifications": "backend/src/api/notification.routes.ts",
-        "/api/webhooks": "backend/src/api/webhook.routes.ts"
+        "/api/feedback": "backend/src/api/feedback.routes.ts",
+        "/api/admin/feedback": "backend/src/api/admin-feedback.routes.ts",
+        "/api/serpapi": "backend/src/api/serpapi.routes.ts"
       },
       "endpoints": {
         "/api/health": [
@@ -268,6 +270,26 @@
         ],
         "/api/webhooks": [
           {"method": "POST", "path": "/", "controller": "clerkWebhookHandler", "rawBody": true}
+        ],
+        "/api/feedback": [
+          {"method": "POST", "path": "/", "controller": "submitFeedback", "middleware": ["requireAuth", "feedbackLimiter"]},
+          {"method": "GET", "path": "/", "controller": "getUserFeedback", "middleware": ["requireAuth"]}
+        ],
+        "/api/admin/feedback": [
+          {"method": "GET", "path": "/", "controller": "getAllFeedback", "middleware": ["requireAuth", "isAdmin"]},
+          {"method": "PATCH", "path": "/:id", "controller": "updateFeedbackStatus", "middleware": ["requireAuth", "isAdmin"]}
+        ],
+        "/api/serpapi": [
+          {"method": "POST", "path": "/web-search", "controller": "webSearch", "middleware": ["protect"]},
+          {"method": "POST", "path": "/news-search", "controller": "newsSearch", "middleware": ["protect"]},
+          {"method": "POST", "path": "/scholar-search", "controller": "scholarSearch", "middleware": ["protect"]},
+          {"method": "POST", "path": "/image-search", "controller": "imageSearch", "middleware": ["protect"]},
+          {"method": "GET", "path": "/trending", "controller": "getTrending", "middleware": ["protect"]},
+          {"method": "POST", "path": "/local-search", "controller": "localSearch", "middleware": ["protect"]},
+          {"method": "POST", "path": "/answer-box", "controller": "getAnswerBoxInfo", "middleware": ["protect"]},
+          {"method": "POST", "path": "/shopping-search", "controller": "shoppingSearch", "middleware": ["protect"]},
+          {"method": "POST", "path": "/multi-engine-search", "controller": "multiEngineSearch", "middleware": ["protect"]},
+          {"method": "POST", "path": "/research-search", "controller": "researchSearch", "middleware": ["protect"]}
         ]
       }
     },
@@ -572,14 +594,72 @@
           "position": "number?"
         }
       },
-      "AIChatHistory": {
-        "file": "backend/src/models/aiChatHistory.model.ts",
+      "ResearchItem": {
+        "file": "backend/src/models/researchItem.model.ts",
         "keyFields": {
           "userId": "ObjectId(User)",
           "problemId": "ObjectId(CrucibleProblem)",
           "title": "string",
-          "messages": "[{ role: 'user'|'assistant', content, timestamp }]",
+          "type": "'article'|'code-snippet'|'documentation'|'video'|'other'",
+          "content": "string",
+          "notes": "string",
+          "tags": "string[]",
           "status": "'active'|'archived'"
+        }
+      },
+      "Feedback": {
+        "file": "backend/src/models/feedback.model.ts",
+        "keyFields": {
+          "userId": "ObjectId(User)",
+          "clerkId": "string",
+          "email": "string",
+          "fullName": "string",
+          "message": "string",
+          "category": "'bug'|'feature'|'improvement'|'question'|'other'",
+          "status": "'pending'|'in_progress'|'resolved'|'closed'",
+          "priority": "'low'|'medium'|'high'|'critical'",
+          "adminNotes": "string?"
+        }
+      },
+      "ForgeProgress": {
+        "file": "backend/src/models/forgeProgress.model.ts",
+        "keyFields": {
+          "userId": "ObjectId(User)",
+          "resourceId": "ObjectId(ForgeResource)",
+          "status": "'not-started'|'in-progress'|'completed'|'abandoned'",
+          "timeSpent": "number",
+          "lastActive": "Date"
+        }
+      },
+      "ProgressTracking": {
+        "file": "backend/src/models/progressTracking.model.ts",
+        "keyFields": {
+          "userId": "ObjectId(User)",
+          "problemId": "ObjectId(CrucibleProblem)",
+          "status": "'not-started'|'in-progress'|'completed'|'abandoned'",
+          "timeSpent": "number",
+          "milestones": "[{ id, description, completed, completedAt? }]",
+          "lastActive": "Date"
+        }
+      },
+      "ProjectShowcase": {
+        "file": "backend/src/models/projectShowcase.model.ts",
+        "keyFields": {
+          "title": "string",
+          "description": "string?",
+          "images": "string[]",
+          "gitRepositoryUrl": "string",
+          "demoUrl": "string",
+          "userId": "ObjectId(User)",
+          "username": "string",
+          "upvotes": "number",
+          "upvotedBy": "ObjectId(User)[]",
+          "downvotes": "number",
+          "downvotedBy": "ObjectId(User)[]",
+          "submittedAt": "Date",
+          "isApproved": "boolean",
+          "approvedAt": "Date?",
+          "approvedBy": "ObjectId(User)?"
         }
       }
     },

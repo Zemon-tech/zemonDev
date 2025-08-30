@@ -13,6 +13,7 @@ import { useZemonStreak } from '@/hooks/useZemonStreak';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useStreakLeaderboard } from '@/hooks/useStreakLeaderboard';
 import { useCommunityRank } from '@/hooks/useCommunityRank';
+import { BookmarkedResourcesCard } from '@/components/dashboard/BookmarkedResourcesCard';
 
 // --- AnimatedCount Utility ---
 function AnimatedCount({ value, duration = 1.2, className = '' }: { value: number; duration?: number; className?: string }) {
@@ -586,6 +587,12 @@ export default function DashboardPage() {
           <div className="col-span-12 md:col-span-4 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto">
               <DashboardShowcase />
+            </div>
+          </div>
+          {/* Bookmarked Resources */}
+          <div className="col-span-12 md:col-span-4 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto">
+              <BookmarkedResourcesCard />
             </div>
           </div>
         </div>
