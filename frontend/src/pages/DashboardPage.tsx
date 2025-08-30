@@ -17,19 +17,21 @@ import { BookmarkedResourcesCard } from '@/components/dashboard/BookmarkedResour
 
 // --- AnimatedCount Utility ---
 function AnimatedCount({ value, duration = 1.2, className = '' }: { value: number; duration?: number; className?: string }) {
+  // Ensure value is a valid number
+  const safeValue = isNaN(value) || !isFinite(value) ? 0 : Math.max(0, value);
   const [display, setDisplay] = useState(0);
   useEffect(() => {
     let start = 0;
     const step = (timestamp: number) => {
       if (!start) start = timestamp;
       const progress = Math.min((timestamp - start) / (duration * 1000), 1);
-      setDisplay(Math.floor(progress * value));
+      setDisplay(Math.floor(progress * safeValue));
       if (progress < 1) requestAnimationFrame(step);
-      else setDisplay(value);
+      else setDisplay(safeValue);
     };
     requestAnimationFrame(step);
     // eslint-disable-next-line
-  }, [value]);
+  }, [safeValue, duration]);
   return <span className={className}>{display}</span>;
 }
 
@@ -178,8 +180,9 @@ function DashboardStatsRow() {
     ? 10
     : Math.max(
         1,
-        Math.ceil(((communityRank.rank ?? communityRank.total) / Math.max(communityRank.total || 1, 1)) * 100)
+        Math.min(100, Math.ceil(((communityRank.rank ?? 1) / Math.max(communityRank.total || 1, 1)) * 100))
       );
+  // Note: Community Rank value is a string ("Top X%"), others are numbers
   const stats = [
     {
       icon: <Flame className="w-5 h-5 text-orange-500" />,
@@ -248,7 +251,11 @@ function DashboardStatsRow() {
                 </div>
               ) : (
                 <span className={`text-lg font-bold ${stat.color}`}>
-                  <AnimatedCount value={stat.value as number} />
+                  {typeof stat.value === 'number' ? (
+                    <AnimatedCount value={stat.value} />
+                  ) : (
+                    stat.value
+                  )}
                 </span>
               )}
               
