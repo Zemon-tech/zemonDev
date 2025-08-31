@@ -2314,18 +2314,6 @@ function SupportSection() {
   return (
     <div className="flex flex-col gap-6 w-full h-full p-6">
       <div className="bg-base-100/90 rounded-xl shadow border border-base-200 p-5">
-        <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-2"><HelpCircle size={18} className="text-primary" /> FAQ / Help Center</div>
-        <div className="flex flex-col gap-2 mt-1">
-          <a href="#" className="text-primary hover:underline">How to use the app?</a>
-          <a href="#" className="text-primary hover:underline">Account & Security</a>
-          <a href="#" className="text-primary hover:underline">Project Management</a>
-        </div>
-      </div>
-      <div className="bg-base-100/90 rounded-xl shadow border border-base-200 p-5">
-        <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-2"><Mail size={18} className="text-primary" /> Contact Support</div>
-        <Button variant="outline">Open Support Chat</Button>
-      </div>
-      <div className="bg-base-100/90 rounded-xl shadow border border-base-200 p-5">
         <div className="font-semibold text-base-content/90 flex items-center gap-2 text-lg mb-2"><Star size={18} className="text-primary" /> Feedback</div>
         
         {submitStatus && (
