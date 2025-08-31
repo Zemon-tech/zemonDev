@@ -60,7 +60,73 @@ export interface IUser extends Document {
     totalBadges: number;
     totalCertificates: number;
     skillMastery: number; // Average skill progress
+    // NEW: Comprehensive scoring fields
+    totalPoints: number; // Total points earned from all solved problems
+    averageScore: number; // Average score across all solved problems
+    highestScore: number; // Highest score achieved on any problem
+    problemsByDifficulty: {
+      easy: { solved: number; averageScore: number; totalPoints: number };
+      medium: { solved: number; averageScore: number; totalPoints: number };
+      hard: { solved: number; averageScore: number; totalPoints: number };
+      expert: { solved: number; averageScore: number; totalPoints: number };
+    };
+    problemsByCategory: {
+      algorithms: { solved: number; averageScore: number; totalPoints: number };
+      'system-design': { solved: number; averageScore: number; totalPoints: number };
+      'web-development': { solved: number; averageScore: number; totalPoints: number };
+      'mobile-development': { solved: number; averageScore: number; totalPoints: number };
+      'data-science': { solved: number; averageScore: number; totalPoints: number };
+      devops: { solved: number; averageScore: number; totalPoints: number };
+      frontend: { solved: number; averageScore: number; totalPoints: number };
+      backend: { solved: number; averageScore: number; totalPoints: number };
+    };
   };
+  // NEW: Skill tracking based on problem solving
+  skillTracking: {
+    skills: Array<{
+      skill: string; // e.g., "JavaScript", "Algorithms", "System Design"
+      category: string; // e.g., "programming", "algorithms", "architecture"
+      level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+      progress: number; // 0-100
+      problemsSolved: number;
+      totalPoints: number;
+      averageScore: number;
+      lastSolvedAt?: Date;
+      lastUpdated: Date;
+    }>;
+    techStack: Array<{
+      technology: string; // e.g., "React", "Node.js", "Python"
+      category: string; // e.g., "frontend", "backend", "language"
+      proficiency: number; // 0-100
+      problemsSolved: number;
+      totalPoints: number;
+      averageScore: number;
+      lastUsedAt?: Date;
+      lastUpdated: Date;
+    }>;
+    learningProgress: Array<{
+      topic: string; // e.g., "Data Structures", "API Design"
+      category: string; // e.g., "algorithms", "web-development"
+      mastery: number; // 0-100
+      problemsSolved: number;
+      totalPoints: number;
+      averageScore: number;
+      lastStudiedAt?: Date;
+      lastUpdated: Date;
+    }>;
+  };
+  // NEW: Problem solving history for detailed tracking
+  problemHistory: Array<{
+    problemId: mongoose.Types.ObjectId;
+    analysisId: mongoose.Types.ObjectId;
+    score: number; // 0-100
+    points: number; // Calculated points based on score and difficulty
+    difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+    category: string;
+    tags: string[];
+    solvedAt: Date;
+    reattempts: number; // Number of times this problem was reattempted
+  }>;
   bookmarkedResources: mongoose.Types.ObjectId[];
   completedSolutions: mongoose.Types.ObjectId[];
   activeDrafts: mongoose.Types.ObjectId[];
@@ -341,6 +407,88 @@ const UserSchema: Schema = new Schema(
         max: 100,
         default: 0,
       },
+      // NEW: Comprehensive scoring fields
+      totalPoints: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      averageScore: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100,
+      },
+      highestScore: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100,
+      },
+      problemsByDifficulty: {
+        easy: {
+          solved: { type: Number, default: 0 },
+          averageScore: { type: Number, default: 0, min: 0, max: 100 },
+          totalPoints: { type: Number, default: 0, min: 0 }
+        },
+        medium: {
+          solved: { type: Number, default: 0 },
+          averageScore: { type: Number, default: 0, min: 0, max: 100 },
+          totalPoints: { type: Number, default: 0, min: 0 }
+        },
+        hard: {
+          solved: { type: Number, default: 0 },
+          averageScore: { type: Number, default: 0, min: 0, max: 100 },
+          totalPoints: { type: Number, default: 0, min: 0 }
+        },
+        expert: {
+          solved: { type: Number, default: 0 },
+          averageScore: { type: Number, default: 0, min: 0, max: 100 },
+          totalPoints: { type: Number, default: 0, min: 0 }
+        }
+      },
+      problemsByCategory: {
+        algorithms: {
+          solved: { type: Number, default: 0 },
+          averageScore: { type: Number, default: 0, min: 0, max: 100 },
+          totalPoints: { type: Number, default: 0, min: 0 }
+        },
+        'system-design': {
+          solved: { type: Number, default: 0 },
+          averageScore: { type: Number, default: 0, min: 0, max: 100 },
+          totalPoints: { type: Number, default: 0, min: 0 }
+        },
+        'web-development': {
+          solved: { type: Number, default: 0 },
+          averageScore: { type: Number, default: 0, min: 0, max: 100 },
+          totalPoints: { type: Number, default: 0, min: 0 }
+        },
+        'mobile-development': {
+          solved: { type: Number, default: 0 },
+          averageScore: { type: Number, default: 0, min: 0, max: 100 },
+          totalPoints: { type: Number, default: 0, min: 0 }
+        },
+        'data-science': {
+          solved: { type: Number, default: 0 },
+          averageScore: { type: Number, default: 0, min: 0, max: 100 },
+          totalPoints: { type: Number, default: 0, min: 0 }
+        },
+        devops: {
+          solved: { type: Number, default: 0 },
+          averageScore: { type: Number, default: 0, min: 0, max: 100 },
+          totalPoints: { type: Number, default: 0, min: 0 }
+        },
+        frontend: {
+          solved: { type: Number, default: 0 },
+          averageScore: { type: Number, default: 0, min: 0, max: 100 },
+          totalPoints: { type: Number, default: 0, min: 0 }
+        },
+        backend: {
+          solved: { type: Number, default: 0 },
+          averageScore: { type: Number, default: 0, min: 0, max: 100 },
+          totalPoints: { type: Number, default: 0, min: 0 }
+        }
+      }
     },
     bookmarkedResources: [
       {
@@ -366,6 +514,176 @@ const UserSchema: Schema = new Schema(
         ref: 'SolutionDraft',
       },
     ],
+    // NEW: Skill tracking based on problem solving
+    skillTracking: {
+      skills: [{
+        skill: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        category: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        level: {
+          type: String,
+          enum: ['beginner', 'intermediate', 'advanced', 'expert'],
+          default: 'beginner',
+        },
+        progress: {
+          type: Number,
+          min: 0,
+          max: 100,
+          default: 0,
+        },
+        problemsSolved: {
+          type: Number,
+          default: 0,
+        },
+        totalPoints: {
+          type: Number,
+          default: 0,
+        },
+        averageScore: {
+          type: Number,
+          default: 0,
+          min: 0,
+          max: 100,
+        },
+        lastSolvedAt: {
+          type: Date,
+        },
+        lastUpdated: {
+          type: Date,
+          default: Date.now,
+        },
+      }],
+      techStack: [{
+        technology: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        category: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        proficiency: {
+          type: Number,
+          min: 0,
+          max: 100,
+          default: 0,
+        },
+        problemsSolved: {
+          type: Number,
+          default: 0,
+        },
+        totalPoints: {
+          type: Number,
+          default: 0,
+        },
+        averageScore: {
+          type: Number,
+          default: 0,
+          min: 0,
+          max: 100,
+        },
+        lastUsedAt: {
+          type: Date,
+        },
+        lastUpdated: {
+          type: Date,
+          default: Date.now,
+        },
+      }],
+      learningProgress: [{
+        topic: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        category: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        mastery: {
+          type: Number,
+          min: 0,
+          max: 100,
+          default: 0,
+        },
+        problemsSolved: {
+          type: Number,
+          default: 0,
+        },
+        totalPoints: {
+          type: Number,
+          default: 0,
+        },
+        averageScore: {
+          type: Number,
+          default: 0,
+          min: 0,
+          max: 100,
+        },
+        lastStudiedAt: {
+          type: Date,
+        },
+        lastUpdated: {
+          type: Date,
+          default: Date.now,
+        },
+      }],
+    },
+    // NEW: Problem solving history for detailed tracking
+    problemHistory: [{
+      problemId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'CrucibleProblem',
+        required: true,
+      },
+      analysisId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'SolutionAnalysis',
+        required: true,
+      },
+      score: {
+        type: Number,
+        required: true,
+        min: 0,
+        max: 100,
+      },
+      points: {
+        type: Number,
+        required: true,
+        min: 0,
+      },
+      difficulty: {
+        type: String,
+        enum: ['easy', 'medium', 'hard', 'expert'],
+        required: true,
+      },
+      category: {
+        type: String,
+        required: true,
+      },
+      tags: {
+        type: [String],
+        default: [],
+      },
+      solvedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      reattempts: {
+        type: Number,
+        default: 0,
+      },
+    }],
     workspacePreferences: {
       editorSettings: {
         fontSize: {

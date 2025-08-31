@@ -7,6 +7,7 @@ import UserRole from '../models/userRole.model';
 import { recordDailyVisit, getStreakInfo } from '../services/zemonStreak.service';
 import { standardLimiter } from '../middleware/rateLimiter.middleware';
 import { cacheMiddleware } from '../middleware/cache.middleware';
+import { getUserSkillSummary } from '../services/userScoring.service';
 
 /**
  * @desc    Get current user profile
@@ -892,6 +893,29 @@ export const searchUsersController = asyncHandler(
       );
     } catch (error) {
       return next(new AppError(error instanceof Error ? error.message : 'Failed to search users', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Get current user's scoring and skill tracking data
+ * @route   GET /api/users/me/scoring
+ * @access  Private
+ */
+export const getUserScoringController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const skillSummary = await getUserSkillSummary(req.user._id);
+      
+      if (!skillSummary) {
+        return next(new AppError('User not found', 404));
+      }
+
+      res.status(200).json(
+        new ApiResponse(200, 'User scoring data retrieved successfully', skillSummary)
+      );
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to fetch user scoring data', 500));
     }
   }
 );

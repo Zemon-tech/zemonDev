@@ -4,6 +4,7 @@ import { ICrucibleProblem } from '../models/crucibleProblem.model';
 import SolutionAnalysis, { IAnalysisParameter, ISolutionAnalysisResult } from '../models/solutionAnalysis.model';
 import mongoose, { ClientSession, Types } from 'mongoose';
 import { markProblemSolved, MarkProblemSolvedResult } from './userProgress.service';
+import { updateUserScoring, UpdateUserScoringResult } from './userScoring.service';
 
 // Define the output interface for the AI response
 export interface ISolutionAnalysisResponse {
@@ -274,6 +275,7 @@ export interface CreateSolutionAnalysisAndProgressArgs {
 export interface CreateSolutionAnalysisAndProgressResult {
   analysis: ISolutionAnalysisResult;
   progress: MarkProblemSolvedResult;
+  scoring: UpdateUserScoringResult;
 }
 
 export async function createSolutionAnalysisAndUpdateProgress(
@@ -287,6 +289,7 @@ export async function createSolutionAnalysisAndUpdateProgress(
   try {
     let analysisDoc: ISolutionAnalysisResult;
     let progress: MarkProblemSolvedResult;
+    let scoring: UpdateUserScoringResult;
 
     await txnSession.withTransaction(async () => {
       // Check if user already has an analysis for this problem (reattempt)
@@ -308,7 +311,7 @@ export async function createSolutionAnalysisAndUpdateProgress(
         ],
         { session: txnSession }
       );
-      analysisDoc = created;
+      analysisDoc = created as ISolutionAnalysisResult;
 
       // 2) Update user progress idempotently only on first-ever analysis
       if (!priorExists) {
@@ -317,11 +320,38 @@ export async function createSolutionAnalysisAndUpdateProgress(
         // Preserve return shape even when skipping increment
         progress = { newlySolved: false, solvedCount: 0 } as MarkProblemSolvedResult;
       }
+
+      // 3) Update user scoring and skill tracking (always update for new analysis)
+      // Get problem details for scoring calculation
+      const { CrucibleProblem } = require('../models/index');
+      const problem = await CrucibleProblem.findById(problemId).session(txnSession);
+      
+      if (problem) {
+        scoring = await updateUserScoring({
+          userId,
+          problemId,
+          analysisId: analysisDoc._id as mongoose.Types.ObjectId,
+          score: payload.overallScore,
+          problem,
+          session: txnSession
+        });
+      } else {
+        // Fallback if problem not found
+        scoring = {
+          points: 0,
+          totalPoints: 0,
+          averageScore: 0,
+          highestScore: 0,
+          skillsUpdated: [],
+          techStackUpdated: [],
+          learningProgressUpdated: []
+        };
+      }
     });
 
     // TypeScript satisfaction: variables are set inside txn
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return { analysis: analysisDoc!, progress: progress! };
+    return { analysis: analysisDoc!, progress: progress!, scoring: scoring! };
   } finally {
     if (!useExternalSession) txnSession.endSession();
   }
