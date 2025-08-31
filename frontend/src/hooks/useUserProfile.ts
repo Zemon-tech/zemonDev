@@ -64,7 +64,73 @@ export interface UserProfile {
     totalBadges: number;
     totalCertificates: number;
     skillMastery: number;
+    // NEW: Comprehensive scoring fields
+    totalPoints: number;
+    averageScore: number;
+    highestScore: number;
+    problemsByDifficulty: {
+      easy: { solved: number; averageScore: number; totalPoints: number };
+      medium: { solved: number; averageScore: number; totalPoints: number };
+      hard: { solved: number; averageScore: number; totalPoints: number };
+      expert: { solved: number; averageScore: number; totalPoints: number };
+    };
+    problemsByCategory: {
+      algorithms: { solved: number; averageScore: number; totalPoints: number };
+      'system-design': { solved: number; averageScore: number; totalPoints: number };
+      'web-development': { solved: number; averageScore: number; totalPoints: number };
+      'mobile-development': { solved: number; averageScore: number; totalPoints: number };
+      'data-science': { solved: number; averageScore: number; totalPoints: number };
+      devops: { solved: number; averageScore: number; totalPoints: number };
+      frontend: { solved: number; averageScore: number; totalPoints: number };
+      backend: { solved: number; averageScore: number; totalPoints: number };
+    };
   };
+  // NEW: Skill tracking based on problem solving
+  skillTracking: {
+    skills: Array<{
+      skill: string;
+      category: string;
+      level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+      progress: number;
+      problemsSolved: number;
+      totalPoints: number;
+      averageScore: number;
+      lastSolvedAt?: string;
+      lastUpdated: string;
+    }>;
+    techStack: Array<{
+      technology: string;
+      category: string;
+      proficiency: number;
+      problemsSolved: number;
+      totalPoints: number;
+      averageScore: number;
+      lastUsedAt?: string;
+      lastUpdated: string;
+    }>;
+    learningProgress: Array<{
+      topic: string;
+      category: string;
+      mastery: number;
+      problemsSolved: number;
+      totalPoints: number;
+      averageScore: number;
+      lastStudiedAt?: string;
+      lastUpdated: string;
+    }>;
+  };
+  // NEW: Problem solving history for detailed tracking
+  problemHistory: Array<{
+    problemId: string;
+    analysisId: string;
+    score: number;
+    points: number;
+    difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+    category: string;
+    tags: string[];
+    solvedAt: string;
+    reattempts: number;
+  }>;
   bookmarkedResources: string[];
   completedSolutions: string[];
   activeDrafts: string[];

@@ -1,6 +1,6 @@
 import { useUser } from '@clerk/clerk-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Trophy, BookOpen, Code, Flame, Star, Quote, Users, ArrowRight } from 'lucide-react';
+import { Sparkles, Trophy, Code, Flame, Star, Quote, Users, ArrowRight } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Aurora } from '@/components/blocks/Aurora';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
@@ -11,9 +11,10 @@ import { Confetti } from '@/components/blocks/Confetti';
 import { useEffect, useState } from 'react';
 import { useZemonStreak } from '@/hooks/useZemonStreak';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useUserScoring } from '@/hooks/useUserScoring';
 import { useStreakLeaderboard } from '@/hooks/useStreakLeaderboard';
-import { useCommunityRank } from '@/hooks/useCommunityRank';
 import { BookmarkedResourcesCard } from '@/components/dashboard/BookmarkedResourcesCard';
+import { SkillTrackingCard } from '@/components/dashboard/SkillTrackingCard';
 
 // --- AnimatedCount Utility ---
 function AnimatedCount({ value, duration = 1.2, className = '' }: { value: number; duration?: number; className?: string }) {
@@ -172,16 +173,17 @@ function DashboardHeader({ user, onAchievement }: { user: any; onAchievement: (a
 function DashboardStatsRow() {
   const { streakInfo, loading: streakLoading } = useZemonStreak();
   const { userProfile, loading: profileLoading } = useUserProfile();
-  const { data: communityRank, loading: rankLoading } = useCommunityRank();
+  const { scoringData, loading: scoringLoading } = useUserScoring();
+  
   const solvedCount = profileLoading
     ? 0
     : ((userProfile as any)?.solvedCount ?? userProfile?.stats?.problemsSolved ?? (userProfile?.completedSolutions?.length || 0));
-  const topPercent = rankLoading || !communityRank
-    ? 10
-    : Math.max(
-        1,
-        Math.min(100, Math.ceil(((communityRank.rank ?? 1) / Math.max(communityRank.total || 1, 1)) * 100))
-      );
+  
+  const totalPoints = scoringLoading ? 0 : (scoringData?.totalPoints || 0);
+  const averageScore = scoringLoading ? 0 : (scoringData?.averageScore || 0);
+  
+  // Note: Community Rank calculation removed as it's not currently used
+  
   // Note: Community Rank value is a string ("Top X%"), others are numbers
   const stats = [
     {
@@ -203,9 +205,18 @@ function DashboardStatsRow() {
       isProgress: false
     },
     {
+      icon: <Star className="w-5 h-5 text-purple-500" />,
+      value: totalPoints,
+      label: "Total Points",
+      color: "text-purple-500",
+      bgGradient: "from-purple-500/10 to-pink-500/10",
+      borderColor: "border-purple-500/20",
+      isProgress: false
+    },
+    {
       icon: <Trophy className="w-5 h-5 text-yellow-500" />,
-      value: `Top ${topPercent}%`,
-      label: "Community Rank",
+      value: `${averageScore}%`,
+      label: "Avg Score",
       color: "text-yellow-500",
       bgGradient: "from-yellow-500/10 to-orange-500/10",
       borderColor: "border-yellow-500/20",
@@ -353,99 +364,7 @@ function DashboardLeaderboard() {
   );
 }
 
-// --- Compact Activity Timeline ---
-function DashboardActivityTimeline() {
-  const activityTimeline = [
-    {
-      title: 'Completed React Hooks Tutorial',
-      category: 'Learning',
-      time: '2h ago',
-      icon: <BookOpen className="w-4 h-4 text-info" />,
-      badge: 'info',
-      progress: 100,
-      color: 'from-info/20 to-cyan-500/20'
-    },
-    {
-      title: 'Solved "Binary Tree Traversal"',
-      category: 'Crucible',
-      time: 'Yesterday',
-      icon: <Code className="w-4 h-4 text-accent" />,
-      badge: 'success',
-      progress: 85,
-      color: 'from-accent/20 to-purple-500/20'
-    },
-    {
-      title: 'Joined Weekly Coding Challenge',
-      category: 'Arena',
-      time: '3d ago',
-      icon: <Trophy className="w-4 h-4 text-warning" />,
-      badge: 'warning',
-      progress: 60,
-      color: 'from-warning/20 to-orange-500/20'
-    },
-  ];
 
-  return (
-    <SpotlightCard className="bg-gradient-to-br from-base-200/80 to-base-100/60 rounded-xl shadow-lg border border-base-380/50 p-4 h-69">
-      <h2 className="text-sm font-bold text-primary font-heading mb-3 flex items-center gap-2">
-        <Sparkles className="text-primary w-4 h-4" /> 
-        <GradientText text="Recent Activity" gradient="from-primary to-accent" className="text-sm" />
-      </h2>
-      
-      <div className="relative pl-6">
-        {/* Timeline vertical bar */}
-        <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary via-accent to-success rounded-full" />
-        
-        <ul className="space-y-3">
-          {activityTimeline.map((activity, idx) => (
-            <motion.li
-              key={idx}
-              initial={{ opacity: 0, x: -16 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 + idx * 0.08, ease: 'easeOut' }}
-              whileHover={{ y: -1, scale: 1.01 }}
-              className="relative group cursor-pointer"
-            >
-              {/* Timeline dot */}
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                className="absolute left-[-1.25rem] top-1.5 w-4 h-4 rounded-full bg-gradient-to-br from-primary to-accent border-2 border-base-100 flex items-center justify-center shadow-md"
-              >
-                {activity.icon}
-              </motion.div>
-              
-              <div className={`bg-gradient-to-r ${activity.color} rounded-lg px-3 py-2 shadow-sm group-hover:shadow-md transition-all duration-200 border border-base-300/30`}>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-semibold text-base-content truncate">
-                    {activity.title}
-                  </span>
-                  <span className={`badge badge-xs badge-${activity.badge} ml-auto`}>
-                    {activity.category}
-                  </span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="badge badge-xs badge-neutral">{activity.time}</span>
-                  <div className="flex items-center gap-1">
-                    <div className="w-12 h-1 bg-base-300 rounded-full overflow-hidden">
-                      <motion.div
-                        className="h-full bg-gradient-to-r from-primary to-accent rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${activity.progress}%` }}
-                        transition={{ duration: 1, delay: 0.5 + idx * 0.2 }}
-                      />
-                    </div>
-                    <span className="text-xs text-base-content/60">{activity.progress}%</span>
-                  </div>
-                </div>
-              </div>
-            </motion.li>
-          ))}
-        </ul>
-      </div>
-    </SpotlightCard>
-  );
-}
 
 // --- Compact Project Showcase ---
 function DashboardShowcase() {
@@ -544,6 +463,7 @@ function DashboardShowcase() {
 // --- Main Dashboard Page ---
 export default function DashboardPage() {
   const { user, isLoaded } = useUser();
+  const { scoringData, loading: scoringLoading } = useUserScoring();
   const [achievement, setAchievement] = useState<any>(null);
 
   const handleAchievement = (newAchievement: any) => {
@@ -577,27 +497,25 @@ export default function DashboardPage() {
         {/* --- Main Grid Layout --- */}
         <div className="grid grid-cols-12 gap-4 flex-1 overflow-hidden">
           {/* Leaderboard */}
-          <div className="col-span-12 md:col-span-4 flex flex-col overflow-hidden">
+          <div className="col-span-12 md:col-span-3 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto">
               <DashboardLeaderboard />
             </div>
           </div>
-          {/* Activity Timeline (hidden for now) */}
-          {false && (
-          <div className="col-span-12 md:col-span-4 flex flex-col overflow-hidden">
+          {/* Skill Tracking */}
+          <div className="col-span-12 md:col-span-3 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto">
-              <DashboardActivityTimeline />
+              <SkillTrackingCard scoringData={scoringData} loading={scoringLoading} />
             </div>
           </div>
-          )}
           {/* Project Showcase */}
-          <div className="col-span-12 md:col-span-4 flex flex-col overflow-hidden">
+          <div className="col-span-12 md:col-span-3 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto">
               <DashboardShowcase />
             </div>
           </div>
           {/* Bookmarked Resources */}
-          <div className="col-span-12 md:col-span-4 flex flex-col overflow-hidden">
+          <div className="col-span-12 md:col-span-3 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto">
               <BookmarkedResourcesCard />
             </div>

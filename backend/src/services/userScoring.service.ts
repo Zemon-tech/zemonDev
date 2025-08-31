@@ -392,14 +392,35 @@ export async function getUserSkillSummary(userId: string | Types.ObjectId) {
   
   if (!user) return null;
   
+  // Handle case where skillTracking fields don't exist yet (before migration)
+  const skillTracking = user.skillTracking || {
+    skills: [],
+    techStack: [],
+    learningProgress: []
+  };
+  
   return {
-    totalPoints: user.stats.totalPoints,
-    averageScore: user.stats.averageScore,
-    highestScore: user.stats.highestScore,
-    skills: user.skillTracking.skills,
-    techStack: user.skillTracking.techStack,
-    learningProgress: user.skillTracking.learningProgress,
-    problemsByDifficulty: user.stats.problemsByDifficulty,
-    problemsByCategory: user.stats.problemsByCategory
+    totalPoints: user.stats?.totalPoints || 0,
+    averageScore: user.stats?.averageScore || 0,
+    highestScore: user.stats?.highestScore || 0,
+    skills: skillTracking.skills || [],
+    techStack: skillTracking.techStack || [],
+    learningProgress: skillTracking.learningProgress || [],
+    problemsByDifficulty: user.stats?.problemsByDifficulty || {
+      easy: { solved: 0, averageScore: 0, totalPoints: 0 },
+      medium: { solved: 0, averageScore: 0, totalPoints: 0 },
+      hard: { solved: 0, averageScore: 0, totalPoints: 0 },
+      expert: { solved: 0, averageScore: 0, totalPoints: 0 }
+    },
+    problemsByCategory: user.stats?.problemsByCategory || {
+      algorithms: { solved: 0, averageScore: 0, totalPoints: 0 },
+      'system-design': { solved: 0, averageScore: 0, totalPoints: 0 },
+      'web-development': { solved: 0, averageScore: 0, totalPoints: 0 },
+      'mobile-development': { solved: 0, averageScore: 0, totalPoints: 0 },
+      'data-science': { solved: 0, averageScore: 0, totalPoints: 0 },
+      devops: { solved: 0, averageScore: 0, totalPoints: 0 },
+      frontend: { solved: 0, averageScore: 0, totalPoints: 0 },
+      backend: { solved: 0, averageScore: 0, totalPoints: 0 }
+    }
   };
 }
