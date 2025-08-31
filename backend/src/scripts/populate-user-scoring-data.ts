@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import env from '../config/env';
-import { calculatePoints, extractSkillsFromProblem } from '../services/userScoring.service';
+import { calculatePoints, extractSkillsFromProblem, determineSkillLevel } from '../services/userScoring.service';
 
 async function populateUserScoringData() {
   try {
@@ -150,8 +150,10 @@ async function populateUserScoringData() {
             }
 
             // Calculate score and points
-            const score = analysis.score || 0;
+            const score = analysis.overallScore || 0;
+            console.log(`Processing problem: ${problem.title}, difficulty: ${problem.difficulty}, score: ${score}`);
             const points = calculatePoints({ score, difficulty: problem.difficulty });
+            console.log(`Calculated points: ${points}`);
             
             scores.push(score);
             scoringData.totalPoints += points;
@@ -175,24 +177,25 @@ async function populateUserScoringData() {
               const key = `${skill}-${category}`;
               const existing = skillTracking.skills.get(key);
               
-              if (existing) {
-                existing.problemsSolved++;
-                existing.totalPoints += points;
-                existing.averageScore = Math.round((existing.averageScore * (existing.problemsSolved - 1) + score) / existing.problemsSolved);
-                existing.lastSolvedAt = analysis.createdAt || new Date();
-                existing.lastUpdated = new Date();
-              } else {
-                skillTracking.skills.set(key, {
-                  skill,
-                  category,
-                  level: 'beginner',
-                  progress: Math.min(score, 100),
-                  problemsSolved: 1,
-                  totalPoints: points,
-                  averageScore: score,
-                  lastSolvedAt: analysis.createdAt || new Date(),
-                  lastUpdated: new Date()
-                });
+                             if (existing) {
+                 existing.problemsSolved++;
+                 existing.totalPoints += points;
+                 existing.averageScore = Math.round((existing.averageScore * (existing.problemsSolved - 1) + score) / existing.problemsSolved);
+                 existing.level = determineSkillLevel(existing.averageScore, existing.problemsSolved);
+                 existing.lastSolvedAt = analysis.createdAt || new Date();
+                 existing.lastUpdated = new Date();
+               } else {
+                                 skillTracking.skills.set(key, {
+                   skill,
+                   category,
+                   level: determineSkillLevel(score, 1),
+                   progress: Math.min(score, 100),
+                   problemsSolved: 1,
+                   totalPoints: points,
+                   averageScore: score,
+                   lastSolvedAt: analysis.createdAt || new Date(),
+                   lastUpdated: new Date()
+                 });
               }
             });
 
@@ -300,6 +303,7 @@ async function populateUserScoringData() {
               'stats.totalPoints': scoringData.totalPoints,
               'stats.averageScore': scoringData.averageScore,
               'stats.highestScore': scoringData.highestScore,
+              'stats.problemsSolved': scoringData.problemHistory.length,
               'stats.problemsByDifficulty': scoringData.problemsByDifficulty,
               'stats.problemsByCategory': scoringData.problemsByCategory,
               'problemHistory': scoringData.problemHistory,

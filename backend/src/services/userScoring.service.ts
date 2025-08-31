@@ -132,6 +132,17 @@ export interface UpdateUserScoringResult {
 export function calculatePoints(args: CalculatePointsArgs): number {
   const { score, difficulty } = args;
   
+  // Validate inputs
+  if (typeof score !== 'number' || score < 0 || score > 100) {
+    console.error('Invalid score:', score);
+    return 1;
+  }
+  
+  if (!difficulty || !['easy', 'medium', 'hard', 'expert'].includes(difficulty)) {
+    console.error('Invalid difficulty:', difficulty);
+    return 1;
+  }
+  
   // Base points for the difficulty level
   const basePoints = BASE_POINTS[difficulty];
   
@@ -143,6 +154,8 @@ export function calculatePoints(args: CalculatePointsArgs): number {
   
   // Calculate final points
   const points = Math.round(basePoints * multiplier * scoreMultiplier);
+  
+  console.log(`Points calculation: ${basePoints} × ${multiplier} × ${scoreMultiplier} = ${points}`);
   
   return Math.max(points, 1); // Minimum 1 point
 }
