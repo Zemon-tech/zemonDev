@@ -2,11 +2,26 @@
   "meta": {
     "name": "Quild User Website Context",
     "generatedAt": "2025-08-30T10:37:29Z",
+    "lastUpdated": "2025-08-30T12:00:00Z",
     "projects": {
       "frontend": "frontend/",
       "backend": "backend/"
     },
-    "notes": "This JSON is designed to give an LLM a full understanding of the user website's backend and frontend: routes, schemas, middleware, services, realtime events, data fetching, auth, and user flows."
+    "notes": "This JSON is designed to give an LLM a full understanding of the user website's backend and frontend: routes, schemas, middleware, services, realtime events, data fetching, auth, and user flows.",
+    "recentChanges": [
+      "CrucibleProblem requirements structure updated from string[] to { requirement: string, context: string }[]",
+      "New BookmarkedResourcesCard dashboard component added with full functionality",
+      "Migration scripts added for requirements structure update",
+      "Enhanced seed data with contextual requirements",
+      "Frontend type definitions updated for new requirements structure",
+      "Backward compatibility functions added for old data format",
+      "Comprehensive user scoring system implemented with skill tracking and progress monitoring",
+      "New scoring API endpoint: GET /api/users/me/scoring",
+      "Automatic scoring updates integrated with solution analysis workflow",
+      "Skill tracking for programming languages, frameworks, and learning topics",
+      "Points calculation based on problem difficulty and AI analysis scores",
+      "Problem history tracking with reattempts and performance analytics"
+    ]
   },
   "backend": {
     "overview": {
@@ -136,7 +151,8 @@
           {"method": "GET", "path": "/me/workspace-preferences", "controller": "getWorkspacePreferencesController", "middleware": ["protect"]},
           {"method": "PATCH", "path": "/me/workspace-preferences", "controller": "updateWorkspacePreferencesController", "middleware": ["protect"]},
           {"method": "GET", "path": "/me/bookmarks", "controller": "getBookmarkedResourcesController", "middleware": ["protect"]},
-          {"method": "DELETE", "path": "/me/bookmarks/:resourceId", "controller": "removeBookmarkController", "middleware": ["protect"]}
+          {"method": "DELETE", "path": "/me/bookmarks/:resourceId", "controller": "removeBookmarkController", "middleware": ["protect"]},
+          {"method": "GET", "path": "/me/scoring", "controller": "getUserScoringController", "middleware": ["protect"]}
         ],
         "/api/crucible": [
           {"method": "GET", "path": "/", "controller": "getAllChallenges", "middleware": ["standardLimiter", "cache(600)"]},
@@ -306,6 +322,12 @@
       "notes": "Routing section maps methods to these controller methods by name."
     },
     "models": {
+      "interfaces": {
+        "IRequirement": {
+          "requirement": "string (required)",
+          "context": "string (optional, provides additional context for the requirement)"
+        }
+      },
       "User": {
         "file": "backend/src/models/user.model.ts",
         "keyFields": {
@@ -313,13 +335,28 @@
           "email": "string, unique",
           "username": "string, unique",
           "profile": {"headline": "string", "bio": "string", "aboutMe": "string", "location": "string", "skills": "string[]", "toolsAndTech": "string[]"},
-          "stats": {"problemsSolved": "number", "resourcesCreated": "number", "reputation": "number"},
+          "stats": {
+            "problemsSolved": "number", 
+            "resourcesCreated": "number", 
+            "reputation": "number",
+            "totalPoints": "number",
+            "averageScore": "number",
+            "highestScore": "number",
+            "problemsByDifficulty": "{ easy, medium, hard, expert: { solved, averageScore, totalPoints } }",
+            "problemsByCategory": "{ algorithms, system-design, web-development, mobile-development, data-science, devops, frontend, backend: { solved, averageScore, totalPoints } }"
+          },
           "bookmarkedResources": "ObjectId[ForgeResource]",
           "workspacePreferences": {"editorSettings": {"fontSize": "number", "theme": "string", "wordWrap": "boolean"}, "layout": {"showProblemSidebar": "boolean", "showChatSidebar": "boolean", "sidebarWidths": {"problem": "number", "chat": "number"}}, "notifications": {"channelUpdates": "boolean", "projectApprovals": "boolean", "mentions": "boolean"}},
           "socialLinks": {"portfolio": "string", "github": "string", "linkedin": "string", "twitter": "string"},
           "zemonStreak": "number",
           "longestZemonStreak": "number",
-          "lastZemonVisit": "Date"
+          "lastZemonVisit": "Date",
+          "skillTracking": {
+            "skills": "[{ skill, category, level, progress, problemsSolved, totalPoints, averageScore, lastSolvedAt, lastUpdated }]",
+            "techStack": "[{ technology, category, proficiency, problemsSolved, totalPoints, averageScore, lastUsedAt, lastUpdated }]",
+            "learningProgress": "[{ topic, category, mastery, problemsSolved, totalPoints, averageScore, lastStudiedAt, lastUpdated }]"
+          },
+          "problemHistory": "[{ problemId, analysisId, score, points, difficulty, category, tags, solvedAt, reattempts }]"
         }
       },
       "ForgeResource": {
@@ -347,7 +384,7 @@
           "difficulty": "'easy'|'medium'|'hard'|'expert'",
           "category": "'algorithms'|'system-design'|'web-development'|'mobile-development'|'data-science'|'devops'|'frontend'|'backend'",
           "tags": "string[]",
-          "requirements": "{ functional: string[], nonFunctional: string[] }",
+          "requirements": "{ functional: [{ requirement: string, context: string }], nonFunctional: [{ requirement: string, context: string }] }",
           "constraints": "string[]",
           "expectedOutcome": "string",
           "hints": "string[]",
@@ -433,7 +470,9 @@
           "summary": "string",
           "evaluatedParameters": "[{ name, score, justification }]",
           "feedback": "{ strengths[], areasForImprovement[], suggestions[] }"
-        }
+        },
+        "scoringIntegration": "Triggers automatic user scoring updates via userScoring.service.ts",
+        "workflow": "Analysis creation → Progress tracking → Scoring calculation → Skill updates"
       },
       "Notification": {
         "file": "backend/src/models/notification.model.ts",
@@ -701,6 +740,48 @@
         "resumeTokenStorage": "Mongo collection changeStreamResumeTokens",
         "emits": "notification_received",
         "autoRestartOnError": true
+      },
+      "userScoring": {
+        "file": "backend/src/services/userScoring.service.ts",
+        "purpose": "Comprehensive user scoring and skill tracking system",
+        "features": [
+          "Points calculation based on difficulty and score",
+          "Skill extraction from problem tags and categories",
+          "Tech stack proficiency tracking",
+          "Learning progress monitoring",
+          "Problem history tracking with reattempts"
+        ],
+        "functions": [
+          "calculatePoints(score, difficulty)",
+          "extractSkillsFromProblem(problem)",
+          "determineSkillLevel(averageScore, problemsSolved)",
+          "updateUserScoring(userId, problemId, analysisId, score, problem)",
+          "getUserSkillSummary(userId)"
+        ]
+      }
+    },
+    "scripts": {
+      "migrate-requirements-structure": {
+        "file": "backend/src/scripts/migrate-requirements-structure.ts",
+        "purpose": "Database migration utility for CrucibleProblem requirements structure",
+        "functionality": ["Converts string arrays to new object structure", "Handles backward compatibility", "Validates and cleans data", "Sets default requirements for empty data"],
+        "usage": "Run during maintenance window to update existing problem data"
+      },
+      "add-user-scoring-fields": {
+        "file": "backend/src/migrations/add-user-scoring-fields.ts",
+        "purpose": "Add comprehensive scoring fields to User model",
+        "functionality": ["Adds scoring stats fields", "Creates skill tracking structure", "Sets up problem history tracking", "Creates performance indexes"],
+        "usage": "Run to add new scoring capabilities to existing users"
+      },
+      "seed-crucible-problems": {
+        "file": "backend/src/scripts/seed-crucible-problems.ts",
+        "purpose": "Seed database with sample problems using new requirements structure",
+        "features": ["Enhanced sample problems with contextual requirements", "Updated data structure", "Backward compatibility support"]
+      },
+      "populate-user-scoring-data": {
+        "file": "backend/src/scripts/populate-user-scoring-data.ts",
+        "purpose": "Populate existing users with comprehensive scoring data",
+        "features": ["Retroactive scoring calculation", "Skill extraction from problem history", "Tech stack analysis", "Learning progress tracking"]
       }
     },
     "realtimeEvents": {
@@ -751,6 +832,16 @@
       },
       "libraries": {
         "crucibleApi.ts": {
+          "types": {
+            "IRequirement": "{ requirement: string, context: string }",
+            "ICrucibleProblem": "Updated with new requirements structure using IRequirement[]"
+          },
+          "scoringTypes": {
+            "UserScoringData": "Comprehensive scoring and skill tracking interface",
+            "Skill": "{ skill, category, level, progress, problemsSolved, totalPoints, averageScore, lastSolvedAt, lastUpdated }",
+            "TechStack": "{ technology, category, proficiency, problemsSolved, totalPoints, averageScore, lastUsedAt, lastUpdated }",
+            "LearningProgress": "{ topic, category, mastery, problemsSolved, totalPoints, averageScore, lastStudiedAt, lastUpdated }"
+          },
           "public": [
             {"fn": "getProblems(filters?)", "GET": "/crucible"},
             {"fn": "getProblem(id)", "GET": "/crucible/:id"},
@@ -821,6 +912,31 @@
           "class": "ApiService",
           "usage": "Arena UI helpers (channels/messages) using makeRequest with getToken()",
           "baseUrl": "import.meta.env.VITE_BACKEND_URL"
+        },
+        "userScoringApi.ts": {
+          "function": "getUserScoringData(token)",
+          "endpoint": "GET /api/users/me/scoring",
+          "returns": "UserScoringData with comprehensive scoring and skill tracking",
+          "utilityFunctions": [
+            "getTopSkills(skills, limit)",
+            "getTopTechnologies(techStack, limit)", 
+            "getTopLearningTopics(learningProgress, limit)",
+            "calculateSkillLevel(totalPoints, problemsSolved)",
+            "getCategoryBreakdown(problemsByCategory)",
+            "getDifficultyBreakdown(problemsByDifficulty)"
+          ]
+        },
+        "hooks/useBookmarkedResources.ts": {
+          "function": "useBookmarkedResources()",
+          "returns": "{ resources: BookmarkedResource[], loading: boolean, error: string | null, refetch: () => Promise<void> }",
+          "usage": "Fetches user's bookmarked forge resources for dashboard display",
+          "dataTransformation": "Transforms API response to match BookmarkedResource interface with fallback values"
+        },
+        "hooks/useUserScoring.ts": {
+          "function": "useUserScoring()",
+          "returns": "{ scoringData: UserScoringData | null, loading: boolean, error: string | null, refetch: () => Promise<void> }",
+          "usage": "Fetches user's comprehensive scoring and skill tracking data",
+          "features": ["3-minute caching", "Rate limiting (1s between requests)", "Auto-refresh every 5 minutes", "Concurrent request prevention"]
         }
       },
       "pagesToBackend": {
@@ -830,6 +946,12 @@
         "CrucibleProblemPage": ["GET /crucible/:id (public)", "GET /crucible/:id/draft (auth)", "GET /crucible/:id/notes (auth)", "PUT /crucible/:id/draft (create if missing)"],
         "ArenaPage": ["ApiService.getChannels", "getUserChannelStatuses"],
         "ProfilePage": ["PATCH /users/me/background", "GET /profile/crucible/analyses", "GET /profile/crucible/drafts", "GET /users/me (bookmarks via forgeApi)"],
+        "DashboardPage": [
+          "GET /users/me/bookmarks (via useBookmarkedResources hook)", 
+          "GET /users/me/scoring (via useUserScoring hook)",
+          "BookmarkedResourcesCard component displays user's bookmarked forge resources",
+          "SkillBreakdownCard and AchievementBadgesCard use scoring data for visualization"
+        ],
         "SettingsPage": ["PATCH /users/me", "PATCH /users/me/password", "DELETE /users/me", "GET/PATCH /users/me/workspace-preferences", "GET /users/me/projects", "POST/PATCH/DELETE /arena/showcase"]
       }
     },
@@ -857,6 +979,17 @@
         "behavior": "Creates/tears down socket tied to Clerk auth state; exposes socket, isConnected, isConnecting"
       },
       "Workspace/Sidebar/Theme": "Shared layout and UX contexts"
+    },
+    "components": {
+      "dashboard": {
+        "BookmarkedResourcesCard": {
+          "file": "frontend/src/components/dashboard/BookmarkedResourcesCard.tsx",
+          "features": ["Displays user's bookmarked forge resources", "Resource type icons and difficulty badges", "Internal/external navigation", "Loading states and error handling", "Responsive design with Framer Motion animations"],
+          "props": "{ className?: string, maxItems?: number }",
+          "dataSource": "useBookmarkedResources hook",
+          "navigation": "Handles both internal routing and external link opening with popup detection"
+        }
+      }
     }
   },
   "env": {
@@ -882,6 +1015,21 @@
       "Server creates Notification -> emits 'notification_received' to user room via Socket.IO",
       "User opens notifications UI -> REST GET /notifications with pagination and filters",
       "Marking read/archive/delete -> corresponding REST calls emit updates"
+    ],
+    "dashboard": [
+      "DashboardPage uses 4-column grid layout (col-span-12 md:col-span-3)",
+      "Columns: Leaderboard, Skill Breakdown, Achievements, Bookmarked Resources",
+      "BookmarkedResourcesCard displays user's saved forge resources with navigation",
+      "SkillBreakdownCard and AchievementBadgesCard use real-time scoring data",
+      "Each card has independent overflow handling and responsive behavior"
+    ],
+    "scoring": [
+      "Automatic scoring updates after each solution analysis",
+      "Points calculation: Base × Difficulty × Score multiplier",
+      "Skill tracking: Programming languages, frameworks, databases, cloud tools",
+      "Learning progress: Topic mastery based on problem-solving performance",
+      "Problem history: Detailed tracking with reattempts and performance metrics",
+      "Real-time dashboard updates via useUserScoring hook"
     ]
   }
 }
