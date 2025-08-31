@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import env from '../config/env';
-import { calculatePoints } from '../services/userScoring.service';
+import { calculatePoints, extractSkillsFromProblem } from '../services/userScoring.service';
 
 async function populateUserScoringData() {
   try {
@@ -95,6 +95,45 @@ async function populateUserScoringData() {
           problemHistory: []
         };
 
+        // Initialize skill tracking
+        const skillTracking: {
+          skills: Map<string, {
+            skill: string;
+            category: string;
+            level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+            progress: number;
+            problemsSolved: number;
+            totalPoints: number;
+            averageScore: number;
+            lastSolvedAt?: Date;
+            lastUpdated: Date;
+          }>;
+          techStack: Map<string, {
+            technology: string;
+            category: string;
+            proficiency: number;
+            problemsSolved: number;
+            totalPoints: number;
+            averageScore: number;
+            lastUsedAt?: Date;
+            lastUpdated: Date;
+          }>;
+          learningProgress: Map<string, {
+            topic: string;
+            category: string;
+            mastery: number;
+            problemsSolved: number;
+            totalPoints: number;
+            averageScore: number;
+            lastStudiedAt?: Date;
+            lastUpdated: Date;
+          }>;
+        } = {
+          skills: new Map(),
+          techStack: new Map(),
+          learningProgress: new Map()
+        };
+
         const scores: number[] = [];
 
         // Process each analysis
@@ -110,16 +149,11 @@ async function populateUserScoringData() {
               continue;
             }
 
-            const score = analysis.overallScore || 0;
+            // Calculate score and points
+            const score = analysis.score || 0;
+            const points = calculatePoints({ score, difficulty: problem.difficulty });
+            
             scores.push(score);
-
-            // Calculate points
-            const points = calculatePoints({
-              score,
-              difficulty: problem.difficulty
-            });
-
-            // Update scoring data
             scoringData.totalPoints += points;
             scoringData.highestScore = Math.max(scoringData.highestScore, score);
 
@@ -132,6 +166,85 @@ async function populateUserScoringData() {
             const categoryKey = problem.category as keyof typeof scoringData.problemsByCategory;
             scoringData.problemsByCategory[categoryKey].solved++;
             scoringData.problemsByCategory[categoryKey].totalPoints += points;
+
+            // Extract skills from problem
+            const { skills, techStack, learningTopics } = extractSkillsFromProblem(problem as any);
+
+            // Update skill tracking
+            skills.forEach(({ skill, category }) => {
+              const key = `${skill}-${category}`;
+              const existing = skillTracking.skills.get(key);
+              
+              if (existing) {
+                existing.problemsSolved++;
+                existing.totalPoints += points;
+                existing.averageScore = Math.round((existing.averageScore * (existing.problemsSolved - 1) + score) / existing.problemsSolved);
+                existing.lastSolvedAt = analysis.createdAt || new Date();
+                existing.lastUpdated = new Date();
+              } else {
+                skillTracking.skills.set(key, {
+                  skill,
+                  category,
+                  level: 'beginner',
+                  progress: Math.min(score, 100),
+                  problemsSolved: 1,
+                  totalPoints: points,
+                  averageScore: score,
+                  lastSolvedAt: analysis.createdAt || new Date(),
+                  lastUpdated: new Date()
+                });
+              }
+            });
+
+            // Update tech stack
+            techStack.forEach(({ technology, category }) => {
+              const key = `${technology}-${category}`;
+              const existing = skillTracking.techStack.get(key);
+              
+              if (existing) {
+                existing.problemsSolved++;
+                existing.totalPoints += points;
+                existing.averageScore = Math.round((existing.averageScore * (existing.problemsSolved - 1) + score) / existing.problemsSolved);
+                existing.lastUsedAt = analysis.createdAt || new Date();
+                existing.lastUpdated = new Date();
+              } else {
+                skillTracking.techStack.set(key, {
+                  technology,
+                  category,
+                  proficiency: Math.min(score, 100),
+                  problemsSolved: 1,
+                  totalPoints: points,
+                  averageScore: score,
+                  lastUsedAt: analysis.createdAt || new Date(),
+                  lastUpdated: new Date()
+                });
+              }
+            });
+
+            // Update learning progress
+            learningTopics.forEach(({ topic, category }) => {
+              const key = `${topic}-${category}`;
+              const existing = skillTracking.learningProgress.get(key);
+              
+              if (existing) {
+                existing.problemsSolved++;
+                existing.totalPoints += points;
+                existing.averageScore = Math.round((existing.averageScore * (existing.problemsSolved - 1) + score) / existing.problemsSolved);
+                existing.lastStudiedAt = analysis.createdAt || new Date();
+                existing.lastUpdated = new Date();
+              } else {
+                skillTracking.learningProgress.set(key, {
+                  topic,
+                  category,
+                  mastery: Math.min(score, 100),
+                  problemsSolved: 1,
+                  totalPoints: points,
+                  averageScore: score,
+                  lastStudiedAt: analysis.createdAt || new Date(),
+                  lastUpdated: new Date()
+                });
+              }
+            });
 
             // Add to problem history
             scoringData.problemHistory.push({
@@ -174,6 +287,11 @@ async function populateUserScoringData() {
           }
         });
 
+        // Convert Maps to Arrays for database storage
+        const skillsArray = Array.from(skillTracking.skills.values());
+        const techStackArray = Array.from(skillTracking.techStack.values());
+        const learningProgressArray = Array.from(skillTracking.learningProgress.values());
+
         // Update user with scoring data
         await usersCollection.updateOne(
           { _id: user._id },
@@ -184,12 +302,15 @@ async function populateUserScoringData() {
               'stats.highestScore': scoringData.highestScore,
               'stats.problemsByDifficulty': scoringData.problemsByDifficulty,
               'stats.problemsByCategory': scoringData.problemsByCategory,
-              'problemHistory': scoringData.problemHistory
+              'problemHistory': scoringData.problemHistory,
+              'skillTracking.skills': skillsArray,
+              'skillTracking.techStack': techStackArray,
+              'skillTracking.learningProgress': learningProgressArray
             }
           }
         );
 
-        console.log(`Updated user ${user.username || user._id} with ${scoringData.totalPoints} total points`);
+        console.log(`Updated user ${user.username || user._id} with ${scoringData.totalPoints} total points and ${skillsArray.length} skills`);
         processedUsers++;
 
       } catch (userError) {
