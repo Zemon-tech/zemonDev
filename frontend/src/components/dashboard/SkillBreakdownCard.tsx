@@ -218,13 +218,13 @@ export const SkillBreakdownCard: React.FC<SkillBreakdownCardProps> = ({
 
   if (loading) {
     return (
-      <DashboardCard variant="default" className="p-4 h-69">
+      <DashboardCard variant="default" className="p-3 sm:p-4 h-auto sm:h-69">
         <div className="animate-pulse">
-          <div className="h-6 bg-base-300 rounded mb-4"></div>
-          <div className="space-y-3">
+          <div className="h-5 sm:h-6 bg-base-300 rounded mb-3 sm:mb-4"></div>
+          <div className="space-y-2 sm:space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i}>
-                <div className="h-4 bg-base-300 rounded mb-2"></div>
+                <div className="h-3 sm:h-4 bg-base-300 rounded mb-2"></div>
                 <div className="h-2 bg-base-300 rounded"></div>
               </div>
             ))}
@@ -263,12 +263,13 @@ export const SkillBreakdownCard: React.FC<SkillBreakdownCardProps> = ({
   console.log('SkillBreakdownCard - improvements:', improvements);
 
   return (
-    <DashboardCard variant="default" className="p-4 h-69 overflow-y-auto">
+    <DashboardCard variant="default" className="p-3 sm:p-4 h-auto sm:h-69 overflow-y-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-base-content flex items-center gap-2">
-          <Brain className="w-5 h-5 text-primary" />
-          Skill Focus
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h2 className="text-sm sm:text-lg font-bold text-base-content flex items-center gap-2">
+          <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+          <span className="hidden sm:inline">Skill Focus</span>
+          <span className="sm:hidden">Skills</span>
         </h2>
         <div className="badge badge-primary badge-sm">
           {scoringData.skills?.length || 0} Skills
@@ -282,7 +283,7 @@ export const SkillBreakdownCard: React.FC<SkillBreakdownCardProps> = ({
             <Target className="w-4 h-4 text-success" />
             Your Focus Areas
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {focusedSkills.map((skill, idx) => {
               const { level, color, type } = getSkillLevel(skill.averageScore);
               // Try to find icon by skill name first, then by category
@@ -294,28 +295,28 @@ export const SkillBreakdownCard: React.FC<SkillBreakdownCardProps> = ({
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: idx * 0.1 }}
-                  className="bg-base-100/50 rounded-lg p-3 border border-base-300/30"
+                  className="bg-base-100/50 rounded-lg p-2 sm:p-3 border border-base-300/30"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Icon className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-medium text-base-content">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <Icon className="w-3 h-3 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+                      <span className="text-xs sm:text-sm font-medium text-base-content truncate">
                         {skill.skill}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                       <span className="text-xs font-mono text-base-content/70">
                         {skill.averageScore}%
                       </span>
-                      <span className={`text-xs font-semibold ${color}`}>
+                      <span className={`text-xs font-semibold ${color} hidden sm:inline`}>
                         {level}
                       </span>
                     </div>
                   </div>
                   <Progress value={skill.averageScore} type={type as any} />
                   <div className="flex justify-between text-xs text-base-content/50 mt-1">
-                    <span>{skill.problemsSolved} problems</span>
-                    <span>{skill.totalPoints} pts</span>
+                    <span className="truncate">{skill.problemsSolved} problems</span>
+                    <span className="flex-shrink-0">{skill.totalPoints} pts</span>
                   </div>
                 </motion.div>
               );
@@ -390,10 +391,11 @@ export const SkillBreakdownCard: React.FC<SkillBreakdownCardProps> = ({
       )}
 
       {/* Quick Actions */}
-      <div className="mt-6 pt-4 border-t border-base-300/30">
-        <h3 className="text-sm font-semibold text-base-content/80 mb-3 flex items-center gap-2">
-          <Zap className="w-4 h-4 text-accent" />
-          Quick Actions
+      <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-base-300/30">
+        <h3 className="text-xs sm:text-sm font-semibold text-base-content/80 mb-2 sm:mb-3 flex items-center gap-2">
+          <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-accent" />
+          <span className="hidden sm:inline">Quick Actions</span>
+          <span className="sm:hidden">Actions</span>
         </h3>
         <div className="grid grid-cols-2 gap-2">
           <motion.button
@@ -401,14 +403,16 @@ export const SkillBreakdownCard: React.FC<SkillBreakdownCardProps> = ({
             whileTap={{ scale: 0.98 }}
             className="p-2 bg-primary/10 rounded-lg border border-primary/20 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
           >
-            Practice Weak Skills
+            <span className="hidden sm:inline">Practice Weak Skills</span>
+            <span className="sm:hidden">Practice</span>
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             className="p-2 bg-accent/10 rounded-lg border border-accent/20 text-xs font-medium text-accent hover:bg-accent/20 transition-colors"
           >
-            Explore New Areas
+            <span className="hidden sm:inline">Explore New Areas</span>
+            <span className="sm:hidden">Explore</span>
           </motion.button>
         </div>
       </div>

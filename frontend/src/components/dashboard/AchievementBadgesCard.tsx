@@ -58,42 +58,42 @@ const AchievementBadge = ({
       <div className="relative">
         {/* Badge Background */}
         <div className={`
-          relative w-20 h-20 rounded-full border-4 flex items-center justify-center
+          relative w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 flex items-center justify-center
           ${unlocked 
             ? `bg-gradient-to-br ${levelColors[level]} border-white shadow-lg` 
             : 'bg-gray-300 border-gray-400'
           }
         `}>
           {/* Icon */}
-          <Icon className={`w-8 h-8 ${unlocked ? 'text-white' : 'text-gray-500'}`} />
+          <Icon className={`w-6 h-6 sm:w-8 sm:h-8 ${unlocked ? 'text-white' : 'text-gray-500'}`} />
           
           {/* Level Indicator */}
-          <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white flex items-center justify-center text-xs font-bold">
+          <div className="absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white flex items-center justify-center text-xs font-bold">
             {levelIcons[level]}
           </div>
         </div>
 
         {/* Progress Ring (if not unlocked) */}
         {!unlocked && progress > 0 && (
-          <svg className="absolute inset-0 w-20 h-20 transform -rotate-90">
+          <svg className="absolute inset-0 w-16 h-16 sm:w-20 sm:h-20 transform -rotate-90">
             <circle
-              cx="40"
-              cy="40"
-              r="36"
+              cx="32"
+              cy="32"
+              r="28"
               stroke="currentColor"
               strokeWidth="3"
               fill="transparent"
               className="text-gray-300"
             />
             <circle
-              cx="40"
-              cy="40"
-              r="36"
+              cx="32"
+              cy="32"
+              r="28"
               stroke="currentColor"
               strokeWidth="3"
               fill="transparent"
-              strokeDasharray={`${2 * Math.PI * 36}`}
-              strokeDashoffset={`${2 * Math.PI * 36 * (1 - progress / 100)}`}
+              strokeDasharray={`${2 * Math.PI * 28}`}
+              strokeDashoffset={`${2 * Math.PI * 28 * (1 - progress / 100)}`}
               className="text-primary transition-all duration-1000"
             />
           </svg>
@@ -223,14 +223,14 @@ export const AchievementBadgesCard: React.FC<AchievementBadgesCardProps> = ({
 }) => {
   if (loading) {
     return (
-      <DashboardCard variant="default" className="p-4 h-69">
+      <DashboardCard variant="default" className="p-3 sm:p-4 h-auto sm:h-69">
         <div className="animate-pulse">
-          <div className="h-6 bg-base-300 rounded mb-4"></div>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="h-5 sm:h-6 bg-base-300 rounded mb-3 sm:mb-4"></div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="flex flex-col items-center">
-                <div className="w-16 h-16 bg-base-300 rounded-full mb-2"></div>
-                <div className="h-3 bg-base-300 rounded w-12"></div>
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-base-300 rounded-full mb-2"></div>
+                <div className="h-2 sm:h-3 bg-base-300 rounded w-8 sm:w-12"></div>
               </div>
             ))}
           </div>
@@ -262,12 +262,13 @@ export const AchievementBadgesCard: React.FC<AchievementBadgesCardProps> = ({
   const progressPercentage = (unlockedCount / totalAchievements) * 100;
 
   return (
-    <DashboardCard variant="default" className="p-4 h-69 overflow-y-auto">
+    <DashboardCard variant="default" className="p-3 sm:p-4 h-auto sm:h-69 overflow-y-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-base-content flex items-center gap-2">
-          <Trophy className="w-5 h-5 text-warning" />
-          Achievements
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h2 className="text-sm sm:text-lg font-bold text-base-content flex items-center gap-2">
+          <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
+          <span className="hidden sm:inline">Achievements</span>
+          <span className="sm:hidden">Badges</span>
         </h2>
         <div className="badge badge-warning badge-sm">
           {unlockedCount}/{totalAchievements}
@@ -291,7 +292,7 @@ export const AchievementBadgesCard: React.FC<AchievementBadgesCardProps> = ({
       </div>
 
       {/* Achievement Grid */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         {ACHIEVEMENTS.map((achievement, idx) => {
           const unlocked = achievement.condition(scoringData);
           const progress = achievement.progress(scoringData);

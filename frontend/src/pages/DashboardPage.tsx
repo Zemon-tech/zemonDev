@@ -1,6 +1,6 @@
 import { useUser } from '@clerk/clerk-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Trophy, Code, Flame, Star, Quote } from 'lucide-react';
+import { Sparkles, Trophy, Code, Flame, Star, Quote, ChevronDown, ChevronUp } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Aurora } from '@/components/blocks/Aurora';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
@@ -11,7 +11,6 @@ import { useZemonStreak } from '@/hooks/useZemonStreak';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useUserScoring } from '@/hooks/useUserScoring';
 import { useStreakLeaderboard } from '@/hooks/useStreakLeaderboard';
-import { BookmarkedResourcesCard } from '@/components/dashboard/BookmarkedResourcesCard';
 import { SkillBreakdownCard } from '@/components/dashboard/SkillBreakdownCard';
 import { AchievementBadgesCard } from '@/components/dashboard/AchievementBadgesCard';
 import { 
@@ -90,9 +89,9 @@ function DashboardHeader({ user, onAchievement }: { user: any; onAchievement: (a
       transition={{ duration: 0.6, ease: 'easeOut' }}
     >
       <Aurora className="absolute inset-0 opacity-20" />
-      <SpotlightCard className="flex items-center justify-between gap-4 px-6 py-4 rounded-xl shadow-lg bg-gradient-to-br from-base-200/80 to-base-100/60 backdrop-blur-xl border border-base-300/50">
+      <SpotlightCard className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 sm:px-6 py-4 rounded-xl shadow-lg bg-gradient-to-br from-base-200/80 to-base-100/60 backdrop-blur-xl border border-base-300/50">
         {/* Avatar & Greeting */}
-        <div className="flex items-center gap-4 min-w-0">
+        <div className="flex items-center gap-4 min-w-0 w-full sm:w-auto">
           <motion.div
             whileHover={{ scale: 1.05, rotate: 5 }}
             className="relative cursor-pointer"
@@ -112,8 +111,8 @@ function DashboardHeader({ user, onAchievement }: { user: any; onAchievement: (a
               <div className="w-1.5 h-1.5 bg-white rounded-full" />
             </motion.div>
           </motion.div>
-          <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col min-w-0 flex-1 sm:flex-none">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-lg font-bold tracking-tight text-base-content">
                 Hey {user?.firstName || 'Builder'} 👋
               </span>
@@ -136,8 +135,8 @@ function DashboardHeader({ user, onAchievement }: { user: any; onAchievement: (a
             </span>
           </div>
         </div>
-        {/* Compact Quote */}
-        <div className="flex flex-col items-end justify-center max-w-xs ml-auto">
+        {/* Compact Quote - Hidden on mobile */}
+        <div className="hidden lg:flex flex-col items-end justify-center max-w-xs ml-auto">
           <motion.div
             className="relative"
             whileHover={{ scale: 1.02 }}
@@ -156,7 +155,7 @@ function DashboardHeader({ user, onAchievement }: { user: any; onAchievement: (a
   );
 }
 
-// --- Compact Stats Row ---
+// --- Responsive Stats Row ---
 function DashboardStatsRow() {
   const { streakInfo, loading: streakLoading } = useZemonStreak();
   const { userProfile, loading: profileLoading } = useUserProfile();
@@ -171,7 +170,7 @@ function DashboardStatsRow() {
   
   if (scoringLoading || profileLoading || streakLoading) {
     return (
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {Array.from({ length: 4 }).map((_, idx) => (
           <LoadingSkeleton key={idx} variant="stat" />
         ))}
@@ -215,7 +214,7 @@ function DashboardStatsRow() {
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       {stats.map((stat, idx) => (
         <StatCard
           key={idx}
@@ -227,7 +226,7 @@ function DashboardStatsRow() {
   );
 }
 
-// --- Compact Leaderboard ---
+// --- Responsive Leaderboard ---
 function DashboardLeaderboard() {
   const { data, loading, error } = useStreakLeaderboard(3);
   const leaderboardData = (!loading && !error && data.length > 0)
@@ -238,7 +237,7 @@ function DashboardLeaderboard() {
   const rankIcons = ['🥇', '🥈', '🥉'];
 
   return (
-    <DashboardCard variant="default" className="p-4 h-69">
+    <DashboardCard variant="default" className="p-3 sm:p-4 h-auto sm:h-69">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-bold text-accent font-heading flex items-center gap-2">
           <Trophy className="text-accent w-4 h-4" /> 
@@ -252,39 +251,41 @@ function DashboardLeaderboard() {
           <motion.div
             key={user.rank}
             whileHover={HOVER_EFFECTS.card}
-            className={`relative flex items-center gap-3 p-2 rounded-lg transition-all duration-200 cursor-pointer bg-gradient-to-r ${idx === 0 ? 'from-yellow-500/10 to-orange-500/10 border border-yellow-500/20' : 'from-base-100/80 to-base-200/60 hover:from-base-100 hover:to-base-200'} shadow-sm hover:shadow-md`}
+            className={`relative flex items-center gap-2 sm:gap-3 p-2 rounded-lg transition-all duration-200 cursor-pointer bg-gradient-to-r ${idx === 0 ? 'from-yellow-500/10 to-orange-500/10 border border-yellow-500/20' : 'from-base-100/80 to-base-200/60 hover:from-base-100 hover:to-base-200'} shadow-sm hover:shadow-md`}
           >
-            <div className="flex items-center gap-2">
-              <span className={`font-bold text-sm w-6 text-center ${rankColors[idx]}`}>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <span className={`font-bold text-xs sm:text-sm w-4 sm:w-6 text-center ${rankColors[idx]}`}>
                 {user.rank}
               </span>
-              <span className="text-lg">{rankIcons[idx]}</span>
+              <span className="text-sm sm:text-lg">{rankIcons[idx]}</span>
             </div>
             
-            <Avatar className="h-8 w-8 ring-1 ring-accent/20 shadow-md">
+            <Avatar className="h-6 w-6 sm:h-8 sm:w-8 ring-1 ring-accent/20 shadow-md">
               <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback className="bg-accent/10 text-accent font-bold text-sm">{user.name[0]}</AvatarFallback>
+              <AvatarFallback className="bg-accent/10 text-accent font-bold text-xs sm:text-sm">{user.name[0]}</AvatarFallback>
             </Avatar>
             
             <div className="flex-1 min-w-0">
-              <span className="font-semibold truncate text-base-content/90 block text-sm">
+              <span className="font-semibold truncate text-base-content/90 block text-xs sm:text-sm">
                 {user.name}
               </span>
               <span className="text-xs text-base-content/60 flex items-center gap-1">
                 <Flame className="w-2.5 h-2.5 text-orange-500" />
-                {user.streak} day streak
+                <span className="hidden sm:inline">{user.streak} day streak</span>
+                <span className="sm:hidden">{user.streak}d</span>
               </span>
             </div>
             
             <div className="flex flex-col items-end gap-1">
-              <span className="badge badge-accent badge-outline text-xs font-mono px-2 py-1 shadow-sm">
-                {user.points} pts
+              <span className="badge badge-accent badge-outline text-xs font-mono px-1 sm:px-2 py-1 shadow-sm">
+                <span className="hidden sm:inline">{user.points} pts</span>
+                <span className="sm:hidden">{user.points}</span>
               </span>
               {idx === 0 && (
                 <motion.div
                   animate={{ scale: [1, 1.1, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  className="text-xs text-yellow-500 font-bold"
+                  className="text-xs text-yellow-500 font-bold hidden sm:block"
                 >
                   CHAMPION
                 </motion.div>
@@ -297,6 +298,52 @@ function DashboardLeaderboard() {
   );
 }
 
+// --- Collapsible Section Component ---
+function CollapsibleSection({ 
+  title, 
+  icon: Icon, 
+  children, 
+  defaultOpen = true 
+}: { 
+  title: string; 
+  icon: React.ComponentType<any>; 
+  children: React.ReactNode; 
+  defaultOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border border-base-300/30 rounded-lg overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-3 bg-base-100/50 hover:bg-base-100/70 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Icon className="w-4 h-4 text-primary" />
+          <span className="font-semibold text-sm text-base-content">{title}</span>
+        </div>
+        {isOpen ? (
+          <ChevronUp className="w-4 h-4 text-base-content/60" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-base-content/60" />
+        )}
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 // --- Main Dashboard Page ---
 export default function DashboardPage() {
@@ -325,37 +372,78 @@ export default function DashboardPage() {
     <div className="h-full w-full bg-gradient-to-br from-background via-base-100 to-base-200 flex flex-col relative overflow-hidden">
       <FloatingParticles />
       
-      <div className="flex-1 flex flex-col w-full px-6 py-4 space-y-4 relative z-10 overflow-hidden">
+      <div className="flex-1 flex flex-col w-full px-3 sm:px-6 py-4 space-y-4 relative z-10 overflow-hidden">
         {/* --- Header Section --- */}
         <DashboardHeader user={user} onAchievement={handleAchievement} />
         
         {/* --- Stats Row --- */}
         <DashboardStatsRow />
         
-        {/* --- Main Grid Layout --- */}
-        <div className="grid grid-cols-12 gap-4 flex-1 overflow-hidden">
-          {/* Leaderboard */}
-          <div className="col-span-12 md:col-span-3 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto">
+        {/* --- Mobile Layout: Collapsible Sections --- */}
+        <div className="block lg:hidden space-y-4">
+          <CollapsibleSection title="Leaderboard" icon={Trophy} defaultOpen={true}>
+            <div className="p-3">
               <DashboardLeaderboard />
             </div>
-          </div>
-          {/* Skill Breakdown */}
-          <div className="col-span-12 md:col-span-3 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto">
+          </CollapsibleSection>
+          
+          <CollapsibleSection title="Skill Focus" icon={Code} defaultOpen={true}>
+            <div className="p-3">
               <SkillBreakdownCard scoringData={scoringData || undefined} loading={scoringLoading} />
             </div>
-          </div>
-          {/* Achievements */}
-          <div className="col-span-12 md:col-span-3 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto">
+          </CollapsibleSection>
+          
+          <CollapsibleSection title="Achievements" icon={Star} defaultOpen={true}>
+            <div className="p-3">
               <AchievementBadgesCard scoringData={scoringData || undefined} loading={scoringLoading} />
             </div>
+          </CollapsibleSection>
+        </div>
+
+        {/* --- Tablet Layout: 2x2 Grid --- */}
+        <div className="hidden lg:block xl:hidden">
+          <div className="grid grid-cols-2 gap-4">
+            {/* Leaderboard */}
+            <div className="flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto">
+                <DashboardLeaderboard />
+              </div>
+            </div>
+            {/* Skill Breakdown */}
+            <div className="flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto">
+                <SkillBreakdownCard scoringData={scoringData || undefined} loading={scoringLoading} />
+              </div>
+            </div>
+            {/* Achievements - Full Width */}
+            <div className="col-span-2 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto">
+                <AchievementBadgesCard scoringData={scoringData || undefined} loading={scoringLoading} />
+              </div>
+            </div>
           </div>
-          {/* Bookmarked Resources */}
-          <div className="col-span-12 md:col-span-3 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto">
-              <BookmarkedResourcesCard />
+        </div>
+
+        {/* --- Desktop Layout: 3 Column Grid --- */}
+        <div className="hidden xl:block">
+          <div className="grid grid-cols-12 gap-4 flex-1 overflow-hidden">
+            {/* Leaderboard */}
+            <div className="col-span-3 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto">
+                <DashboardLeaderboard />
+              </div>
+            </div>
+            {/* Skill Breakdown */}
+            <div className="col-span-4 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto">
+                <SkillBreakdownCard scoringData={scoringData || undefined} loading={scoringLoading} />
+              </div>
+            </div>
+            {/* Achievements */}
+            <div className="col-span-5 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto">
+                <AchievementBadgesCard scoringData={scoringData || undefined} loading={scoringLoading} />
+              </div>
             </div>
           </div>
         </div>
