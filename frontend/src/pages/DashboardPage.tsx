@@ -1,18 +1,19 @@
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Trophy, Code, Flame, Star, Quote, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, Trophy, Code, Flame, Star, Quote} from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Aurora } from '@/components/blocks/Aurora';
 import { SpotlightCard } from '@/components/blocks/SpotlightCard';
 import { Confetti } from '@/components/blocks/Confetti';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useZemonStreak } from '@/hooks/useZemonStreak';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useUserScoring } from '@/hooks/useUserScoring';
 import { useStreakLeaderboard } from '@/hooks/useStreakLeaderboard';
-import { SkillBreakdownCard } from '@/components/dashboard/SkillBreakdownCard';
-import { AchievementBadgesCard } from '@/components/dashboard/AchievementBadgesCard';
+// import { SkillBreakdownCard } from '@/components/dashboard/SkillBreakdownCard';
+// import { AchievementBadgesCard } from '@/components/dashboard/AchievementBadgesCard';
 import { 
   StatCard, 
   DashboardCard, 
@@ -21,6 +22,12 @@ import {
   HOVER_EFFECTS,
   MOCK_DATA
 } from '@/components/dashboard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { OverviewTab } from '@/components/dashboard/sections/OverviewTab';
+import { FocusTab } from '@/components/dashboard/sections/FocusTab';
+import { InsightsTab } from '@/components/dashboard/sections/InsightsTab';
+import { TodoTab } from '@/components/dashboard/sections/TodoTab';
+import { ActivityTab } from '@/components/dashboard/sections/ActivityTab';
 
 // --- Achievement System ---
 function AchievementNotification({ achievement, onClose }: { achievement: any; onClose: () => void }) {
@@ -299,6 +306,8 @@ function DashboardLeaderboard() {
 }
 
 // --- Collapsible Section Component ---
+// Note: CollapsibleSection is not currently used; keeping for potential reuse
+/*
 function CollapsibleSection({ 
   title, 
   icon: Icon, 
@@ -344,16 +353,106 @@ function CollapsibleSection({
     </div>
   );
 }
+*/
 
 // --- Main Dashboard Page ---
 export default function DashboardPage() {
   const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
+  const navigate = useNavigate();
   const { scoringData, loading: scoringLoading } = useUserScoring();
   const [achievement, setAchievement] = useState<any>(null);
+  const [nextUp, setNextUp] = useState<any>(null);
+  const [summary, setSummary] = useState<any>(null);
+  const [insights, setInsights] = useState<any>(null);
+  const [loadingDash, setLoadingDash] = useState<boolean>(true);
+  const [errorDash, setErrorDash] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const handleAchievement = (newAchievement: any) => {
     setAchievement(newAchievement);
     setTimeout(() => setAchievement(null), 5000);
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchAll = async () => {
+      if (!isLoaded || !user?.id) return;
+      try {
+        setLoadingDash(true);
+        setErrorDash(null);
+        const token = await getToken();
+        if (!token) throw new Error('No token');
+        const base = import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : 'http://localhost:3001/api';
+        const headers = { 'Authorization': `Bearer ${token}` } as const;
+        const [r1, r2, r3] = await Promise.all([
+          fetch(`${base}/users/me/dashboard`, { headers }),
+          fetch(`${base}/users/me/insights`, { headers }),
+          fetch(`${base}/users/me/next-up`, { headers })
+        ]);
+        if (!r1.ok || !r2.ok || !r3.ok) throw new Error('Failed to load dashboard data');
+        const j1 = await r1.json();
+        const j2 = await r2.json();
+        const j3 = await r3.json();
+        if (!mounted) return;
+        setSummary(j1.data || null);
+        setInsights(j2.data || null);
+        setNextUp(j3.data || null);
+      } catch (e: any) {
+        if (!mounted) return;
+        setErrorDash(e?.message || 'Failed to load');
+      } finally {
+        if (mounted) setLoadingDash(false);
+      }
+    };
+    fetchAll();
+    return () => { mounted = false; };
+  }, [isLoaded, user?.id, getToken]);
+
+  const handleNextUpAction = async () => {
+    if (!nextUp?.action) return;
+    const action = nextUp.action || {};
+    if (action.kind === 'open_bookmarks') {
+      navigate('/forge?bookmarked=1');
+      return;
+    }
+    if (action.kind === 'solve_problem') {
+      const q = new URLSearchParams();
+      if (action.difficulty) q.set('difficulty', action.difficulty);
+      if (action.category) q.set('category', action.category);
+      navigate(`/crucible?${q.toString()}`);
+      return;
+    }
+    if (action.kind === 'explore_category') {
+      const q = new URLSearchParams();
+      if (action.category) q.set('category', action.category);
+      navigate(`/crucible?${q.toString()}`);
+      return;
+    }
+  };
+
+  const onRecomputeAnalytics = async () => {
+    try {
+      setIsRefreshing(true);
+      const token = await getToken();
+      const base = import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : 'http://localhost:3001/api';
+      await fetch(`${base}/users/me/recompute-analytics`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+      // re-fetch after recompute
+      const headers = { 'Authorization': `Bearer ${token}` } as const;
+      const [r1, r2, r3] = await Promise.all([
+        fetch(`${base}/users/me/dashboard`, { headers }),
+        fetch(`${base}/users/me/insights`, { headers }),
+        fetch(`${base}/users/me/next-up`, { headers })
+      ]);
+      const [j1, j2, j3] = await Promise.all([r1.json(), r2.json(), r3.json()]);
+      setSummary(j1.data || null);
+      setInsights(j2.data || null);
+      setNextUp(j3.data || null);
+    } catch (e) {
+      // ignore; UI shows previous
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   if (!isLoaded) {
@@ -369,84 +468,48 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="h-full w-full bg-gradient-to-br from-background via-base-100 to-base-200 flex flex-col relative overflow-hidden">
+    <div className="h-full w-full bg-gradient-to-br from-background via-base-100 to-base-200 flex flex-col relative">
       <FloatingParticles />
       
-      <div className="flex-1 flex flex-col w-full px-3 sm:px-6 py-4 space-y-4 relative z-10 overflow-hidden">
+      <div className="flex-1 flex flex-col w-full px-3 sm:px-6 py-4 space-y-4 relative z-10">
         {/* --- Header Section --- */}
         <DashboardHeader user={user} onAchievement={handleAchievement} />
         
-        {/* --- Stats Row --- */}
-        <DashboardStatsRow />
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList variant="default" size="sm" className="w-full overflow-x-auto bg-base-100/60 border border-base-200/60 rounded-lg p-1 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-base-100/50">
+            <TabsTrigger value="overview" className="flex-1 rounded-md px-3 py-2 text-xs sm:text-sm transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm">Overview</TabsTrigger>
+            <TabsTrigger value="focus" className="flex-1 rounded-md px-3 py-2 text-xs sm:text-sm transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm">Focus</TabsTrigger>
+            <TabsTrigger value="insights" className="flex-1 rounded-md px-3 py-2 text-xs sm:text-sm transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm">Insights</TabsTrigger>
+            <TabsTrigger value="todo" className="flex-1 rounded-md px-3 py-2 text-xs sm:text-sm transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm">Todo</TabsTrigger>
+            <TabsTrigger value="activity" className="flex-1 rounded-md px-3 py-2 text-xs sm:text-sm transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm">Activity</TabsTrigger>
+            </TabsList>
+          <TabsContent value="overview" className="mt-3">
+            <OverviewTab
+              loadingDash={loadingDash}
+              errorDash={errorDash}
+              nextUp={nextUp}
+              onNextUpAction={handleNextUpAction}
+              onRecompute={onRecomputeAnalytics}
+              isRefreshing={isRefreshing}
+              summary={insights || summary}
+              DashboardStatsRow={DashboardStatsRow}
+            />
+            </TabsContent>
+            <TabsContent value="focus" className="mt-3">
+            <FocusTab loading={loadingDash} summary={summary} />
+          </TabsContent>
+          <TabsContent value="insights" className="mt-3">
+            <InsightsTab loading={loadingDash} insights={insights} />
+          </TabsContent>
+          <TabsContent value="todo" className="mt-3">
+            <TodoTab />
+            </TabsContent>
+          <TabsContent value="activity" className="mt-3">
+            <ActivityTab scoringData={scoringData || undefined} scoringLoading={scoringLoading} DashboardLeaderboard={DashboardLeaderboard} />
+            </TabsContent>
+          </Tabs>
         
-        {/* --- Mobile Layout: Collapsible Sections --- */}
-        <div className="block lg:hidden space-y-4">
-          <CollapsibleSection title="Leaderboard" icon={Trophy} defaultOpen={true}>
-            <div className="p-3">
-              <DashboardLeaderboard />
-            </div>
-          </CollapsibleSection>
-          
-          <CollapsibleSection title="Skill Focus" icon={Code} defaultOpen={true}>
-            <div className="p-3">
-              <SkillBreakdownCard scoringData={scoringData || undefined} loading={scoringLoading} />
-            </div>
-          </CollapsibleSection>
-          
-          <CollapsibleSection title="Achievements" icon={Star} defaultOpen={true}>
-            <div className="p-3">
-              <AchievementBadgesCard scoringData={scoringData || undefined} loading={scoringLoading} />
-            </div>
-          </CollapsibleSection>
-        </div>
-
-        {/* --- Tablet Layout: 2x2 Grid --- */}
-        <div className="hidden lg:block xl:hidden">
-          <div className="grid grid-cols-2 gap-4">
-            {/* Leaderboard */}
-            <div className="flex flex-col overflow-hidden">
-              <div className="flex-1 overflow-y-auto">
-                <DashboardLeaderboard />
-              </div>
-            </div>
-            {/* Skill Breakdown */}
-            <div className="flex flex-col overflow-hidden">
-              <div className="flex-1 overflow-y-auto">
-                <SkillBreakdownCard scoringData={scoringData || undefined} loading={scoringLoading} />
-              </div>
-            </div>
-            {/* Achievements - Full Width */}
-            <div className="col-span-2 flex flex-col overflow-hidden">
-              <div className="flex-1 overflow-y-auto">
-                <AchievementBadgesCard scoringData={scoringData || undefined} loading={scoringLoading} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* --- Desktop Layout: 3 Column Grid --- */}
-        <div className="hidden xl:block">
-          <div className="grid grid-cols-12 gap-4 flex-1 overflow-hidden">
-            {/* Leaderboard */}
-            <div className="col-span-3 flex flex-col overflow-hidden">
-              <div className="flex-1 overflow-y-auto">
-                <DashboardLeaderboard />
-              </div>
-            </div>
-            {/* Skill Breakdown */}
-            <div className="col-span-4 flex flex-col overflow-hidden">
-              <div className="flex-1 overflow-y-auto">
-                <SkillBreakdownCard scoringData={scoringData || undefined} loading={scoringLoading} />
-              </div>
-            </div>
-            {/* Achievements */}
-            <div className="col-span-5 flex flex-col overflow-hidden">
-              <div className="flex-1 overflow-y-auto">
-                <AchievementBadgesCard scoringData={scoringData || undefined} loading={scoringLoading} />
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Old responsive grids replaced by Activity tab */}
       </div>
 
       {/* Achievement Notification */}
