@@ -335,6 +335,49 @@ export async function updateUserScoring(
         await User.updateOne({ _id: userId }, updateOp, { session: txnSession });
       }
       
+      // Lightweight activity and daily bucket updates
+      try {
+        const userTzDate = new Date();
+        const y = userTzDate.getFullYear();
+        const m = String(userTzDate.getMonth() + 1).padStart(2, '0');
+        const d = String(userTzDate.getDate()).padStart(2, '0');
+        const dayKey = `${y}-${m}-${d}`;
+
+        await User.updateOne(
+          { _id: userId },
+          {
+            $push: {
+              activityLog: {
+                type: 'problem_solved',
+                points,
+                category: problem.category,
+                occurredAt: new Date(),
+                meta: { problemId, analysisId, difficulty: problem.difficulty }
+              }
+            },
+            $setOnInsert: { dailyStats: [] },
+            $inc: {
+              'stats.problemsSolved': 1
+            }
+          },
+          { session: txnSession }
+        );
+
+        // Upsert daily stats entry
+        await User.updateOne(
+          { _id: userId, 'dailyStats.date': dayKey },
+          { $inc: { 'dailyStats.$.points': points, 'dailyStats.$.problemsSolved': 1 } },
+          { session: txnSession }
+        );
+        await User.updateOne(
+          { _id: userId, 'dailyStats.date': { $ne: dayKey } },
+          { $push: { dailyStats: { date: dayKey, points, problemsSolved: 1 } } },
+          { session: txnSession }
+        );
+      } catch (_) {
+        // non-fatal best-effort
+      }
+
       // Get updated user stats
       const updatedUser = await User.findById(userId)
         .select('stats problemHistory')
@@ -400,7 +443,7 @@ export async function updateUserScoring(
  */
 export async function getUserSkillSummary(userId: string | Types.ObjectId) {
   const user = await User.findById(userId)
-    .select('skillTracking stats')
+    .select('skillTracking stats dailyStats learningPatterns roleMatch comparisons activeGoal goalsHistory')
     .lean();
   
   if (!user) return null;
@@ -419,6 +462,11 @@ export async function getUserSkillSummary(userId: string | Types.ObjectId) {
     skills: skillTracking.skills || [],
     techStack: skillTracking.techStack || [],
     learningProgress: skillTracking.learningProgress || [],
+    dailyStats: user.dailyStats || [],
+    learningPatterns: user.learningPatterns || {},
+    roleMatch: user.roleMatch || {},
+    activeGoal: user.activeGoal || null,
+    goalsHistory: user.goalsHistory || [],
     problemsByDifficulty: user.stats?.problemsByDifficulty || {
       easy: { solved: 0, averageScore: 0, totalPoints: 0 },
       medium: { solved: 0, averageScore: 0, totalPoints: 0 },
@@ -435,5 +483,215 @@ export async function getUserSkillSummary(userId: string | Types.ObjectId) {
       frontend: { solved: 0, averageScore: 0, totalPoints: 0 },
       backend: { solved: 0, averageScore: 0, totalPoints: 0 }
     }
+  };
+}
+
+// ---- Additional lightweight analytics helpers ----
+export function computeDayKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function computeTimeOfDayBucket(hour: number): 'morning' | 'afternoon' | 'evening' | 'night' {
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 22) return 'evening';
+  return 'night';
+}
+
+export async function recomputeLearningPatterns(userId: Types.ObjectId, session?: ClientSession) {
+  const user = await User.findById(userId).select('problemHistory').session(session || null as any).lean();
+  if (!user) return;
+  const timeBuckets: Record<string, { sum: number; count: number }> = { morning: { sum: 0, count: 0 }, afternoon: { sum: 0, count: 0 }, evening: { sum: 0, count: 0 }, night: { sum: 0, count: 0 } };
+  const diffBuckets: Record<string, { sum: number; count: number }> = { easy: { sum: 0, count: 0 }, medium: { sum: 0, count: 0 }, hard: { sum: 0, count: 0 }, expert: { sum: 0, count: 0 } };
+  const catBuckets: Record<string, { sum: number; count: number }> = {};
+  for (const h of (user as any).problemHistory || []) {
+    const dt = new Date(h.solvedAt || Date.now());
+    const bucket = computeTimeOfDayBucket(dt.getHours());
+    timeBuckets[bucket].sum += h.score;
+    timeBuckets[bucket].count += 1;
+    diffBuckets[h.difficulty]?.count !== undefined && (diffBuckets[h.difficulty].sum += h.score, diffBuckets[h.difficulty].count += 1);
+    catBuckets[h.category] = catBuckets[h.category] || { sum: 0, count: 0 };
+    catBuckets[h.category].sum += h.score;
+    catBuckets[h.category].count += 1;
+  }
+  const timeOfDayPerformance: any = {};
+  Object.entries(timeBuckets).forEach(([k, v]) => timeOfDayPerformance[k] = v.count ? Math.round(v.sum / v.count) : 0);
+  const difficultyPerformance: any = {};
+  Object.entries(diffBuckets).forEach(([k, v]) => difficultyPerformance[k] = v.count ? Math.round(v.sum / v.count) : 0);
+  const categoryPerformance: any = {};
+  Object.entries(catBuckets).forEach(([k, v]) => categoryPerformance[k] = v.count ? Math.round(v.sum / v.count) : 0);
+  await User.updateOne({ _id: userId }, { $set: { learningPatterns: { timeOfDayPerformance, difficultyPerformance, categoryPerformance } } }, { session });
+}
+
+export function computeRoleMatchFromSkills(targetRole: string, skills: Array<{ skill: string; averageScore: number }>) {
+  // Minimal seed weights; can be extended dynamically
+  const roleMatrix: Record<string, Record<string, number>> = {
+    'Full-Stack Developer': { 'Frontend Development': 1, 'Backend Development': 1, 'System Design': 0.7, 'DevOps': 0.5, 'Databases': 0.6 },
+    'Backend Developer': { 'Backend Development': 1, 'System Design': 0.8, 'Databases': 0.8, 'DevOps': 0.6 },
+    'Frontend Developer': { 'Frontend Development': 1, 'Web Development': 0.8, 'System Design': 0.4 },
+    'DevOps Engineer': { 'DevOps': 1, 'Cloud': 0.8, 'Backend Development': 0.5, 'Security': 0.6 },
+    'AI/ML Engineer': { 'Data Science': 1, 'Algorithms': 0.7, 'Backend Development': 0.6, 'System Design': 0.5 },
+  };
+  const weights = roleMatrix[targetRole] || roleMatrix['Full-Stack Developer'];
+  let totalWeight = 0;
+  let scored = 0;
+  const gaps: Array<{ skill: string; requiredLevel: number; currentLevel: number }> = [];
+  Object.entries(weights).forEach(([axis, w]) => {
+    totalWeight += w;
+    const found = skills.find(s => s.skill === axis || s.skill === axis.replace(' ', ''));
+    const level = found ? found.averageScore : 0;
+    scored += (level / 100) * w;
+    if (level < 70) gaps.push({ skill: axis, requiredLevel: 70, currentLevel: Math.round(level) });
+  });
+  const matchPercent = totalWeight ? Math.round((scored / totalWeight) * 100) : 0;
+  return { matchPercent, gaps };
+}
+
+export async function recomputeRoleMatch(userId: Types.ObjectId, targetRole?: string, session?: ClientSession) {
+  const user = await User.findById(userId).select('skillTracking roleMatch activeGoal').session(session || null as any).lean();
+  if (!user) return;
+  const role = targetRole || (user as any).activeGoal?.role || (user as any).roleMatch?.targetRole || 'Full-Stack Developer';
+  const skills = ((user as any).skillTracking?.skills || []).map((s: any) => ({ skill: s.skill, averageScore: s.averageScore }));
+  const { matchPercent, gaps } = computeRoleMatchFromSkills(role, skills);
+  await User.updateOne({ _id: userId }, { $set: { roleMatch: { targetRole: role, matchPercent, gaps, lastComputedAt: new Date() } } }, { session });
+}
+
+export async function getDashboardSummary(userId: string | Types.ObjectId) {
+  const user = await User.findById(userId)
+    .select('stats skillTracking dailyStats roleMatch activeGoal')
+    .lean();
+  if (!user) return null;
+  return {
+    totalPoints: user.stats?.totalPoints || 0,
+    averageScore: user.stats?.averageScore || 0,
+    highestScore: user.stats?.highestScore || 0,
+    skills: user.skillTracking?.skills || [],
+    dailyStats: user.dailyStats || [],
+    roleMatch: user.roleMatch || {},
+    activeGoal: user.activeGoal || null,
+  };
+}
+
+export async function rebuildDailyStatsFromHistory(userId: Types.ObjectId, session?: ClientSession) {
+  const user = await User.findById(userId).select('problemHistory').session(session || null as any).lean();
+  if (!user) return;
+  const buckets: Record<string, { points: number; problemsSolved: number }> = {};
+  for (const h of (user as any).problemHistory || []) {
+    const dt = new Date(h.solvedAt || Date.now());
+    const key = computeDayKey(dt);
+    if (!buckets[key]) buckets[key] = { points: 0, problemsSolved: 0 };
+    buckets[key].points += h.points || 0;
+    buckets[key].problemsSolved += 1;
+  }
+  const dailyStats = Object.entries(buckets).map(([date, v]) => ({ date, points: v.points, problemsSolved: v.problemsSolved }));
+  await User.updateOne({ _id: userId }, { $set: { dailyStats } }, { session });
+}
+
+export async function getUserInsights(userId: string | Types.ObjectId) {
+  const user = await User.findById(userId)
+    .select('stats dailyStats learningPatterns roleMatch comparisons skillTracking problemHistory activeGoal')
+    .lean();
+  if (!user) return null;
+  return {
+    totals: {
+      points: user.stats?.totalPoints || 0,
+      averageScore: user.stats?.averageScore || 0,
+      highestScore: user.stats?.highestScore || 0,
+      problemsSolved: user.stats?.problemsSolved || (user as any).problemHistory?.length || 0,
+    },
+    problemsByDifficulty: user.stats?.problemsByDifficulty || {},
+    problemsByCategory: user.stats?.problemsByCategory || {},
+    dailyStats: user.dailyStats || [],
+    learningPatterns: user.learningPatterns || {},
+    roleMatch: user.roleMatch || {},
+    comparisons: user.comparisons || {},
+    activeGoal: (user as any).activeGoal || null,
+  };
+}
+
+export async function getNextUpRecommendation(userId: string | Types.ObjectId) {
+  const user = await User.findById(userId)
+    .select('zemonStreak lastZemonVisit stats skillTracking activeGoal bookmarkedResources')
+    .lean();
+  if (!user) return null;
+
+  const now = new Date();
+  const lastVisit = (user as any).lastZemonVisit ? new Date((user as any).lastZemonVisit) : null;
+  const hoursSinceVisit = lastVisit ? (now.getTime() - lastVisit.getTime()) / (1000 * 60 * 60) : Infinity;
+  const totalPoints = (user as any).stats?.totalPoints || 0;
+  const skills: Array<{ skill: string; averageScore: number; problemsSolved: number }>
+    = (((user as any).skillTracking?.skills) || []).map((s: any) => ({ skill: s.skill, averageScore: s.averageScore || 0, problemsSolved: s.problemsSolved || 0 }));
+
+  // Helper: find weakest focus skill or weakest category proxy
+  const activeGoal = (user as any).activeGoal;
+  let weakestSkill: string | null = null;
+  if (activeGoal?.focusSkills?.length) {
+    const subset = skills.filter(s => activeGoal.focusSkills.includes(s.skill));
+    subset.sort((a, b) => a.averageScore - b.averageScore);
+    weakestSkill = subset[0]?.skill || null;
+  } else if (skills.length) {
+    const sorted = [...skills].sort((a, b) => a.averageScore - b.averageScore);
+    weakestSkill = sorted[0]?.skill || null;
+  }
+
+  // 1) Streak at risk: if last visit > 20 hours ago
+  if (hoursSinceVisit > 20) {
+    return {
+      type: 'streak',
+      title: `Keep your ${((user as any).zemonStreak || 0)}-day streak alive!`,
+      description: 'Solve one quick problem to maintain your momentum.',
+      tags: [weakestSkill || 'general', 'beginner', '~10 mins'],
+      action: { kind: 'solve_problem', difficulty: 'easy', category: 'algorithms' }
+    };
+  }
+
+  // 2) Goal gap: if a focus skill is low (<60)
+  if (weakestSkill) {
+    const weak = skills.find(s => s.skill === weakestSkill);
+    if ((weak?.averageScore || 0) < 60) {
+      return {
+        type: 'goal_gap',
+        title: `Boost ${weakestSkill} towards your goal`,
+        description: `You're at ${weak?.averageScore || 0}% in ${weakestSkill}. Aim for 70% with one targeted challenge.`,
+        tags: [weakestSkill, 'medium', '~20 mins'],
+        action: { kind: 'solve_problem', difficulty: 'medium', category: 'web-development' }
+      };
+    }
+  }
+
+  // 3) Near achievement: push to next points milestone
+  const nextMilestone = totalPoints < 100 ? 100 : totalPoints < 500 ? 500 : totalPoints < 1000 ? 1000 : totalPoints + 100;
+  if (nextMilestone - totalPoints <= 50) {
+    return {
+      type: 'milestone',
+      title: `You're close: ${nextMilestone} points milestone`,
+      description: `Earn ${nextMilestone - totalPoints} more points to unlock a new achievement.`,
+      tags: ['points', 'quick-win', '~15 mins'],
+      action: { kind: 'solve_problem', difficulty: 'medium' }
+    };
+  }
+
+  // 4) Default: suggest exploring a bookmarked resource if available
+  const hasBookmarks = ((user as any).bookmarkedResources || []).length > 0;
+  if (hasBookmarks) {
+    return {
+      type: 'resource',
+      title: 'Review a bookmarked resource',
+      description: 'Deepen your understanding with a resource you saved for later.',
+      tags: ['bookmark', '~20 mins'],
+      action: { kind: 'open_bookmarks' }
+    };
+  }
+
+  // Fallback generic recommendation
+  return {
+    type: 'explore',
+    title: 'Try a new category',
+    description: 'Broaden your skillset by exploring an unexplored area.',
+    tags: ['explore', 'diversity'],
+    action: { kind: 'explore_category', category: 'system-design' }
   };
 }

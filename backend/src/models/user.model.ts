@@ -185,6 +185,63 @@ export interface IUser extends Document {
   zemonStreak: number;
   longestZemonStreak: number;
   lastZemonVisit?: Date;
+  // NEW: Growth & analytics
+  activeGoal?: {
+    role: string; // dynamic role name
+    title?: string; // optional friendly title
+    focusSkills?: string[]; // prioritized skills
+    startedAt?: Date;
+    targetDate?: Date;
+  };
+  goalsHistory?: Array<{
+    role: string;
+    title?: string;
+    achievedAt?: Date;
+    outcome?: 'completed' | 'abandoned' | 'switched';
+  }>;
+  // Lightweight activity log for analytics
+  activityLog?: Array<{
+    type: 'problem_solved' | 'resource_viewed' | 'bookmark_added' | 'streak_visit' | 'hackathon_submission';
+    points?: number;
+    category?: string;
+    occurredAt: Date;
+    meta?: Record<string, any>;
+  }>;
+  // Day-level buckets for heatmap and momentum
+  dailyStats?: Array<{
+    date: string; // YYYY-MM-DD in user tz
+    points: number;
+    problemsSolved: number;
+  }>;
+  // Learning pattern aggregates (kept minimal and extensible)
+  learningPatterns?: {
+    timeOfDayPerformance?: {
+      morning?: number; // avg score 0-100
+      afternoon?: number;
+      evening?: number;
+      night?: number;
+    };
+    difficultyPerformance?: {
+      easy?: number;
+      medium?: number;
+      hard?: number;
+      expert?: number;
+    };
+    categoryPerformance?: Record<string, number>; // avg score per category
+  };
+  // Career role match summary
+  roleMatch?: {
+    targetRole?: string;
+    matchPercent?: number; // 0-100
+    gaps?: Array<{ skill: string; requiredLevel: number; currentLevel: number }>;
+    lastComputedAt?: Date;
+  };
+  // Community comparison snapshot (privacy-conscious)
+  comparisons?: {
+    communityPercentile?: number; // 0-100 by totalPoints
+    cohort?: string; // optional cohort label
+    lastComputedAt?: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -856,8 +913,65 @@ const UserSchema: Schema = new Schema(
       type: Date,
       default: null,
     },
+    // Growth & analytics
+    activeGoal: {
+      role: { type: String, trim: true },
+      title: { type: String, trim: true },
+      focusSkills: { type: [String], default: [] },
+      startedAt: { type: Date },
+      targetDate: { type: Date },
+    },
+    goalsHistory: [{
+      role: { type: String, trim: true },
+      title: { type: String, trim: true },
+      achievedAt: { type: Date },
+      outcome: { type: String, enum: ['completed', 'abandoned', 'switched'] },
+    }],
+    activityLog: [{
+      type: { type: String, enum: ['problem_solved', 'resource_viewed', 'bookmark_added', 'streak_visit', 'hackathon_submission'] },
+      points: { type: Number, default: 0 },
+      category: { type: String, trim: true },
+      occurredAt: { type: Date, default: Date.now },
+      meta: { type: Schema.Types.Mixed, default: {} },
+    }],
+    dailyStats: [{
+      date: { type: String, index: true }, // YYYY-MM-DD
+      points: { type: Number, default: 0 },
+      problemsSolved: { type: Number, default: 0 },
+    }],
+    learningPatterns: {
+      timeOfDayPerformance: {
+        morning: { type: Number, min: 0, max: 100 },
+        afternoon: { type: Number, min: 0, max: 100 },
+        evening: { type: Number, min: 0, max: 100 },
+        night: { type: Number, min: 0, max: 100 },
+      },
+      difficultyPerformance: {
+        easy: { type: Number, min: 0, max: 100 },
+        medium: { type: Number, min: 0, max: 100 },
+        hard: { type: Number, min: 0, max: 100 },
+        expert: { type: Number, min: 0, max: 100 },
+      },
+      categoryPerformance: { type: Schema.Types.Mixed, default: {} },
+    },
+    roleMatch: {
+      targetRole: { type: String, trim: true },
+      matchPercent: { type: Number, min: 0, max: 100 },
+      gaps: [{ skill: { type: String }, requiredLevel: { type: Number }, currentLevel: { type: Number } }],
+      lastComputedAt: { type: Date },
+    },
+    comparisons: {
+      communityPercentile: { type: Number, min: 0, max: 100 },
+      cohort: { type: String, trim: true },
+      lastComputedAt: { type: Date },
+    },
   },
   { timestamps: true }
 );
+
+// Indexes for analytics queries
+UserSchema.index({ 'problemHistory.solvedAt': 1 });
+UserSchema.index({ 'stats.totalPoints': -1 });
+UserSchema.index({ 'dailyStats.date': 1 });
 
 export default mongoose.model<IUser>('User', UserSchema); 

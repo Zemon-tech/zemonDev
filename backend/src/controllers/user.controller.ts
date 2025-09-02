@@ -7,7 +7,7 @@ import UserRole from '../models/userRole.model';
 import { recordDailyVisit, getStreakInfo } from '../services/zemonStreak.service';
 import { standardLimiter } from '../middleware/rateLimiter.middleware';
 import { cacheMiddleware } from '../middleware/cache.middleware';
-import { getUserSkillSummary } from '../services/userScoring.service';
+import { getUserSkillSummary, getDashboardSummary, recomputeLearningPatterns, recomputeRoleMatch, rebuildDailyStatsFromHistory, getUserInsights, getNextUpRecommendation } from '../services/userScoring.service';
 
 /**
  * @desc    Get current user profile
@@ -916,6 +916,99 @@ export const getUserScoringController = asyncHandler(
       );
     } catch (error) {
       return next(new AppError(error instanceof Error ? error.message : 'Failed to fetch user scoring data', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Get compact dashboard summary (today's stats, goal, role match)
+ * @route   GET /api/users/me/dashboard
+ * @access  Private
+ */
+export const getUserDashboardController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const summary = await getDashboardSummary(req.user._id);
+      if (!summary) return next(new AppError('User not found', 404));
+      res.status(200).json(new ApiResponse(200, 'Dashboard summary fetched', summary));
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to fetch dashboard summary', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Recompute learning patterns and role match (best-effort)
+ * @route   POST /api/users/me/recompute-analytics
+ * @access  Private
+ */
+export const recomputeUserAnalyticsController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await recomputeLearningPatterns(req.user._id as any);
+      await recomputeRoleMatch(req.user._id as any);
+      await rebuildDailyStatsFromHistory(req.user._id as any);
+      res.status(200).json(new ApiResponse(200, 'User analytics recomputed', { ok: true }));
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to recompute analytics', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Get deep insights for the user (patterns, breakdowns, comparisons)
+ * @route   GET /api/users/me/insights
+ * @access  Private
+ */
+export const getUserInsightsController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = await getUserInsights(req.user._id);
+      if (!data) return next(new AppError('User not found', 404));
+      res.status(200).json(new ApiResponse(200, 'User insights fetched', data));
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to fetch insights', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Get the next-up recommendation card for the user
+ * @route   GET /api/users/me/next-up
+ * @access  Private
+ */
+export const getNextUpController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const rec = await getNextUpRecommendation(req.user._id);
+      if (!rec) return next(new AppError('User not found', 404));
+      res.status(200).json(new ApiResponse(200, 'Next-up recommendation fetched', rec));
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to fetch next-up recommendation', 500));
+    }
+  }
+);
+
+/**
+ * @desc    Set or update user's active goal (role and optional focus skills)
+ * @route   POST /api/users/me/goal
+ * @body    { role: string; title?: string; focusSkills?: string[]; targetDate?: string }
+ * @access  Private
+ */
+export const setActiveGoalController = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { role, title, focusSkills, targetDate } = req.body || {};
+      if (!role || typeof role !== 'string') return next(new AppError('role is required', 400));
+      await User.updateOne(
+        { _id: req.user._id },
+        { $set: { activeGoal: { role, title, focusSkills: Array.isArray(focusSkills) ? focusSkills : [], startedAt: new Date(), targetDate: targetDate ? new Date(targetDate) : undefined } } }
+      );
+      // Recompute role match for the new role
+      await recomputeRoleMatch(req.user._id as any, role);
+      res.status(200).json(new ApiResponse(200, 'Active goal set', { role }));
+    } catch (error) {
+      return next(new AppError(error instanceof Error ? error.message : 'Failed to set goal', 500));
     }
   }
 );
