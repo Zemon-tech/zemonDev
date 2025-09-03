@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import clsx from 'clsx';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { updateProfile, changePassword, deleteAccount, exportUserData } from '@/lib/settingsApi';
+import { updateProfile, deleteAccount, exportUserData } from '@/lib/settingsApi';
 import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher';
 import { CustomToggle } from '@/components/ui/CustomToggle';
 import { useUserProjects } from '@/hooks/useUserProjects';
@@ -133,12 +133,8 @@ function ProfileAccountSection() {
   const [showToast, setShowToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [profileUpdated, setProfileUpdated] = useState<Date | null>(null);
   
-  // Account tab state
-  const [email, setEmail] = useState(user?.emailAddresses?.[0]?.emailAddress || '');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState(0);
+  // Account tab state (only what's used)
+  const [email] = useState(user?.emailAddresses?.[0]?.emailAddress || '');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   
   // Load user profile data when available
@@ -171,15 +167,7 @@ function ProfileAccountSection() {
   
   // Profile completion calculation
 
-  // Password strength calculation
-  function calcStrength(pw: string) {
-    let s = 0;
-    if (pw.length > 7) s++;
-    if (/[A-Z]/.test(pw)) s++;
-    if (/[0-9]/.test(pw)) s++;
-    if (/[^A-Za-z0-9]/.test(pw)) s++;
-    return s;
-  }
+  // Removed password strength util (password change not active)
 
   // Add skill
   const handleAddSkill = () => {
@@ -313,29 +301,7 @@ function ProfileAccountSection() {
     }
   };
 
-  // Change password
-  const handleChangePassword = async () => {
-    if (!currentPassword || !newPassword) {
-      setShowToast({ type: 'error', message: 'Please fill in both password fields' });
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      setShowToast({ type: 'error', message: 'New password must be at least 8 characters long' });
-      return;
-    }
-
-    try {
-      await changePassword({ currentPassword, newPassword }, getToken);
-      setShowToast({ type: 'success', message: 'Password changed successfully!' });
-      setCurrentPassword('');
-      setNewPassword('');
-      setPasswordStrength(0);
-    } catch (error) {
-      console.error('Error changing password:', error);
-      setShowToast({ type: 'error', message: error instanceof Error ? error.message : 'Failed to change password' });
-    }
-  };
+  // Removed password change (feature not active here)
 
   // Export user data
   const handleExportData = async () => {
@@ -835,77 +801,23 @@ function ProfileAccountSection() {
         )}
         {tab === 'account' && (
           <motion.div key="account" variants={tabVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col gap-6 w-full h-full pb-4">
-            {/* Email */}
+            {/* Email (read-only display and verification badge) */}
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
                 <Mail size={18} className="text-primary" />
-                <input value={email} onChange={e => setEmail(e.target.value)} className="border border-base-200 rounded px-3 py-2 text-base w-full max-w-xs focus:ring-1 focus:ring-primary/30 transition-all" />
+                <input value={email} readOnly className="border border-transparent bg-base-100 rounded px-3 py-2 text-base w-full max-w-xs" />
                 {user?.emailAddresses?.[0]?.verification?.status === 'verified' ? (
                   <CheckCircle size={16} className="text-green-500 ml-2" />
                 ) : (
                   <AlertTriangle size={16} className="text-yellow-500 ml-2" />
                 )}
-                <Button size="sm" variant="outline" className="ml-2" disabled={user?.emailAddresses?.[0]?.verification?.status === 'verified'}>
+                <Button size="sm" variant="outline" className="ml-2" disabled>
                   {user?.emailAddresses?.[0]?.verification?.status === 'verified' ? 'Verified' : 'Verify'}
                 </Button>
               </div>
             </div>
-            {/* Password Management */}
-            <div className="flex flex-col md:flex-row gap-4 items-start">
-              <div className="flex-1">
-                <label className="block font-semibold mb-1 text-base-content/80">Change Password</label>
-                <div className="space-y-3">
-                  <input 
-                    type="password" 
-                    value={currentPassword} 
-                    onChange={e => setCurrentPassword(e.target.value)} 
-                    className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" 
-                    placeholder="Current password" 
-                  />
-                  <div className="relative flex items-center">
-                    <input 
-                      type={showPassword ? 'text' : 'password'} 
-                      value={newPassword} 
-                      onChange={e => { setNewPassword(e.target.value); setPasswordStrength(calcStrength(e.target.value)); }} 
-                      className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" 
-                      placeholder="New password" 
-                    />
-                    <Button size="icon" variant="ghost" className="absolute right-2" onClick={() => setShowPassword(s => !s)}><Eye size={16} /></Button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-32 h-2 bg-base-200 rounded-full overflow-hidden">
-                      <div className={clsx('h-2 rounded-full transition-all', passwordStrength === 0 ? 'bg-base-200' : passwordStrength < 3 ? 'bg-yellow-400' : 'bg-green-500')} style={{ width: `${passwordStrength * 25}%` }} />
-                    </div>
-                    <span className="text-xs text-base-content/60">{passwordStrength === 0 ? 'Weak' : passwordStrength < 3 ? 'Medium' : 'Strong'}</span>
-                  </div>
-                  <Button onClick={handleChangePassword} disabled={!currentPassword || !newPassword} className="bg-primary text-primary-content hover:bg-primary/90">
-                    Change Password
-                  </Button>
-                </div>
-              </div>
-              <div className="flex-1 flex flex-col gap-2">
-                <label className="block font-semibold mb-1 text-base-content/80">Active Sessions</label>
-                <div className="flex flex-col gap-1">
-                  <div className="text-base-content/60 text-sm">Session management coming soon</div>
-                </div>
-              </div>
-            </div>
-            {/* Connected Accounts */}
-            <div>
-              <div className="font-semibold mb-1">Connected Accounts</div>
-              <div className="flex gap-3">
-                <Button variant="outline" disabled className="flex items-center gap-2 opacity-50 cursor-not-allowed">
-                  <Github size={16} /> 
-                  <span>GitHub</span>
-                  <span className="text-xs bg-base-300 px-2 py-1 rounded ml-2">Coming Soon</span>
-                </Button>
-                <Button variant="outline" disabled className="flex items-center gap-2 opacity-50 cursor-not-allowed">
-                  <Link2 size={16} /> 
-                  <span>Google</span>
-                  <span className="text-xs bg-base-300 px-2 py-1 rounded ml-2">Coming Soon</span>
-                </Button>
-              </div>
-            </div>
+
+            {/* Profile Visibility Settings */}
             {/* Security Tips */}
             <div className="bg-base-100 border border-transparent rounded p-3 flex items-center gap-3 text-xs text-base-content/70">
               <Shield size={16} className="text-primary" /> Use a strong password, enable 2FA, and review your sessions regularly.
@@ -2070,7 +1982,7 @@ export default function SettingsPage() {
               transition={{ duration: 0.4, ease: "easeOut" }} 
               className="h-full w-full overflow-hidden"
             >
-              <div className="h-full overflow-y-auto">
+              <div className="h-full overflow-y-auto pb-10">
                 <ProfileAccountSection />
               </div>
             </motion.section>
@@ -2084,7 +1996,7 @@ export default function SettingsPage() {
               transition={{ duration: 0.4, ease: "easeOut" }} 
               className="h-full w-full overflow-hidden"
             >
-              <div className="h-full overflow-y-auto">
+              <div className="h-full overflow-y-auto pb-10">
                 <PreferencesSection />
               </div>
             </motion.section>
@@ -2098,7 +2010,7 @@ export default function SettingsPage() {
               transition={{ duration: 0.4, ease: "easeOut" }} 
               className="h-full w-full overflow-hidden"
             >
-              <div className="h-full overflow-y-auto">
+              <div className="h-full overflow-y-auto pb-10">
                 <WorkspaceSection />
               </div>
             </motion.section>
@@ -2112,7 +2024,7 @@ export default function SettingsPage() {
               transition={{ duration: 0.4, ease: "easeOut" }} 
               className="h-full w-full overflow-hidden"
             >
-              <div className="h-full overflow-y-auto">
+              <div className="h-full overflow-y-auto pb-10">
                 <CollaborationSection />
               </div>
             </motion.section>
@@ -2126,7 +2038,7 @@ export default function SettingsPage() {
               transition={{ duration: 0.4, ease: "easeOut" }} 
               className="h-full w-full overflow-hidden"
             >
-              <div className="h-full overflow-y-auto">
+              <div className="h-full overflow-y-auto pb-10">
                 <SupportSection />
               </div>
             </motion.section>
