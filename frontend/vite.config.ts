@@ -35,7 +35,7 @@ export default defineConfig({
         },
       },
     },
-    chunkSizeWarningLimit: 2300,
+    chunkSizeWarningLimit: 3000,
   },
   optimizeDeps: {
     include: [

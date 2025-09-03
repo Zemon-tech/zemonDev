@@ -18,6 +18,8 @@ import Superscript from '@tiptap/extension-superscript';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import { useWorkspace } from '../../lib/WorkspaceContext';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 // Import icons
 import { HeadingOneIcon } from '../tiptap-icons/heading-one-icon';
@@ -420,6 +422,20 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
   const [bubbleMenuVisible, setBubbleMenuVisible] = useState(false);
   const [initialContent] = useState(value || '');
 
+  // Configure markdown parser once
+  useEffect(() => {
+    marked.setOptions({
+      gfm: true,
+      breaks: true,
+    });
+  }, []);
+
+  const looksLikeMarkdown = useCallback((text: string) => {
+    if (!text) return false;
+    // Heuristics for markdown patterns: headings, lists, hr, fenced code, tables, links
+    return /(^|\n)\s{0,3}(#{1,6}\s)|(^|\n)\s{0,3}>\s|(^|\n)[-*_]\s|(^|\n)([-*+]|\d+\.)\s+|```|\n\|[^\n]*\|\n|\[[^\]]+\]\([^\)]+\)/.test(text);
+  }, []);
+
   // Add editor styles to document head
   useEffect(() => {
     const styleElement = document.createElement('style');
@@ -495,6 +511,28 @@ const SolutionEditor: React.FC<SolutionEditorProps> = ({ value, onChange }) => {
         class:
           'prose dark:prose-invert prose-base w-full min-h-[300px] focus:outline-none font-sans px-4 py-3 transition-all duration-300 text-base-content',
         style: 'font-size: 1rem; line-height: 1.7;',
+      },
+      handlePaste: (_view, event) => {
+        const clipboardEvent = event as ClipboardEvent;
+        const text = clipboardEvent.clipboardData?.getData('text/plain') || '';
+        const html = clipboardEvent.clipboardData?.getData('text/html') || '';
+
+        // If it's already HTML (e.g., copying from the same editor), let TipTap handle it
+        if (html && !looksLikeMarkdown(text)) {
+          return false;
+        }
+
+        if (looksLikeMarkdown(text)) {
+          clipboardEvent.preventDefault();
+          const rawHtml = marked.parse(text) as string;
+          const safeHtml = DOMPurify.sanitize(rawHtml);
+          // Use outer editor instance to insert content
+          if (editor) {
+            editor.chain().focus().insertContent(safeHtml).run();
+            return true;
+          }
+        }
+        return false;
       },
     },
     onSelectionUpdate({ editor }) {
