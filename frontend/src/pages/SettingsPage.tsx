@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, Star, Mail, Github, X, Eye, Linkedin, Twitter, BookOpen, Plus, Palette, ExternalLink, LogOut, Lock, Unlock, TrendingUp, TrendingDown, Trophy, Brain, School, RefreshCw, MessageCircle, Award, Target, MapPin, Globe, Lightbulb, Zap, Clock, AlertCircle } from 'lucide-react';
+import { User, Settings, Folder, Users, HelpCircle, Link2, CheckCircle, AlertTriangle, Sun, Bell, Bookmark, Edit, Archive, Trash, Shield, Star, Mail, Github, X, Eye, Linkedin, Twitter, BookOpen, Plus, Palette, ExternalLink, LogOut, Lock, Unlock, TrendingUp, TrendingDown, Trophy, Brain, School, RefreshCw, MessageCircle, Target, MapPin, Globe, Lightbulb, Zap, Clock, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import clsx from 'clsx';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -80,33 +82,7 @@ function ProfileAccountSection() {
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState('');
   
-  // Enhanced skills management
-  const [skillProgress, setSkillProgress] = useState<Array<{
-    skill: string;
-    level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
-    progress: number;
-  }>>([]);
-  const [newSkillProgress, setNewSkillProgress] = useState({
-    skill: '',
-    level: 'beginner' as const,
-    progress: 0
-  });
-  
-  // Achievements management
-  const [badges, setBadges] = useState<Array<{
-    id: string;
-    name: string;
-    description: string;
-    icon: string;
-    category: 'crucible' | 'forge' | 'arena' | 'streak' | 'special';
-    metadata?: Record<string, any>;
-  }>>([]);
-  const [newBadge, setNewBadge] = useState({
-    name: '',
-    description: '',
-    icon: '🏆',
-    category: 'special' as const
-  });
+
   
   const [certificates, setCertificates] = useState<Array<{
     id: string;
@@ -133,13 +109,7 @@ function ProfileAccountSection() {
     category: 'problems' | 'resources' | 'collaboration' | 'streak';
     value: number;
   }>>([]);
-  const [newMilestone, setNewMilestone] = useState({
-    name: '',
-    description: '',
-    category: 'problems' as const,
-    value: 0
-  });
-
+  
   // Profile visibility settings
   const [profileVisibility, setProfileVisibility] = useState({
     isPublic: true,
@@ -186,11 +156,6 @@ function ProfileAccountSection() {
       setWebsite(userProfile.socialLinks?.portfolio || '');
       setSkills(userProfile.profile?.skills || []);
       
-      // Enhanced skills
-      setSkillProgress(userProfile.profile?.skillProgress || []);
-      
-      // Achievements
-      setBadges(userProfile.achievements?.badges || []);
       setCertificates(userProfile.achievements?.certificates || []);
       setMilestones(userProfile.achievements?.milestones || []);
       
@@ -205,9 +170,6 @@ function ProfileAccountSection() {
   }, [userProfile]);
   
   // Profile completion calculation
-  const profileFields = [fullName, username, bio, location, github, linkedin, twitter, website, about, collegeName, course, branch];
-  const achievementFields = [badges.length > 0, certificates.length > 0, milestones.length > 0, skillProgress.length > 0];
-  const completion = Math.round(((profileFields.filter(Boolean).length + achievementFields.filter(Boolean).length) / (profileFields.length + achievementFields.length)) * 100);
 
   // Password strength calculation
   function calcStrength(pw: string) {
@@ -232,44 +194,7 @@ function ProfileAccountSection() {
     setSkills(skills.filter(skill => skill !== skillToRemove));
   };
 
-  // Add skill progress
-  const handleAddSkillProgress = () => {
-    if (newSkillProgress.skill.trim() && !skillProgress.find(sp => sp.skill === newSkillProgress.skill.trim())) {
-      setSkillProgress([...skillProgress, { ...newSkillProgress, skill: newSkillProgress.skill.trim() }]);
-      setNewSkillProgress({ skill: '', level: 'beginner', progress: 0 });
-    }
-  };
 
-  // Remove skill progress
-  const handleRemoveSkillProgress = (skillToRemove: string) => {
-    setSkillProgress(skillProgress.filter(sp => sp.skill !== skillToRemove));
-  };
-
-  // Update skill progress
-  const handleUpdateSkillProgress = (skill: string, field: 'level' | 'progress', value: any) => {
-    setSkillProgress(skillProgress.map(sp => 
-      sp.skill === skill ? { ...sp, [field]: value, lastUpdated: new Date() } : sp
-    ));
-  };
-
-  // Add badge
-  const handleAddBadge = () => {
-    if (newBadge.name.trim() && newBadge.description.trim()) {
-      const badge = {
-        id: `badge-${Date.now()}`,
-        ...newBadge,
-        name: newBadge.name.trim(),
-        description: newBadge.description.trim()
-      };
-      setBadges([...badges, badge]);
-      setNewBadge({ name: '', description: '', icon: '🏆', category: 'special' });
-    }
-  };
-
-  // Remove badge
-  const handleRemoveBadge = (badgeId: string) => {
-    setBadges(badges.filter(badge => badge.id !== badgeId));
-  };
 
   // Add certificate
   const handleAddCertificate = () => {
@@ -290,25 +215,6 @@ function ProfileAccountSection() {
     setCertificates(certificates.filter(cert => cert.id !== certId));
   };
 
-  // Add milestone
-  const handleAddMilestone = () => {
-    if (newMilestone.name.trim() && newMilestone.description.trim()) {
-      const milestone = {
-        id: `milestone-${Date.now()}`,
-        ...newMilestone,
-        name: newMilestone.name.trim(),
-        description: newMilestone.description.trim()
-      };
-      setMilestones([...milestones, milestone]);
-      setNewMilestone({ name: '', description: '', category: 'problems', value: 0 });
-    }
-  };
-
-  // Remove milestone
-  const handleRemoveMilestone = (milestoneId: string) => {
-    setMilestones(milestones.filter(milestone => milestone.id !== milestoneId));
-  };
-
   // Save profile to database
   const handleSave = async () => {
     setSaving(true);
@@ -321,10 +227,8 @@ function ProfileAccountSection() {
           aboutMe: about,
           location,
           skills,
-          skillProgress,
         },
         achievements: {
-          badges,
           certificates,
           milestones,
         },
@@ -396,12 +300,6 @@ function ProfileAccountSection() {
       setTwitter(userProfile.socialLinks?.twitter || '');
       setWebsite(userProfile.socialLinks?.portfolio || '');
       setSkills(userProfile.profile?.skills || []);
-      
-      // Enhanced skills
-      setSkillProgress(userProfile.profile?.skillProgress || []);
-      
-      // Achievements
-      setBadges(userProfile.achievements?.badges || []);
       setCertificates(userProfile.achievements?.certificates || []);
       setMilestones(userProfile.achievements?.milestones || []);
       
@@ -532,36 +430,22 @@ function ProfileAccountSection() {
           </div>
         </motion.div>
       )}
-      <div className="flex gap-1 border-b border-base-200/60 mb-6 bg-base-100/50 rounded-lg p-1">
-        <button 
-          className={clsx(
-            'px-6 py-3 font-semibold text-sm transition-all duration-200 rounded-md relative',
-            tab === 'profile' 
-              ? 'text-primary bg-primary/10 border-b-2 border-primary' 
-              : 'text-base-content/70 hover:text-primary hover:bg-base-200/50'
-          )} 
-          onClick={() => setTab('profile')}
-        >
-          <div className="flex items-center gap-2">
-            <User size={16} />
-            Profile
-          </div>
-        </button>
-        <button 
-          className={clsx(
-            'px-6 py-3 font-semibold text-sm transition-all duration-200 rounded-md relative',
-            tab === 'account' 
-              ? 'text-primary bg-primary/10 border-b-2 border-primary' 
-              : 'text-base-content/70 hover:text-primary hover:bg-base-200/50'
-          )} 
-          onClick={() => setTab('account')}
-        >
-          <div className="flex items-center gap-2">
-            <Shield size={16} />
-            Account
-          </div>
-        </button>
-      </div>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as 'profile' | 'account')} className="mb-6">
+        <TabsList variant="line" className="w-full justify-start border-b border-transparent bg-transparent p-0">
+          <TabsTrigger value="profile" className="px-6">
+            <div className="flex items-center gap-2">
+              <User size={16} />
+              Profile
+            </div>
+          </TabsTrigger>
+          <TabsTrigger value="account" className="px-6">
+            <div className="flex items-center gap-2">
+              <Shield size={16} />
+              Account
+            </div>
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
       <AnimatePresence mode="wait">
         {tab === 'profile' && (
           <motion.div key="profile" variants={tabVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col gap-6 w-full h-full pb-4">
@@ -575,7 +459,7 @@ function ProfileAccountSection() {
             ) : (
               <>
                 {/* Profile Completion Meter */}
-                <div className="bg-gradient-to-r from-base-100/80 to-base-200/40 rounded-xl p-4 border border-base-300/30 shadow-sm">
+                <div className="bg-gradient-to-r from-base-100/70 to-base-200/30 rounded-xl p-4 border border-transparent shadow-sm">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <div className="p-2 rounded-lg bg-primary/10">
@@ -586,15 +470,9 @@ function ProfileAccountSection() {
                         <p className="text-xs text-base-content/60">Complete your profile to unlock more features</p>
                       </div>
                     </div>
-                    <span className="text-lg font-bold text-primary">{completion}%</span>
                   </div>
                   
-                  <div className="w-full h-3 bg-base-200 rounded-full overflow-hidden mb-3">
-                    <div 
-                      className="h-3 bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-500 ease-out shadow-sm" 
-                      style={{ width: `${completion}%` }} 
-                    />
-                  </div>
+                 
                   
                   <div className="flex items-center gap-2">
                     <Button size="sm" variant="outline" className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary transition-colors">
@@ -618,8 +496,8 @@ function ProfileAccountSection() {
             {/* Avatar and Editable Fields */}
             <div className="flex flex-col md:flex-row gap-8 items-start">
               <div className="relative group">
-                <div className="w-28 h-28 rounded-2xl bg-gradient-to-tr from-primary via-primary/80 to-accent flex items-center justify-center border-2 border-primary/30 shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-primary/25">
-                  <Avatar className="w-24 h-24 rounded-xl border-2 border-white/90 shadow-inner">
+                <div className="w-28 h-28 rounded-2xl bg-gradient-to-tr from-primary via-primary/80 to-accent flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-primary/25">
+                  <Avatar className="w-24 h-24 rounded-xl shadow-inner">
                     <AvatarImage 
                       src={(userProfile as any)?.profilePicture || (userProfile as any)?.avatar || user?.imageUrl || ''} 
                       alt={fullName || user?.firstName || 'User'} 
@@ -644,11 +522,11 @@ function ProfileAccountSection() {
                     <User size={14} className="text-primary" />
                     Full Name
                   </label>
-                  <input 
-                    value={fullName} 
-                    onChange={e => setFullName(e.target.value)} 
-                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50" 
+                  <Input 
+                    value={fullName}
+                    onChange={e => setFullName(e.target.value)}
                     placeholder="Enter your full name"
+                    className="border-base-300/40 bg-base-50/40 hover:bg-base-50 focus-visible:ring-primary/40"
                   />
                 </div>
                 <div className="space-y-2">
@@ -656,11 +534,11 @@ function ProfileAccountSection() {
                     <User size={14} className="text-primary" />
                     Username
                   </label>
-                  <input 
-                    value={username} 
-                    onChange={e => setUsername(e.target.value)} 
-                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50" 
+                  <Input 
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
                     placeholder="Choose a username"
+                    className="border-base-300/40 bg-base-50/40 hover:bg-base-50 focus-visible:ring-primary/40"
                   />
                 </div>
                 <div className="md:col-span-2 space-y-2">
@@ -672,7 +550,7 @@ function ProfileAccountSection() {
                     value={bio} 
                     onChange={e => { setBio(e.target.value); setBioCount(e.target.value.length); }} 
                     maxLength={120} 
-                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 min-h-[56px] text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50 resize-none" 
+                    className="w-full border border-base-300/20 rounded-lg px-4 py-3 min-h-[56px] text-base focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all bg-base-50/40 hover:bg-base-50 resize-none" 
                     placeholder="Tell us about yourself in a few words..."
                   />
                   <div className="text-xs text-base-content/50 text-right">{bioCount}/120</div>
@@ -682,11 +560,11 @@ function ProfileAccountSection() {
                     <MapPin size={14} className="text-primary" />
                     Location
                   </label>
-                  <input 
-                    value={location} 
-                    onChange={e => setLocation(e.target.value)} 
-                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50" 
+                  <Input 
+                    value={location}
+                    onChange={e => setLocation(e.target.value)}
                     placeholder="City, Country"
+                    className="border-base-300/40 bg-base-50/40 hover:bg-base-50 focus-visible:ring-primary/40"
                   />
                 </div>
                 <div className="space-y-2">
@@ -698,7 +576,7 @@ function ProfileAccountSection() {
                     value={about} 
                     onChange={e => setAbout(e.target.value)} 
                     maxLength={200} 
-                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 min-h-[56px] text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50 resize-none" 
+                    className="w-full border border-base-300/20 rounded-lg px-4 py-3 min-h-[56px] text-base focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all bg-base-50/40 hover:bg-base-50 resize-none" 
                     placeholder="Share more details about yourself..."
                   />
                 </div>
@@ -707,11 +585,11 @@ function ProfileAccountSection() {
                     <Github size={14} className="text-primary" /> 
                     GitHub
                   </label>
-                  <input 
-                    value={github} 
-                    onChange={e => setGithub(e.target.value)} 
-                    placeholder="https://github.com/username" 
-                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50" 
+                  <Input 
+                    value={github}
+                    onChange={e => setGithub(e.target.value)}
+                    placeholder="https://github.com/username"
+                    className="border-base-300/40 bg-base-50/40 hover:bg-base-50 focus-visible:ring-primary/40"
                   />
                 </div>
                 <div className="space-y-2">
@@ -719,11 +597,11 @@ function ProfileAccountSection() {
                     <Linkedin size={14} className="text-primary" /> 
                     LinkedIn
                   </label>
-                  <input 
-                    value={linkedin} 
-                    onChange={e => setLinkedin(e.target.value)} 
-                    placeholder="https://linkedin.com/in/username" 
-                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50" 
+                  <Input 
+                    value={linkedin}
+                    onChange={e => setLinkedin(e.target.value)}
+                    placeholder="https://linkedin.com/in/username"
+                    className="border-base-300/40 bg-base-50/40 hover:bg-base-50 focus-visible:ring-primary/40"
                   />
                 </div>
                 <div className="space-y-2">
@@ -731,11 +609,11 @@ function ProfileAccountSection() {
                     <Twitter size={14} className="text-primary" /> 
                     Twitter
                   </label>
-                  <input 
-                    value={twitter} 
-                    onChange={e => setTwitter(e.target.value)} 
-                    placeholder="https://twitter.com/username" 
-                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-1 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50" 
+                  <Input 
+                    value={twitter}
+                    onChange={e => setTwitter(e.target.value)}
+                    placeholder="https://twitter.com/username"
+                    className="border-base-300/40 bg-base-50/40 hover:bg-base-50 focus-visible:ring-primary/40"
                   />
                 </div>
                 <div className="space-y-2">
@@ -743,18 +621,18 @@ function ProfileAccountSection() {
                     <Globe size={14} className="text-primary" /> 
                     Website
                   </label>
-                  <input 
-                    value={website} 
-                    onChange={e => setWebsite(e.target.value)} 
-                    placeholder="https://yourwebsite.com" 
-                    className="w-full border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50" 
+                  <Input 
+                    value={website}
+                    onChange={e => setWebsite(e.target.value)}
+                    placeholder="https://yourwebsite.com"
+                    className="border-base-300/40 bg-base-50/40 hover:bg-base-50 focus-visible:ring-primary/40"
                   />
                 </div>
               </div>
             </div>
             
             {/* Skills Management */}
-            <div className="bg-gradient-to-r from-base-100/80 to-base-200/40 rounded-xl p-5 border border-base-300/30 shadow-sm">
+            <div className="bg-gradient-to-r from-base-100/70 to-base-200/30 rounded-xl p-5 border border-transparent shadow-sm">
               <h3 className="font-semibold mb-4 text-base-content/90 flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
                   <BookOpen size={18} className="text-primary" />
@@ -766,12 +644,12 @@ function ProfileAccountSection() {
               </h3>
               <div className="space-y-4">
                 <div className="flex gap-3">
-                  <input
+                  <Input
                     value={newSkill}
                     onChange={e => setNewSkill(e.target.value)}
                     onKeyPress={e => e.key === 'Enter' && handleAddSkill()}
                     placeholder="Add a skill (e.g., React, Python, UI/UX)"
-                    className="flex-1 border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50"
+                    className="flex-1 border-base-300/40 bg-base-50/40 hover:bg-base-50 focus-visible:ring-primary/40"
                   />
                   <Button 
                     onClick={handleAddSkill} 
@@ -807,181 +685,45 @@ function ProfileAccountSection() {
               </div>
             </div>
 
-            {/* Enhanced Skills Progress */}
-            <div className="bg-base-100 border border-base-200 rounded-lg p-4">
-              <h3 className="font-semibold mb-3 text-base-content/90 flex items-center gap-2">
-                <Star size={16} className="text-primary" />
-                Enhanced Skills Progress
-              </h3>
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <input
-                    value={newSkillProgress.skill}
-                    onChange={e => setNewSkillProgress(prev => ({ ...prev, skill: e.target.value }))}
-                    onKeyPress={e => e.key === 'Enter' && handleAddSkillProgress()}
-                    placeholder="Add a skill (e.g., React, Python, UI/UX)"
-                    className="flex-1 border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
-                  />
-                  <Button onClick={handleAddSkillProgress} disabled={!newSkillProgress.skill.trim()} size="sm" className="bg-primary text-primary-content hover:bg-primary/90">
-                    <Plus size={16} />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {skillProgress.map((sp, index) => (
-                    <div key={index} className="flex items-center gap-2 bg-base-200 rounded-full px-3 py-1 text-sm">
-                      <span>{sp.skill}</span>
-                      <div className="flex items-center gap-1">
-                        <select
-                          value={sp.level}
-                          onChange={e => handleUpdateSkillProgress(sp.skill, 'level', e.target.value as 'beginner' | 'intermediate' | 'advanced' | 'expert')}
-                          className="border border-base-200 rounded px-1 py-0.5 text-xs"
-                        >
-                          <option value="beginner">Beginner</option>
-                          <option value="intermediate">Intermediate</option>
-                          <option value="advanced">Advanced</option>
-                          <option value="expert">Expert</option>
-                        </select>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={sp.progress}
-                          onChange={e => handleUpdateSkillProgress(sp.skill, 'progress', Number(e.target.value))}
-                          className="w-16 border border-base-200 rounded px-1 py-0.5 text-xs text-center"
-                        />
-                        <button
-                          onClick={() => handleRemoveSkillProgress(sp.skill)}
-                          className="hover:bg-error/20 rounded-full p-0.5 transition-colors"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {skillProgress.length === 0 && (
-                    <span className="text-base-content/50 text-sm">No enhanced skills added yet</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Achievements */}
-            <div className="bg-gradient-to-r from-base-100/80 to-base-200/40 rounded-xl p-5 border border-base-300/30 shadow-sm">
-              <h3 className="font-semibold mb-4 text-base-content/90 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Award size={18} className="text-primary" />
-                </div>
-                <div>
-                  <div className="text-base font-semibold">Achievements & Badges</div>
-                  <div className="text-xs text-base-content/60">Track your accomplishments and milestones</div>
-                </div>
-              </h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <input
-                    value={newBadge.name}
-                    onChange={e => setNewBadge(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Achievement Name"
-                    className="border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50"
-                  />
-                  <input
-                    value={newBadge.description}
-                    onChange={e => setNewBadge(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Achievement Description"
-                    className="border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50"
-                  />
-                </div>
-                <div className="flex gap-3">
-                  <select
-                    value={newBadge.category}
-                    onChange={e => setNewBadge(prev => ({ ...prev, category: e.target.value as any }))}
-                    className="border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all bg-base-50/50 hover:bg-base-50"
-                  >
-                    <option value="crucible">Crucible</option>
-                    <option value="forge">Forge</option>
-                    <option value="arena">Arena</option>
-                    <option value="streak">Streak</option>
-                    <option value="special">Special</option>
-                  </select>
-                  <input
-                    value={newBadge.icon}
-                    onChange={e => setNewBadge(prev => ({ ...prev, icon: e.target.value }))}
-                    placeholder="🏆"
-                    className="w-24 border border-base-200/60 rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all text-center bg-base-50/50 hover:bg-base-50"
-                  />
-                  <Button 
-                    onClick={handleAddBadge} 
-                    disabled={!newBadge.name.trim() || !newBadge.description.trim()} 
-                    size="default"
-                    className="bg-primary text-primary-content hover:bg-primary/90 px-6 transition-all duration-200 hover:scale-105"
-                  >
-                    <Plus size={16} className="mr-2" />
-                    Add
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  {badges.map((badge) => (
-                    <div key={badge.id} className="flex items-center gap-2 bg-gradient-to-r from-base-200/60 to-base-200/40 rounded-full px-4 py-2 text-sm border border-base-300/30 hover:border-base-400/50 transition-all duration-200 hover:scale-105 group">
-                      <Trophy size={14} className="text-primary/70 group-hover:text-primary transition-colors" />
-                      <span className="font-medium">{badge.name}</span>
-                      <button
-                        onClick={() => handleRemoveBadge(badge.id)}
-                        className="hover:bg-red-200 rounded-full p-1 transition-colors hover:scale-110"
-                        title="Remove achievement"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ))}
-                  {badges.length === 0 && (
-                    <div className="text-center py-6 text-base-content/50">
-                      <Award size={24} className="mx-auto mb-2 opacity-50" />
-                      <span className="text-sm">No achievements added yet</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
             {/* Certificates */}
-            <div className="bg-base-100 border border-base-200 rounded-lg p-4">
+            <div className="bg-base-100/80 border border-transparent rounded-lg p-4">
               <h3 className="font-semibold mb-3 text-base-content/90 flex items-center gap-2">
                 <Star size={16} className="text-primary" />
                 Certificates
               </h3>
               <div className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  <input
+                  <Input
                     value={newCertificate.name}
                     onChange={e => setNewCertificate(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="Certificate Name"
-                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                    className="border-base-300/40 bg-base-50/30 focus-visible:ring-primary/30"
                   />
-                  <input
+                  <Input
                     value={newCertificate.issuer}
                     onChange={e => setNewCertificate(prev => ({ ...prev, issuer: e.target.value }))}
                     placeholder="Issuing Organization"
-                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                    className="border-base-300/40 bg-base-50/30 focus-visible:ring-primary/30"
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  <input
+                  <Input
                     type="date"
                     value={newCertificate.issueDate}
                     onChange={e => setNewCertificate(prev => ({ ...prev, issueDate: e.target.value }))}
-                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                    className="border-base-300/40 bg-base-50/30 focus-visible:ring-primary/30"
                   />
-                  <input
+                  <Input
                     type="date"
                     value={newCertificate.expiryDate}
                     onChange={e => setNewCertificate(prev => ({ ...prev, expiryDate: e.target.value }))}
                     placeholder="Expiry Date (Optional)"
-                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                    className="border-base-300/40 bg-base-50/30 focus-visible:ring-primary/30"
                   />
                   <select
                     value={newCertificate.category}
                     onChange={e => setNewCertificate(prev => ({ ...prev, category: e.target.value as any }))}
-                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                    className="border border-base-300/20 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/20 bg-base-50/30"
                   >
                     <option value="technical">Technical</option>
                     <option value="academic">Academic</option>
@@ -990,11 +732,11 @@ function ProfileAccountSection() {
                   </select>
                 </div>
                 <div className="flex gap-2">
-                  <input
+                  <Input
                     value={newCertificate.credentialUrl}
                     onChange={e => setNewCertificate(prev => ({ ...prev, credentialUrl: e.target.value }))}
                     placeholder="Credential URL (Optional)"
-                    className="flex-1 border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
+                    className="flex-1 border-base-300/40 bg-base-50/30 focus-visible:ring-primary/30"
                   />
                   <Button onClick={handleAddCertificate} disabled={!newCertificate.name.trim() || !newCertificate.issuer.trim() || !newCertificate.issueDate} size="sm" className="bg-primary text-primary-content hover:bg-primary/90">
                     <Plus size={16} />
@@ -1019,71 +761,8 @@ function ProfileAccountSection() {
               </div>
             </div>
 
-            {/* Milestones */}
-            <div className="bg-base-100 border border-base-200 rounded-lg p-4">
-              <h3 className="font-semibold mb-3 text-base-content/90 flex items-center gap-2">
-                <Star size={16} className="text-primary" />
-                Milestones
-              </h3>
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  <input
-                    value={newMilestone.name}
-                    onChange={e => setNewMilestone(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Milestone Name"
-                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
-                  />
-                  <input
-                    value={newMilestone.description}
-                    onChange={e => setNewMilestone(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Milestone Description"
-                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <select
-                    value={newMilestone.category}
-                    onChange={e => setNewMilestone(prev => ({ ...prev, category: e.target.value as any }))}
-                    className="border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
-                  >
-                    <option value="problems">Problems</option>
-                    <option value="resources">Resources</option>
-                    <option value="collaboration">Collaboration</option>
-                    <option value="streak">Streak</option>
-                  </select>
-                  <input
-                    type="number"
-                    min="0"
-                    value={newMilestone.value}
-                    onChange={e => setNewMilestone(prev => ({ ...prev, value: Number(e.target.value) }))}
-                    placeholder="Value"
-                    className="w-24 border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all"
-                  />
-                  <Button onClick={handleAddMilestone} disabled={!newMilestone.name.trim() || !newMilestone.description.trim()} size="sm" className="bg-primary text-primary-content hover:bg-primary/90">
-                    <Plus size={16} />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {milestones.map((milestone) => (
-                    <div key={milestone.id} className="flex items-center gap-2 bg-base-200 rounded-full px-3 py-1 text-sm">
-                      <span>{milestone.name} ({milestone.value})</span>
-                      <button
-                        onClick={() => handleRemoveMilestone(milestone.id)}
-                        className="hover:bg-red-200 rounded-full p-0.5 transition-colors"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ))}
-                  {milestones.length === 0 && (
-                    <span className="text-base-content/50 text-sm">No milestones added yet</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
             {/* College Details */}
-            <div className="bg-base-100 border border-base-200 rounded-lg p-4">
+            <div className="bg-base-100/80 border border-transparent rounded-lg p-4">
               <h3 className="font-semibold mb-3 text-base-content/90 flex items-center gap-2">
                 <User size={16} className="text-primary" />
                 College Details
@@ -1091,31 +770,31 @@ function ProfileAccountSection() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-semibold mb-1 text-base-content/80">College Name</label>
-                  <input value={collegeName} onChange={e => setCollegeName(e.target.value)} className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <Input value={collegeName} onChange={e => setCollegeName(e.target.value)} className="w-full border-base-300/40 bg-base-50/30 focus-visible:ring-primary/30" />
                 </div>
                 <div>
                   <label className="block font-semibold mb-1 text-base-content/80">Course</label>
-                  <input value={course} onChange={e => setCourse(e.target.value)} className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <Input value={course} onChange={e => setCourse(e.target.value)} className="w-full border-base-300/40 bg-base-50/30 focus-visible:ring-primary/30" />
                 </div>
                 <div>
                   <label className="block font-semibold mb-1 text-base-content/80">Branch</label>
-                  <input value={branch} onChange={e => setBranch(e.target.value)} className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <Input value={branch} onChange={e => setBranch(e.target.value)} className="w-full border-base-300/40 bg-base-50/30 focus-visible:ring-primary/30" />
                 </div>
                 <div>
                   <label className="block font-semibold mb-1 text-base-content/80">Year</label>
-                  <input type="number" min="1" max="5" value={year} onChange={e => setYear(e.target.value ? Number(e.target.value) : '')} className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <Input type="number" min={1} max={5} value={year as any} onChange={e => setYear(e.target.value ? Number(e.target.value) : '')} className="w-full border-base-300/40 bg-base-50/30 focus-visible:ring-primary/30" />
                 </div>
                 <div>
                   <label className="block font-semibold mb-1 text-base-content/80">City</label>
-                  <input value={city} onChange={e => setCity(e.target.value)} className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <Input value={city} onChange={e => setCity(e.target.value)} className="w-full border-base-300/40 bg-base-50/30 focus-visible:ring-primary/30" />
                 </div>
                 <div>
                   <label className="block font-semibold mb-1 text-base-content/80">State</label>
-                  <input value={state} onChange={e => setState(e.target.value)} className="w-full border border-base-200 rounded px-3 py-2 text-base focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <Input value={state} onChange={e => setState(e.target.value)} className="w-full border-base-300/40 bg-base-50/30 focus-visible:ring-primary/30" />
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-base-100/80 to-base-200/40 rounded-xl border border-base-300/30 shadow-sm">
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-base-100/80 to-base-200/40 rounded-xl border border-transparent shadow-sm">
               <div className="flex items-center gap-4">
                 <Button 
                   onClick={handleSave} 
@@ -1228,7 +907,7 @@ function ProfileAccountSection() {
               </div>
             </div>
             {/* Security Tips */}
-            <div className="bg-base-100 border border-base-200 rounded p-3 flex items-center gap-3 text-xs text-base-content/70">
+            <div className="bg-base-100 border border-transparent rounded p-3 flex items-center gap-3 text-xs text-base-content/70">
               <Shield size={16} className="text-primary" /> Use a strong password, enable 2FA, and review your sessions regularly.
             </div>
             {/* Account Actions */}
@@ -1246,7 +925,7 @@ function ProfileAccountSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.4 }}
-              className="bg-gradient-to-br from-base-100/80 to-base-200/40 rounded-xl shadow-sm border border-base-300/30 backdrop-blur-sm relative z-0 hover:shadow-md transition-all duration-300"
+              className="bg-gradient-to-br from-base-100/80 to-base-200/40 rounded-xl shadow-sm border border-transparent backdrop-blur-sm relative z-0 hover:shadow-md transition-all duration-300"
             >
               <div className="p-4">
                 <div className="flex items-center gap-3 mb-3">
@@ -1260,7 +939,7 @@ function ProfileAccountSection() {
                 </div>
                 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-base-200/40 border border-base-300/20 hover:bg-base-200/60 transition-all duration-200">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-base-200/40 border border-transparent hover:bg-base-200/60 transition-all duration-200">
                     <div className="flex items-center gap-3">
                       <div className="p-1.5 rounded-md bg-info/10">
                         {profileVisibility.isPublic ? <Unlock className="w-3.5 h-3.5 text-info" /> : <Lock className="w-3.5 h-3.5 text-info" />}
@@ -1281,7 +960,7 @@ function ProfileAccountSection() {
                   </div>
 
                   {profileVisibility.isPublic && (
-                    <div className="space-y-3 p-3 bg-base-200/30 rounded-lg border border-base-300/20">
+                    <div className="space-y-3 p-3 bg-base-200/30 rounded-lg border border-transparent">
                       <div className="text-sm font-medium text-base-content/80 mb-3">What to show on public profile:</div>
                       
                       <div className="flex items-center justify-between">
@@ -1351,7 +1030,7 @@ function ProfileAccountSection() {
                     </div>
                   )}
 
-                  <div className="text-xs text-base-content/50 bg-base-200/50 p-3 rounded-lg border border-base-300/30 flex items-center gap-2">
+                  <div className="text-xs text-base-content/50 bg-base-200/50 p-3 rounded-lg border border-transparent flex items-center gap-2">
                     <Lightbulb size={14} className="text-primary/70" />
                     <span><strong>Tip:</strong> Your profile will be accessible at <code className="bg-base-300 px-1 rounded">/profile/{username}</code> when public</span>
                   </div>

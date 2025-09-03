@@ -122,10 +122,7 @@ export const getAllChallenges = asyncHandler(
 
       const total = countResult.length > 0 ? countResult[0].total : 0;
       
-      logger.info(`getAllChallenges: Found ${challenges.length} challenges, filter: ${JSON.stringify(filter)}`);
-      if (challenges.length > 0) {
-        logger.info(`Sample challenge: ${JSON.stringify(challenges[0])}`);
-      }
+      logger.debug(`getAllChallenges: count=${challenges.length}, filterKeys=${Object.keys(filter).join(',')}`);
 
       res.status(200).json(
         new ApiResponse(
@@ -765,7 +762,7 @@ export const analyzeUserSolution = asyncHandler(
         $addToSet: { archivedDrafts: solutionDraft._id }
       });
 
-      console.log(`Archived draft ${solutionDraft._id} for user ${userId} and problem ${problemId}`);
+      logger.debug(`Archived draft ${solutionDraft._id} for user ${userId} and problem ${problemId}`);
     } catch (archiveError) {
       console.error('Error archiving draft:', archiveError);
       // Continue with analysis even if archiving fails
@@ -783,9 +780,9 @@ export const analyzeUserSolution = asyncHandler(
       
       try {
         ragDocuments = await retrieveRelevantDocuments(queryText);
-        console.log(`Successfully retrieved ${ragDocuments.length} documents from RAG system`);
+        logger.debug(`RAG documents retrieved: ${ragDocuments.length}`);
       } catch (ragError) {
-        console.error('Error retrieving documents from RAG system:', ragError);
+        logger.warn('Error retrieving documents from RAG system:', ragError);
         // Continue with empty documents rather than failing the whole request
         ragDocuments = [];
       }
@@ -799,9 +796,9 @@ export const analyzeUserSolution = asyncHandler(
           ragDocuments,
           technicalParameters
         );
-        console.log('Analysis generated successfully');
+        logger.debug('Analysis generated successfully');
       } catch (analysisError) {
-        console.error('Error generating analysis:', analysisError);
+        logger.error('Error generating analysis:', analysisError);
         
         // Handle specific Gemini errors with appropriate HTTP status codes
         if (analysisError instanceof GeminiModelOverloadError) {
@@ -859,7 +856,7 @@ export const analyzeUserSolution = asyncHandler(
 
       // Only save to database if we have a valid analysis result
       if (!analysisResult || typeof analysisResult.overallScore !== 'number') {
-        console.error('Invalid analysis result - missing or invalid overallScore:', analysisResult);
+        logger.error('Invalid analysis result - missing or invalid overallScore:', analysisResult);
         return res.status(500).json(
           new ApiResponse(
             500,
@@ -891,7 +888,7 @@ export const analyzeUserSolution = asyncHandler(
           }
         });
 
-        console.log(`Created solution analysis with ID: ${analysis._id}`);
+        logger.debug(`Created solution analysis with ID: ${analysis._id}`);
         // Optional: log progress.newlySolved/progress.solvedCount for observability
 
         res.status(201).json(
@@ -902,7 +899,7 @@ export const analyzeUserSolution = asyncHandler(
           )
         );
       } catch (dbError) {
-        console.error('Error saving analysis/progress to database:', dbError);
+        logger.error('Error saving analysis/progress to database:', dbError);
         return next(new AppError('Failed to save analysis results', 500));
       }
     } catch (error) {
