@@ -184,14 +184,15 @@ export function extractSkillsFromProblem(problem: ICrucibleProblem): {
     const mapping = SKILL_MAPPINGS[lowerTag as keyof typeof SKILL_MAPPINGS];
     
     if (mapping) {
+      const toTech = JSON.stringify({ technology: mapping.skill, category: mapping.category });
       if (['javascript', 'python', 'java', 'cpp', 'csharp', 'go', 'rust', 'typescript'].includes(lowerTag)) {
-        techStack.add(JSON.stringify(mapping));
+        techStack.add(toTech);
       } else if (['react', 'vue', 'angular', 'nodejs', 'express', 'django', 'flask', 'spring', 'laravel'].includes(lowerTag)) {
-        techStack.add(JSON.stringify(mapping));
+        techStack.add(toTech);
       } else if (['mongodb', 'postgresql', 'mysql', 'redis'].includes(lowerTag)) {
-        techStack.add(JSON.stringify(mapping));
+        techStack.add(toTech);
       } else if (['aws', 'docker', 'kubernetes', 'terraform'].includes(lowerTag)) {
-        techStack.add(JSON.stringify(mapping));
+        techStack.add(toTech);
       } else {
         skills.add(JSON.stringify(mapping));
       }
@@ -229,6 +230,14 @@ export async function updateUserScoring(
   
   const useExternalSession = Boolean(session);
   const txnSession = session ?? (await mongoose.startSession());
+  const runInTransaction = async (fn: () => Promise<void>) => {
+    if (useExternalSession) {
+      // Assume caller already controls transaction boundaries
+      await fn();
+    } else {
+      await txnSession.withTransaction(fn);
+    }
+  };
   
   try {
     let result: UpdateUserScoringResult = {
@@ -241,7 +250,7 @@ export async function updateUserScoring(
       learningProgressUpdated: []
     };
     
-    await txnSession.withTransaction(async () => {
+    await runInTransaction(async () => {
       // Calculate points
       const points = calculatePoints({ score, difficulty: problem.difficulty });
       
@@ -284,7 +293,8 @@ export async function updateUserScoring(
       
       // 3. Update skills
       skills.forEach(({ skill, category }) => {
-        const skillKey = `skillTracking.skills.${skill.replace(/\s+/g, '_')}`;
+        const safeSkill = typeof skill === 'string' ? skill : String(skill ?? 'unknown');
+        const skillKey = `skillTracking.skills.${safeSkill.replace(/\s+/g, '_')}`;
         updateOps.push({
           $inc: {
             [`${skillKey}.problemsSolved`]: 1,
@@ -295,12 +305,13 @@ export async function updateUserScoring(
             [`${skillKey}.lastUpdated`]: new Date(),
           }
         });
-        skillsUpdated.push(skill);
+        skillsUpdated.push(safeSkill);
       });
       
       // 4. Update tech stack
       techStack.forEach(({ technology, category }) => {
-        const techKey = `skillTracking.techStack.${technology.replace(/\s+/g, '_')}`;
+        const safeTech = typeof technology === 'string' ? technology : String(technology ?? 'unknown');
+        const techKey = `skillTracking.techStack.${safeTech.replace(/\s+/g, '_')}`;
         updateOps.push({
           $inc: {
             [`${techKey}.problemsSolved`]: 1,
@@ -311,12 +322,13 @@ export async function updateUserScoring(
             [`${techKey}.lastUpdated`]: new Date(),
           }
         });
-        techStackUpdated.push(technology);
+        techStackUpdated.push(safeTech);
       });
       
       // 5. Update learning progress
       learningTopics.forEach(({ topic, category }) => {
-        const topicKey = `skillTracking.learningProgress.${topic.replace(/\s+/g, '_')}`;
+        const safeTopic = typeof topic === 'string' ? topic : String(topic ?? 'topic');
+        const topicKey = `skillTracking.learningProgress.${safeTopic.replace(/\s+/g, '_')}`;
         updateOps.push({
           $inc: {
             [`${topicKey}.problemsSolved`]: 1,
@@ -327,7 +339,7 @@ export async function updateUserScoring(
             [`${topicKey}.lastUpdated`]: new Date(),
           }
         });
-        learningProgressUpdated.push(topic);
+        learningProgressUpdated.push(safeTopic);
       });
       
       // Apply all updates

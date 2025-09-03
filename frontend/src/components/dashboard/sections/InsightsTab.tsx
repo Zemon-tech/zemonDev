@@ -27,6 +27,14 @@ export function InsightsTab({
   loading: boolean;
   insights: any;
 }) {
+  const theme = (typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : '') || '';
+  const isDarkTheme = theme === 'dark' || theme === 'halloween';
+
+  const COLOR_PRIMARY = isDarkTheme ? '#ffffff' : 'hsl(var(--p))';
+  const GRID = isDarkTheme ? 'rgba(255,255,255,0.2)' : 'hsl(var(--bc) / 0.15)';
+  const AXIS = isDarkTheme ? '#ffffff' : undefined;
+  const TOOLTIP_BG = isDarkTheme ? 'rgba(0,0,0,0.85)' : 'hsl(var(--b1))';
+  const TOOLTIP_BORDER = isDarkTheme ? 'rgba(255,255,255,0.2)' : 'hsl(var(--bc) / 0.15)';
   return (
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
       <div className="xl:col-span-6">
@@ -41,11 +49,11 @@ export function InsightsTab({
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={Object.entries(insights.learningPatterns.timeOfDayPerformance).map(([k,v]: any) => ({ label: k, value: v }))} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--bc) / 0.15)" />
-                  <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-                  <YAxis width={30} tick={{ fontSize: 10 }} />
-                  <ReTooltip contentStyle={{ background: 'hsl(var(--b1))', border: '1px solid hsl(var(--bc) / 0.15)' }} />
-                  <Bar dataKey="value" name="Avg score" fill="hsl(var(--p))" radius={[4,4,0,0]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: AXIS }} />
+                  <YAxis width={30} tick={{ fontSize: 10, fill: AXIS }} />
+                  <ReTooltip contentStyle={{ background: TOOLTIP_BG, border: `1px solid ${TOOLTIP_BORDER}` }} />
+                  <Bar dataKey="value" name="Avg score" fill={COLOR_PRIMARY} radius={[4,4,0,0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -66,11 +74,11 @@ export function InsightsTab({
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={Object.entries(insights.learningPatterns.difficultyPerformance).map(([k,v]: any) => ({ label: k, value: v }))} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--bc) / 0.15)" />
-                  <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-                  <YAxis width={30} tick={{ fontSize: 10 }} />
-                  <ReTooltip contentStyle={{ background: 'hsl(var(--b1))', border: '1px solid hsl(var(--bc) / 0.15)' }} />
-                  <Bar dataKey="value" name="Avg score" fill="hsl(var(--p))" radius={[4,4,0,0]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: AXIS }} />
+                  <YAxis width={30} tick={{ fontSize: 10, fill: AXIS }} />
+                  <ReTooltip contentStyle={{ background: TOOLTIP_BG, border: `1px solid ${TOOLTIP_BORDER}` }} />
+                  <Bar dataKey="value" name="Avg score" fill={COLOR_PRIMARY} radius={[4,4,0,0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -92,22 +100,22 @@ export function InsightsTab({
               <div className="h-56">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart data={Object.entries(insights.learningPatterns.categoryPerformance).map(([k,v]: any) => ({ subject: String(k), A: v }))}>
-                    <PolarGrid gridType="circle" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10 }} />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                    <Radar name="Avg" dataKey="A" stroke="hsl(var(--p))" fill="hsl(var(--p))" fillOpacity={0.3} dot={{ r: 3, fill: 'hsl(var(--p))', stroke: 'transparent' }} />
+                    <PolarGrid gridType="circle" stroke={GRID} />
+                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: AXIS }} />
+                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10, fill: AXIS }} stroke={GRID} />
+                    <Radar name="Avg" dataKey="A" stroke={COLOR_PRIMARY} fill={isDarkTheme ? 'rgba(255,255,255,0.35)' : 'hsl(var(--p))'} fillOpacity={0.35} dot={{ r: 3, fill: COLOR_PRIMARY, stroke: 'transparent' }} />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
               <div className="h-56">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={Object.entries(insights.learningPatterns.categoryPerformance).map(([k,v]: any) => ({ name: String(k), value: v }))} dataKey="value" nameKey="name" outerRadius={80} label>
+                    <Pie data={Object.entries(insights.learningPatterns.categoryPerformance).map(([k,v]: any) => ({ name: String(k), value: v }))} dataKey="value" nameKey="name" outerRadius={80} label labelLine={{ stroke: AXIS }}>
                       {Object.entries(insights.learningPatterns.categoryPerformance).map(([,], index) => (
-                        <Cell key={`cell-${index}`} fill={`hsl(var(--a))`} opacity={0.35 + (index % 5) * 0.1} />
+                        <Cell key={`cell-${index}`} fill={isDarkTheme ? '#ffffff' : 'hsl(var(--a))'} opacity={0.25 + (index % 5) * 0.12} />
                       ))}
                     </Pie>
-                    <ReTooltip contentStyle={{ background: 'hsl(var(--b1))', border: '1px solid hsl(var(--bc) / 0.15)' }} />
+                    <ReTooltip contentStyle={{ background: TOOLTIP_BG, border: `1px solid ${TOOLTIP_BORDER}` }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -129,8 +137,8 @@ export function InsightsTab({
             <div className="h-40">
               <ResponsiveContainer width="100%" height="100%">
                 <RadialBarChart innerRadius="60%" outerRadius="100%" data={[{ name: 'Match', value: Number(insights?.roleMatch?.matchPercent ?? 0) }]} startAngle={90} endAngle={-270}>
-                  <RadialBar background dataKey="value" cornerRadius={10} fill="hsl(var(--p))" />
-                  <ReTooltip contentStyle={{ background: 'hsl(var(--b1))', border: '1px solid hsl(var(--bc) / 0.15)' }} />
+                  <RadialBar background dataKey="value" cornerRadius={10} fill={COLOR_PRIMARY} />
+                  <ReTooltip contentStyle={{ background: TOOLTIP_BG, border: `1px solid ${TOOLTIP_BORDER}` }} />
                 </RadialBarChart>
               </ResponsiveContainer>
             </div>

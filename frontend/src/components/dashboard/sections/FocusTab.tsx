@@ -18,11 +18,14 @@ export function FocusTab({
   loading: boolean;
   summary: any;
 }) {
-  const COLOR_PRIMARY = 'hsl(var(--p))';
-  // const COLOR_ACCENT = 'hsl(var(--a))';
-  const COLOR_GRID = 'hsl(var(--bc) / 0.15)';
-  const TOOLTIP_BG = 'hsl(var(--b1))';
-  const TOOLTIP_BORDER = 'hsl(var(--bc) / 0.15)';
+  const theme = (typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : '') || '';
+  const isDarkTheme = theme === 'dark' || theme === 'halloween';
+
+  const COLOR_PRIMARY = isDarkTheme ? '#ffffff' : 'hsl(var(--p))';
+  const COLOR_GRID = isDarkTheme ? 'rgba(255,255,255,0.2)' : 'hsl(var(--bc) / 0.15)';
+  const AXIS_TICK = isDarkTheme ? '#ffffff' : undefined;
+  const TOOLTIP_BG = isDarkTheme ? 'rgba(0,0,0,0.85)' : 'hsl(var(--b1))';
+  const TOOLTIP_BORDER = isDarkTheme ? 'rgba(255,255,255,0.2)' : 'hsl(var(--bc) / 0.15)';
   const weakestSkills = Array.isArray(summary?.skills)
     ? [...summary.skills]
         .sort((a: any, b: any) => (a.averageScore||0) - (b.averageScore||0))
@@ -72,8 +75,8 @@ export function FocusTab({
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={COLOR_GRID} />
-                      <XAxis dataKey="label" tick={{ fontSize: 10 }} hide />
-                      <YAxis domain={[0,100]} width={28} tick={{ fontSize: 10 }} />
+                      <XAxis dataKey="label" tick={{ fontSize: 10, fill: AXIS_TICK }} hide />
+                      <YAxis domain={[0,100]} width={28} tick={{ fontSize: 10, fill: AXIS_TICK }} />
                       <ReTooltip contentStyle={{ background: TOOLTIP_BG, border: `1px solid ${TOOLTIP_BORDER}` }} />
                       <Bar dataKey="value" name="Avg %" fill={COLOR_PRIMARY} radius={[4,4,0,0]} />
                     </BarChart>
