@@ -282,9 +282,7 @@ export const addChatMessageStream = asyncHandler(
           });
           
           res.write(`data: ${chunkMessage}\n\n`);
-          
-          console.log(`Sent chunk #${totalChunks}: ${chunk.content.trim().split(/\s+/).length} words`);
-        }
+                  }
 
         if (chunk.isComplete) {
           const totalTime = Date.now() - startTime;
