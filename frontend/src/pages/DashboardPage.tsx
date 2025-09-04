@@ -407,7 +407,9 @@ export default function DashboardPage() {
     };
     fetchAll();
     return () => { mounted = false; };
-  }, [isLoaded, user?.id, getToken]);
+  // We intentionally omit getToken to avoid identity changes causing refetch loops
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, user?.id]);
 
   const handleNextUpAction = async () => {
     if (!nextUp?.action) return;

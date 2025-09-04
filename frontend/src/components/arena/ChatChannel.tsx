@@ -3,14 +3,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Plus, Image, Gift, Smile, MoreHorizontal, Loader2, MessageSquare } from 'lucide-react';
+import { Smile, MoreHorizontal, Loader2, MessageSquare, Users } from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { useArenaChat } from '@/hooks/useArenaChat';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import type { Message } from '@/hooks/useArenaChat';
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
-import { GiphyFetch } from '@giphy/js-fetch-api';
-import { Grid as GiphyGrid } from '@giphy/react-components';
 
 // Utility function to extract profile picture from message
 const getMessageProfilePicture = (message: Message): string | undefined => {
@@ -98,10 +104,31 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showGifPicker, setShowGifPicker] = useState(false);
-  const gf = React.useMemo(() => new GiphyFetch('YOUR_GIPHY_API_KEY'), []);
+  const [showUsersSheet, setShowUsersSheet] = useState(false);
   const [wasLoadingMore, setWasLoadingMore] = useState(false);
   const [scrollPositionBeforeLoad, setScrollPositionBeforeLoad] = useState<number | null>(null);
+
+  // Extract unique users from messages
+  const uniqueUsers = React.useMemo(() => {
+    const userMap = new Map();
+    messages.forEach(message => {
+      if (typeof message.userId === 'object' && message.userId._id) {
+        const userId = message.userId._id;
+        if (!userMap.has(userId)) {
+          userMap.set(userId, {
+            _id: userId,
+            username: message.username,
+            fullName: message.userId.fullName,
+            profilePicture: message.userId.profilePicture,
+            lastSeen: message.timestamp
+          });
+        }
+      }
+    });
+    return Array.from(userMap.values()).sort((a, b) => 
+      new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime()
+    );
+  }, [messages]);
 
   // Infinite scroll setup with improved scroll position tracking
   const { containerRef, restoreScrollPosition } = useInfiniteScroll({
@@ -209,7 +236,6 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
       setMessageInput('');
       handleStopTyping();
       setShowEmojiPicker(false);
-      setShowGifPicker(false);
     }
   };
 
@@ -354,9 +380,50 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
             <p className="text-sm text-base-content/70">{description}</p>
           )}
         </div>
-        <Button variant="ghost" size="icon" className="text-base-content/70 hover:text-base-content">
-          <MoreHorizontal className="w-5 h-5" />
-        </Button>
+        <Sheet open={showUsersSheet} onOpenChange={setShowUsersSheet}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="text-base-content/70 hover:text-base-content">
+              <MoreHorizontal className="w-5 h-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[400px] sm:w-[540px] border-l-0 bg-base-100">
+            <SheetHeader>
+              <SheetTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Channel Members
+              </SheetTitle>
+              <SheetDescription>
+                {uniqueUsers.length} member{uniqueUsers.length !== 1 ? 's' : ''} in #{channelName}
+              </SheetDescription>
+            </SheetHeader>
+            <div className="mt-6 space-y-3">
+              {uniqueUsers.map((user) => (
+                <div key={user._id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-base-200 transition-colors">
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage 
+                      src={user.profilePicture} 
+                      alt={user.fullName || user.username}
+                    />
+                    <AvatarFallback className="font-semibold bg-primary/80 text-primary-foreground">
+                      {(user.fullName || user.username).charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-base-content">
+                      {user.fullName || user.username}
+                    </div>
+                    <div className="text-sm text-base-content/60">
+                      @{user.username}
+                    </div>
+                    <div className="text-xs text-base-content/40">
+                      Last seen {new Date(user.lastSeen).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* Messages Area */}
@@ -533,9 +600,6 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
             <button className="p-1.5 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors" onClick={() => setShowEmojiPicker(v => !v)} type="button">
               <Smile className="w-5 h-5" />
             </button>
-            <button className="p-1.5 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors" onClick={() => setShowGifPicker(v => !v)} type="button">
-              <Gift className="w-5 h-5" />
-            </button>
             {/* Input */}
             <input
               type="text"
@@ -546,19 +610,11 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
                   e.preventDefault();
                   handleSendMessage();
                   setShowEmojiPicker(false);
-                  setShowGifPicker(false);
                 }
               }}
               placeholder={`Message #${channelName}`}
               className="flex-1 bg-transparent border-none outline-none px-3 text-base-content placeholder:text-base-content/60"
             />
-            {/* Right icons */}
-            <button className="p-1.5 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors">
-              <Plus className="w-5 h-5" />
-            </button>
-            <button className="p-1.5 rounded-full hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors">
-              <Image className="w-5 h-5" />
-            </button>
             {/* Emoji Picker Popover */}
             {showEmojiPicker && (
               <div className="absolute bottom-16 left-0 z-50">
@@ -568,21 +624,7 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
                 }} />
               </div>
             )}
-            {/* GIF Picker Popover */}
-            {showGifPicker && (
-              <div className="absolute bottom-16 left-24 z-50 bg-base-100 rounded shadow-lg">
-                <GiphyGrid
-                  width={300}
-                  columns={3}
-                  fetchGifs={offset => gf.trending({ offset, limit: 9 })}
-                  onGifClick={gif => {
-                    sendMessage(gif.images.original.url);
-                    setShowGifPicker(false);
-                    setShowEmojiPicker(false);
-                  }}
-                />
-              </div>
-            )}
+
           </div>
         </div>
       )}

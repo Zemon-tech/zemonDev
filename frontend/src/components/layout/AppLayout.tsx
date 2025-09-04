@@ -126,6 +126,11 @@ export default function AppLayout() {
   const [focusMode, setFocusMode] = useState(false);
   const [navHovered, setNavHovered] = useState(false); // [ADD] For nav bar hover
   const [navLockedOpen, setNavLockedOpen] = useState(false); // [ADD] Nav lock state
+  
+  // [ADD] Arena chat mode state - hide nav bar when chat channel is open
+  const [arenaChatMode, setArenaChatMode] = useState(false);
+  const [arenaNavHovered, setArenaNavHovered] = useState(false); // [ADD] For arena nav bar hover
+  const [arenaNavLockedOpen, setArenaNavLockedOpen] = useState(false); // [ADD] Arena nav lock state
 
   // [MODIFY] Auto-enable focus mode on CrucibleProblemPage - but don't force sidebar state
   useEffect(() => {
@@ -137,6 +142,47 @@ export default function AppLayout() {
       // Don't force sidebar to open - let user's persisted preference remain
     }
   }, [isCrucibleProblemPage, location.pathname]);
+
+  // [ADD] Listen for arena chat channel events to enable/disable arena chat mode
+  useEffect(() => {
+    const handleArenaChatOpen = () => {
+      setArenaChatMode(true);
+    };
+
+    const handleArenaChatClose = () => {
+      setArenaChatMode(false);
+      setArenaNavHovered(false);
+      setArenaNavLockedOpen(false);
+    };
+
+    // Listen for arena chat channel events
+    window.addEventListener('arena-chat-open', handleArenaChatOpen);
+    window.addEventListener('arena-chat-close', handleArenaChatClose);
+    window.addEventListener('arena-show-nirvana', handleArenaChatClose); // Nirvana is not a chat channel
+    window.addEventListener('arena-channel-select', (event: any) => {
+      // Check if the selected channel is a chat channel
+      const { channelId } = event.detail;
+      if (channelId) {
+        // Find the channel in arena channels to check its type
+        const allChannels = Object.values(arenaChannels).flat();
+        const selectedChannel = allChannels.find(ch => ch._id === channelId);
+        if (selectedChannel?.type === 'chat') {
+          setArenaChatMode(true);
+        } else {
+          setArenaChatMode(false);
+          setArenaNavHovered(false);
+          setArenaNavLockedOpen(false);
+        }
+      }
+    });
+
+    return () => {
+      window.removeEventListener('arena-chat-open', handleArenaChatOpen);
+      window.removeEventListener('arena-chat-close', handleArenaChatClose);
+      window.removeEventListener('arena-show-nirvana', handleArenaChatClose);
+      window.removeEventListener('arena-channel-select', handleArenaChatClose);
+    };
+  }, [arenaChannels]);
 
   // [OPTIONAL] Keyboard shortcut to toggle focus mode (Cmd+Shift+F)
   useHotkeys('meta+shift+f', () => {
@@ -221,7 +267,8 @@ export default function AppLayout() {
   }, [isForgePage]);
   
   // [MODIFY] Show nav bar if not in focus mode, or if navHovered, or if navLockedOpen
-  const shouldShowNav = !focusMode || navHovered || navLockedOpen;
+  // [ADD] Also hide nav bar in arena chat mode unless hovered or locked
+  const shouldShowNav = (!focusMode && !arenaChatMode) || navHovered || navLockedOpen || arenaNavHovered || arenaNavLockedOpen;
   
   // [ADD] Calculate sidebar width for layout adjustments
   const getSidebarWidth = () => {
@@ -253,6 +300,18 @@ export default function AppLayout() {
             onMouseEnter={() => setNavHovered(true)}
           />
         )}
+        {/* [ADD] Top-edge hover zone for nav bar in arena chat mode */}
+        {arenaChatMode && !arenaNavLockedOpen && (
+          <div
+            className="fixed top-0 left-0 w-full h-4 z-50 cursor-pointer"
+            style={{ 
+              pointerEvents: arenaNavHovered ? 'none' : 'auto',
+              left: `${sidebarWidth}px`,
+              width: `calc(100vw - ${sidebarWidth}px)`,
+            }}
+            onMouseEnter={() => setArenaNavHovered(true)}
+          />
+        )}
         {/* Top Navigation - now fixed with sidebar offset */}
         <header
           className={`fixed top-0 left-0 w-full h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between shrink-0 z-40 transition-all duration-300`}
@@ -265,8 +324,14 @@ export default function AppLayout() {
             paddingLeft: '12px',
             paddingRight: '20px',
           }}
-          onMouseEnter={() => focusMode && setNavHovered(true)}
-          onMouseLeave={() => focusMode && !navLockedOpen && setNavHovered(false)}
+          onMouseEnter={() => {
+            if (focusMode) setNavHovered(true);
+            if (arenaChatMode) setArenaNavHovered(true);
+          }}
+          onMouseLeave={() => {
+            if (focusMode && !navLockedOpen) setNavHovered(false);
+            if (arenaChatMode && !arenaNavLockedOpen) setArenaNavHovered(false);
+          }}
           tabIndex={-1}
         >
           {/* Left side - Menu toggle */}
@@ -485,6 +550,18 @@ export default function AppLayout() {
                 title={navLockedOpen ? 'Unlock Navigation Bar (auto-hide)' : 'Lock Navigation Bar Open'}
               >
                 {navLockedOpen ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+              </Button>
+            )}
+            {/* [ADD] Arena nav lock button - only on Arena Page in chat mode */}
+            {isArenaPage && arenaChatMode && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setArenaNavLockedOpen((prev) => !prev)}
+                className="h-9 w-9 p-0 rounded-lg hover:bg-base-200 transition-all duration-200"
+                title={arenaNavLockedOpen ? 'Unlock Navigation Bar (auto-hide)' : 'Lock Navigation Bar Open'}
+              >
+                {arenaNavLockedOpen ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
               </Button>
             )}
             {/* [MOVE] Focus mode toggle button here */}

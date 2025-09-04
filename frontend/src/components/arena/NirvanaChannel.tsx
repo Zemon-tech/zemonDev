@@ -2,21 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser } from '@clerk/clerk-react';
-// import { useArenaChannels } from '@/hooks/useArenaChannels';
 import { ApiService } from '@/services/api.service';
 import { useUserRole } from '@/context/UserRoleContext';
 import { useNotification } from '@/hooks/useNotification';
+import { useArenaHackathon } from '@/hooks/useArenaHackathon';
 import { 
   getNirvanaFeed, 
   updateNirvanaReaction,
-  createNirvanaHackathon,
   createNirvanaNews,
   createNirvanaTool,
   updateNirvanaItem,
   deleteNirvanaItem,
-  // type INirvanaFeedItem,
-  // type INirvanaFeedResponse,
-  type INirvanaHackathonData,
   type INirvanaNewsData,
   type INirvanaToolData
 } from '@/lib/nirvanaApi';
@@ -25,23 +21,27 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-// import { CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import Toaster from '@/components/ui/toast';
 
 // Icons
 import {
-  MessageSquare, Trophy, Users, Code, Sparkles, Star, Hash, TrendingUp, Zap, Search, Calendar, Bell, Heart, Share2,
+  MessageSquare, Trophy, Users, Sparkles, Star, Hash, Zap, Search, Calendar, Bell, Heart, Share2,
   ExternalLink, Award, Briefcase, Globe,
-  ChevronDown, ChevronRight, Plus, Eye, Bookmark, BarChart3,
+  ChevronDown, ChevronRight, Plus, Eye, Bookmark,
   Clock, CheckCircle, Flame, Edit, Trash2, Loader2,
 } from 'lucide-react';
 
 // Enhanced interfaces for different feed types
 interface FeedItem {
   id: string;
-  type: 'hackathon' | 'news' | 'tool' | 'update' | 'member' | 'partnership' | 'achievement' | 'showcase';
+  type: 'news' | 'tool' | 'update' | 'member' | 'partnership' | 'achievement' | 'showcase';
   title: string;
   content: string;
   timestamp: Date;
@@ -76,24 +76,16 @@ interface FeedItem {
   priority?: 'high' | 'medium' | 'low';
 }
 
-interface TrendingTopic {
+interface UpcomingEvent {
   id: string;
   name: string;
-  count: number;
-  trend: 'up' | 'down' | 'stable';
-  category: string;
+  date: string;
+  description: string;
+  participants?: number;
+  type: 'hackathon' | 'workshop' | 'ama' | 'other';
 }
 
 const NirvanaChannel: React.FC = () => {
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
-  };
 
   // Live feed state from backend
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
@@ -117,31 +109,15 @@ const NirvanaChannel: React.FC = () => {
     } as FeedItem;
   };
 
-  const trendingTopics: TrendingTopic[] = [
-    { id: '1', name: 'React 19', count: 234, trend: 'up', category: 'Frontend' },
-    { id: '2', name: 'AI Development', count: 189, trend: 'up', category: 'AI/ML' },
-    { id: '3', name: 'System Design', count: 156, trend: 'stable', category: 'Architecture' },
-    { id: '4', name: 'Web3', count: 98, trend: 'down', category: 'Blockchain' },
-    { id: '5', name: 'DevOps', count: 87, trend: 'up', category: 'Infrastructure' }
-  ];
+  // Real upcoming events state
+  const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
 
-  // const leaderboard = [
-  //   { id: '1', name: 'CodeMaster', avatar: 'https://github.com/shadcn.png', points: 1520, rank: 1 },
-  //   { id: '2', name: 'AlgoNinja', avatar: '', points: 1340, rank: 2 },
-  //   { id: '3', name: 'TechExpert', avatar: '', points: 1200, rank: 3 },
-  // ];
-  
-  const upcomingEvents = [
-    { id: '1', name: 'Weekly Hackathon', date: '2024-07-20T18:00:00Z', description: 'Compete in our weekly coding challenge!', participants: 45 },
-    { id: '2', name: 'AMA with AI Experts', date: '2024-07-22T16:00:00Z', description: 'Ask Me Anything with top AI professionals.', participants: 120 },
-    { id: '3', name: 'Code Review Workshop', date: '2024-07-24T14:00:00Z', description: 'Learn best practices for code reviews.', participants: 67 },
-  ];
-
-  // const { channels } = useArenaChannels();
   const { getToken } = useAuth();
   const { user } = useUser();
   const { hasAdminAccess } = useUserRole();
   const { toasterRef, showSuccess, showError } = useNotification();
+  const { currentHackathon } = useArenaHackathon();
   const [userChannelStatuses, setUserChannelStatuses] = useState<Record<string, string>>({});
   const [allChannelsForJoin, setAllChannelsForJoin] = useState<Record<string, any[]>>({});
   const [joinChannelsLoading, setJoinChannelsLoading] = useState(false);
@@ -155,7 +131,7 @@ const NirvanaChannel: React.FC = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const [createPostType, setCreatePostType] = useState<'hackathon' | 'news' | 'tool'>('hackathon');
+  const [createPostType, setCreatePostType] = useState<'news' | 'tool'>('news');
   const [createPostData, setCreatePostData] = useState({
     title: '',
     content: '',
@@ -182,7 +158,7 @@ const NirvanaChannel: React.FC = () => {
     const loadFeed = async () => {
       try {
         setFeedLoading(true);
-        const res = await getNirvanaFeed(getToken, { type: feedFilter === 'all' ? undefined : (feedFilter as 'hackathon' | 'news' | 'tool'), page, limit: 10 });
+        const res = await getNirvanaFeed(getToken, { type: feedFilter === 'all' ? undefined : (feedFilter as 'news' | 'tool'), page, limit: 10 });
         const items = res.items.map(mapBackendItemToFeedItem);
         if (page === 1) setFeedItems(items); else setFeedItems(prev => [...prev, ...items]);
         const pg = res.pagination;
@@ -201,11 +177,65 @@ const NirvanaChannel: React.FC = () => {
     loadFeed();
   }, [getToken, feedFilter, page]);
 
+  // Fetch upcoming events (hackathons and other events)
+  useEffect(() => {
+    const loadUpcomingEvents = async () => {
+      try {
+        setEventsLoading(true);
+        const events: UpcomingEvent[] = [];
+
+        // Get current/upcoming hackathons from Nirvana feed
+        const hackathonRes = await getNirvanaFeed(getToken, { limit: 5 });
+        const hackathons = hackathonRes.items.filter(item => {
+          const deadline = item.metadata?.deadline;
+          if (!deadline) return false;
+          return new Date(deadline) > new Date(); // Only future events
+        });
+
+        hackathons.forEach(hackathon => {
+          events.push({
+            id: hackathon._id,
+            name: hackathon.title,
+            date: hackathon.metadata?.deadline ? new Date(hackathon.metadata.deadline).toISOString() : new Date(hackathon.timestamp).toISOString(),
+            description: hackathon.content,
+            participants: hackathon.metadata?.participants || 0,
+            type: 'hackathon'
+          });
+        });
+
+        // Get current arena hackathon if available
+        if (currentHackathon && new Date(currentHackathon.endDate) > new Date()) {
+          events.push({
+            id: currentHackathon._id,
+            name: currentHackathon.title,
+            date: new Date(currentHackathon.endDate).toISOString(),
+            description: currentHackathon.description,
+            participants: currentHackathon.leaderboard?.length || 0,
+            type: 'hackathon'
+          });
+        }
+
+        // Sort by date and take first 3
+        events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        setUpcomingEvents(events.slice(0, 3));
+      } catch (e) {
+        console.error('Failed to load upcoming events:', e);
+        setUpcomingEvents([]);
+      } finally {
+        setEventsLoading(false);
+      }
+    };
+
+    if (getToken && typeof getToken === 'function') {
+      loadUpcomingEvents();
+    }
+  }, [getToken, currentHackathon]);
+
   const handleReact = async (
     item: FeedItem,
     reactionTypeUi: 'likes' | 'comments' | 'bookmarks'
   ) => {
-    if (!['hackathon', 'news', 'tool'].includes(item.type)) return;
+    if (!['news', 'tool'].includes(item.type)) return;
 
     // Map UI "comments" to backend/storage key "shares"
     const key = reactionTypeUi === 'comments' ? 'shares' : reactionTypeUi; // 'likes' | 'shares' | 'bookmarks'
@@ -233,7 +263,7 @@ const NirvanaChannel: React.FC = () => {
 
     try {
       const result = await updateNirvanaReaction(
-        item.type as 'hackathon' | 'news' | 'tool',
+        item.type as 'news' | 'tool',
         item.id,
         key as 'likes' | 'shares' | 'bookmarks',
         action,
@@ -291,23 +321,7 @@ const NirvanaChannel: React.FC = () => {
     try {
       let newPost: FeedItem;
       
-      if (createPostType === 'hackathon') {
-        const data: INirvanaHackathonData = {
-          title: createPostData.title,
-          content: createPostData.content,
-          description: createPostData.description,
-          prize: createPostData.prize,
-          participants: createPostData.participants,
-          category: createPostData.category,
-          tags: createPostData.tags.split(',').map(t => t.trim()).filter(t => t),
-          deadline: new Date(createPostData.deadline),
-          status: 'active',
-          hackathonName: createPostData.title,
-          link: createPostData.link || undefined,
-        };
-        const result = await createNirvanaHackathon(data, getToken);
-        newPost = mapBackendItemToFeedItem(result);
-      } else if (createPostType === 'news') {
+      if (createPostType === 'news') {
         const data: INirvanaNewsData = {
           title: createPostData.title,
           content: createPostData.content,
@@ -486,7 +500,7 @@ const NirvanaChannel: React.FC = () => {
       views: post.metadata?.views || 0,
       link: post.metadata?.link || '',
     });
-    setCreatePostType(post.type as 'hackathon' | 'news' | 'tool');
+    setCreatePostType(post.type as 'news' | 'tool');
     setShowEditModal(true);
   };
 
@@ -504,17 +518,7 @@ const NirvanaChannel: React.FC = () => {
         tags: createPostData.tags.split(',').map(t => t.trim()).filter(t => t),
       };
 
-      if (createPostType === 'hackathon') {
-        updateData = {
-          ...updateData,
-          description: createPostData.description,
-          prize: createPostData.prize,
-          participants: createPostData.participants,
-          deadline: new Date(createPostData.deadline),
-          'metadata.hackathonName': createPostData.title,
-          'metadata.link': createPostData.link || undefined,
-        };
-      } else if (createPostType === 'tool') {
+      if (createPostType === 'tool') {
         updateData = {
           ...updateData,
           toolName: createPostData.toolName,
@@ -583,7 +587,7 @@ const NirvanaChannel: React.FC = () => {
 
       // Call the delete API
       await deleteNirvanaItem(
-        post.type as 'hackathon' | 'news' | 'tool',
+        post.type as 'news' | 'tool',
         postId,
         getToken
       );
@@ -741,19 +745,52 @@ const NirvanaChannel: React.FC = () => {
               <span className="text-sm font-semibold text-base-content">Upcoming Events</span>
             </div>
             <div className="space-y-2">
-              {upcomingEvents.map(event => (
-                <div key={event.id} className="p-3 rounded-md border border-base-300 bg-base-200 hover:border-primary/30 transition-colors">
-                  <div className="flex items-start justify-between mb-1.5">
-                    <p className="font-medium text-base-content text-xs">{event.name}</p>
-                    <span className="text-xs bg-primary/20 text-primary font-medium rounded-full px-1.5 py-0.5">
-                      {event.participants} joined
-                    </span>
-                  </div>
-                  <p className="text-xs text-base-content/60 mb-1.5">{new Date(event.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</p>
-                  <p className="text-xs text-base-content/80 mb-2">{event.description}</p>
-                  <Button size="sm" className="h-6 px-2 text-xs btn-primary" variant="default">Learn More</Button>
+              {eventsLoading ? (
+                <div className="text-center text-xs text-base-content/60 py-3">
+                  <Loader2 className="w-4 h-4 animate-spin mx-auto mb-2" />
+                  Loading events...
                 </div>
-              ))}
+              ) : upcomingEvents.length === 0 ? (
+                <div className="text-center text-xs text-base-content/60 p-3 bg-base-200 rounded-md">
+                  <p>No upcoming events at the moment.</p>
+                </div>
+              ) : (
+                upcomingEvents.map(event => (
+                  <div key={event.id} className="p-3 rounded-md border border-base-300 bg-base-200 hover:border-primary/30 transition-colors">
+                    <div className="flex items-start justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-medium text-base-content text-xs">{event.name}</p>
+                        {event.type === 'hackathon' && (
+                          <Trophy className="w-3 h-3 text-warning" />
+                        )}
+                      </div>
+                      {event.participants && event.participants > 0 && (
+                        <span className="text-xs bg-primary/20 text-primary font-medium rounded-full px-1.5 py-0.5">
+                          {event.participants} joined
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-base-content/60 mb-1.5">
+                      {new Date(event.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                    </p>
+                    <p className="text-xs text-base-content/80 mb-2 line-clamp-2">{event.description}</p>
+                    <Button 
+                      size="sm" 
+                      className="h-6 px-2 text-xs btn-primary" 
+                      variant="default"
+                      onClick={() => {
+                        // Navigate to hackathon or show more details
+                        if (event.type === 'hackathon') {
+                          // Could dispatch event to show hackathon details
+                          console.log('Navigate to hackathon:', event.id);
+                        }
+                      }}
+                    >
+                      {event.type === 'hackathon' ? 'Join Hackathon' : 'Learn More'}
+                    </Button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
           
@@ -798,17 +835,6 @@ const NirvanaChannel: React.FC = () => {
               onClick={() => { setFeedFilter('all'); setPage(1); }}
             >
               All
-            </button>
-            <button
-              className={cn(
-                "px-2.5 py-1 text-xs font-medium rounded-full transition-all duration-200 whitespace-nowrap",
-                feedFilter === 'hackathon' 
-                  ? "bg-primary text-primary-content shadow-sm" 
-                  : "bg-base-200 text-base-content/70 hover:bg-base-300 hover:text-base-content"
-              )}
-              onClick={() => { setFeedFilter('hackathon'); setPage(1); }}
-            >
-              Hackathons
             </button>
             <button
               className={cn(
@@ -1110,434 +1136,520 @@ const NirvanaChannel: React.FC = () => {
           </div>
         </section>
         
-        {/* Right Sidebar */}
-        <motion.aside variants={containerVariants} initial="hidden" animate="visible" className="w-64 space-y-4 hidden lg:flex flex-col overflow-y-auto pr-2">
-          
-          {/* Trending Topics Card */}
-          <motion.div variants={itemVariants} className="bg-base-100 border border-base-300 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-6 h-6 bg-primary rounded-md flex items-center justify-center">
-                <TrendingUp className="w-3.5 h-3.5 text-primary-content" />
-              </div>
-              <h3 className="text-sm font-semibold text-base-content">Trending Topics</h3>
-            </div>
-            <div className="space-y-1.5">
-              {trendingTopics.map((topic) => (
-                <a href="#" key={topic.id} className="flex items-center justify-between p-2 rounded-md hover:bg-base-200 transition-colors group">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-base-200 rounded-md flex items-center justify-center">
-                      <Hash className="w-3 h-3 text-base-content/70" />
-                    </div>
-                    <div>
-                      <span className="text-xs font-medium text-base-content">{topic.name}</span>
-                      <p className="text-xs text-base-content/60">{topic.category}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-base-content/60">{topic.count}</span>
-                    <span className={cn("text-xs", topic.trend === 'up' && "text-success", topic.trend === 'down' && "text-error", topic.trend === 'stable' && "text-base-content/40")}>
-                      {topic.trend === 'up' && '▲'} {topic.trend === 'down' && '▼'} {topic.trend === 'stable' && '—'}
-                    </span>
-                  </div>
-                </a>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Quick Stats Card */}
-          <motion.div variants={itemVariants} className="bg-base-100 border border-base-300 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-6 h-6 bg-primary rounded-md flex items-center justify-center">
-                <BarChart3 className="w-3.5 h-3.5 text-primary-content" />
-              </div>
-              <h3 className="text-sm font-semibold text-base-content">Community Stats</h3>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between p-2 bg-base-200 rounded-md">
-                <div className="flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-base-content/70" />
-                  <span className="text-xs font-medium text-base-content">Active Members</span>
-                </div>
-                <span className="text-sm font-semibold text-base-content">2,847</span>
-              </div>
-              <div className="flex items-center justify-between p-2 bg-base-200 rounded-md">
-                <div className="flex items-center gap-1.5">
-                  <Code className="w-3.5 h-3.5 text-base-content/70" />
-                  <span className="text-xs font-medium text-base-content">Projects Shared</span>
-                </div>
-                <span className="text-sm font-semibold text-base-content">156</span>
-              </div>
-              <div className="flex items-center justify-between p-2 bg-base-200 rounded-md">
-                <div className="flex items-center gap-1.5">
-                  <Trophy className="w-3.5 h-3.5 text-base-content/70" />
-                  <span className="text-xs font-medium text-base-content">Hackathons</span>
-                </div>
-                <span className="text-sm font-semibold text-base-content">24</span>
-              </div>
-            </div>
-          </motion.div>
-        </motion.aside>
+        {/* Right Sidebar - Removed dummy content sections */}
       </div>
 
       {/* Create Post Modal */}
       {showCreatePost && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-base-100 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Create New Post</h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowCreatePost(false)}
-                className="h-6 w-6 p-0"
-              >
-                ×
-              </Button>
-            </div>
-
-            <div className="space-y-4">
-              {/* Post Type Selection */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Post Type</label>
-                <div className="flex gap-2">
-                  {(['hackathon', 'news', 'tool'] as const).map((type) => (
-                    <Button
-                      key={type}
-                      variant={createPostType === type ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCreatePostType(type)}
-                      className="text-xs capitalize"
-                    >
-                      {type}
-                    </Button>
-                  ))}
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl border-0 bg-gradient-to-br from-base-100 to-base-200">
+            <CardHeader className="pb-4 border-b border-base-300/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Plus className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold text-base-content">Create New Post</CardTitle>
+                    <p className="text-sm text-base-content/60">Share something with the community</p>
+                  </div>
                 </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setShowCreatePost(false)}
+                  className="h-8 w-8 rounded-full hover:bg-base-300/50"
+                >
+                  <span className="sr-only">Close</span>
+                  ×
+                </Button>
               </div>
+            </CardHeader>
 
-              {/* Title */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Title *</label>
-                <Input
-                  value={createPostData.title}
-                  onChange={(e) => setCreatePostData(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Enter title..."
-                  className="text-sm"
-                />
-              </div>
+            <CardContent className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <Tabs value={createPostType} onValueChange={(value) => setCreatePostType(value as 'news' | 'tool')} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6 bg-base-200/50">
+                  <TabsTrigger value="news" className="flex items-center gap-2">
+                    <Bell className="w-4 h-4" />
+                    News
+                  </TabsTrigger>
+                  <TabsTrigger value="tool" className="flex items-center gap-2">
+                    <Briefcase className="w-4 h-4" />
+                    Tool
+                  </TabsTrigger>
+                </TabsList>
 
-              {/* Content */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Content *</label>
-                <textarea
-                  value={createPostData.content}
-                  onChange={(e) => setCreatePostData(prev => ({ ...prev, content: e.target.value }))}
-                  placeholder="Enter content..."
-                  className="w-full p-2 border border-base-300 rounded-md text-sm min-h-[80px] resize-none bg-base-100"
-                />
-              </div>
+                <TabsContent value="news" className="space-y-4 mt-0">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="news-title" className="text-sm font-medium text-base-content/80">
+                        Title *
+                      </Label>
+                      <Input
+                        id="news-title"
+                        value={createPostData.title}
+                        onChange={(e) => setCreatePostData(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="What's the news about?"
+                        className="h-10"
+                      />
+                    </div>
 
-              {/* Category */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Category</label>
-                <Input
-                  value={createPostData.category}
-                  onChange={(e) => setCreatePostData(prev => ({ ...prev, category: e.target.value }))}
-                  placeholder="e.g., AI/ML, Web Development..."
-                  className="text-sm"
-                />
-              </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="news-content" className="text-sm font-medium text-base-content/80">
+                        Content *
+                      </Label>
+                      <Textarea
+                        id="news-content"
+                        value={createPostData.content}
+                        onChange={(e) => setCreatePostData(prev => ({ ...prev, content: e.target.value }))}
+                        placeholder="Share the details..."
+                        className="min-h-[100px] resize-none"
+                      />
+                    </div>
 
-              {/* Tags */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Tags (comma-separated)</label>
-                <Input
-                  value={createPostData.tags}
-                  onChange={(e) => setCreatePostData(prev => ({ ...prev, tags: e.target.value }))}
-                  placeholder="e.g., React, AI, Hackathon..."
-                  className="text-sm"
-                />
-              </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="news-category" className="text-sm font-medium text-base-content/80">
+                          Category
+                        </Label>
+                        <Input
+                          id="news-category"
+                          value={createPostData.category}
+                          onChange={(e) => setCreatePostData(prev => ({ ...prev, category: e.target.value }))}
+                          placeholder="e.g., AI/ML, Web Dev"
+                          className="h-10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="news-tags" className="text-sm font-medium text-base-content/80">
+                          Tags
+                        </Label>
+                        <Input
+                          id="news-tags"
+                          value={createPostData.tags}
+                          onChange={(e) => setCreatePostData(prev => ({ ...prev, tags: e.target.value }))}
+                          placeholder="React, AI, News"
+                          className="h-10"
+                        />
+                      </div>
+                    </div>
 
-              {/* Type-specific fields */}
-              {createPostType === 'hackathon' && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Prize Pool</label>
-                    <Input
-                      value={createPostData.prize}
-                      onChange={(e) => setCreatePostData(prev => ({ ...prev, prize: e.target.value }))}
-                      placeholder="e.g., $10,000"
-                      className="text-sm"
-                    />
+                    <div className="space-y-2">
+                      <Label htmlFor="news-link" className="text-sm font-medium text-base-content/80">
+                        Link (optional)
+                      </Label>
+                      <Input
+                        id="news-link"
+                        value={createPostData.link}
+                        onChange={(e) => setCreatePostData(prev => ({ ...prev, link: e.target.value }))}
+                        placeholder="https://example.com"
+                        className="h-10"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Participants</label>
-                    <Input
-                      type="number"
-                      value={createPostData.participants}
-                      onChange={(e) => setCreatePostData(prev => ({ ...prev, participants: parseInt(e.target.value) || 0 }))}
-                      placeholder="0"
-                      className="text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Deadline</label>
-                    <Input
-                      type="datetime-local"
-                      value={createPostData.deadline}
-                      onChange={(e) => setCreatePostData(prev => ({ ...prev, deadline: e.target.value }))}
-                      className="text-sm"
-                    />
-                  </div>
-                </>
-              )}
+                </TabsContent>
 
-              {createPostType === 'tool' && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Tool Name</label>
-                    <Input
-                      value={createPostData.toolName}
-                      onChange={(e) => setCreatePostData(prev => ({ ...prev, toolName: e.target.value }))}
-                      placeholder="e.g., CodeGPT Assistant"
-                      className="text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Rating (1-5)</label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="5"
-                      value={createPostData.rating}
-                      onChange={(e) => setCreatePostData(prev => ({ ...prev, rating: parseInt(e.target.value) || 5 }))}
-                      className="text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Views</label>
-                    <Input
-                      type="number"
-                      value={createPostData.views}
-                      onChange={(e) => setCreatePostData(prev => ({ ...prev, views: parseInt(e.target.value) || 0 }))}
-                      placeholder="0"
-                      className="text-sm"
-                    />
-                  </div>
-                </>
-              )}
+                <TabsContent value="tool" className="space-y-4 mt-0">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="tool-title" className="text-sm font-medium text-base-content/80">
+                        Tool Name *
+                      </Label>
+                      <Input
+                        id="tool-title"
+                        value={createPostData.title}
+                        onChange={(e) => setCreatePostData(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="What's the tool called?"
+                        className="h-10"
+                      />
+                    </div>
 
-              {/* Link */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Link (optional)</label>
-                <Input
-                  value={createPostData.link}
-                  onChange={(e) => setCreatePostData(prev => ({ ...prev, link: e.target.value }))}
-                  placeholder="https://..."
-                  className="text-sm"
-                />
-              </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="tool-content" className="text-sm font-medium text-base-content/80">
+                        Description *
+                      </Label>
+                      <Textarea
+                        id="tool-content"
+                        value={createPostData.content}
+                        onChange={(e) => setCreatePostData(prev => ({ ...prev, content: e.target.value }))}
+                        placeholder="Describe what this tool does..."
+                        className="min-h-[100px] resize-none"
+                      />
+                    </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="tool-name" className="text-sm font-medium text-base-content/80">
+                          Tool Name
+                        </Label>
+                        <Input
+                          id="tool-name"
+                          value={createPostData.toolName}
+                          onChange={(e) => setCreatePostData(prev => ({ ...prev, toolName: e.target.value }))}
+                          placeholder="e.g., CodeGPT Assistant"
+                          className="h-10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="tool-category" className="text-sm font-medium text-base-content/80">
+                          Category
+                        </Label>
+                        <Input
+                          id="tool-category"
+                          value={createPostData.category}
+                          onChange={(e) => setCreatePostData(prev => ({ ...prev, category: e.target.value }))}
+                          placeholder="e.g., Development, AI"
+                          className="h-10"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="tool-rating" className="text-sm font-medium text-base-content/80">
+                          Rating
+                        </Label>
+                        <Input
+                          id="tool-rating"
+                          type="number"
+                          min="1"
+                          max="5"
+                          value={createPostData.rating}
+                          onChange={(e) => setCreatePostData(prev => ({ ...prev, rating: parseInt(e.target.value) || 5 }))}
+                          className="h-10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="tool-views" className="text-sm font-medium text-base-content/80">
+                          Views
+                        </Label>
+                        <Input
+                          id="tool-views"
+                          type="number"
+                          value={createPostData.views}
+                          onChange={(e) => setCreatePostData(prev => ({ ...prev, views: parseInt(e.target.value) || 0 }))}
+                          placeholder="0"
+                          className="h-10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="tool-tags" className="text-sm font-medium text-base-content/80">
+                          Tags
+                        </Label>
+                        <Input
+                          id="tool-tags"
+                          value={createPostData.tags}
+                          onChange={(e) => setCreatePostData(prev => ({ ...prev, tags: e.target.value }))}
+                          placeholder="React, AI, Tool"
+                          className="h-10"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="tool-link" className="text-sm font-medium text-base-content/80">
+                        Link (optional)
+                      </Label>
+                      <Input
+                        id="tool-link"
+                        value={createPostData.link}
+                        onChange={(e) => setCreatePostData(prev => ({ ...prev, link: e.target.value }))}
+                        placeholder="https://tool-website.com"
+                        className="h-10"
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              <Separator className="my-6" />
+
+              <div className="flex gap-3">
                 <Button
                   onClick={handleCreatePost}
                   disabled={creatingPost || !createPostData.title || !createPostData.content}
-                  className="flex-1"
+                  className="flex-1 h-10 bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
-                  {creatingPost ? 'Creating...' : 'Create Post'}
+                  {creatingPost ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Post
+                    </>
+                  )}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => setShowCreatePost(false)}
                   disabled={creatingPost}
+                  className="h-10 px-6 border-base-300 hover:bg-base-200"
                 >
                   Cancel
                 </Button>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* Edit Post Modal */}
       {showEditModal && editingPost && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-base-100 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Edit Post</h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowEditModal(false)}
-                className="h-6 w-6 p-0"
-              >
-                ×
-              </Button>
-            </div>
-
-            <div className="space-y-4">
-              {/* Post Type Selection */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Post Type</label>
-                <div className="flex gap-2">
-                  {(['hackathon', 'news', 'tool'] as const).map((type) => (
-                    <Button
-                      key={type}
-                      variant={createPostType === type ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCreatePostType(type)}
-                      className="text-xs capitalize"
-                    >
-                      {type}
-                    </Button>
-                  ))}
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl border-0 bg-gradient-to-br from-base-100 to-base-200">
+            <CardHeader className="pb-4 border-b border-base-300/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Edit className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold text-base-content">Edit Post</CardTitle>
+                    <p className="text-sm text-base-content/60">Update your post details</p>
+                  </div>
                 </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setShowEditModal(false)}
+                  className="h-8 w-8 rounded-full hover:bg-base-300/50"
+                >
+                  <span className="sr-only">Close</span>
+                  ×
+                </Button>
               </div>
+            </CardHeader>
 
-              {/* Title */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Title *</label>
-                <Input
-                  value={createPostData.title}
-                  onChange={(e) => setCreatePostData(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Enter title..."
-                  className="text-sm"
-                />
-              </div>
+            <CardContent className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <Tabs value={createPostType} onValueChange={(value) => setCreatePostType(value as 'news' | 'tool')} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6 bg-base-200/50">
+                  <TabsTrigger value="news" className="flex items-center gap-2">
+                    <Bell className="w-4 h-4" />
+                    News
+                  </TabsTrigger>
+                  <TabsTrigger value="tool" className="flex items-center gap-2">
+                    <Briefcase className="w-4 h-4" />
+                    Tool
+                  </TabsTrigger>
+                </TabsList>
 
-              {/* Content */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Content *</label>
-                <textarea
-                  value={createPostData.content}
-                  onChange={(e) => setCreatePostData(prev => ({ ...prev, content: e.target.value }))}
-                  placeholder="Enter content..."
-                  className="w-full p-2 border border-base-300 rounded-md text-sm min-h-[80px] resize-none bg-base-100"
-                />
-              </div>
+                <TabsContent value="news" className="space-y-4 mt-0">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-news-title" className="text-sm font-medium text-base-content/80">
+                        Title *
+                      </Label>
+                      <Input
+                        id="edit-news-title"
+                        value={createPostData.title}
+                        onChange={(e) => setCreatePostData(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="What's the news about?"
+                        className="h-10"
+                      />
+                    </div>
 
-              {/* Category */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Category</label>
-                <Input
-                  value={createPostData.category}
-                  onChange={(e) => setCreatePostData(prev => ({ ...prev, category: e.target.value }))}
-                  placeholder="e.g., AI/ML, Web Development..."
-                  className="text-sm"
-                />
-              </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-news-content" className="text-sm font-medium text-base-content/80">
+                        Content *
+                      </Label>
+                      <Textarea
+                        id="edit-news-content"
+                        value={createPostData.content}
+                        onChange={(e) => setCreatePostData(prev => ({ ...prev, content: e.target.value }))}
+                        placeholder="Share the details..."
+                        className="min-h-[100px] resize-none"
+                      />
+                    </div>
 
-              {/* Tags */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Tags (comma-separated)</label>
-                <Input
-                  value={createPostData.tags}
-                  onChange={(e) => setCreatePostData(prev => ({ ...prev, tags: e.target.value }))}
-                  placeholder="e.g., React, AI, Hackathon..."
-                  className="text-sm"
-                />
-              </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-news-category" className="text-sm font-medium text-base-content/80">
+                          Category
+                        </Label>
+                        <Input
+                          id="edit-news-category"
+                          value={createPostData.category}
+                          onChange={(e) => setCreatePostData(prev => ({ ...prev, category: e.target.value }))}
+                          placeholder="e.g., AI/ML, Web Dev"
+                          className="h-10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-news-tags" className="text-sm font-medium text-base-content/80">
+                          Tags
+                        </Label>
+                        <Input
+                          id="edit-news-tags"
+                          value={createPostData.tags}
+                          onChange={(e) => setCreatePostData(prev => ({ ...prev, tags: e.target.value }))}
+                          placeholder="React, AI, News"
+                          className="h-10"
+                        />
+                      </div>
+                    </div>
 
-              {/* Type-specific fields */}
-              {createPostType === 'hackathon' && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Prize Pool</label>
-                    <Input
-                      value={createPostData.prize}
-                      onChange={(e) => setCreatePostData(prev => ({ ...prev, prize: e.target.value }))}
-                      placeholder="e.g., $10,000"
-                      className="text-sm"
-                    />
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-news-link" className="text-sm font-medium text-base-content/80">
+                        Link (optional)
+                      </Label>
+                      <Input
+                        id="edit-news-link"
+                        value={createPostData.link}
+                        onChange={(e) => setCreatePostData(prev => ({ ...prev, link: e.target.value }))}
+                        placeholder="https://example.com"
+                        className="h-10"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Participants</label>
-                    <Input
-                      type="number"
-                      value={createPostData.participants}
-                      onChange={(e) => setCreatePostData(prev => ({ ...prev, participants: parseInt(e.target.value) || 0 }))}
-                      placeholder="0"
-                      className="text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Deadline</label>
-                    <Input
-                      type="datetime-local"
-                      value={createPostData.deadline}
-                      onChange={(e) => setCreatePostData(prev => ({ ...prev, deadline: e.target.value }))}
-                      className="text-sm"
-                    />
-                  </div>
-                </>
-              )}
+                </TabsContent>
 
-              {createPostType === 'tool' && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Tool Name</label>
-                    <Input
-                      value={createPostData.toolName}
-                      onChange={(e) => setCreatePostData(prev => ({ ...prev, toolName: e.target.value }))}
-                      placeholder="e.g., CodeGPT Assistant"
-                      className="text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Rating (1-5)</label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="5"
-                      value={createPostData.rating}
-                      onChange={(e) => setCreatePostData(prev => ({ ...prev, rating: parseInt(e.target.value) || 5 }))}
-                      className="text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Views</label>
-                    <Input
-                      type="number"
-                      value={createPostData.views}
-                      onChange={(e) => setCreatePostData(prev => ({ ...prev, views: parseInt(e.target.value) || 0 }))}
-                      placeholder="0"
-                      className="text-sm"
-                    />
-                  </div>
-                </>
-              )}
+                <TabsContent value="tool" className="space-y-4 mt-0">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-tool-title" className="text-sm font-medium text-base-content/80">
+                        Tool Name *
+                      </Label>
+                      <Input
+                        id="edit-tool-title"
+                        value={createPostData.title}
+                        onChange={(e) => setCreatePostData(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="What's the tool called?"
+                        className="h-10"
+                      />
+                    </div>
 
-              {/* Link */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Link (optional)</label>
-                <Input
-                  value={createPostData.link}
-                  onChange={(e) => setCreatePostData(prev => ({ ...prev, link: e.target.value }))}
-                  placeholder="https://..."
-                  className="text-sm"
-                />
-              </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-tool-content" className="text-sm font-medium text-base-content/80">
+                        Description *
+                      </Label>
+                      <Textarea
+                        id="edit-tool-content"
+                        value={createPostData.content}
+                        onChange={(e) => setCreatePostData(prev => ({ ...prev, content: e.target.value }))}
+                        placeholder="Describe what this tool does..."
+                        className="min-h-[100px] resize-none"
+                      />
+                    </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-tool-name" className="text-sm font-medium text-base-content/80">
+                          Tool Name
+                        </Label>
+                        <Input
+                          id="edit-tool-name"
+                          value={createPostData.toolName}
+                          onChange={(e) => setCreatePostData(prev => ({ ...prev, toolName: e.target.value }))}
+                          placeholder="e.g., CodeGPT Assistant"
+                          className="h-10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-tool-category" className="text-sm font-medium text-base-content/80">
+                          Category
+                        </Label>
+                        <Input
+                          id="edit-tool-category"
+                          value={createPostData.category}
+                          onChange={(e) => setCreatePostData(prev => ({ ...prev, category: e.target.value }))}
+                          placeholder="e.g., Development, AI"
+                          className="h-10"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-tool-rating" className="text-sm font-medium text-base-content/80">
+                          Rating
+                        </Label>
+                        <Input
+                          id="edit-tool-rating"
+                          type="number"
+                          min="1"
+                          max="5"
+                          value={createPostData.rating}
+                          onChange={(e) => setCreatePostData(prev => ({ ...prev, rating: parseInt(e.target.value) || 5 }))}
+                          className="h-10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-tool-views" className="text-sm font-medium text-base-content/80">
+                          Views
+                        </Label>
+                        <Input
+                          id="edit-tool-views"
+                          type="number"
+                          value={createPostData.views}
+                          onChange={(e) => setCreatePostData(prev => ({ ...prev, views: parseInt(e.target.value) || 0 }))}
+                          placeholder="0"
+                          className="h-10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-tool-tags" className="text-sm font-medium text-base-content/80">
+                          Tags
+                        </Label>
+                        <Input
+                          id="edit-tool-tags"
+                          value={createPostData.tags}
+                          onChange={(e) => setCreatePostData(prev => ({ ...prev, tags: e.target.value }))}
+                          placeholder="React, AI, Tool"
+                          className="h-10"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-tool-link" className="text-sm font-medium text-base-content/80">
+                        Link (optional)
+                      </Label>
+                      <Input
+                        id="edit-tool-link"
+                        value={createPostData.link}
+                        onChange={(e) => setCreatePostData(prev => ({ ...prev, link: e.target.value }))}
+                        placeholder="https://tool-website.com"
+                        className="h-10"
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              <Separator className="my-6" />
+
+              <div className="flex gap-3">
                 <Button
                   onClick={handleUpdatePost}
                   disabled={creatingPost || !createPostData.title || !createPostData.content}
-                  className="flex-1"
+                  className="flex-1 h-10 bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
-                  {creatingPost ? 'Updating...' : 'Update Post'}
+                  {creatingPost ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <Edit className="w-4 h-4 mr-2" />
+                      Update Post
+                    </>
+                  )}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => setShowEditModal(false)}
                   disabled={creatingPost}
+                  className="h-10 px-6 border-base-300 hover:bg-base-200"
                 >
                   Cancel
                 </Button>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       )}
       
