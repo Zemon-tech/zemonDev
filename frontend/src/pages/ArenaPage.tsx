@@ -60,6 +60,19 @@ const ArenaPage: React.FC = () => {
     setActiveChannelId(channelId);
     setShowNirvana(false);
     setShowAdminPanel(false);
+    
+    // Dispatch event to AppLayout to handle nav bar visibility
+    // Find the selected channel to check its type
+    const allChannels = Object.values(channels).flat();
+    const selectedChannel = allChannels.find(ch => ch._id === channelId);
+    
+    if (selectedChannel?.type === 'chat') {
+      // Dispatch arena-chat-open event for chat channels
+      window.dispatchEvent(new CustomEvent('arena-chat-open', { detail: { channelId } }));
+    } else {
+      // Dispatch arena-chat-close event for non-chat channels
+      window.dispatchEvent(new CustomEvent('arena-chat-close', { detail: { channelId } }));
+    }
   };
   const allChannels = Object.values(channels).flat();
   // Find all parent channels where user is mod/admin (canMessage)
@@ -154,6 +167,8 @@ const ArenaPage: React.FC = () => {
       setShowNirvana(true);
       setActiveChannelId(null);
       setShowAdminPanel(false);
+      // Dispatch arena-chat-close event when showing Nirvana
+      window.dispatchEvent(new CustomEvent('arena-chat-close'));
     };
 
     window.addEventListener('toggle-arena-sidebar', handleSidebarToggle);
@@ -339,6 +354,8 @@ const ArenaPage: React.FC = () => {
                   setShowNirvana(true);
                   setShowAdminPanel(false);
                   setActiveChannelId(null);
+                  // Dispatch arena-chat-close event when showing Nirvana
+                  window.dispatchEvent(new CustomEvent('arena-chat-close'));
                 }}
                 title="Nirvana"
               >
@@ -358,6 +375,8 @@ const ArenaPage: React.FC = () => {
                     setShowAdminPanel(true);
                     setShowNirvana(false);
                     setActiveChannelId(null);
+                    // Dispatch arena-chat-close event when showing Admin Panel
+                    window.dispatchEvent(new CustomEvent('arena-chat-close'));
                   }}
                   title="Admin Panel"
                 >
