@@ -1,7 +1,7 @@
-import { SolutionAnalysisProvider } from './SolutionAnalysisProvider.interface';
 import { GeminiSolutionAnalysisProvider } from './GeminiSolutionAnalysisProvider';
 import { OpenRouterSolutionAnalysisProvider } from './OpenRouterSolutionAnalysisProvider';
 import { FallbackSolutionAnalysisProvider } from './FallbackSolutionAnalysisProvider';
+import { SolutionAnalysisProvider } from './SolutionAnalysisProvider.interface';
 import { ConfigurationError } from './ProviderErrors';
 import { getAIConfig } from '../../../config/ai.config';
 import env from '../../../config/env';
@@ -59,16 +59,25 @@ export class SolutionAnalysisProviderFactory {
     const enableFallback = env.ENABLE_ANALYSIS_FALLBACK;
     
     // Get the primary provider based on configuration
-    const primaryProvider = this.getProvider();
+    const primaryProvider = this.getProvider(config.solutionAnalysisProvider);
     
-    // If fallback is disabled or primary is already Gemini, return as-is
-    if (!enableFallback || config.solutionAnalysisProvider === 'gemini') {
-      console.log(`[ProviderFactory] Fallback disabled or primary is Gemini, returning: ${primaryProvider.getProviderName()}`);
+    // If fallback is disabled, return raw primary provider
+    if (!enableFallback) {
+      console.log(`[ProviderFactory] Fallback disabled, returning raw provider: ${primaryProvider.getProviderName()}`);
       return primaryProvider;
     }
     
-    // Create fallback provider (always Gemini)
-    const fallbackProvider = this.getProvider('gemini');
+    // Get fallback provider (configured via ANALYSIS_FALLBACK_PROVIDER)
+    const fallbackProviderName = env.ANALYSIS_FALLBACK_PROVIDER;
+    
+    // Don't wrap if primary and fallback are the same
+    if (config.solutionAnalysisProvider === fallbackProviderName) {
+      console.log(`[ProviderFactory] Primary and fallback are the same (${config.solutionAnalysisProvider}), returning raw provider`);
+      return primaryProvider;
+    }
+    
+    // Create fallback provider
+    const fallbackProvider = this.getProvider(fallbackProviderName);
     
     // Wrap with fallback capability
     const fallbackWrapper = new FallbackSolutionAnalysisProvider(primaryProvider, fallbackProvider);

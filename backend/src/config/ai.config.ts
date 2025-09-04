@@ -40,7 +40,7 @@ export const validateAIConfig = (): ValidationResult => {
 
   // Get environment variables
   const provider = (process.env.AI_PROVIDER?.toLowerCase() as AIProvider) || 'gemini';
-  const solutionAnalysisProvider = (process.env.SOLUTION_ANALYSIS_PROVIDER?.toLowerCase() as 'openrouter' | 'gemini') || 'gemini';
+  const solutionAnalysisProvider = (process.env.ANALYSIS_PROVIDER?.toLowerCase() as 'openrouter' | 'gemini') || 'gemini';
   const openrouterApiKey = process.env.OPENROUTER_API_KEY;
   const geminiApiKey = process.env.GEMINI_API_KEY;
   const webSearchEnabled = process.env.ENABLE_WEB_SEARCH?.toLowerCase() === 'true';
@@ -53,7 +53,7 @@ export const validateAIConfig = (): ValidationResult => {
 
   // Validate solution analysis provider selection
   if (!['openrouter', 'gemini'].includes(solutionAnalysisProvider)) {
-    errors.push(`Invalid SOLUTION_ANALYSIS_PROVIDER: "${process.env.SOLUTION_ANALYSIS_PROVIDER}". Must be "openrouter" or "gemini".`);
+    errors.push(`Invalid ANALYSIS_PROVIDER: "${process.env.ANALYSIS_PROVIDER}". Must be "openrouter" or "gemini".`);
   }
 
   // Warn if analysis provider differs from main AI provider
@@ -90,7 +90,7 @@ export const validateAIConfig = (): ValidationResult => {
   // Validate solution analysis provider configuration
   if (solutionAnalysisProvider === 'openrouter') {
     if (!openrouterApiKey) {
-      errors.push('OPENROUTER_API_KEY is required when SOLUTION_ANALYSIS_PROVIDER=openrouter');
+      errors.push('OPENROUTER_API_KEY is required when ANALYSIS_PROVIDER=openrouter');
     }
 
     // Validate OpenRouter analysis model format
@@ -106,7 +106,7 @@ export const validateAIConfig = (): ValidationResult => {
     }
   } else if (solutionAnalysisProvider === 'gemini') {
     if (!geminiApiKey) {
-      errors.push('GEMINI_API_KEY is required when SOLUTION_ANALYSIS_PROVIDER=gemini');
+      errors.push('GEMINI_API_KEY is required when ANALYSIS_PROVIDER=gemini');
     }
   }
 
@@ -167,7 +167,7 @@ export const getAIConfig = (): AIConfig => {
   }
 
   const provider = (process.env.AI_PROVIDER?.toLowerCase() as AIProvider) || 'gemini';
-  const solutionAnalysisProvider = (process.env.SOLUTION_ANALYSIS_PROVIDER?.toLowerCase() as 'openrouter' | 'gemini') || 'gemini';
+  const solutionAnalysisProvider = (process.env.ANALYSIS_PROVIDER?.toLowerCase() as 'openrouter' | 'gemini') || 'gemini';
 
   return {
     provider,
