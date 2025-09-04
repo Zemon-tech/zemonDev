@@ -1,6 +1,6 @@
-import { generateComprehensiveAnalysis } from '../../solutionAnalysis.service';
+import { generateComprehensiveAnalysis } from '../../../solutionAnalysis.service';
 import { SolutionAnalysisProviderFactory } from '../ProviderFactory';
-import { ICrucibleProblem } from '../../../models/crucibleProblem.model';
+import { ICrucibleProblem } from '../../../../models/crucibleProblem.model';
 
 describe('Solution Analysis Integration', () => {
   // Mock problem data for testing
@@ -11,8 +11,8 @@ describe('Solution Analysis Integration', () => {
     difficulty: 'easy',
     tags: ['javascript', 'function'],
     requirements: {
-      functional: [{ requirement: 'Implement a function that returns hello world' }],
-      nonFunctional: [{ requirement: 'Code should be readable' }]
+      functional: [{ requirement: 'Implement a function that returns hello world', context: 'Basic function implementation' }],
+      nonFunctional: [{ requirement: 'Code should be readable', context: 'Code quality and maintainability' }]
     },
     constraints: ['Use JavaScript only']
   };
