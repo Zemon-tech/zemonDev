@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import YouTube from 'react-youtube';
 import { Send, Paperclip, X, Copy, BookmarkPlus, RotateCcw, Sparkles } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
@@ -10,6 +11,72 @@ import { updateNotes } from '../../lib/crucibleApi';
 import { useToast } from '../ui/toast';
 import { useWorkspace } from '../../lib/WorkspaceContext';
 import ShinyText from '../blocks/TextAnimations/ShinyText/ShinyText';
+
+// Utility: Extract YouTube video ID from various URL formats
+function extractYouTubeVideoId(url?: string): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, '');
+    if (host === 'youtube.com' || host === 'm.youtube.com') {
+      if (parsed.pathname === '/watch') {
+        return parsed.searchParams.get('v');
+      }
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      if (parts[0] === 'shorts' && parts[1]) return parts[1];
+      if (parts[0] === 'live' && parts[1]) return parts[1];
+    }
+    if (host === 'youtu.be') {
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      if (parts[0]) return parts[0];
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Video bubble with responsive player and error handling
+const VideoBubble: React.FC<{ videoId: string }> = ({ videoId }) => {
+  const [errored, setErrored] = useState<boolean>(false);
+
+  const onError = () => {
+    setErrored(true);
+  };
+
+  return (
+    <div className="my-1 w-full overflow-x-auto border border-base-300 dark:border-base-600 rounded-md shadow-sm bg-base-100 dark:bg-base-700">
+      <div className="min-w-[320px] w-full max-w-full p-2">
+        {errored ? (
+          <div className="text-xs text-error bg-error/10 border border-error/30 rounded p-2">
+            Failed to load video. The link may be invalid.
+          </div>
+        ) : (
+          <div className="w-full" style={{ maxWidth: '100%' }}>
+            <div className="relative" style={{ paddingTop: '56.25%' }}>
+              <div className="absolute inset-0">
+                <YouTube
+                  videoId={videoId}
+                  opts={{
+                    width: '100%',
+                    height: '100%',
+                    playerVars: {
+                      autoplay: 0,
+                      rel: 0,
+                      modestbranding: 1,
+                    },
+                  }}
+                  onError={onError}
+                  className="w-full h-full"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 interface Message {
   id: string;
@@ -30,7 +97,7 @@ interface AIChatSidebarProps {
   solutionContent?: string;
 }
 
-// Enhanced Markdown Components - Compact Design with Proper Indentation and Table Scrolling
+// Enhanced Markdown Components - Fixed Table Container
 const MarkdownComponents = {
   h1: ({ children, ...props }: any) => (
     <h1 className="text-lg font-bold text-base-content mb-1 mt-2 first:mt-0 border-b border-base-300/50 pb-1" {...props}>
@@ -72,47 +139,92 @@ const MarkdownComponents = {
       {children}
     </blockquote>
   ),
+  // Improved Table Container - Bubble-like with proper scrolling
   table: ({ children, ...props }: any) => (
-    <div 
-      className="my-1.5 w-full overflow-x-auto border border-base-300 dark:border-base-600 rounded-md shadow-sm relative"
-      tabIndex={0}
-      role="region"
-      aria-label="Scrollable table content"
-    >
-      <table className="w-full border-collapse bg-base-100 dark:bg-base-700 text-xs min-w-full" {...props}>
-        {children}
-      </table>
-      {/* Scroll indicator */}
-      <div className="absolute top-2 right-2 bg-base-100 dark:bg-base-800 px-2 py-1 rounded text-xs text-base-content/60 border border-base-300 dark:border-base-600 pointer-events-none z-20 opacity-75">
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-          Scroll
-        </span>
+    <div className="my-2 w-full max-w-full">
+      <div 
+        className="
+          relative
+          bg-gradient-to-br from-base-50 to-base-100 
+          dark:from-base-700 dark:to-base-800
+          border border-base-300/60 dark:border-base-600/60
+          rounded-xl
+          shadow-md
+          overflow-hidden
+          backdrop-blur-sm
+        "
+        role="region"
+        aria-label="Data table"
+      >
+        {/* Table header with scroll indicator */}
+        <div className="flex items-center justify-between p-2 bg-gradient-to-r from-primary/10 to-primary/5 border-b border-base-200 dark:border-base-600">
+          <span className="text-xs font-medium text-base-content/70 flex items-center gap-1">
+            <div className="w-2 h-2 bg-primary rounded-full"></div>
+            Data Table
+          </span>
+          <div className="flex items-center gap-1 text-xs text-base-content/50">
+            <span>↔</span>
+            <span>Scroll</span>
+          </div>
+        </div>
+        
+        {/* Scrollable table container */}
+        <div 
+          className="
+            overflow-x-auto overflow-y-hidden
+            max-w-full
+            scrollbar-thin scrollbar-thumb-primary/60 scrollbar-track-base-200
+            dark:scrollbar-track-base-700
+          "
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'hsl(var(--p) / 0.6) hsl(var(--b2))'
+          }}
+        >
+          <table 
+            className="
+              w-full min-w-max border-collapse 
+              bg-transparent text-xs
+            " 
+            {...props}
+          >
+            {children}
+          </table>
+        </div>
       </div>
     </div>
   ),
   thead: ({ children, ...props }: any) => (
-    <thead className="bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10" {...props}>
+    <thead className="bg-gradient-to-r from-base-100/80 to-base-50/80 dark:from-base-600/80 dark:to-base-700/80 sticky top-0 z-10" {...props}>
       {children}
     </thead>
   ),
   tbody: ({ children, ...props }: any) => (
-    <tbody className="divide-y divide-base-200 dark:divide-base-600" {...props}>
+    <tbody className="divide-y divide-base-200/50 dark:divide-base-600/50" {...props}>
       {children}
     </tbody>
   ),
   tr: ({ children, ...props }: any) => (
-    <tr className="hover:bg-base-50 dark:hover:bg-base-600/50 transition-colors duration-150" {...props}>
+    <tr className="hover:bg-base-100/50 dark:hover:bg-base-600/30 transition-colors duration-150" {...props}>
       {children}
     </tr>
   ),
   th: ({ children, ...props }: any) => (
-    <th className="px-2 py-1.5 text-left text-xs font-semibold text-base-content/90 border-b border-base-200 dark:border-base-600 whitespace-nowrap" {...props}>
+    <th className="
+      px-3 py-2 text-left text-xs font-semibold 
+      text-base-content border-b border-base-200/50 
+      dark:border-base-600/50 whitespace-nowrap
+      min-w-[100px]
+    " {...props}>
       {children}
     </th>
   ),
   td: ({ children, ...props }: any) => (
-    <td className="px-2 py-1.5 text-xs text-base-content/80 whitespace-nowrap" {...props}>
+    <td className="
+      px-3 py-2 text-xs text-base-content/90 
+      whitespace-nowrap min-w-[100px]
+      border-b border-base-200/20 dark:border-base-600/20
+    " {...props}>
       {children}
     </td>
   ),
@@ -152,15 +264,19 @@ const MarkdownComponents = {
     </em>
   ),
   a: ({ children, href, ...props }: any) => (
-    <a 
-      href={href} 
-      className="text-primary hover:text-primary-focus underline decoration-primary/30 underline-offset-2 transition-colors text-sm" 
-      target="_blank" 
-      rel="noopener noreferrer"
-      {...props}
-    >
-      {children}
-    </a>
+    extractYouTubeVideoId(href) ? (
+      <VideoBubble videoId={extractYouTubeVideoId(href) as string} />
+    ) : (
+      <a 
+        href={href} 
+        className="text-primary hover:text-primary-focus underline decoration-primary/30 underline-offset-2 transition-colors text-sm" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        {...props}
+      >
+        {children}
+      </a>
+    )
   ),
 };
 
@@ -190,119 +306,36 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
-  // Add custom styles for better markdown formatting and table scrolling
+  // Simplified custom styles - removed conflicting table styles
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
-      /* Enhanced table scrolling with proper styling */
-      .ai-chat-message .overflow-x-auto {
-        position: relative;
-        border-radius: 0.375rem;
-        background: hsl(var(--b1));
-        margin: 0.5rem 0;
-        max-width: 100%;
-        overflow: hidden;
-      }
-      
-      /* Smooth scrolling for tables */
-      .ai-chat-message .overflow-x-auto {
-        scroll-behavior: smooth;
-        -webkit-overflow-scrolling: touch;
-      }
-      
       /* Custom scrollbar for table containers */
-      .ai-chat-message .overflow-x-auto::-webkit-scrollbar {
-        height: 8px;
+      .scrollbar-thin::-webkit-scrollbar {
+        height: 6px;
       }
       
-      .ai-chat-message .overflow-x-auto::-webkit-scrollbar-track {
+      .scrollbar-thin::-webkit-scrollbar-track {
         background: hsl(var(--b2));
-        border-radius: 4px;
-        margin: 0 0.25rem;
+        border-radius: 3px;
       }
       
-      .ai-chat-message .overflow-x-auto::-webkit-scrollbar-thumb {
+      .scrollbar-thin::-webkit-scrollbar-thumb {
         background: hsl(var(--p) / 0.6);
-        border-radius: 4px;
+        border-radius: 3px;
         border: 1px solid hsl(var(--b2));
       }
       
-      .ai-chat-message .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+      .scrollbar-thin::-webkit-scrollbar-thumb:hover {
         background: hsl(var(--p) / 0.8);
       }
       
-      /* Firefox scrollbar */
-      .ai-chat-message .overflow-x-auto {
-        scrollbar-width: thin;
-        scrollbar-color: hsl(var(--p) / 0.6) hsl(var(--b2));
-      }
-      
-      /* Improve list indentation for nested items */
-      .ai-chat-message .markdown-content ul ul {
-        list-style-type: circle;
-        margin-left: 1.5rem;
-      }
-      
-      .ai-chat-message .markdown-content ul ul ul {
-        list-style-type: square;
-        margin-left: 1.5rem;
-      }
-      
-      .ai-chat-message .markdown-content ol ol {
-        list-style-type: lower-alpha;
-        margin-left: 1.5rem;
-      }
-      
-      .ai-chat-message .markdown-content ol ol ol {
-        list-style-type: lower-roman;
-        margin-left: 1.5rem;
-      }
-      
-      /* Ensure proper table cell sizing */
-      .ai-chat-message .markdown-content table {
-        table-layout: auto;
-        width: auto;
-        min-width: 100%;
-      }
-      
-      .ai-chat-message .markdown-content th,
-      .ai-chat-message .markdown-content td {
-        min-width: 120px;
-        padding: 0.5rem 0.75rem;
-      }
-      
-      /* Responsive table improvements */
-      @media (max-width: 768px) {
-        .ai-chat-message .markdown-content table {
-          min-width: 400px;
-        }
-        
-        .ai-chat-message .markdown-content th,
-        .ai-chat-message .markdown-content td {
-          min-width: 80px;
-          padding: 0.5rem 0.75rem;
-        }
-      }
-      
-      /* Small screen table adjustments */
-      @media (max-width: 480px) {
-        .ai-chat-message .markdown-content table {
-          min-width: 300px;
-        }
-        
-        .ai-chat-message .markdown-content th,
-        .ai-chat-message .markdown-content td {
-          min-width: 60px;
-          padding: 0.375rem 0.5rem;
-          font-size: 0.75rem;
-        }
-      }
-      
-      /* Fix message spacing and prevent overflow */
+      /* Ensure proper message container sizing */
       .ai-chat-message {
         word-wrap: break-word;
         overflow-wrap: break-word;
         max-width: 100%;
+        overflow: visible;
       }
       
       .ai-chat-message-user {
@@ -311,48 +344,11 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
         max-width: 100%;
       }
       
-      /* Ensure proper message container sizing */
+      /* Chat bubble sizing */
       .chat-bubble {
         max-width: 100%;
         word-wrap: break-word;
         overflow-wrap: break-word;
-      }
-      
-      /* Scroll indicator positioning */
-      .ai-chat-message .overflow-x-auto .absolute {
-        position: absolute;
-        top: 0.5rem;
-        right: 0.5rem;
-        z-index: 20;
-      }
-      
-      /* Enhanced scroll indicator animation */
-      .ai-chat-message .overflow-x-auto .animate-pulse {
-        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-      }
-      
-      @keyframes pulse {
-        0%, 100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.5;
-        }
-      }
-      
-      /* Table hover effects for better UX */
-      .ai-chat-message .markdown-content tbody tr:hover {
-        background-color: hsl(var(--b2) / 0.5);
-        transition: background-color 0.15s ease-in-out;
-      }
-      
-      /* Ensure table headers are sticky for better readability */
-      .ai-chat-message .markdown-content thead th {
-        position: sticky;
-        top: 0;
-        background: hsl(var(--b1));
-        z-index: 10;
-        border-bottom: 2px solid hsl(var(--b3));
       }
     `;
     document.head.appendChild(style);
@@ -550,9 +546,9 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
       
       // Prepare request body based on endpoint
       const requestBody = {
-            content: contentToSend,
-            solutionDraftContent: solutionContent
-          };
+        content: contentToSend,
+        solutionDraftContent: solutionContent
+      };
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -859,7 +855,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
         </ScrollArea.Scrollbar>
       </ScrollArea.Root>
 
-            {/* Beautiful Compact Input area */}
+      {/* Beautiful Compact Input area */}
       <div className="p-3 border-t border-base-200 dark:border-base-700 shrink-0 bg-gradient-to-t from-base-100 to-transparent">
         <div className="relative">
           <textarea
@@ -942,4 +938,4 @@ const DynamicTypingIndicator: React.FC = () => {
   );
 };
 
-export default AIChatSidebar; 
+export default AIChatSidebar;
