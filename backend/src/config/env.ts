@@ -20,6 +20,11 @@ interface EnvConfig {
   CLERK_ISSUER: string;
   CORS_ORIGIN: string;
   ENABLE_CHANGE_STREAMS: boolean;
+  // Solution Analysis Provider Configuration
+  SOLUTION_ANALYSIS_PROVIDER: string;
+  OPENROUTER_ANALYSIS_MODEL: string;
+  ENABLE_ANALYSIS_FALLBACK: boolean;
+  ANALYSIS_PROVIDER_TIMEOUT: number;
 }
 
 // Define and validate environment variables
@@ -39,6 +44,11 @@ const env: EnvConfig = {
   CLERK_ISSUER: process.env.CLERK_ISSUER || '',
   CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',
   ENABLE_CHANGE_STREAMS: process.env.ENABLE_CHANGE_STREAMS === 'true',
+  // Solution Analysis Provider Configuration (defaults to 'gemini' for backward compatibility)
+  SOLUTION_ANALYSIS_PROVIDER: process.env.SOLUTION_ANALYSIS_PROVIDER || 'gemini',
+  OPENROUTER_ANALYSIS_MODEL: process.env.OPENROUTER_ANALYSIS_MODEL || 'anthropic/claude-3.5-sonnet',
+  ENABLE_ANALYSIS_FALLBACK: process.env.ENABLE_ANALYSIS_FALLBACK === 'true',
+  ANALYSIS_PROVIDER_TIMEOUT: parseInt(process.env.ANALYSIS_PROVIDER_TIMEOUT || '30000', 10),
 };
 
 // Validate required environment variables

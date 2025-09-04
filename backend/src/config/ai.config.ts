@@ -2,12 +2,14 @@ import { AIProvider } from '../services/ai.service';
 
 export interface AIConfig {
   provider: AIProvider;
+  solutionAnalysisProvider: 'openrouter' | 'gemini';
   openrouter: {
     apiKey: string;
     model: string;
     baseUrl: string;
     appName?: string;
     siteUrl?: string;
+    analysisModel: string;
   };
   gemini: {
     apiKey: string;
@@ -15,6 +17,10 @@ export interface AIConfig {
   webSearch: {
     enabled: boolean;
     provider: 'openrouter' | 'serpapi';
+  };
+  analysis: {
+    enableFallback: boolean;
+    timeout: number;
   };
 }
 
@@ -34,6 +40,7 @@ export const validateAIConfig = (): ValidationResult => {
 
   // Get environment variables
   const provider = (process.env.AI_PROVIDER?.toLowerCase() as AIProvider) || 'gemini';
+  const solutionAnalysisProvider = (process.env.SOLUTION_ANALYSIS_PROVIDER?.toLowerCase() as 'openrouter' | 'gemini') || 'gemini';
   const openrouterApiKey = process.env.OPENROUTER_API_KEY;
   const geminiApiKey = process.env.GEMINI_API_KEY;
   const webSearchEnabled = process.env.ENABLE_WEB_SEARCH?.toLowerCase() === 'true';
@@ -42,6 +49,16 @@ export const validateAIConfig = (): ValidationResult => {
   // Validate provider selection
   if (!['openrouter', 'gemini'].includes(provider)) {
     errors.push(`Invalid AI_PROVIDER: "${process.env.AI_PROVIDER}". Must be "openrouter" or "gemini".`);
+  }
+
+  // Validate solution analysis provider selection
+  if (!['openrouter', 'gemini'].includes(solutionAnalysisProvider)) {
+    errors.push(`Invalid SOLUTION_ANALYSIS_PROVIDER: "${process.env.SOLUTION_ANALYSIS_PROVIDER}". Must be "openrouter" or "gemini".`);
+  }
+
+  // Warn if analysis provider differs from main AI provider
+  if (solutionAnalysisProvider !== provider) {
+    warnings.push(`Solution analysis provider (${solutionAnalysisProvider}) differs from main AI provider (${provider}). This is allowed but may cause confusion.`);
   }
 
   // Validate primary provider configuration
@@ -67,6 +84,29 @@ export const validateAIConfig = (): ValidationResult => {
       errors.push('GEMINI_API_KEY is required when AI_PROVIDER=gemini');
     } else if (geminiApiKey.length < 10) {
       errors.push('GEMINI_API_KEY appears to be invalid (too short)');
+    }
+  }
+
+  // Validate solution analysis provider configuration
+  if (solutionAnalysisProvider === 'openrouter') {
+    if (!openrouterApiKey) {
+      errors.push('OPENROUTER_API_KEY is required when SOLUTION_ANALYSIS_PROVIDER=openrouter');
+    }
+
+    // Validate OpenRouter analysis model format
+    const analysisModel = process.env.OPENROUTER_ANALYSIS_MODEL || 'anthropic/claude-3.5-sonnet';
+    if (!analysisModel.includes('/')) {
+      warnings.push(`OPENROUTER_ANALYSIS_MODEL "${analysisModel}" should be in format "provider/model" (e.g., "anthropic/claude-3.5-sonnet")`);
+    }
+
+    // Check for fallback availability
+    const enableFallback = process.env.ENABLE_ANALYSIS_FALLBACK === 'true';
+    if (enableFallback && !geminiApiKey) {
+      warnings.push('ENABLE_ANALYSIS_FALLBACK=true but GEMINI_API_KEY not found. Fallback will not work.');
+    }
+  } else if (solutionAnalysisProvider === 'gemini') {
+    if (!geminiApiKey) {
+      errors.push('GEMINI_API_KEY is required when SOLUTION_ANALYSIS_PROVIDER=gemini');
     }
   }
 
@@ -127,15 +167,18 @@ export const getAIConfig = (): AIConfig => {
   }
 
   const provider = (process.env.AI_PROVIDER?.toLowerCase() as AIProvider) || 'gemini';
+  const solutionAnalysisProvider = (process.env.SOLUTION_ANALYSIS_PROVIDER?.toLowerCase() as 'openrouter' | 'gemini') || 'gemini';
 
   return {
     provider,
+    solutionAnalysisProvider,
     openrouter: {
       apiKey: process.env.OPENROUTER_API_KEY || '',
       model: process.env.OPENROUTER_MODEL || 'openai/gpt-oss-20b:free',
       baseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
       appName: process.env.OPENROUTER_TITLE || 'Quild AI Chat',
-      siteUrl: process.env.OPENROUTER_REFERER || 'http://localhost:5173'
+      siteUrl: process.env.OPENROUTER_REFERER || 'http://localhost:5173',
+      analysisModel: process.env.OPENROUTER_ANALYSIS_MODEL || 'anthropic/claude-3.5-sonnet'
     },
     gemini: {
       apiKey: process.env.GEMINI_API_KEY || ''
@@ -143,6 +186,10 @@ export const getAIConfig = (): AIConfig => {
     webSearch: {
       enabled: process.env.ENABLE_WEB_SEARCH?.toLowerCase() === 'true',
       provider: (process.env.WEB_SEARCH_PROVIDER?.toLowerCase() as 'openrouter' | 'serpapi') || 'serpapi'
+    },
+    analysis: {
+      enableFallback: process.env.ENABLE_ANALYSIS_FALLBACK === 'true',
+      timeout: parseInt(process.env.ANALYSIS_PROVIDER_TIMEOUT || '30000', 10)
     }
   };
 };
@@ -155,8 +202,12 @@ export const logAIConfig = (): void => {
     const config = getAIConfig();
     console.log('🤖 AI Configuration:');
     console.log(`   Provider: ${config.provider}`);
+    console.log(`   Solution Analysis Provider: ${config.solutionAnalysisProvider}`);
     console.log(`   OpenRouter Model: ${config.openrouter.model}`);
+    console.log(`   OpenRouter Analysis Model: ${config.openrouter.analysisModel}`);
     console.log(`   Web Search: ${config.webSearch.enabled ? 'enabled' : 'disabled'} (${config.webSearch.provider})`);
+    console.log(`   Analysis Fallback: ${config.analysis.enableFallback ? 'enabled' : 'disabled'}`);
+    console.log(`   Analysis Timeout: ${config.analysis.timeout}ms`);
     console.log(`   Fallback Available: ${config.gemini.apiKey ? 'yes' : 'no'}`);
   } catch (error) {
     console.error('❌ AI Configuration Error:', error instanceof Error ? error.message : error);
