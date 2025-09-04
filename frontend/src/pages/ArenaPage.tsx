@@ -44,6 +44,84 @@ function buildChannelTree(channelList: ArenaChannel[]) {
   }));
 }
 
+// Arena state persistence constants
+const ARENA_STORAGE_KEY = 'zemon-arena-state';
+const ARENA_STATE_VERSION = '1.0.0';
+
+// Helper function to safely access localStorage
+const getLocalStorage = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    console.warn('Failed to access localStorage:', error);
+    return null;
+  }
+};
+
+// Helper function to safely set localStorage
+const setLocalStorage = (key: string, value: string): void => {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    console.warn('Failed to set localStorage:', error);
+  }
+};
+
+// Load Arena state from localStorage
+const loadArenaState = () => {
+  const stored = getLocalStorage(ARENA_STORAGE_KEY);
+  
+  if (!stored) {
+    return {
+      activeChannelId: null,
+      showNirvana: true,
+      showAdminPanel: false,
+      lastUpdated: Date.now(),
+      version: ARENA_STATE_VERSION
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(stored);
+    
+    // Validate the parsed data
+    if (typeof parsed.activeChannelId === 'string' || parsed.activeChannelId === null &&
+        typeof parsed.showNirvana === 'boolean' &&
+        typeof parsed.showAdminPanel === 'boolean') {
+      return parsed;
+    }
+    
+    console.warn('Invalid arena state format, using default');
+    return {
+      activeChannelId: null,
+      showNirvana: true,
+      showAdminPanel: false,
+      lastUpdated: Date.now(),
+      version: ARENA_STATE_VERSION
+    };
+  } catch (error) {
+    console.warn('Failed to parse arena state:', error);
+    return {
+      activeChannelId: null,
+      showNirvana: true,
+      showAdminPanel: false,
+      lastUpdated: Date.now(),
+      version: ARENA_STATE_VERSION
+    };
+  }
+};
+
+// Save Arena state to localStorage
+const saveArenaState = (state: { activeChannelId: string | null; showNirvana: boolean; showAdminPanel: boolean }) => {
+  const stateToSave = {
+    ...state,
+    lastUpdated: Date.now(),
+    version: ARENA_STATE_VERSION
+  };
+  
+  setLocalStorage(ARENA_STORAGE_KEY, JSON.stringify(stateToSave));
+};
+
 const ArenaPage: React.FC = () => {
   const { channels, loading, error } = useArenaChannels();
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(true);
@@ -60,6 +138,13 @@ const ArenaPage: React.FC = () => {
     setActiveChannelId(channelId);
     setShowNirvana(false);
     setShowAdminPanel(false);
+    
+    // Save state to localStorage
+    saveArenaState({
+      activeChannelId: channelId,
+      showNirvana: false,
+      showAdminPanel: false
+    });
     
     // Dispatch event to AppLayout to handle nav bar visibility
     // Find the selected channel to check its type
@@ -137,15 +222,26 @@ const ArenaPage: React.FC = () => {
     return filtered;
   }, [channels, userChannelStatuses]);
 
-  // Set initial channel
+  // Load Arena state from localStorage on component mount
   useEffect(() => {
-    if (!loading && !error && Object.keys(channels).length > 0) {
-      // If no channel is selected, show Nirvana by default
-      if (!activeChannelId) {
+    if (isLoaded && isSignedIn) {
+      const savedState = loadArenaState();
+      setActiveChannelId(savedState.activeChannelId);
+      setShowNirvana(savedState.showNirvana);
+      setShowAdminPanel(savedState.showAdminPanel);
+    }
+  }, [isLoaded, isSignedIn]);
+
+  // Set initial channel if no saved state
+  useEffect(() => {
+    if (!loading && !error && Object.keys(channels).length > 0 && isLoaded && isSignedIn) {
+      const savedState = loadArenaState();
+      // Only set default to Nirvana if no saved state exists (first time user)
+      if (!savedState.activeChannelId && !savedState.showAdminPanel) {
         setShowNirvana(true);
       }
     }
-  }, [channels, loading, error, activeChannelId]);
+  }, [channels, loading, error, isLoaded, isSignedIn]);
 
   // When a channel is selected, hide Nirvana
   useEffect(() => {
@@ -167,6 +263,14 @@ const ArenaPage: React.FC = () => {
       setShowNirvana(true);
       setActiveChannelId(null);
       setShowAdminPanel(false);
+      
+      // Save state to localStorage
+      saveArenaState({
+        activeChannelId: null,
+        showNirvana: true,
+        showAdminPanel: false
+      });
+      
       // Dispatch arena-chat-close event when showing Nirvana
       window.dispatchEvent(new CustomEvent('arena-chat-close'));
     };
@@ -354,6 +458,14 @@ const ArenaPage: React.FC = () => {
                   setShowNirvana(true);
                   setShowAdminPanel(false);
                   setActiveChannelId(null);
+                  
+                  // Save state to localStorage
+                  saveArenaState({
+                    activeChannelId: null,
+                    showNirvana: true,
+                    showAdminPanel: false
+                  });
+                  
                   // Dispatch arena-chat-close event when showing Nirvana
                   window.dispatchEvent(new CustomEvent('arena-chat-close'));
                 }}
@@ -375,6 +487,14 @@ const ArenaPage: React.FC = () => {
                     setShowAdminPanel(true);
                     setShowNirvana(false);
                     setActiveChannelId(null);
+                    
+                    // Save state to localStorage
+                    saveArenaState({
+                      activeChannelId: null,
+                      showNirvana: false,
+                      showAdminPanel: true
+                    });
+                    
                     // Dispatch arena-chat-close event when showing Admin Panel
                     window.dispatchEvent(new CustomEvent('arena-chat-close'));
                   }}
