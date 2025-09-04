@@ -270,7 +270,18 @@ export default function AppLayout() {
   // [ADD] Also hide nav bar in arena chat mode unless hovered or locked
   const shouldShowNav = (!focusMode && !arenaChatMode) || navHovered || navLockedOpen || arenaNavHovered || arenaNavLockedOpen;
   
-  // [ADD] Calculate sidebar width for layout adjustments
+  // [ADD] Track Arena left sidebar width to offset nav/content when on Arena
+  const [arenaLeftSidebarWidth, setArenaLeftSidebarWidth] = useState<number>(0);
+  useEffect(() => {
+    const handleArenaLeftSidebarWidth = (event: any) => {
+      const width = event?.detail?.width ?? 0;
+      setArenaLeftSidebarWidth(typeof width === 'number' ? width : 0);
+    };
+    window.addEventListener('arena-left-sidebar-width', handleArenaLeftSidebarWidth);
+    return () => window.removeEventListener('arena-left-sidebar-width', handleArenaLeftSidebarWidth);
+  }, []);
+
+  // [ADD] Calculate main sidebar width for layout adjustments
   const getSidebarWidth = () => {
     if (focusMode) {
       return 0; // Sidebar is hidden in focus mode
@@ -279,6 +290,8 @@ export default function AppLayout() {
   };
   
   const sidebarWidth = getSidebarWidth();
+  // [ADD] Total left offset (main sidebar + arena left sidebar on Arena page)
+  const totalLeftOffset = isArenaPage ? sidebarWidth + arenaLeftSidebarWidth : sidebarWidth;
 
   return (
     <div className="flex h-screen bg-base-100">
@@ -317,8 +330,8 @@ export default function AppLayout() {
           className={`fixed top-0 left-0 w-full h-14 border-b border-base-300 bg-base-100 dark:bg-base-800 flex items-center justify-between shrink-0 z-40 transition-all duration-300`}
           style={{
             transform: shouldShowNav ? 'translateY(0)' : 'translateY(-100%)',
-            left: `${sidebarWidth}px`,
-            width: `calc(100vw - ${sidebarWidth}px)`,
+            left: `${totalLeftOffset}px`,
+            width: `calc(100vw - ${totalLeftOffset}px)`,
             opacity: shouldShowNav ? 1 : 0,
             pointerEvents: shouldShowNav ? 'auto' : 'none',
             paddingLeft: '12px',
@@ -585,8 +598,8 @@ export default function AppLayout() {
           className="overflow-auto bg-base-100 p-0 transition-all duration-300 absolute"
           style={{
             top: shouldShowNav ? '3.5rem' : '0',
-            left: `${sidebarWidth}px`,
-            width: `calc(100vw - ${sidebarWidth}px)`,
+            left: `${totalLeftOffset}px`,
+            width: `calc(100vw - ${totalLeftOffset}px)`,
             height: shouldShowNav ? 'calc(100vh - 3.5rem)' : '100vh',
           }}
         >

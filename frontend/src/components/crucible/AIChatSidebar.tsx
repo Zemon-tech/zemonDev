@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import YouTube from 'react-youtube';
 import { Send, Paperclip, X, Copy, BookmarkPlus, RotateCcw, Sparkles } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
@@ -10,6 +11,72 @@ import { updateNotes } from '../../lib/crucibleApi';
 import { useToast } from '../ui/toast';
 import { useWorkspace } from '../../lib/WorkspaceContext';
 import ShinyText from '../blocks/TextAnimations/ShinyText/ShinyText';
+
+// Utility: Extract YouTube video ID from various URL formats
+function extractYouTubeVideoId(url?: string): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, '');
+    if (host === 'youtube.com' || host === 'm.youtube.com') {
+      if (parsed.pathname === '/watch') {
+        return parsed.searchParams.get('v');
+      }
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      if (parts[0] === 'shorts' && parts[1]) return parts[1];
+      if (parts[0] === 'live' && parts[1]) return parts[1];
+    }
+    if (host === 'youtu.be') {
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      if (parts[0]) return parts[0];
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Video bubble with responsive player and error handling
+const VideoBubble: React.FC<{ videoId: string }> = ({ videoId }) => {
+  const [errored, setErrored] = useState<boolean>(false);
+
+  const onError = () => {
+    setErrored(true);
+  };
+
+  return (
+    <div className="my-1 w-full overflow-x-auto border border-base-300 dark:border-base-600 rounded-md shadow-sm bg-base-100 dark:bg-base-700">
+      <div className="min-w-[320px] w-full max-w-full p-2">
+        {errored ? (
+          <div className="text-xs text-error bg-error/10 border border-error/30 rounded p-2">
+            Failed to load video. The link may be invalid.
+          </div>
+        ) : (
+          <div className="w-full" style={{ maxWidth: '100%' }}>
+            <div className="relative" style={{ paddingTop: '56.25%' }}>
+              <div className="absolute inset-0">
+                <YouTube
+                  videoId={videoId}
+                  opts={{
+                    width: '100%',
+                    height: '100%',
+                    playerVars: {
+                      autoplay: 0,
+                      rel: 0,
+                      modestbranding: 1,
+                    },
+                  }}
+                  onError={onError}
+                  className="w-full h-full"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 interface Message {
   id: string;
@@ -152,15 +219,19 @@ const MarkdownComponents = {
     </em>
   ),
   a: ({ children, href, ...props }: any) => (
-    <a 
-      href={href} 
-      className="text-primary hover:text-primary-focus underline decoration-primary/30 underline-offset-2 transition-colors text-sm" 
-      target="_blank" 
-      rel="noopener noreferrer"
-      {...props}
-    >
-      {children}
-    </a>
+    extractYouTubeVideoId(href) ? (
+      <VideoBubble videoId={extractYouTubeVideoId(href) as string} />
+    ) : (
+      <a 
+        href={href} 
+        className="text-primary hover:text-primary-focus underline decoration-primary/30 underline-offset-2 transition-colors text-sm" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        {...props}
+      >
+        {children}
+      </a>
+    )
   ),
 };
 

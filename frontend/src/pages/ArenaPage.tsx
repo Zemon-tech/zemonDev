@@ -279,12 +279,20 @@ const ArenaPage: React.FC = () => {
     window.addEventListener('arena-channel-select', handleNavChannelSelect as EventListener);
     window.addEventListener('arena-show-nirvana', handleShowNirvana);
     
+    // On mount, emit current left sidebar width
+    window.dispatchEvent(new CustomEvent('arena-left-sidebar-width', { detail: { width: isLeftSidebarCollapsed ? 0 : 240 } }));
+
     return () => {
       window.removeEventListener('toggle-arena-sidebar', handleSidebarToggle);
       window.removeEventListener('arena-channel-select', handleNavChannelSelect as EventListener);
       window.removeEventListener('arena-show-nirvana', handleShowNirvana);
     };
   }, []);
+
+  // Emit left sidebar width whenever it changes
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('arena-left-sidebar-width', { detail: { width: isLeftSidebarCollapsed ? 0 : 240 } }));
+  }, [isLeftSidebarCollapsed]);
 
   // Listen for socket events to hide channels immediately
   useEffect(() => {
