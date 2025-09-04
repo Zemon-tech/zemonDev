@@ -60,7 +60,7 @@ const AchievementBadge = ({
         <div className={`
           relative w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 flex items-center justify-center
           ${unlocked 
-            ? `bg-gradient-to-br ${levelColors[level]} border-white shadow-lg` 
+            ? `bg-gradient-to-br ${levelColors[level]} border-white shadow-none ring-2 ring-white/80 ring-offset-2 ring-offset-base-100` 
             : 'bg-gray-300 border-gray-400'
           }
         `}>

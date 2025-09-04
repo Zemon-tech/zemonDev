@@ -212,7 +212,9 @@ export default function ProblemDetailsSidebar({
 
 
   // Determine if sidebar is narrow (for responsive design)
-  const isNarrow = problemSidebarWidth < 320;
+  const isNarrow = problemSidebarWidth < 500;
+  // When extremely narrow, render icon-only tabs to avoid overflow
+  const isIconOnly = problemSidebarWidth < 430;
 
   // Save collapsed state to localStorage when it changes
   useEffect(() => {
@@ -383,35 +385,35 @@ export default function ProblemDetailsSidebar({
             <TabsList className={`grid w-full grid-cols-4 bg-base-200/50 dark:bg-base-700/50 rounded-xl p-1 ${isNarrow ? 'gap-1' : ''}`}>
               <TabsTrigger 
                 value="requirements" 
-                className={`flex items-center gap-1.5 text-xs font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-base-800 data-[state=active]:shadow-sm rounded-lg transition-all ${isNarrow ? 'p-1.5' : 'p-2'}`}
+                className={`group flex items-center justify-center gap-1.5 text-xs font-medium text-base-content/70 data-[state=active]:text-base-content data-[state=active]:bg-white dark:data-[state=active]:bg-base-800 data-[state=active]:shadow-sm rounded-lg transition-all ${isNarrow ? 'p-1.5' : 'px-2 py-2'}`}
                 title="Requirements"
               >
-                <FileText className="w-3.5 h-3.5" />
-                {!isNarrow && <span className="hidden sm:inline">Requirements</span>}
+                <FileText className="w-3.5 h-3.5 text-base-content group-data-[state=active]:text-base-content" />
+                {!isIconOnly && <span className="hidden sm:inline">Requirements</span>}
               </TabsTrigger>
               <TabsTrigger 
                 value="learning" 
-                className={`flex items-center gap-1.5 text-xs font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-base-800 data-[state=active]:shadow-sm rounded-lg transition-all ${isNarrow ? 'p-1.5' : 'p-2'}`}
+                className={`group flex items-center justify-center gap-1.5 text-xs font-medium text-base-content/70 data-[state=active]:text-base-content data-[state=active]:bg-white dark:data-[state=active]:bg-base-800 data-[state=active]:shadow-sm rounded-lg transition-all ${isNarrow ? 'p-1.5' : 'px-2 py-2'}`}
                 title="Learning"
               >
-                <GraduationCap className="w-3.5 h-3.5" />
-                {!isNarrow && <span className="hidden sm:inline">Learning</span>}
+                <GraduationCap className="w-3.5 h-3.5 text-base-content group-data-[state=active]:text-base-content" />
+                {!isIconOnly && <span className="hidden sm:inline">Learning</span>}
               </TabsTrigger>
               <TabsTrigger 
                 value="technical" 
-                className={`flex items-center gap-1.5 text-xs font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-base-800 data-[state=active]:shadow-sm rounded-lg transition-all ${isNarrow ? 'p-1.5' : 'p-2'}`}
+                className={`group flex items-center justify-center gap-1.5 text-xs font-medium text-base-content/70 data-[state=active]:text-base-content data-[state=active]:bg-white dark:data-[state=active]:bg-base-800 data-[state=active]:shadow-sm rounded-lg transition-all ${isNarrow ? 'p-1.5' : 'px-2 py-2'}`}
                 title="Technical"
               >
-                <Settings className="w-3.5 h-3.5" />
-                {!isNarrow && <span className="hidden sm:inline">Technical</span>}
+                <Settings className="w-3.5 h-3.5 text-base-content group-data-[state=active]:text-base-content" />
+                {!isIconOnly && <span className="hidden sm:inline">Technical</span>}
               </TabsTrigger>
               <TabsTrigger 
                 value="assistance" 
-                className={`flex items-center gap-1.5 text-xs font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-base-800 data-[state=active]:shadow-sm rounded-lg transition-all ${isNarrow ? 'p-1.5' : 'p-2'}`}
+                className={`group flex items-center justify-center gap-1.5 text-xs font-medium text-base-content/70 data-[state=active]:text-base-content data-[state=active]:bg-white dark:data-[state=active]:bg-base-800 data-[state=active]:shadow-sm rounded-lg transition-all ${isNarrow ? 'p-1.5' : 'px-2 py-2'}`}
                 title="Assistance"
               >
-                <Wand2 className="w-3.5 h-3.5" />
-                {!isNarrow && <span className="hidden sm:inline">Assistance</span>}
+                <Wand2 className="w-3.5 h-3.5 text-base-content group-data-[state=active]:text-base-content" />
+                {!isIconOnly && <span className="hidden sm:inline">Assistance</span>}
               </TabsTrigger>
             </TabsList>
 
