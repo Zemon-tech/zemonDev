@@ -26,7 +26,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OverviewTab } from '@/components/dashboard/sections/OverviewTab';
 import { FocusTab } from '@/components/dashboard/sections/FocusTab';
 import { InsightsTab } from '@/components/dashboard/sections/InsightsTab';
-import { TodoTab } from '@/components/dashboard/sections/TodoTab';
 import { ActivityTab } from '@/components/dashboard/sections/ActivityTab';
 
 // --- Achievement System ---
@@ -482,7 +481,6 @@ export default function DashboardPage() {
             <TabsTrigger value="overview" className="flex-1 rounded-md px-3 py-2 text-xs sm:text-sm transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm">Overview</TabsTrigger>
             <TabsTrigger value="focus" className="flex-1 rounded-md px-3 py-2 text-xs sm:text-sm transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm">Focus</TabsTrigger>
             <TabsTrigger value="insights" className="flex-1 rounded-md px-3 py-2 text-xs sm:text-sm transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm">Insights</TabsTrigger>
-            <TabsTrigger value="todo" className="flex-1 rounded-md px-3 py-2 text-xs sm:text-sm transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm">Todo</TabsTrigger>
             <TabsTrigger value="activity" className="flex-1 rounded-md px-3 py-2 text-xs sm:text-sm transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm">Activity</TabsTrigger>
             </TabsList>
           <TabsContent value="overview" className="mt-3">
@@ -493,8 +491,10 @@ export default function DashboardPage() {
               onNextUpAction={handleNextUpAction}
               onRecompute={onRecomputeAnalytics}
               isRefreshing={isRefreshing}
-              summary={insights || summary}
               DashboardStatsRow={DashboardStatsRow}
+              scoringData={scoringData}
+              scoringLoading={scoringLoading}
+              DashboardLeaderboard={DashboardLeaderboard}
             />
             </TabsContent>
             <TabsContent value="focus" className="mt-3">
@@ -503,11 +503,8 @@ export default function DashboardPage() {
           <TabsContent value="insights" className="mt-3">
             <InsightsTab loading={loadingDash} insights={insights} />
           </TabsContent>
-          <TabsContent value="todo" className="mt-3">
-            <TodoTab />
-            </TabsContent>
           <TabsContent value="activity" className="mt-3">
-            <ActivityTab scoringData={scoringData || undefined} scoringLoading={scoringLoading} DashboardLeaderboard={DashboardLeaderboard} />
+            <ActivityTab loadingDash={loadingDash} summary={insights || summary} />
             </TabsContent>
           </Tabs>
         
