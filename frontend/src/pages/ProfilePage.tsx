@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,9 +11,10 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserProfile, formatEducation, formatCollegeLocation, getDisplayName, getDisplayBio, getDisplayLocation, getSkills, getToolsAndTech, getSocialLinks } from '@/hooks/useUserProfile';
-import { getUserAnalysisHistory, getUserActiveDrafts, IUserAnalysisHistory, IUserActiveDraft } from '@/lib/profileApi';
+import { getUserAnalysisHistory, getUserActiveDrafts, IUserAnalysisHistory, IUserActiveDraft, computeBadgesFromScoring, getUnlockedBadges, ComputedBadge } from '@/lib/profileApi';
 import { getBookmarkedResources } from '@/lib/forgeApi';
 import { useZemonStreak } from '@/hooks/useZemonStreak';
+import { useUserScoring } from '@/hooks/useUserScoring';
 import { useToast } from '@/components/ui/toast';
 import { buildAvatarCategories } from '@/lib/avatars';
 import type { AvatarCategoryKey } from '@/lib/avatars';
@@ -185,11 +186,30 @@ export default function ProfilePage() {
   // Zemon streak functionality
   const { streakInfo, loading: streakLoading } = useZemonStreak();
 
+  // User scoring data for achievements
+  const { scoringData, loading: scoringLoading } = useUserScoring();
+
   // Derived profile data for new fields
   const skillProgressData = userProfile?.profile?.skillProgress || [];
-  const profileBadges = userProfile?.achievements?.badges || [];
+  
+  // Computed badges from scoring data (prioritize over static badges)
+  const computedBadges = computeBadgesFromScoring(scoringData);
+  const unlockedBadges = getUnlockedBadges(scoringData);
+  
+  // Use computed badges if available, fallback to static badges
+  const profileBadges = unlockedBadges.length > 0 ? unlockedBadges : (userProfile?.achievements?.badges || []);
   const profileCertificates = userProfile?.achievements?.certificates || [];
   const profileMilestones = userProfile?.achievements?.milestones || [];
+  
+  // Computed skills from scoring data for skills progress section
+  const computedSkills = scoringData?.skills?.slice(0, 8).map(skill => ({
+    skill: skill.skill,
+    level: skill.level,
+    progress: skill.averageScore
+  })) || [];
+  
+  // Use computed skills if available, fallback to static skills
+  const activeSkillsData = computedSkills.length > 0 ? computedSkills : skillProgressData;
 
   const publicProfileUrl = `${window.location.origin}/profile/${userProfile?.username || ''}`;
 
@@ -1490,7 +1510,12 @@ export default function ProfilePage() {
                         <Award className="w-5 h-5 text-warning" />
                         Badges
                       </h3>
-                      {profileBadges.length === 0 ? (
+                      {scoringLoading ? (
+                        <div className="flex items-center gap-2 text-sm text-base-content/60">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                          Loading badges...
+                        </div>
+                      ) : profileBadges.length === 0 ? (
                         <div className="text-sm text-base-content/60">No badges yet</div>
                       ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1617,10 +1642,15 @@ export default function ProfilePage() {
                     <div>
                       <h3 className="text-base font-semibold text-base-content mb-3">Currently Learning</h3>
                       <div className="flex flex-wrap gap-2.5">
-                        {skillProgressData.length === 0 ? (
-                          <span className="text-sm text-base-content/60">No skills added yet</span>
+                        {scoringLoading ? (
+                          <div className="flex items-center gap-2 text-sm text-base-content/60">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                            Loading skills...
+                          </div>
+                        ) : activeSkillsData.length === 0 ? (
+                          <span className="text-sm text-base-content/60">No skills data yet</span>
                         ) : (
-                          skillProgressData.map((sp, index) => (
+                          activeSkillsData.map((sp, index) => (
                             <motion.span
                               key={sp.skill || index}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-100/70 backdrop-blur ring-1 ring-base-300/60 shadow-sm"
@@ -1641,10 +1671,15 @@ export default function ProfilePage() {
                     <div>
                       <h3 className="text-base font-semibold text-base-content mb-3">Progress</h3>
                       <div className="space-y-4">
-                        {skillProgressData.length === 0 ? (
+                        {scoringLoading ? (
+                          <div className="flex items-center gap-2 text-sm text-base-content/60">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                            Loading progress...
+                          </div>
+                        ) : activeSkillsData.length === 0 ? (
                           <span className="text-sm text-base-content/60">No progress to show</span>
                         ) : (
-                          skillProgressData.map((sp, index) => (
+                          activeSkillsData.map((sp, index) => (
                             <motion.div
                               key={sp.skill || index}
                               className="space-y-2"

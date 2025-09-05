@@ -126,7 +126,19 @@ const PublicProfilePage = () => {
   const profileBadges = profile?.achievements?.badges || [];
   const profileCertificates = profile?.achievements?.certificates || [];
   const profileMilestones = profile?.achievements?.milestones || [];
-  const skillProgressData = (profile as any)?.profile?.skillProgress || [];
+  
+  // Get computed skills progress data from backend
+  const computedSkillsProgress = (profile as any)?.profile?.skillProgress || [];
+  const staticSkillsData = profile?.profile?.skills || [];
+  
+  // Use computed skills if available, fallback to static skills converted to progress format
+  const skillProgressData = computedSkillsProgress.length > 0 
+    ? computedSkillsProgress 
+    : staticSkillsData.map((skill: string) => ({
+        skill,
+        level: 'beginner' as const,
+        progress: 25 // Default progress for static skills
+      }));
 
   // Refs for animations
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1076,19 +1088,20 @@ const PublicProfilePage = () => {
                       <div>
                         <h3 className="text-base font-semibold text-base-content mb-3">Currently Learning</h3>
                         <div className="flex flex-wrap gap-2.5">
-                          {(profile.profile?.skills || []).length === 0 ? (
-                            <span className="text-sm text-base-content/60">No skills listed</span>
+                          {skillProgressData.length === 0 ? (
+                            <span className="text-sm text-base-content/60">No skills data yet</span>
                           ) : (
-                            (profile.profile?.skills || []).map((skill, index) => (
+                            skillProgressData.map((sp: any, index: number) => (
                               <motion.span
-                                key={skill || index}
+                                key={sp.skill || index}
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-100/70 backdrop-blur ring-1 ring-base-300/60 shadow-sm"
                                 whileHover={{ scale: 1.05, y: -2 }}
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.25, delay: 0.15 + index * 0.05 }}
                               >
-                                {skill}
+                                {sp.skill}
+                                <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] bg-base-200/80 border border-base-300/60 capitalize">{sp.level}</span>
                               </motion.span>
                             ))
                           )}

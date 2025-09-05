@@ -755,6 +755,129 @@ export const removeBookmarkController = asyncHandler(
   }
 );
 
+// Badge computation logic for public profiles
+interface ComputedBadge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  earnedAt: string;
+  level: 'bronze' | 'silver' | 'gold' | 'platinum';
+  progress: number;
+  unlocked: boolean;
+}
+
+// Achievement definitions - same as frontend
+const ACHIEVEMENTS = [
+  {
+    id: 'first_problem',
+    title: 'First Steps',
+    subtitle: 'Solve your first problem',
+    icon: '🎯',
+    level: 'bronze' as const,
+    condition: (data: any) => data.totalPoints > 0,
+    progress: (data: any) => data.totalPoints > 0 ? 100 : 0
+  },
+  {
+    id: 'streak_7',
+    title: 'Week Warrior',
+    subtitle: '7-day solving streak',
+    icon: '🔥',
+    level: 'bronze' as const,
+    condition: (_data: any) => false, // Will be calculated from streak data
+    progress: (_data: any) => 0 // Will be calculated from streak data
+  },
+  {
+    id: 'points_100',
+    title: 'Century Club',
+    subtitle: 'Earn 100 points',
+    icon: '⭐',
+    level: 'silver' as const,
+    condition: (data: any) => data.totalPoints >= 100,
+    progress: (data: any) => Math.min((data.totalPoints / 100) * 100, 100)
+  },
+  {
+    id: 'expert_skill',
+    title: 'Skill Master',
+    subtitle: 'Reach expert level in any skill',
+    icon: '🧠',
+    level: 'silver' as const,
+    condition: (data: any) => data.skills?.some((skill: any) => skill.averageScore >= 90),
+    progress: (data: any) => {
+      const maxSkill = Math.max(...(data.skills?.map((s: any) => s.averageScore) || [0]));
+      return Math.min((maxSkill / 90) * 100, 100);
+    }
+  },
+  {
+    id: 'points_500',
+    title: 'Half Grand',
+    subtitle: 'Earn 500 points',
+    icon: '🏆',
+    level: 'gold' as const,
+    condition: (data: any) => data.totalPoints >= 500,
+    progress: (data: any) => Math.min((data.totalPoints / 500) * 100, 100)
+  },
+  {
+    id: 'multi_category',
+    title: 'Diverse Learner',
+    subtitle: 'Solve problems in 5+ categories',
+    icon: '💻',
+    level: 'gold' as const,
+    condition: (data: any) => {
+      const categories = Object.keys(data.problemsByCategory || {}).filter(cat => data.problemsByCategory[cat].solved > 0);
+      return categories.length >= 5;
+    },
+    progress: (data: any) => {
+      const categories = Object.keys(data.problemsByCategory || {}).filter(cat => data.problemsByCategory[cat].solved > 0);
+      return Math.min((categories.length / 5) * 100, 100);
+    }
+  },
+  {
+    id: 'points_1000',
+    title: 'Grand Master',
+    subtitle: 'Earn 1000 points',
+    icon: '🥇',
+    level: 'platinum' as const,
+    condition: (data: any) => data.totalPoints >= 1000,
+    progress: (data: any) => Math.min((data.totalPoints / 1000) * 100, 100)
+  },
+  {
+    id: 'perfect_score',
+    title: 'Perfectionist',
+    subtitle: 'Get 100% on a problem',
+    icon: '⚡',
+    level: 'platinum' as const,
+    condition: (data: any) => data.highestScore >= 100,
+    progress: (data: any) => Math.min((data.highestScore / 100) * 100, 100)
+  }
+];
+
+function computeBadgesFromScoring(scoringData: any | null): ComputedBadge[] {
+  if (!scoringData) return [];
+  
+  return ACHIEVEMENTS.map(achievement => {
+    const unlocked = achievement.condition(scoringData);
+    const progress = achievement.progress(scoringData);
+    
+    return {
+      id: achievement.id,
+      name: achievement.title,
+      description: achievement.subtitle,
+      icon: achievement.icon,
+      category: 'crucible',
+      earnedAt: unlocked ? new Date().toISOString() : '',
+      level: achievement.level,
+      progress,
+      unlocked
+    };
+  });
+}
+
+function getUnlockedBadges(scoringData: any | null): ComputedBadge[] {
+  return computeBadgesFromScoring(scoringData).filter(badge => badge.unlocked);
+}
+
 /**
  * @desc    Get public user profile by username
  * @route   GET /api/users/public/:username
@@ -770,7 +893,7 @@ export const getPublicUserProfileController = asyncHandler(
       }
 
       const user = await User.findOne({ username })
-        .select('fullName username profile socialLinks college stats achievements profileVisibility profileBackground profilePicture')
+        .select('fullName username profile socialLinks college stats achievements profileVisibility profileBackground profilePicture skillTracking')
         .lean();
 
       if (!user) {
@@ -780,6 +903,48 @@ export const getPublicUserProfileController = asyncHandler(
       // Check if profile is public
       if (!user.profileVisibility?.isPublic) {
         return next(new AppError('Profile is private', 403));
+      }
+
+      // Prepare achievements with computed badges if showing achievements
+      let publicAchievements = user.profileVisibility?.showAchievements ? user.achievements : undefined;
+      let computedSkillsProgress: any[] = [];
+      
+      if (user.profileVisibility?.showAchievements && user.stats) {
+        // Try to get user scoring data for computed badges and skills
+        try {
+          const userScoringData = await getUserSkillSummary((user as any)._id);
+          if (userScoringData) {
+            const computedBadges = getUnlockedBadges(userScoringData);
+            
+            // If we have computed badges, use them; otherwise fallback to static badges
+            if (computedBadges.length > 0) {
+              publicAchievements = {
+                badges: computedBadges.map(badge => ({
+                  id: badge.id,
+                  name: badge.name,
+                  description: badge.description,
+                  icon: badge.icon,
+                  category: badge.category as 'crucible' | 'streak' | 'forge' | 'arena' | 'special',
+                  earnedAt: new Date(badge.earnedAt)
+                })),
+                certificates: publicAchievements?.certificates || [],
+                milestones: publicAchievements?.milestones || []
+              };
+            }
+            
+            // Add computed skills progress for the skills progress section
+            if (userScoringData.skills && user.profileVisibility?.showSkills) {
+              computedSkillsProgress = userScoringData.skills.slice(0, 8).map(skill => ({
+                skill: skill.skill,
+                level: skill.level,
+                progress: skill.averageScore
+              }));
+            }
+          }
+        } catch (error) {
+          // If scoring data fails, continue with static badges
+          console.warn('Failed to get scoring data for public profile:', error);
+        }
       }
 
       // Filter data based on visibility settings
@@ -794,11 +959,13 @@ export const getPublicUserProfileController = asyncHandler(
           location: user.profile?.location,
           skills: user.profileVisibility?.showSkills ? user.profile?.skills : undefined,
           toolsAndTech: user.profileVisibility?.showSkills ? user.profile?.toolsAndTech : undefined,
+          // Add computed skills progress data if available
+          skillProgress: user.profileVisibility?.showSkills ? computedSkillsProgress : undefined,
         },
         socialLinks: user.profileVisibility?.showSocialLinks ? user.socialLinks : undefined,
         college: user.profileVisibility?.showCollegeDetails ? user.college : undefined,
         stats: user.profileVisibility?.showStats ? user.stats : undefined,
-        achievements: user.profileVisibility?.showAchievements ? user.achievements : undefined,
+        achievements: publicAchievements,
         profileBackground: user.profileBackground,
       };
 
