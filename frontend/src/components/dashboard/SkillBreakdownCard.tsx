@@ -13,10 +13,6 @@ import {
   Target,
   Brain,
   Cpu,
-  ArrowUp,
-  Lightbulb,
-  AlertTriangle,
-  CheckCircle,
   Clock
 } from 'lucide-react';
 import { DashboardCard } from '@/components/dashboard';
@@ -263,9 +259,9 @@ export const SkillBreakdownCard: React.FC<SkillBreakdownCardProps> = ({
   console.log('SkillBreakdownCard - improvements:', improvements);
 
   return (
-    <DashboardCard variant="default" className="p-3 sm:p-4 h-auto sm:h-69 overflow-y-auto">
+    <DashboardCard variant="default" className="p-3 sm:p-4 h-auto sm:h-69 overflow-y-auto border-transparent">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3 sm:mb-4">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm sm:text-lg font-bold text-base-content flex items-center gap-2">
           <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
           <span className="hidden sm:inline">Skill Focus</span>
@@ -278,144 +274,46 @@ export const SkillBreakdownCard: React.FC<SkillBreakdownCardProps> = ({
 
       {/* Focused Skills Section */}
       {focusedSkills.length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-base-content/80 mb-3 flex items-center gap-2">
-            <Target className="w-4 h-4 text-success" />
-            Your Focus Areas
-          </h3>
-          <div className="space-y-2 sm:space-y-3">
-            {focusedSkills.map((skill, idx) => {
-              const { level, color, type } = getSkillLevel(skill.averageScore);
-              // Try to find icon by skill name first, then by category
-              const Icon = skillIcons[skill.skill] || skillIcons[skill.category] || Code;
-              
-              return (
-                <motion.div
-                  key={skill.skill}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: idx * 0.1 }}
-                  className="bg-base-100/50 rounded-lg p-2 sm:p-3 border border-base-300/30"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <Icon className="w-3 h-3 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
-                      <span className="text-xs sm:text-sm font-medium text-base-content truncate">
-                        {skill.skill}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                      <span className="text-xs font-mono text-base-content/70">
-                        {skill.averageScore}%
-                      </span>
-                      <span className={`text-xs font-semibold ${color} hidden sm:inline`}>
-                        {level}
-                      </span>
-                    </div>
-                  </div>
-                  <Progress value={skill.averageScore} type={type as any} />
-                  <div className="flex justify-between text-xs text-base-content/50 mt-1">
-                    <span className="truncate">{skill.problemsSolved} problems</span>
-                    <span className="flex-shrink-0">{skill.totalPoints} pts</span>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Recent Improvements */}
-      {improvements.length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-base-content/80 mb-3 flex items-center gap-2">
-            <ArrowUp className="w-4 h-4 text-success" />
-            Recent Progress
-          </h3>
-          <div className="space-y-2">
-            {improvements.map((improvement, idx) => (
+        <div className="space-y-3">
+          {focusedSkills.map((skill, idx) => {
+            const { level, color, type } = getSkillLevel(skill.averageScore);
+            // Try to find icon by skill name first, then by category
+            const Icon = skillIcons[skill.skill] || skillIcons[skill.category] || Code;
+            
+            return (
               <motion.div
-                key={`${improvement.type}-${idx}`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                key={skill.skill}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: idx * 0.1 }}
-                className="flex items-center gap-3 p-2 bg-success/10 rounded-lg border border-success/20"
+                className="bg-base-100/30 rounded-xl p-3 border border-transparent hover:border-base-300/20 transition-all duration-200"
               >
-                <improvement.icon className="w-4 h-4 text-success flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium text-base-content">
-                    {improvement.message}
-                  </span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <Icon className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span className="text-sm font-medium text-base-content truncate">
+                      {skill.skill}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-sm font-mono text-base-content/70">
+                      {skill.averageScore}%
+                    </span>
+                    <span className={`text-xs font-semibold ${color} hidden sm:inline`}>
+                      {level}
+                    </span>
+                  </div>
                 </div>
-                <CheckCircle className="w-4 h-4 text-success" />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Smart Recommendations */}
-      {recommendations.length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-base-content/80 mb-3 flex items-center gap-2">
-            <Lightbulb className="w-4 h-4 text-warning" />
-            Recommendations
-          </h3>
-          <div className="space-y-2">
-            {recommendations.map((rec, idx) => (
-              <motion.div
-                key={`${rec.type}-${idx}`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: idx * 0.1 }}
-                className={`flex items-center gap-3 p-2 rounded-lg border ${
-                  rec.type === 'improvement' 
-                    ? 'bg-warning/10 border-warning/20' 
-                    : rec.type === 'next-level'
-                    ? 'bg-success/10 border-success/20'
-                    : 'bg-info/10 border-info/20'
-                }`}
-              >
-                {rec.type === 'improvement' && <AlertTriangle className="w-4 h-4 text-warning" />}
-                {rec.type === 'next-level' && <TrendingUp className="w-4 h-4 text-success" />}
-                {rec.type === 'explore' && <Lightbulb className="w-4 h-4 text-info" />}
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium text-base-content">
-                    {rec.message}
-                  </span>
+                <Progress value={skill.averageScore} type={type as any} />
+                <div className="flex justify-between text-xs text-base-content/50 mt-2">
+                  <span className="truncate">{skill.problemsSolved} problems</span>
+                  <span className="flex-shrink-0">{skill.totalPoints} pts</span>
                 </div>
               </motion.div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       )}
-
-      {/* Quick Actions */}
-      <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-base-300/30">
-        <h3 className="text-xs sm:text-sm font-semibold text-base-content/80 mb-2 sm:mb-3 flex items-center gap-2">
-          <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-accent" />
-          <span className="hidden sm:inline">Quick Actions</span>
-          <span className="sm:hidden">Actions</span>
-        </h3>
-        <div className="grid grid-cols-2 gap-2">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="p-2 bg-primary/10 rounded-lg border border-primary/20 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
-          >
-            <span className="hidden sm:inline">Practice Weak Skills</span>
-            <span className="sm:hidden">Practice</span>
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="p-2 bg-accent/10 rounded-lg border border-accent/20 text-xs font-medium text-accent hover:bg-accent/20 transition-colors"
-          >
-            <span className="hidden sm:inline">Explore New Areas</span>
-            <span className="sm:hidden">Explore</span>
-          </motion.button>
-        </div>
-      </div>
     </DashboardCard>
   );
 };
