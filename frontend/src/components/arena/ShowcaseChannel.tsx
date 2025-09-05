@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardFooter, CardHeader } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { ThumbsUp, ThumbsDown, Plus, Hash, Loader2, AlertCircle, Calendar, Github, Globe } from 'lucide-react';
 import { useArenaShowcase } from '@/hooks/useArenaShowcase';
 import { useAuth, useUser } from '@clerk/clerk-react';
@@ -34,49 +34,51 @@ const ShowcaseChannel: React.FC = () => {
 
       const interval = setInterval(() => {
         setCurrentImageIndex((prev) => (prev + 1) % images.length);
-      }, 4000); // Slightly longer interval for better UX
+      }, 4000);
 
       return () => clearInterval(interval);
     }, [images.length]);
 
     if (!images || images.length === 0) {
       return (
-        <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-base-200 to-base-300 text-base-content/40">
+        <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-base-200/50 to-base-300/30 text-base-content/30 rounded-t-xl">
           <div className="text-center">
-            <Hash className="w-10 h-10 mx-auto mb-1 opacity-50" />
-            <p className="text-xs font-medium">No Image</p>
+            <Hash className="w-8 h-8 mx-auto mb-2 opacity-40" />
+            <p className="text-xs font-medium opacity-60">No Image</p>
           </div>
         </div>
       );
     }
 
     return (
-      <div className="relative w-full h-full overflow-hidden">
+      <div className="relative w-full h-full overflow-hidden rounded-t-xl">
         {images.map((image, index) => (
           <img
             key={index}
             src={image}
             alt={`${title} - Image ${index + 1}`}
             className={cn(
-              "absolute inset-0 w-full h-full object-cover transition-opacity duration-700",
+              "absolute inset-0 w-full h-full object-cover transition-opacity duration-700 rounded-t-xl",
               index === currentImageIndex ? "opacity-100 z-10" : "opacity-0 z-0"
             )}
             draggable={false}
           />
         ))}
         {images.length > 1 && (
-          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex space-x-1 z-20">
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-1.5 z-20">
             {images.map((_, index) => (
               <div
                 key={index}
                 className={cn(
-                  "w-1.5 h-1.5 rounded-full transition-all duration-300",
-                  index === currentImageIndex ? "bg-white/80" : "bg-white/40"
+                  "w-2 h-2 rounded-full transition-all duration-300",
+                  index === currentImageIndex ? "bg-white/90 shadow-sm" : "bg-white/50"
                 )}
               />
             ))}
           </div>
         )}
+        {/* Gradient overlay for better text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent rounded-t-xl" />
       </div>
     );
   };
@@ -112,6 +114,7 @@ const ShowcaseChannel: React.FC = () => {
         demoUrl: form.demoUrl,
         userId: user.id,
         username: user.username || user.firstName || 'user',
+        userAvatar: user.imageUrl || '', // Add user avatar
         upvotes: 0,
         upvotedBy: [],
         submittedAt: new Date().toISOString(),
@@ -120,7 +123,6 @@ const ShowcaseChannel: React.FC = () => {
       setShowModal(false);
       setForm({ title: '', description: '', images: ['', '', ''], gitRepositoryUrl: '', demoUrl: '' });
       refetch();
-      // Show success notification
       toasterRef.current?.show({
         title: 'Project Submitted',
         message: 'Your project has been submitted successfully and is pending approval.',
@@ -130,7 +132,6 @@ const ShowcaseChannel: React.FC = () => {
     } catch (err: any) {
       const errorMessage = err?.response?.data?.message || err.message || 'Failed to submit project.';
       setFormError(errorMessage);
-      // Show error notification
       toasterRef.current?.show({
         title: 'Submission Failed',
         message: errorMessage,
@@ -141,8 +142,6 @@ const ShowcaseChannel: React.FC = () => {
       setSubmitting(false);
     }
   };
-
-
 
   if (loading) {
     return (
@@ -168,11 +167,11 @@ const ShowcaseChannel: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-base-100">
       {/* Projects List */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
         {projects.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-base-content/70 col-span-full">
             <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto bg-base-200 rounded-full flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto bg-base-200/50 rounded-full flex items-center justify-center">
                 <Hash className="w-8 h-8 text-base-content/40" />
               </div>
               <div>
@@ -190,91 +189,110 @@ const ShowcaseChannel: React.FC = () => {
               transition={{ duration: 0.3 }}
               className="group"
             >
-              <Card className="h-full bg-base-200/80 border-base-300/50 shadow-md hover:shadow-xl transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 overflow-hidden group/card p-0">
-                {/* --- Compact Image Section --- */}
-                <div className="relative h-38 w-full overflow-hidden">
+              <Card className="h-80 bg-base-100/90 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden group/card backdrop-blur-sm rounded-xl flex flex-col p-0">
+                {/* Image Section with increased height and rounded top corners */}
+                <div className="relative h-40 w-full overflow-hidden bg-gradient-to-br from-base-200/30 to-base-300/20 flex-shrink-0">
                   <ImageCarousel images={project.images || []} title={project.title} />
                 </div>
 
-                              {/* --- Card Content --- */}
-              <CardHeader className="pb-2 pt-2 px-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-semibold text-base-content text-base truncate" title={project.title}>
+                {/* Content Section with proper padding and spacing */}
+                <div className="px-4 pt-4 pb-5 flex-1 flex flex-col">
+                  {/* Title and Date Row */}
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h3 className="font-bold text-base-content text-sm leading-tight line-clamp-2 flex-1" title={project.title}>
                       {project.title}
                     </h3>
-                    <span className="text-xs text-base-content/50 flex items-center gap-1 whitespace-nowrap">
+                    <div className="flex items-center gap-1 text-xs text-base-content/50 whitespace-nowrap flex-shrink-0">
                       <Calendar className="w-3 h-3" />
-                      {new Date(project.submittedAt).toLocaleDateString()}
-                    </span>
+                      <span>{new Date(project.submittedAt).toLocaleDateString('en', { month: 'short', day: 'numeric' })}</span>
+                    </div>
                   </div>
-                  {project.description && (
-                    <p className="text-xs text-base-content/70 line-clamp-2 mt-1" title={project.description}>
-                      {project.description}
-                    </p>
-                  )}
-                </CardHeader>
 
-                {/* --- Card Footer: User + Actions --- */}
-                <CardFooter className="flex items-center justify-between gap-2 px-4 pb-3 pt-2">
-                  {/* User info, compact */}
-                  <div className="flex items-center gap-1 min-w-0">
-                    <Avatar className="w-5 h-5 border border-base-200">
-                      <AvatarFallback className="text-[10px] font-medium bg-primary/10 text-primary">
-                        {project.username.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-xs text-base-content/70 truncate max-w-[70px]">{project.username}</span>
-                  </div>
-                  {/* Actions: Like/Dislike/Links, all inline, icon-only */}
-                  <div className="flex items-center gap-2">
-                    {/* Like */}
-                    <button
-                      onClick={() => upvoteProject(project._id)}
-                      title={project.hasUpvoted ? 'Remove upvote' : 'Upvote'}
-                      className={cn(
-                        "group/like flex items-center gap-1 text-xs text-base-content/70 hover:text-primary transition-colors p-0 border-none bg-transparent shadow-none focus:outline-none",
-                        project.hasUpvoted && "text-primary"
-                      )}
-                    >
-                      <ThumbsUp className="w-4 h-4" />
-                      <span>{project.upvotes}</span>
-                    </button>
-                    {/* Dislike */}
-                    <button
-                      onClick={() => downvoteProject(project._id)}
-                      title={project.hasDownvoted ? 'Remove downvote' : 'Downvote'}
-                      className={cn(
-                        "group/dislike flex items-center gap-1 text-xs text-base-content/70 hover:text-error transition-colors p-0 border-none bg-transparent shadow-none focus:outline-none",
-                        project.hasDownvoted && "text-error"
-                      )}
-                    >
-                      <ThumbsDown className="w-4 h-4" />
-                      <span>{project.downvotes}</span>
-                    </button>
-                    {/* Repo */}
-                    <a
-                      href={project.gitRepositoryUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="View Repository"
-                      className="text-base-content/60 hover:text-base-content/90 p-0"
-                    >
-                      <Github className="w-4 h-4" />
-                    </a>
-                    {/* Demo */}
-                    {project.demoUrl && (
-                      <a
-                        href={project.demoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="View Demo"
-                        className="text-base-content/60 hover:text-base-content/90 p-0"
-                      >
-                        <Globe className="w-4 h-4" />
-                      </a>
+                  {/* Description with fixed height */}
+                  <div className="h-10 mb-3 flex-shrink-0">
+                    {project.description && (
+                      <p className="text-xs text-base-content/70 line-clamp-3 leading-relaxed" title={project.description}>
+                        {project.description}
+                      </p>
                     )}
                   </div>
-                </CardFooter>
+
+                  {/* User Info and Actions Row - with proper bottom padding */}
+                  <div className="flex items-center justify-between gap-3 mt-auto">
+                    {/* User Info with proper avatar */}
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <Avatar className="w-6 h-6 border border-base-200/50 shadow-sm">
+                        {/* Use actual user avatar if available */}
+                        <AvatarImage 
+                          src={(project as any).userAvatar || (project as any).avatar || ''} 
+                          alt={project.username}
+                          className="object-cover"
+                        />
+                        <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
+                          {project.username.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs text-base-content/70 truncate font-medium">{project.username}</span>
+                    </div>
+
+                    {/* Action Buttons with better spacing */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {/* Like Button */}
+                      <button
+                        onClick={() => upvoteProject(project._id)}
+                        title={project.hasUpvoted ? 'Remove upvote' : 'Upvote'}
+                        className={cn(
+                          "flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium transition-all duration-200 hover:scale-105 hover:shadow-sm",
+                          project.hasUpvoted 
+                            ? "bg-primary/15 text-primary border border-primary/30" 
+                            : "bg-base-200/60 text-base-content/70 hover:bg-primary/10 hover:text-primary border border-transparent"
+                        )}
+                      >
+                        <ThumbsUp className="w-3 h-3" />
+                        <span>{project.upvotes}</span>
+                      </button>
+
+                      {/* Dislike Button */}
+                      <button
+                        onClick={() => downvoteProject(project._id)}
+                        title={project.hasDownvoted ? 'Remove downvote' : 'Downvote'}
+                        className={cn(
+                          "flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium transition-all duration-200 hover:scale-105 hover:shadow-sm",
+                          project.hasDownvoted 
+                            ? "bg-error/15 text-error border border-error/30" 
+                            : "bg-base-200/60 text-base-content/70 hover:bg-error/10 hover:text-error border border-transparent"
+                        )}
+                      >
+                        <ThumbsDown className="w-3 h-3" />
+                        <span>{project.downvotes}</span>
+                      </button>
+
+                      {/* External Links */}
+                      <div className="flex items-center gap-1">
+                        <a
+                          href={project.gitRepositoryUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="View Repository"
+                          className="p-1.5 rounded-full bg-base-200/60 text-base-content/60 hover:bg-base-content/10 hover:text-base-content transition-all duration-200 hover:scale-105"
+                        >
+                          <Github className="w-3.5 h-3.5" />
+                        </a>
+                        {project.demoUrl && (
+                          <a
+                            href={project.demoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="View Demo"
+                            className="p-1.5 rounded-full bg-base-200/60 text-base-content/60 hover:bg-base-content/10 hover:text-base-content transition-all duration-200 hover:scale-105"
+                          >
+                            <Globe className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </Card>
             </motion.div>
           ))
@@ -282,86 +300,77 @@ const ShowcaseChannel: React.FC = () => {
       </div>
 
       {/* Enhanced Add Project Button */}
-      <div className="px-4 pb-6">
+      <div className="px-4 pb-4">
         <Button
           className={cn(
             "w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary",
-            "text-primary-foreground border-none shadow-lg hover:shadow-xl",
-            "flex items-center justify-center gap-2 h-12 text-base font-medium",
-            "transition-all duration-300 hover:-translate-y-0.5"
+            "text-primary-foreground border-0 shadow-lg hover:shadow-xl",
+            "flex items-center justify-center gap-2.5 h-11 text-sm font-bold",
+            "transition-all duration-300 hover:-translate-y-0.5 rounded-xl"
           )}
           onClick={() => setShowModal(true)}
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-4 h-4" />
           <span>Share Your Project</span>
         </Button>
       </div>
 
-      {/* Project Submission Modal */}
+      {/* Project Submission Modal - Rest of the modal code remains the same */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-base-100 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-base-300/50"
+            className="bg-base-100 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border-0"
           >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-base-300/50">
-              <h3 className="text-2xl font-bold text-base-content">Share Your Project</h3>
+            {/* Modal content remains the same as before */}
+            <div className="flex items-center justify-between p-6 border-b border-base-200/60">
+              <h3 className="text-xl font-bold text-base-content">Share Your Project</h3>
               <Button 
                 variant="ghost" 
                 size="sm"
-                className="h-8 w-8 p-0 rounded-full" 
+                className="h-8 w-8 p-0 rounded-full hover:bg-base-200/60" 
                 onClick={() => setShowModal(false)}
               >
                 ✕
               </Button>
             </div>
 
-            {/* Error Message */}
             {formError && (
-              <div className="mx-6 mt-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-destructive" />
-                <span className="text-destructive text-sm">{formError}</span>
+              <div className="mx-6 mt-4 p-3 bg-error/10 border border-error/20 rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-error" />
+                <span className="text-error text-sm">{formError}</span>
               </div>
             )}
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              {/* Title */}
+            <form onSubmit={handleSubmit} className="p-6 space-y-5">
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-base-content">
-                  Project Title *
-                </label>
+                <label className="text-sm font-bold text-base-content">Project Title *</label>
                 <input 
                   name="title" 
                   value={form.title} 
                   onChange={handleFormChange} 
-                  className="w-full px-3 py-2 border border-base-300 rounded-lg bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors" 
+                  className="w-full px-3 py-2.5 border border-base-200 rounded-xl bg-base-50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200" 
                   placeholder="Enter your project title"
                   required 
                 />
               </div>
 
-              {/* Description */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-base-content">
-                  Description
-                </label>
+                <label className="text-sm font-bold text-base-content">Description</label>
                 <textarea 
                   name="description" 
                   value={form.description} 
                   onChange={handleFormChange} 
-                  className="w-full px-3 py-2 border border-base-300 rounded-lg bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors resize-none" 
+                  className="w-full px-3 py-2.5 border border-base-200 rounded-xl bg-base-50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200 resize-none" 
                   rows={4}
                   placeholder="Describe your project, technologies used, and what makes it special..."
                 />
               </div>
 
-              {/* Image URLs */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-base-content">
+                <label className="text-sm font-bold text-base-content">
                   Project Images (up to 3)
                   <span className="text-base-content/60 font-normal ml-1">Optional</span>
                 </label>
@@ -372,48 +381,42 @@ const ShowcaseChannel: React.FC = () => {
                       name={`image${i}`} 
                       value={form.images[i]} 
                       onChange={handleFormChange} 
-                      className="w-full px-3 py-2 border border-base-300 rounded-lg bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors" 
+                      className="w-full px-3 py-2.5 border border-base-200 rounded-xl bg-base-50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200" 
                       placeholder={`Image URL ${i + 1} (optional)`} 
                     />
                   ))}
                 </div>
               </div>
 
-              {/* Repository URL */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-base-content">
-                  Repository URL *
-                </label>
+                <label className="text-sm font-bold text-base-content">Repository URL *</label>
                 <input 
                   name="gitRepositoryUrl" 
                   value={form.gitRepositoryUrl} 
                   onChange={handleFormChange} 
-                  className="w-full px-3 py-2 border border-base-300 rounded-lg bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors" 
+                  className="w-full px-3 py-2.5 border border-base-200 rounded-xl bg-base-50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200" 
                   placeholder="https://github.com/username/project"
                   required 
                 />
               </div>
 
-              {/* Demo URL */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-base-content">
-                  Demo URL *
-                </label>
+                <label className="text-sm font-bold text-base-content">Demo URL *</label>
                 <input 
                   name="demoUrl" 
                   value={form.demoUrl} 
                   onChange={handleFormChange} 
-                  className="w-full px-3 py-2 border border-base-300 rounded-lg bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors" 
+                  className="w-full px-3 py-2.5 border border-base-200 rounded-xl bg-base-50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200" 
                   placeholder="https://your-demo-url.com"
                   required 
                 />
               </div>
 
-              {/* Form Actions */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-base-300/50">
+              <div className="flex justify-end gap-3 pt-4 border-t border-base-200/60">
                 <Button 
                   type="button" 
                   variant="outline"
+                  className="rounded-xl"
                   onClick={() => setShowModal(false)} 
                   disabled={submitting}
                 >
@@ -422,7 +425,7 @@ const ShowcaseChannel: React.FC = () => {
                 <Button 
                   type="submit" 
                   disabled={submitting}
-                  className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
+                  className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary rounded-xl border-0"
                 >
                   {submitting ? (
                     <>
@@ -442,11 +445,9 @@ const ShowcaseChannel: React.FC = () => {
         </div>
       )}
 
-      {/* Notification Toaster */}
       <Toaster ref={toasterRef} />
-
     </div>
   );
 };
 
-export default ShowcaseChannel; 
+export default ShowcaseChannel;
