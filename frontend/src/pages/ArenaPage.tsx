@@ -394,6 +394,20 @@ const ArenaPage: React.FC = () => {
       return <AnnouncementsChannel channelId={activeChannel._id} userChannelStatuses={userChannelStatuses} />;
     }
     
+    if (activeChannel.type === 'showcase') {
+      return <ShowcaseChannel />;
+    }
+    
+    if (activeChannel.type === 'chat') {
+      return (
+        <ChatChannel
+          channelId={activeChannel._id}
+          channelName={activeChannel.name}
+          userChannelStatuses={userChannelStatuses}
+        />
+      );
+    }
+    
     switch (activeChannel.name) {
       case 'nirvana': return <NirvanaChannel />;
       case 'start-here': return <StartHereChannel />;
@@ -401,7 +415,7 @@ const ArenaPage: React.FC = () => {
       case 'showcase': return <ShowcaseChannel />;
       case 'weekly-challenge': return <HackathonChannel />;
       default:
-        // TODO: Pass UserChannelStatus to ChatChannel for membership/posting logic
+        // Fallback for any unhandled channel types
         return (
           <ChatChannel
             channelId={activeChannel._id}
