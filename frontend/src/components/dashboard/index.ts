@@ -10,3 +10,4 @@ export * from './dashboardUtils';
 export { SkillBreakdownCard } from './SkillBreakdownCard';
 export { AchievementBadgesCard } from './AchievementBadgesCard';
 export { BookmarkedResourcesCard } from './BookmarkedResourcesCard';
+export { DashboardLeaderboard } from './DashboardLeaderboard';

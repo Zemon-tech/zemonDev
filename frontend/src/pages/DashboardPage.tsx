@@ -11,16 +11,12 @@ import { useNavigate } from 'react-router-dom';
 import { useZemonStreak } from '@/hooks/useZemonStreak';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useUserScoring } from '@/hooks/useUserScoring';
-import { useStreakLeaderboard } from '@/hooks/useStreakLeaderboard';
 // import { SkillBreakdownCard } from '@/components/dashboard/SkillBreakdownCard';
 // import { AchievementBadgesCard } from '@/components/dashboard/AchievementBadgesCard';
 import { 
   StatCard, 
-  DashboardCard, 
   LoadingSkeleton,
-  STAT_CARD_CONFIGS,
-  HOVER_EFFECTS,
-  MOCK_DATA
+  STAT_CARD_CONFIGS
 } from '@/components/dashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OverviewTab } from '@/components/dashboard/sections/OverviewTab';
@@ -232,77 +228,6 @@ function DashboardStatsRow() {
   );
 }
 
-// --- Responsive Leaderboard ---
-function DashboardLeaderboard() {
-  const { data, loading, error } = useStreakLeaderboard(3);
-  const leaderboardData = (!loading && !error && data.length > 0)
-    ? data.map(u => ({ name: u.name, points: u.points, rank: u.rank, avatar: u.avatar, streak: u.streak }))
-    : MOCK_DATA.leaderboard;
-
-  const rankColors = ['text-yellow-500', 'text-gray-400', 'text-amber-600'];
-  const rankIcons = ['🥇', '🥈', '🥉'];
-
-  return (
-    <DashboardCard variant="default" className="p-3 sm:p-4 h-auto sm:h-69">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-bold text-accent font-heading flex items-center gap-2">
-          <Trophy className="text-accent w-4 h-4" /> 
-          <span className="text-sm">Leaderboard</span>
-          <span className="text-xs text-base-content/60">(Top 3)</span>
-        </h2>
-      </div>
-      
-      <div className="space-y-2">
-        {leaderboardData.map((user, idx) => (
-          <motion.div
-            key={user.rank}
-            whileHover={HOVER_EFFECTS.card}
-            className={`relative flex items-center gap-2 sm:gap-3 p-2 rounded-lg transition-all duration-200 cursor-pointer bg-gradient-to-r ${idx === 0 ? 'from-yellow-500/10 to-orange-500/10 border border-yellow-500/20' : 'from-base-100/80 to-base-200/60 hover:from-base-100 hover:to-base-200'} shadow-sm hover:shadow-md`}
-          >
-            <div className="flex items-center gap-1 sm:gap-2">
-              <span className={`font-bold text-xs sm:text-sm w-4 sm:w-6 text-center ${rankColors[idx]}`}>
-                {user.rank}
-              </span>
-              <span className="text-sm sm:text-lg">{rankIcons[idx]}</span>
-            </div>
-            
-            <Avatar className="h-6 w-6 sm:h-8 sm:w-8 ring-1 ring-accent/20 shadow-md">
-              <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback className="bg-accent/10 text-accent font-bold text-xs sm:text-sm">{user.name[0]}</AvatarFallback>
-            </Avatar>
-            
-            <div className="flex-1 min-w-0">
-              <span className="font-semibold truncate text-base-content/90 block text-xs sm:text-sm">
-                {user.name}
-              </span>
-              <span className="text-xs text-base-content/60 flex items-center gap-1">
-                <Flame className="w-2.5 h-2.5 text-orange-500" />
-                <span className="hidden sm:inline">{user.streak} day streak</span>
-                <span className="sm:hidden">{user.streak}d</span>
-              </span>
-            </div>
-            
-            <div className="flex flex-col items-end gap-1">
-              <span className="badge badge-accent badge-outline text-xs font-mono px-1 sm:px-2 py-1 shadow-sm">
-                <span className="hidden sm:inline">{user.points} pts</span>
-                <span className="sm:hidden">{user.points}</span>
-              </span>
-              {idx === 0 && (
-                <motion.div
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="text-xs text-yellow-500 font-bold hidden sm:block"
-                >
-                  CHAMPION
-                </motion.div>
-              )}
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </DashboardCard>
-  );
-}
 
 // --- Collapsible Section Component ---
 // Note: CollapsibleSection is not currently used; keeping for potential reuse
@@ -494,7 +419,6 @@ export default function DashboardPage() {
               DashboardStatsRow={DashboardStatsRow}
               scoringData={scoringData}
               scoringLoading={scoringLoading}
-              DashboardLeaderboard={DashboardLeaderboard}
             />
             </TabsContent>
             <TabsContent value="focus" className="mt-3">

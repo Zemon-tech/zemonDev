@@ -2,6 +2,7 @@ import { DashboardCard } from '@/components/dashboard';
 import { Badge } from '@/components/ui/badge';
 import { AchievementBadgesCard } from '@/components/dashboard/AchievementBadgesCard';
 import { SkillBreakdownCard } from '@/components/dashboard/SkillBreakdownCard';
+import { DashboardLeaderboard } from '@/components/dashboard/DashboardLeaderboard';
 
 export function OverviewTab({
   loadingDash,
@@ -13,7 +14,6 @@ export function OverviewTab({
   DashboardStatsRow,
   scoringData,
   scoringLoading,
-  DashboardLeaderboard,
 }: {
   loadingDash: boolean;
   errorDash: string | null;
@@ -24,7 +24,6 @@ export function OverviewTab({
   DashboardStatsRow: React.ComponentType;
   scoringData: any;
   scoringLoading: boolean;
-  DashboardLeaderboard: React.ComponentType;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -89,13 +88,13 @@ export function OverviewTab({
       <DashboardStatsRow />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-        <div className="xl:col-span-3 flex flex-col">
-          <DashboardLeaderboard />
+        <div className="xl:col-span-5 flex flex-col">
+          <DashboardLeaderboard limit={5} />
         </div>
-        <div className="xl:col-span-4 flex flex-col">
+        <div className="xl:col-span-3 flex flex-col">
           <SkillBreakdownCard scoringData={scoringData || undefined} loading={scoringLoading} />
         </div>
-        <div className="xl:col-span-5 flex flex-col">
+        <div className="xl:col-span-4 flex flex-col">
           <AchievementBadgesCard scoringData={scoringData || undefined} loading={scoringLoading} />
         </div>
       </div>
