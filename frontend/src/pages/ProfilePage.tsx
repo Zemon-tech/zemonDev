@@ -11,7 +11,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserProfile, formatEducation, formatCollegeLocation, getDisplayName, getDisplayBio, getDisplayLocation, getSkills, getToolsAndTech, getSocialLinks } from '@/hooks/useUserProfile';
-import { getUserAnalysisHistory, getUserActiveDrafts, IUserAnalysisHistory, IUserActiveDraft, computeBadgesFromScoring, getUnlockedBadges, ComputedBadge } from '@/lib/profileApi';
+import { getUserAnalysisHistory, getUserActiveDrafts, IUserAnalysisHistory, IUserActiveDraft, getUnlockedBadges } from '@/lib/profileApi';
 import { getBookmarkedResources } from '@/lib/forgeApi';
 import { useZemonStreak } from '@/hooks/useZemonStreak';
 import { useUserScoring } from '@/hooks/useUserScoring';
@@ -192,12 +192,8 @@ export default function ProfilePage() {
   // Derived profile data for new fields
   const skillProgressData = userProfile?.profile?.skillProgress || [];
   
-  // Computed badges from scoring data (prioritize over static badges)
-  const computedBadges = computeBadgesFromScoring(scoringData);
-  const unlockedBadges = getUnlockedBadges(scoringData);
-  
   // Use computed badges if available, fallback to static badges
-  const profileBadges = unlockedBadges.length > 0 ? unlockedBadges : (userProfile?.achievements?.badges || []);
+  const profileBadges = getUnlockedBadges(scoringData).length > 0 ? getUnlockedBadges(scoringData) : (userProfile?.achievements?.badges || []);
   const profileCertificates = userProfile?.achievements?.certificates || [];
   const profileMilestones = userProfile?.achievements?.milestones || [];
   

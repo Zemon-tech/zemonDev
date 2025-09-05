@@ -171,16 +171,6 @@ export async function getPublicUserActiveDrafts(username: string): Promise<IUser
 }
 
 // Badge computation utilities
-import { 
-  Trophy, 
-  Star, 
-  Award, 
-  Target, 
-  Zap, 
-  Flame, 
-  Brain, 
-  Code
-} from 'lucide-react';
 import { UserScoringData } from './userScoringApi';
 
 // Achievement definitions - same as AchievementBadgesCard
