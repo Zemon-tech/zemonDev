@@ -270,16 +270,16 @@ const ShowcaseChannel: React.FC = () => {
                                 {/* Use actual user avatar if available */}
                                 <AvatarImage 
                                   src={resolveAvatarUrl(project)} 
-                                  alt={((project as any)?.userId as any)?.fullName || project.username || 'User'}
+                                  alt={(project?.userId as any)?.fullName || project.username || 'User'}
                                   className="object-cover"
                                 />
                                 <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
-                                  {project.username.charAt(0).toUpperCase()}
+                                  {((project?.userId as any)?.username || project.username).charAt(0).toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
                             </div>
                             <span className="text-xs text-base-content/70 truncate font-medium">
-                              {((project as any)?.userId as any)?.fullName || project.username}
+                              {(project?.userId as any)?.fullName || project.username}
                             </span>
                           </div>
                         </DropdownMenuTrigger>
@@ -289,13 +289,13 @@ const ShowcaseChannel: React.FC = () => {
                               <div className="absolute inset-0 w-6 h-6 rounded-full bg-white"></div>
                               <Avatar className="w-6 h-6 relative z-10">
                                 <AvatarImage src={resolveAvatarUrl(project)} />
-                                <AvatarFallback className="text-sm">{(project.username || 'U').charAt(0)}</AvatarFallback>
+                                <AvatarFallback className="text-sm">{((project?.userId as any)?.username || project.username || 'U').charAt(0)}</AvatarFallback>
                               </Avatar>
                             </div>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{((project as any)?.userId as any)?.fullName || project.username}</span>
-                              <span className="text-xs text-base-content/60">@{project.username}</span>
-                            </div>
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">{(project?.userId as any)?.fullName || project.username}</span>
+                                      <span className="text-xs text-base-content/60">@{(project?.userId as any)?.username || project.username}</span>
+                                    </div>
                           </DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 

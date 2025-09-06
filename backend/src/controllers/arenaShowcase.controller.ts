@@ -37,7 +37,7 @@ export const getShowcasedProjects = asyncHandler(
       .sort(sortOptions)
       .skip((parseInt(page as string, 10) - 1) * parseInt(limit as string, 10))
       .limit(parseInt(limit as string, 10))
-      .populate('userId', 'fullName profilePicture');
+      .populate('userId', 'fullName profilePicture username');
 
     res.status(200).json(
       new ApiResponse(
