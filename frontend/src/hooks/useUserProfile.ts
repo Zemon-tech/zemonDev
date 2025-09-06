@@ -169,6 +169,8 @@ export interface UserProfile {
   zemonStreak?: number;
   longestZemonStreak?: number;
   lastZemonVisit?: string;
+  // App-managed avatar image URL
+  profilePicture?: string;
   // Convenience field provided by backend
   solvedCount?: number;
   createdAt: string;

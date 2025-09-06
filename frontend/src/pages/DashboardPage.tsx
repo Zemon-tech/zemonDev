@@ -70,6 +70,7 @@ function FloatingParticles() {
 // --- Compact Header Section ---
 function DashboardHeader({ user, onAchievement }: { user: any; onAchievement: (achievement: any) => void }) {
   const [showConfetti, setShowConfetti] = useState(false);
+  const { userProfile } = useUserProfile();
 
   const triggerAchievement = () => {
     const achievements = [
@@ -100,9 +101,12 @@ function DashboardHeader({ user, onAchievement }: { user: any; onAchievement: (a
             onClick={triggerAchievement}
           >
             <Avatar className="h-12 w-12 shadow-xl ring-2 ring-primary/30">
-              <AvatarImage src={user?.imageUrl} alt={user?.firstName || 'User'} />
+              <AvatarImage 
+                src={userProfile?.profilePicture || user?.imageUrl || ''} 
+                alt={userProfile?.fullName || user?.firstName || 'User'} 
+              />
               <AvatarFallback className="text-lg font-bold bg-gradient-to-br from-primary to-accent text-primary-content">
-                {user?.firstName?.[0]?.toUpperCase() || 'U'}
+                {(userProfile?.fullName || user?.firstName || 'U').charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <motion.div
@@ -116,7 +120,7 @@ function DashboardHeader({ user, onAchievement }: { user: any; onAchievement: (a
           <div className="flex flex-col min-w-0 flex-1 sm:flex-none">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-lg font-bold tracking-tight text-base-content">
-                Hey {user?.firstName || 'Builder'} 👋
+                Hey {userProfile?.fullName || user?.firstName || 'Builder'} 👋
               </span>
               <motion.span 
                 className="badge badge-secondary badge-sm px-2 py-1 text-xs font-bold shadow-md"

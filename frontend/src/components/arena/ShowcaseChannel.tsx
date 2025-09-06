@@ -15,6 +15,18 @@ const ShowcaseChannel: React.FC = () => {
   const { getToken, isSignedIn } = useAuth();
   const { user } = useUser();
   const [showModal, setShowModal] = useState(false);
+  // Resolve avatar URL similar to Nirvana live feed to support historic shapes
+  const resolveAvatarUrl = (p: any): string => {
+    return (
+      p?.userAvatar ||
+      p?.avatar ||
+      p?.author?.avatar ||
+      (p?.author as any)?.profilePicture ||
+      p?.user?.avatar ||
+      (p?.user as any)?.profilePicture ||
+      ''
+    );
+  };
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -224,8 +236,8 @@ const ShowcaseChannel: React.FC = () => {
                       <Avatar className="w-6 h-6 border border-base-200/50 shadow-sm">
                         {/* Use actual user avatar if available */}
                         <AvatarImage 
-                          src={(project as any).userAvatar || (project as any).avatar || ''} 
-                          alt={project.username}
+                          src={resolveAvatarUrl(project)} 
+                          alt={(project as any)?.username || (project as any)?.author?.username || (project as any)?.author?.name || 'User'}
                           className="object-cover"
                         />
                         <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">

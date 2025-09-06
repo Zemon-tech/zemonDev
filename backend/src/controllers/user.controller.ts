@@ -125,7 +125,7 @@ export const getStreakLeaderboard = asyncHandler(
       const limit = Math.max(1, Math.min(limitParam, 10));
 
       const users = await User.find({ zemonStreak: { $gt: 0 } })
-        .select('fullName username zemonStreak longestZemonStreak lastZemonVisit stats.reputation imageUrl')
+        .select('fullName username zemonStreak longestZemonStreak lastZemonVisit stats.reputation profilePicture')
         .sort({ zemonStreak: -1, longestZemonStreak: -1, lastZemonVisit: -1 })
         .limit(limit)
         .lean();
@@ -138,7 +138,7 @@ export const getStreakLeaderboard = asyncHandler(
         longestStreak: u.longestZemonStreak || 0,
         lastVisit: u.lastZemonVisit || null,
         points: u.stats?.reputation || 0,
-        avatar: (u as any).imageUrl || null,
+        avatar: (u as any).profilePicture || null,
       }));
 
       res.status(200).json(new ApiResponse(200, 'Streak leaderboard', leaderboard));
