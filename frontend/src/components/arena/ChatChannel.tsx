@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Smile, MoreHorizontal, Loader2, MessageSquare, Users } from 'lucide-react';
+import { Smile, MoreHorizontal, Loader2, MessageSquare, Users, User } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -12,6 +12,14 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useArenaChat } from '@/hooks/useArenaChat';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import type { Message } from '@/hooks/useArenaChat';
@@ -521,15 +529,65 @@ const ChatChannel: React.FC<ChatChannelProps> = ({
                     <div className="relative mt-0.5 mr-3 flex-shrink-0">
                       {/* White background for transparent avatars */}
                       <div className="absolute inset-0 w-11 h-11 rounded-full bg-white"></div>
-                      <Avatar className="w-11 h-11 border-2 border-base-300 shadow-sm relative z-10">
-                        <AvatarImage 
-                          src={getMessageProfilePicture(first)} 
-                          alt={getMessageDisplayName(first)}
-                        />
-                        <AvatarFallback className="font-bold text-lg bg-primary/80 text-primary-foreground">
-                          {getMessageDisplayName(first).charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="relative z-10 hover:opacity-80 transition-opacity">
+                            <Avatar className="w-11 h-11 border-2 border-base-300 shadow-sm cursor-pointer">
+                              <AvatarImage 
+                                src={getMessageProfilePicture(first)} 
+                                alt={getMessageDisplayName(first)}
+                              />
+                              <AvatarFallback className="font-bold text-lg bg-primary/80 text-primary-foreground">
+                                {getMessageDisplayName(first).charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-48" align="start">
+                          <DropdownMenuLabel className="flex items-center gap-2">
+                            <div className="relative flex items-center justify-center">
+                              <div className="absolute inset-0 w-6 h-6 rounded-full bg-white"></div>
+                              <Avatar className="w-6 h-6 relative z-10">
+                                <AvatarImage 
+                                  src={getMessageProfilePicture(first)} 
+                                  alt={getMessageDisplayName(first)}
+                                />
+                                <AvatarFallback className="text-sm">
+                                  {getMessageDisplayName(first).charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{getMessageDisplayName(first)}</span>
+                              <span className="text-xs text-base-content/60">@{first.username}</span>
+                            </div>
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              // Navigate to user profile
+                              window.open(`/profile/${first.username}`, '_blank');
+                            }}
+                            className="flex items-center gap-2 cursor-pointer"
+                          >
+                            <User className="w-4 h-4" />
+                            View Profile
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              // Navigate to direct message with user
+                              // For now, we'll use the current user's arena page
+                              // TODO: Implement proper DM channel handling in ArenaPage
+                              const currentUser = window.location.pathname.split('/')[1];
+                              window.open(`/${currentUser}/arena?dm=${first.username}`, '_blank');
+                            }}
+                            className="flex items-center gap-2 cursor-pointer"
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                            Message User
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2">
