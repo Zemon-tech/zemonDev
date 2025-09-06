@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { ApiService } from '@/services/api.service';
@@ -28,12 +29,20 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import Toaster from '@/components/ui/toast';
 
 // Icons
 import {
   MessageSquare, Trophy, Users, Sparkles, Star, Hash, Zap, Search, Calendar, Bell, Heart, Share2,
-  ExternalLink, Award, Briefcase, Globe,
+  ExternalLink, Award, Briefcase, Globe, User,
   ChevronDown, ChevronRight, Plus, Eye, Bookmark,
   Clock, CheckCircle, Flame, Edit, Trash2, Loader2,
 } from 'lucide-react';
@@ -86,11 +95,29 @@ interface UpcomingEvent {
 }
 
 const NirvanaChannel: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useUser();
 
   // Live feed state from backend
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState<boolean>(false);
   // const [pagination, setPagination] = useState<{ page: number; limit: number; total: number } | null>(null);
+
+  // Handle user actions
+  const handleViewProfile = (author: any) => {
+    const username = author?.username || author?.name;
+    if (username) {
+      navigate(`/profile/${username}`);
+    }
+  };
+
+  const handleMessageUser = (author: any) => {
+    const username = author?.username || author?.name;
+    if (username) {
+      // Navigate to direct message with the user
+      navigate(`/arena?dm=${username}`);
+    }
+  };
 
   const mapBackendItemToFeedItem = (raw: any): FeedItem => {
     return {
@@ -114,7 +141,6 @@ const NirvanaChannel: React.FC = () => {
   const [eventsLoading, setEventsLoading] = useState(false);
 
   const { getToken } = useAuth();
-  const { user } = useUser();
   const { hasAdminAccess } = useUserRole();
   const { toasterRef, showSuccess, showError } = useNotification();
   const { currentHackathon } = useArenaHackathon();
@@ -937,17 +963,51 @@ const NirvanaChannel: React.FC = () => {
                         <div className="flex items-center gap-1.5 text-xs text-base-content/60">
                           {item.author && (
                             <>
-                              <div className="flex items-center gap-1">
-                                <div className="relative">
-                                  {/* White background for transparent avatars */}
-                                  <div className="absolute inset-0 w-3 h-3 rounded-full bg-white"></div>
-                                  <Avatar className="w-3 h-3 relative z-10">
-                                    <AvatarImage src={item.author.avatar ?? (item.author as any)?.profilePicture} />
-                                    <AvatarFallback className="text-xs">{(item.author.name ?? (item.author as any)?.username ?? 'U').charAt(0)}</AvatarFallback>
-                                  </Avatar>
-                                </div>
-                                <span className="font-medium text-base-content/80">{item.author.name ?? (item.author as any)?.username ?? 'User'}</span>
-                              </div>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <div className="flex items-center gap-1.5 cursor-pointer hover:bg-base-200/50 rounded-md px-1 py-0.5 -mx-1 transition-colors">
+                                    <div className="relative flex items-center justify-center">
+                                      {/* White background for transparent avatars */}
+                                      <div className="absolute inset-0 w-3 h-3 rounded-full bg-white"></div>
+                                      <Avatar className="w-3 h-3 relative z-10">
+                                        <AvatarImage src={item.author.avatar ?? (item.author as any)?.profilePicture} />
+                                        <AvatarFallback className="text-xs">{(item.author.name ?? (item.author as any)?.username ?? 'U').charAt(0)}</AvatarFallback>
+                                      </Avatar>
+                                    </div>
+                                    <span className="font-medium text-base-content/80 text-sm leading-none">{item.author.name ?? (item.author as any)?.username ?? 'User'}</span>
+                                  </div>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-48" align="start">
+                                  <DropdownMenuLabel className="flex items-center gap-2">
+                                    <div className="relative flex items-center justify-center">
+                                      <div className="absolute inset-0 w-6 h-6 rounded-full bg-white"></div>
+                                      <Avatar className="w-6 h-6 relative z-10">
+                                        <AvatarImage src={item.author.avatar ?? (item.author as any)?.profilePicture} />
+                                        <AvatarFallback className="text-sm">{(item.author.name ?? (item.author as any)?.username ?? 'U').charAt(0)}</AvatarFallback>
+                                      </Avatar>
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">{item.author.name ?? (item.author as any)?.username ?? 'User'}</span>
+                                      <span className="text-xs text-base-content/60">@{item.author.username || item.author.name}</span>
+                                    </div>
+                                  </DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => handleViewProfile(item.author)}
+                                    className="flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <User className="w-4 h-4" />
+                                    View Profile
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => handleMessageUser(item.author)}
+                                    className="flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <MessageSquare className="w-4 h-4" />
+                                    Message User
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                               <span>•</span>
                             </>
                           )}

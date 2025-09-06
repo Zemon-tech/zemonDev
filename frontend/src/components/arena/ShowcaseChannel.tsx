@@ -1,16 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ThumbsUp, ThumbsDown, Plus, Hash, Loader2, AlertCircle, Calendar, Github, Globe } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ThumbsUp, ThumbsDown, Plus, Hash, Loader2, AlertCircle, Calendar, Github, Globe, User, MessageSquare } from 'lucide-react';
 import { useArenaShowcase } from '@/hooks/useArenaShowcase';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { ApiService } from '@/services/api.service';
 import Toaster from '@/components/ui/toast';
 
 const ShowcaseChannel: React.FC = () => {
+  const navigate = useNavigate();
   const { projects, loading, error, upvoteProject, downvoteProject, refetch, toasterRef } = useArenaShowcase();
   const { getToken, isSignedIn } = useAuth();
   const { user } = useUser();
@@ -27,6 +37,22 @@ const ShowcaseChannel: React.FC = () => {
       (p?.user as any)?.profilePicture ||
       ''
     );
+  };
+
+  // Handle user actions
+  const handleViewProfile = (project: any) => {
+    const username = (project?.userId as any)?.username || project?.username;
+    if (username) {
+      navigate(`/profile/${username}`);
+    }
+  };
+
+  const handleMessageUser = (project: any) => {
+    const username = (project?.userId as any)?.username || project?.username;
+    if (username) {
+      // Navigate to direct message with the user
+      navigate(`/arena?dm=${username}`);
+    }
   };
   const [form, setForm] = useState({
     title: '',
@@ -202,9 +228,9 @@ const ShowcaseChannel: React.FC = () => {
               transition={{ duration: 0.3 }}
               className="group"
             >
-              <Card className="h-90 bg-base-100/90 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden group/card backdrop-blur-sm rounded-xl flex flex-col p-0">
+              <Card className="h-80 bg-base-100/90 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden group/card backdrop-blur-sm rounded-xl flex flex-col p-0">
                 {/* Image Section with increased height and rounded top corners */}
-                <div className="relative h-50 w-full overflow-hidden bg-gradient-to-br from-base-200/30 to-base-300/20 flex-shrink-0">
+                <div className="relative h-40 w-full overflow-hidden bg-gradient-to-br from-base-200/30 to-base-300/20 flex-shrink-0">
                   <ImageCarousel images={project.images || []} title={project.title} />
                 </div>
 
@@ -232,26 +258,62 @@ const ShowcaseChannel: React.FC = () => {
 
                   {/* User Info and Actions Row - with proper bottom padding */}
                   <div className="flex items-center justify-between gap-3 mt-auto">
-                    {/* User Info with proper avatar */}
+                    {/* User Info with proper avatar and dropdown */}
                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <div className="relative">
-                        {/* White background for transparent avatars */}
-                        <div className="absolute inset-0 w-6 h-6 rounded-full bg-white"></div>
-                        <Avatar className="w-6 h-6 border border-base-200/50 shadow-sm relative z-10">
-                          {/* Use actual user avatar if available */}
-                          <AvatarImage 
-                            src={resolveAvatarUrl(project)} 
-                            alt={((project as any)?.userId as any)?.fullName || project.username || 'User'}
-                            className="object-cover"
-                          />
-                          <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
-                            {project.username.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                      </div>
-                      <span className="text-xs text-base-content/70 truncate font-medium">
-                        {((project as any)?.userId as any)?.fullName || project.username}
-                      </span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <div className="flex items-center gap-1.5 cursor-pointer hover:bg-base-200/50 rounded-md px-1 py-0.5 -mx-1 transition-colors">
+                            <div className="relative flex items-center justify-center">
+                              {/* White background for transparent avatars */}
+                              <div className="absolute inset-0 w-6 h-6 rounded-full bg-white"></div>
+                              <Avatar className="w-6 h-6 border border-base-200/50 shadow-sm relative z-10">
+                                {/* Use actual user avatar if available */}
+                                <AvatarImage 
+                                  src={resolveAvatarUrl(project)} 
+                                  alt={((project as any)?.userId as any)?.fullName || project.username || 'User'}
+                                  className="object-cover"
+                                />
+                                <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
+                                  {project.username.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                            </div>
+                            <span className="text-xs text-base-content/70 truncate font-medium">
+                              {((project as any)?.userId as any)?.fullName || project.username}
+                            </span>
+                          </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-48" align="start">
+                          <DropdownMenuLabel className="flex items-center gap-2">
+                            <div className="relative flex items-center justify-center">
+                              <div className="absolute inset-0 w-6 h-6 rounded-full bg-white"></div>
+                              <Avatar className="w-6 h-6 relative z-10">
+                                <AvatarImage src={resolveAvatarUrl(project)} />
+                                <AvatarFallback className="text-sm">{(project.username || 'U').charAt(0)}</AvatarFallback>
+                              </Avatar>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{((project as any)?.userId as any)?.fullName || project.username}</span>
+                              <span className="text-xs text-base-content/60">@{project.username}</span>
+                            </div>
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleViewProfile(project)}
+                            className="flex items-center gap-2 cursor-pointer"
+                          >
+                            <User className="w-4 h-4" />
+                            View Profile
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleMessageUser(project)}
+                            className="flex items-center gap-2 cursor-pointer"
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                            Message User
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
 
                     {/* Action Buttons with better spacing */}

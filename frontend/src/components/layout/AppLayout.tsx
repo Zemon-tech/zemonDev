@@ -5,7 +5,7 @@ import Sidebar from './Sidebar';
 import { useWorkspace } from '@/lib/WorkspaceContext';
 import { useSidebar } from '@/lib/SidebarContext';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownItem } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuGroup } from '@/components/ui/dropdown-menu';
 import { useArenaChannels, Channel as ArenaChannel } from '@/hooks/useArenaChannels';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
 import { useNotification } from '@/hooks/useNotification';
@@ -461,41 +461,42 @@ export default function AppLayout() {
               {!arenaChannelsLoading && Object.entries(arenaChannels).map(([, channelList]) => {
                 const channelTree = buildChannelTree(channelList);
                 return channelTree.map(({ parent, children }) => (
-                  <DropdownMenu
-                    key={parent._id}
-                    trigger={
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 px-3 rounded-lg text-primary hover:bg-primary/10 transition-all duration-200"
-                      >
-                        {getChannelIcon(parent)}
-                        <span className="hidden sm:inline text-sm font-medium ml-2">
-                          {parent.name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                        </span>
-                        <ChevronDown className="w-4 h-4 ml-1" />
-                      </Button>
-                    }
-                  >
-                    {/* Parent channel item */}
-                    <DropdownItem
-                      onClick={() => handleArenaChannelSelect(parent._id)}
-                      icon={getChannelIcon(parent)}
-                    >
-                      {parent.name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                    </DropdownItem>
-                    
-                    {/* Child channels */}
-                    {children.map(child => (
-                      <DropdownItem
-                        key={child._id}
-                        onClick={() => handleArenaChannelSelect(child._id)}
-                        icon={getChannelIcon(child)}
-                        className="pl-6"
-                      >
-                        {child.name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                      </DropdownItem>
-                    ))}
+                  <DropdownMenu key={parent._id}>
+                    <DropdownMenuTrigger className="h-9 px-3 rounded-lg text-primary hover:bg-primary/10 transition-all duration-200 bg-transparent border-none flex items-center gap-2">
+                      {getChannelIcon(parent)}
+                      <span className="hidden sm:inline text-sm font-medium">
+                        {parent.name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                      </span>
+                      <ChevronDown className="w-4 h-4" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-48 z-[9999]" align="start" sideOffset={4}>
+                      <DropdownMenuGroup>
+                        {/* Parent channel item */}
+                        <DropdownMenuItem
+                          onSelect={() => handleArenaChannelSelect(parent._id)}
+                          className="flex items-center gap-2 cursor-pointer"
+                        >
+                          {getChannelIcon(parent)}
+                          <span className="text-sm">
+                            {parent.name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                          </span>
+                        </DropdownMenuItem>
+                        
+                        {/* Child channels */}
+                        {children.map(child => (
+                          <DropdownMenuItem
+                            key={child._id}
+                            onSelect={() => handleArenaChannelSelect(child._id)}
+                            className="flex items-center gap-2 pl-6 cursor-pointer"
+                          >
+                            {getChannelIcon(child)}
+                            <span className="text-sm">
+                              {child.name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                            </span>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
                   </DropdownMenu>
                 ));
               })}
