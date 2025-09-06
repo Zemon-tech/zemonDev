@@ -169,3 +169,142 @@ export async function getPublicUserActiveDrafts(username: string): Promise<IUser
   const response = await fetch(url);
   return handleResponse<IUserActiveDraft[]>(response);
 }
+
+// Badge computation utilities
+import { UserScoringData } from './userScoringApi';
+
+// Achievement definitions - same as AchievementBadgesCard
+const ACHIEVEMENTS = [
+  {
+    id: 'first_problem',
+    title: 'First Steps',
+    subtitle: 'Solve your first problem',
+    icon: '🎯',
+    level: 'bronze' as const,
+    condition: (data: UserScoringData) => data.totalPoints > 0,
+    progress: (data: UserScoringData) => data.totalPoints > 0 ? 100 : 0
+  },
+  {
+    id: 'streak_7',
+    title: 'Week Warrior',
+    subtitle: '7-day solving streak',
+    icon: '🔥',
+    level: 'bronze' as const,
+    condition: (_data: UserScoringData) => false, // Will be calculated from streak data
+    progress: (_data: UserScoringData) => 0 // Will be calculated from streak data
+  },
+  {
+    id: 'points_100',
+    title: 'Century Club',
+    subtitle: 'Earn 100 points',
+    icon: '⭐',
+    level: 'silver' as const,
+    condition: (data: UserScoringData) => data.totalPoints >= 100,
+    progress: (data: UserScoringData) => Math.min((data.totalPoints / 100) * 100, 100)
+  },
+  {
+    id: 'expert_skill',
+    title: 'Skill Master',
+    subtitle: 'Reach expert level in any skill',
+    icon: '🧠',
+    level: 'silver' as const,
+    condition: (data: UserScoringData) => data.skills?.some(skill => skill.averageScore >= 90),
+    progress: (data: UserScoringData) => {
+      const maxSkill = Math.max(...(data.skills?.map(s => s.averageScore) || [0]));
+      return Math.min((maxSkill / 90) * 100, 100);
+    }
+  },
+  {
+    id: 'points_500',
+    title: 'Half Grand',
+    subtitle: 'Earn 500 points',
+    icon: '🏆',
+    level: 'gold' as const,
+    condition: (data: UserScoringData) => data.totalPoints >= 500,
+    progress: (data: UserScoringData) => Math.min((data.totalPoints / 500) * 100, 100)
+  },
+  {
+    id: 'multi_category',
+    title: 'Diverse Learner',
+    subtitle: 'Solve problems in 5+ categories',
+    icon: '💻',
+    level: 'gold' as const,
+    condition: (data: UserScoringData) => {
+      const categories = Object.keys(data.problemsByCategory || {}).filter(cat => 
+        (data.problemsByCategory as any)[cat]?.solved > 0
+      );
+      return categories.length >= 5;
+    },
+    progress: (data: UserScoringData) => {
+      const categories = Object.keys(data.problemsByCategory || {}).filter(cat => 
+        (data.problemsByCategory as any)[cat]?.solved > 0
+      );
+      return Math.min((categories.length / 5) * 100, 100);
+    }
+  },
+  {
+    id: 'points_1000',
+    title: 'Grand Master',
+    subtitle: 'Earn 1000 points',
+    icon: '🥇',
+    level: 'platinum' as const,
+    condition: (data: UserScoringData) => data.totalPoints >= 1000,
+    progress: (data: UserScoringData) => Math.min((data.totalPoints / 1000) * 100, 100)
+  },
+  {
+    id: 'perfect_score',
+    title: 'Perfectionist',
+    subtitle: 'Get 100% on a problem',
+    icon: '⚡',
+    level: 'platinum' as const,
+    condition: (data: UserScoringData) => data.highestScore >= 100,
+    progress: (data: UserScoringData) => Math.min((data.highestScore / 100) * 100, 100)
+  }
+];
+
+export interface ComputedBadge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  earnedAt: string;
+  level: 'bronze' | 'silver' | 'gold' | 'platinum';
+  progress: number;
+  unlocked: boolean;
+}
+
+/**
+ * Convert UserScoringData to computed badges for profile display
+ * @param scoringData - User scoring data
+ * @returns Array of computed badges
+ */
+export function computeBadgesFromScoring(scoringData: UserScoringData | null): ComputedBadge[] {
+  if (!scoringData) return [];
+  
+  return ACHIEVEMENTS.map(achievement => {
+    const unlocked = achievement.condition(scoringData);
+    const progress = achievement.progress(scoringData);
+    
+    return {
+      id: achievement.id,
+      name: achievement.title,
+      description: achievement.subtitle,
+      icon: achievement.icon,
+      category: 'crucible',
+      earnedAt: unlocked ? new Date().toISOString() : '',
+      level: achievement.level,
+      progress,
+      unlocked
+    };
+  });
+}
+
+/**
+ * Get only unlocked badges from scoring data
+ * @param scoringData - User scoring data  
+ * @returns Array of unlocked badges
+ */
+export function getUnlockedBadges(scoringData: UserScoringData | null): ComputedBadge[] {
+  return computeBadgesFromScoring(scoringData).filter(badge => badge.unlocked);
+}
