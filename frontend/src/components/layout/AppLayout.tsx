@@ -7,7 +7,7 @@ import { useSidebar } from '@/lib/SidebarContext';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuGroup } from '@/components/ui/dropdown-menu';
 import { useArenaChannels, Channel as ArenaChannel } from '@/hooks/useArenaChannels';
-import { NotificationPopover } from '@/components/notifications/NotificationPopover';
+import NotificationTrigger from '@/components/notifications/NotificationTrigger';
 import { useNotification } from '@/hooks/useNotification';
 import Toaster from '@/components/ui/toast';
 import { useForge } from '@/context/ForgeContext';
@@ -540,7 +540,7 @@ export default function AppLayout() {
           {/* Right side - user actions */}
           <div className="flex items-center space-x-3 mr-4 relative z-50">
             {/* Notifications */}
-            <NotificationPopover className="h-9 w-9" toasterRef={toasterRef} />
+            <NotificationTrigger className="h-9 w-9" />
             {/* [ADD] Nav lock button - only on Crucible Problem Page in focus mode */}
             {isCrucibleProblemPage && focusMode && (
               <Button
