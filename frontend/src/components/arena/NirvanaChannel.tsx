@@ -938,10 +938,14 @@ const NirvanaChannel: React.FC = () => {
                           {item.author && (
                             <>
                               <div className="flex items-center gap-1">
-                                <Avatar className="w-3 h-3">
-                                  <AvatarImage src={item.author.avatar ?? (item.author as any)?.profilePicture} />
-                                  <AvatarFallback className="text-xs">{(item.author.name ?? (item.author as any)?.username ?? 'U').charAt(0)}</AvatarFallback>
-                                </Avatar>
+                                <div className="relative">
+                                  {/* White background for transparent avatars */}
+                                  <div className="absolute inset-0 w-3 h-3 rounded-full bg-white"></div>
+                                  <Avatar className="w-3 h-3 relative z-10">
+                                    <AvatarImage src={item.author.avatar ?? (item.author as any)?.profilePicture} />
+                                    <AvatarFallback className="text-xs">{(item.author.name ?? (item.author as any)?.username ?? 'U').charAt(0)}</AvatarFallback>
+                                  </Avatar>
+                                </div>
                                 <span className="font-medium text-base-content/80">{item.author.name ?? (item.author as any)?.username ?? 'User'}</span>
                               </div>
                               <span>•</span>

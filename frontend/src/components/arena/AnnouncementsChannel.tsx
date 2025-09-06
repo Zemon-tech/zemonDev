@@ -307,12 +307,16 @@ const AnnouncementsChannelComponent: React.FC<AnnouncementsChannelProps> = ({
                         "group flex items-start w-full px-6 py-1.5 hover:bg-base-200/80 transition-colors relative"
                       )}
                     >
-                      <Avatar className="w-11 h-11 mt-0.5 mr-3 flex-shrink-0 border-2 border-base-300 shadow-sm bg-base-100">
-                        <AvatarImage src={getMessageProfilePicture(message)} alt={getMessageDisplayName(message)} />
-                        <AvatarFallback className="font-bold text-lg bg-primary/80 text-primary-foreground">
-                          {getMessageDisplayName(message).charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="relative mt-0.5 mr-3 flex-shrink-0">
+                        {/* White background for transparent avatars */}
+                        <div className="absolute inset-0 w-11 h-11 rounded-full bg-white"></div>
+                        <Avatar className="w-11 h-11 border-2 border-base-300 shadow-sm relative z-10">
+                          <AvatarImage src={getMessageProfilePicture(message)} alt={getMessageDisplayName(message)} />
+                          <AvatarFallback className="font-bold text-lg bg-primary/80 text-primary-foreground">
+                            {getMessageDisplayName(message).charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-2">
                           <span className="font-semibold text-base-content text-[15px] leading-tight">{getMessageDisplayName(message)}</span>

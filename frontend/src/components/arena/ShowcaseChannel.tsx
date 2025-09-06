@@ -18,10 +18,11 @@ const ShowcaseChannel: React.FC = () => {
   // Resolve avatar URL similar to Nirvana live feed to support historic shapes
   const resolveAvatarUrl = (p: any): string => {
     return (
+      (p?.userId as any)?.profilePicture ||
+      (p?.author as any)?.profilePicture ||
+      p?.author?.avatar ||
       p?.userAvatar ||
       p?.avatar ||
-      p?.author?.avatar ||
-      (p?.author as any)?.profilePicture ||
       p?.user?.avatar ||
       (p?.user as any)?.profilePicture ||
       ''
@@ -233,18 +234,24 @@ const ShowcaseChannel: React.FC = () => {
                   <div className="flex items-center justify-between gap-3 mt-auto">
                     {/* User Info with proper avatar */}
                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <Avatar className="w-6 h-6 border border-base-200/50 shadow-sm">
-                        {/* Use actual user avatar if available */}
-                        <AvatarImage 
-                          src={resolveAvatarUrl(project)} 
-                          alt={(project as any)?.username || (project as any)?.author?.username || (project as any)?.author?.name || 'User'}
-                          className="object-cover"
-                        />
-                        <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
-                          {project.username.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs text-base-content/70 truncate font-medium">{project.username}</span>
+                      <div className="relative">
+                        {/* White background for transparent avatars */}
+                        <div className="absolute inset-0 w-6 h-6 rounded-full bg-white"></div>
+                        <Avatar className="w-6 h-6 border border-base-200/50 shadow-sm relative z-10">
+                          {/* Use actual user avatar if available */}
+                          <AvatarImage 
+                            src={resolveAvatarUrl(project)} 
+                            alt={((project as any)?.userId as any)?.fullName || project.username || 'User'}
+                            className="object-cover"
+                          />
+                          <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
+                            {project.username.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <span className="text-xs text-base-content/70 truncate font-medium">
+                        {((project as any)?.userId as any)?.fullName || project.username}
+                      </span>
                     </div>
 
                     {/* Action Buttons with better spacing */}

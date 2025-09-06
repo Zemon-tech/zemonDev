@@ -103,12 +103,16 @@ export const DashboardLeaderboard: React.FC<DashboardLeaderboardProps> = ({
             </div>
             
             {/* Avatar */}
-            <Avatar className="h-8 w-8 ring-2 ring-white/20 shadow-lg">
-              <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback className="bg-accent/20 text-accent font-bold text-sm border border-accent/30">
-                {user.name.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              {/* White background for transparent avatars */}
+              <div className="absolute inset-0 h-8 w-8 rounded-full bg-white"></div>
+              <Avatar className="h-8 w-8 ring-2 ring-white/20 shadow-lg relative z-10">
+                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarFallback className="bg-accent/20 text-accent font-bold text-sm border border-accent/30">
+                  {user.name.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </div>
             
             {/* User Info */}
             <div className="flex-1 min-w-0">

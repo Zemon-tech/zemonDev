@@ -11,6 +11,7 @@ export interface Project {
   gitRepositoryUrl: string;
   demoUrl: string;
   username: string;
+  userId: string | { _id: string; fullName: string; profilePicture?: string };
   upvotes: number;
   hasUpvoted: boolean;
   downvotes: number; // ADDED

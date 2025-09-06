@@ -100,7 +100,10 @@ function DashboardHeader({ user, onAchievement }: { user: any; onAchievement: (a
             className="relative cursor-pointer"
             onClick={triggerAchievement}
           >
-            <Avatar className="h-12 w-12 shadow-xl ring-2 ring-primary/30">
+            {/* White background for transparent avatars */}
+            <div className="absolute inset-0 h-12 w-12 rounded-full bg-white"></div>
+            
+            <Avatar className="h-12 w-12 shadow-xl ring-2 ring-primary/30 relative z-10">
               <AvatarImage 
                 src={userProfile?.profilePicture || user?.imageUrl || ''} 
                 alt={userProfile?.fullName || user?.firstName || 'User'} 

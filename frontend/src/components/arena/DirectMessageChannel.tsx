@@ -293,15 +293,19 @@ const DirectMessageChannel: React.FC<DirectMessageChannelProps> = ({
                 )}
               >
                 <div className="flex items-start gap-4">
-                  <Avatar className="w-10 h-10">
-                    <AvatarImage 
-                      src={getMessageProfilePicture(message)} 
-                      alt={getMessageDisplayName(message)}
-                    />
-                    <AvatarFallback>
-                      {getMessageDisplayName(message).charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative">
+                    {/* White background for transparent avatars */}
+                    <div className="absolute inset-0 w-10 h-10 rounded-full bg-white"></div>
+                    <Avatar className="w-10 h-10 relative z-10">
+                      <AvatarImage 
+                        src={getMessageProfilePicture(message)} 
+                        alt={getMessageDisplayName(message)}
+                      />
+                      <AvatarFallback>
+                        {getMessageDisplayName(message).charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-base-content">{getMessageDisplayName(message)}</span>
