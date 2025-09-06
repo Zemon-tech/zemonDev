@@ -29,7 +29,7 @@ export const useArenaShowcase = () => {
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const response = await ApiService.getShowcaseProjects(getToken);
+      const response = await ApiService.getShowcaseProjects();
       const userId = isSignedIn && response?.data?.userId ? response.data.userId : null;
       if (response?.data?.projects && Array.isArray(response.data.projects)) {
         setProjects(response.data.projects.map((project: any) => ({
