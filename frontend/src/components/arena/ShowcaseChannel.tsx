@@ -202,9 +202,9 @@ const ShowcaseChannel: React.FC = () => {
               transition={{ duration: 0.3 }}
               className="group"
             >
-              <Card className="h-80 bg-base-100/90 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden group/card backdrop-blur-sm rounded-xl flex flex-col p-0">
+              <Card className="h-90 bg-base-100/90 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden group/card backdrop-blur-sm rounded-xl flex flex-col p-0">
                 {/* Image Section with increased height and rounded top corners */}
-                <div className="relative h-40 w-full overflow-hidden bg-gradient-to-br from-base-200/30 to-base-300/20 flex-shrink-0">
+                <div className="relative h-50 w-full overflow-hidden bg-gradient-to-br from-base-200/30 to-base-300/20 flex-shrink-0">
                   <ImageCarousel images={project.images || []} title={project.title} />
                 </div>
 

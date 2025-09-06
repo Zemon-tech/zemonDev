@@ -46,35 +46,6 @@ export class ApiService {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
-  private static async makePublicRequest(
-    endpoint: string, 
-    options: RequestInit = {}
-  ) {
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-
-    let responseBody: any = null;
-    try {
-      responseBody = await response.json();
-    } catch (e) {
-      // ignore JSON parse error
-    }
-
-    if (!response.ok) {
-      const error: any = new Error(responseBody?.message || `API Error: ${response.status}`);
-      error.status = response.status;
-      error.response = { status: response.status, data: responseBody };
-      throw error;
-    }
-
-    return responseBody;
-  }
-
   // Arena Channels API
   static async getChannels(getToken: () => Promise<string | null>) {
     return this.makeRequest('/api/arena/channels', {}, getToken);
@@ -101,8 +72,8 @@ export class ApiService {
   }
 
   // Project Showcase API
-  static async getShowcaseProjects() {
-    return this.makePublicRequest('/api/arena/showcase', {});
+  static async getShowcaseProjects(getToken: () => Promise<string | null>) {
+    return this.makeRequest('/api/arena/showcase', {}, getToken);
   }
 
   static async upvoteProject(projectId: string, getToken: () => Promise<string | null>) {
